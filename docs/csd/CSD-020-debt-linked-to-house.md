@@ -3,7 +3,7 @@ id: CSD-020
 title: Debt linked to a house
 status: approved
 owner: Thijs Bardoel
-version: 0.6
+version: 0.7
 last_updated: 30/10/2026
 related: [CSD-000, CSD-002, CSD-011, CSD-012, CSD-015, CSD-017, CSD-018, CSD-019]
 ---
@@ -40,7 +40,7 @@ A mortgage or a loan often belongs to one house, but the app keeps houses (CSD-0
 | **Sale period** | The period that holds the sell date: the month (`YYYY-MM`) for a debt with monthly statements and the year (`YYYY`) for a debt with yearly statements. |
 | **Open balance** | The balance of the latest statement of the debt in a period up to and including the sale period. A debt without such a statement, or with 0.00, has no open balance. |
 | **Settlement** | What the sale does to a linked debt with an open balance: the outcome (**Repaid** or **Cancelled**), the settlement date (the sell date), and the settled amount (the open balance). |
-| **Settlement statement** | The statement of balance 0.00 in the sale period that the settlement writes, with the note "Repaid on sale of <house>" or "Cancelled on sale of <house>". |
+| **Settlement statement** | The final statement of balance 0.00 that the settlement adds in the sale period, flagged as a settlement statement, with the note "Repaid on sale of <house>" or "Cancelled on sale of <house>". It may share its period with a regular statement, which stays as it is: this is the only exception to CSD-011 REQ-8. Within a period it comes after the regular statement. |
 | **Settled debt** | A debt with a settlement. |
 
 ## 4. Requirements
@@ -193,42 +193,43 @@ Scenario: A statement after the sale period blocks the sale
 ```
 
 **REQ-5: A settlement drops the debt to 0.00** *(event-driven)*
-When a sale is saved with an outcome for a debt, the app shall store the settlement on the debt and write its settlement statement of 0.00 in the sale period, and if the debt already has a statement in that period, then the settlement statement shall replace it and the app shall keep the replaced balance and note on the settlement.
+When a sale is saved with an outcome for a debt, the app shall store the settlement on the debt and add its settlement statement of 0.00 in the sale period after any regular statement of that period, which stays unchanged, so a debt can have two statements in the same month or year.
 
 ```gherkin
 @AC-5.1
 Scenario: The settlement statement
   Given "Example Mortgage" (monthly) with a statement for 2026-03 with balance 190000.00
   When the house is sold on 10/06/2026 with the outcome Repaid for it
-  Then it has a statement for 2026-06 with balance 0.00 and note "Repaid on sale of Example House"
+  Then it has a settlement statement for 2026-06 with balance 0.00 and note "Repaid on sale of Example House"
   And its settlement is Repaid, dated 10/06/2026, with settled amount 190000.00
   And its latest balance is 0.00
 
 @AC-5.2
-Scenario: A statement in the sale period is replaced
+Scenario: A statement in the sale period stays
   Given "Example Loan" (monthly) with a statement for 2026-06 with balance 3500.00 and note "Mid-June"
   When the house is sold on 10/06/2026 with the outcome Cancelled for it
-  Then its statement for 2026-06 has balance 0.00 and note "Cancelled on sale of Example House"
+  Then it has two statements for 2026-06: the regular one with balance 3500.00 and note "Mid-June", and after it the settlement statement with balance 0.00 and note "Cancelled on sale of Example House"
   And the settled amount is 3500.00
-  And the replaced balance 3500.00 and note "Mid-June" are kept on the settlement
+  And its latest balance is 0.00
 
 @AC-5.3
-Scenario: A yearly debt settles in the sale year
-  Given "Example Mortgage" (yearly) with a statement for 2025 with balance 200000.00
+Scenario: A yearly debt gets a second statement in the sale year
+  Given "Example Mortgage" (yearly) with statements for 2025 (balance 200000.00) and 2026 (balance 150000.00)
   When the house is sold on 10/06/2026 with the outcome Repaid for it
-  Then it has a statement for 2026 with balance 0.00 and settled amount 200000.00
+  Then it has two statements for 2026: the regular one with balance 150000.00, and after it the settlement statement with balance 0.00
+  And the settled amount is 150000.00
 ```
 
 **REQ-6: Undo a sale** *(event-driven)*
-When the user saves a sold house with the sell date and the sell amount emptied and has confirmed it, the app shall remove the sale and every settlement of the house, shall remove each settlement statement and restore the statement it replaced, and shall leave the debts linked.
+When the user saves a sold house with the sell date and the sell amount emptied and has confirmed it, the app shall remove the sale and every settlement of the house, shall remove each settlement statement and leave every regular statement as it is, and shall leave the debts linked.
 
 ```gherkin
 @AC-6.1
-Scenario: Undo restores the debts
-  Given "Example Loan" was settled as Cancelled on the sale of "Example House" and replaced a statement for 2026-06 with balance 3500.00 and note "Mid-June"
+Scenario: Undo removes only the settlement statement
+  Given "Example Loan" was settled as Cancelled on the sale of "Example House" and has a regular statement for 2026-06 with balance 3500.00 and note "Mid-June"
   When the user empties the sell date and sell amount, confirms and saves
   Then the house is held again
-  And "Example Loan" has no settlement, is still linked, and its statement for 2026-06 has balance 3500.00 and note "Mid-June"
+  And "Example Loan" has no settlement, is still linked, and has exactly one statement for 2026-06, with balance 3500.00 and note "Mid-June"
 
 @AC-6.2
 Scenario: Undo without confirmation
@@ -258,7 +259,7 @@ Scenario: Change the sell amount
 ```
 
 **REQ-8: Settled debts are locked** *(unwanted behaviour)*
-If a debt has a settlement, then the app shall reject, with the error code `DEBT_SETTLED_LOCKED`, adding a statement in or after the settlement period, changing or deleting such a statement, changing the statement period of the debt, removing its house link and changing its category; statements before the settlement period stay editable.
+If a debt has a settlement, then the app shall reject, with the error code `DEBT_SETTLED_LOCKED`, adding a statement in or after the settlement period, changing or deleting such a statement or the settlement statement, changing the statement period of the debt, removing its house link and changing its category; statements before the settlement period stay editable.
 
 ```gherkin
 @AC-8.1
@@ -270,8 +271,9 @@ Scenario Outline: Locked operations
   Examples:
     | operation                                         |
     | adds a statement for 2026-07                      |
-    | edits the statement for 2026-06                   |
-    | deletes the statement for 2026-06                 |
+    | edits the regular statement for 2026-06           |
+    | deletes the regular statement for 2026-06         |
+    | deletes the settlement statement for 2026-06      |
     | unlinks it or changes its category in the Edit debt form |
 
 @AC-8.2
@@ -454,14 +456,14 @@ Scenario: Undoing the sale later undoes the settlement
 ```
 
 **REQ-16: The project file** *(event-driven)*
-When the user saves and later opens a project, the app shall restore every category, link and settlement exactly, including the replaced statement, and if a link points to a house that does not exist, a debt with the category Scholarship or Other has a link, a settlement lacks its settlement statement, or a settled debt has a later statement, then the app shall reject the file with the error code `PROJECT_INVALID_FILE`.
+When the user saves and later opens a project, the app shall restore every category, link, settlement and settlement statement exactly, and if a link points to a house that does not exist, a debt with the category Scholarship or Other has a link, a settlement lacks its settlement statement, a settlement statement belongs to no settlement, or a settled debt has a later statement, then the app shall reject the file with the error code `PROJECT_INVALID_FILE`.
 
 ```gherkin
 @AC-16.1
 Scenario: Round trip
-  Given "Example Loan" linked to "Example House" and settled as Cancelled with a replaced statement
+  Given "Example Loan" linked to "Example House" and settled as Cancelled, with a regular and a settlement statement for 2026-06
   When the user saves the project and opens it again
-  Then the link, the settlement and the replaced statement are unchanged
+  Then the link, the settlement and both statements are unchanged
 
 @AC-16.2
 Scenario: A file without categories or links
@@ -474,6 +476,23 @@ Scenario: A damaged link
   Given a project file in which a debt links to a house that does not exist
   When the user opens it
   Then it is rejected with the error code "PROJECT_INVALID_FILE"
+```
+
+**REQ-18: The Statements table shows the settlement statement** *(ubiquitous)*
+The app shall show both statements of a period in the Statements table of the Debts overview, the settlement statement above the regular one, with the badge of the settlement on the settlement row, and shall show no Edit and Delete buttons on the settlement statement and on the regular statements of the settlement period and later of a settled debt.
+
+```gherkin
+@AC-18.1
+Scenario: Two rows in one period
+  Given "Example Loan" settled as Cancelled with a regular statement for 2026-06 (balance 3500.00) and its settlement statement
+  When the user opens the Debts overview
+  Then the Statements table lists the settlement statement "Cancelled on sale of Example House" with balance 0.00 and the badge Cancelled directly above the regular statement for 2026-06 with balance 3500.00
+  And neither row has Edit or Delete buttons
+
+@AC-18.2
+Scenario: The change of the settlement statement
+  Given the same debt with a regular statement for 2026-05 (balance 4000.00)
+  Then the change of the regular statement for 2026-06 is 500.00 and the change of the settlement statement is 3500.00
 ```
 
 ## 5. Interfaces and contracts
@@ -491,11 +510,10 @@ erDiagram
         Outcome outcome "Repaid or Cancelled"
         Date date "the sell date, ISO 8601 in the file"
         Decimal amount "settled amount, two decimals"
-        Statement replaced "optional: balance and note of the statement it replaced"
     }
 ```
 
-The link is stored on the debt (`house_id`) and the settlement on the debt (`settlement`), both optional; the project file keeps `format_version` 1 and a file without them opens with no links. The settlement statement is an ordinary statement of the debt (CSD-011) and counts in its figures.
+The link is stored on the debt (`house_id`) and the settlement on the debt (`settlement`), both optional; the project file keeps `format_version` 1 and a file without them opens with no links. The settlement statement is a statement of the debt (CSD-011) with the flag `settlement`; it counts in the figures and sorts after the regular statement of its period.
 
 Commands: `create_debt` and `update_debt` take, besides the fields of CSD-011, `category` (`Mortgage`, `Loan`, `Scholarship` or `Other`; unchanged when omitted on an edit, `Other` on create) and `house_id` (optional; sent empty to unlink) and `settlement` (`Repaid` or `Cancelled`; only for a link to a sold house, REQ-17). `debt_open_balance(debt_id, house_id)` returns the open balance of a debt at the sell date of a sold house, or none, for the prompt of REQ-15. `create_house` and `update_house` take, besides the fields of CSD-015 and CSD-019, `links` with `settlements` (a list of `{ debt_id, outcome }`) and `confirm_undo` (boolean) only. `list_open_debts(house_id, sell_date)` returns the linked debts of that house with an open balance at a sale, for the prompt of REQ-15, and the commands still validate the choices (REQ-3). `list_houses()` returns the linked debts of each house with latest balance and settlement, and `list_debts()` returns the category, house name and settlement of each debt. All validation is in Rust.
 
@@ -522,6 +540,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `cargo d
 - OQ-1: Should the yearly totals of the Debts overview (CSD-011 REQ-19) show the Cancelled-adjusted repaid amount, or the raw drop as today? This CSD adjusts only the wealth accumulation (REQ-12). Owner: Thijs. Blocks: none (default: raw in the Debts overview).
 
 ## 9. Changelog
+- 0.7 (30/10/2026): The settlement adds a final statement and keeps the regular statement of the sale period, so a debt can have two statements in one month or year (definition, REQ-5, REQ-6, REQ-8, REQ-16, new REQ-18). The replaced statement is dropped. Amended without a draft phase at the owner's request.
 - 0.6 (30/10/2026): New debt category Scholarship, which cannot be linked to a house (definition, REQ-1, REQ-2, REQ-14, REQ-16, AC-1.6). Back to `draft` until re-approved.
 - 0.5 (30/10/2026): The linked debts are no longer shown on the Houses overview rows (CSD-019 REQ-9); the Edit house form shows them as a table with the columns Debt, Category, Balance and Outcome (REQ-13, AC-13.1, AC-13.2). Back to `draft` until re-approved.
 - 0.4 (30/10/2026): The Edit house form shows a read-only list of the linked debts (REQ-13, AC-13.2, AC-13.3). Back to `draft` until re-approved.
