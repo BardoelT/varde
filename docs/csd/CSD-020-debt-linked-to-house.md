@@ -3,7 +3,7 @@ id: CSD-020
 title: Debt linked to a house
 status: approved
 owner: Thijs Bardoel
-version: 0.7
+version: 0.8
 last_updated: 30/10/2026
 related: [CSD-000, CSD-002, CSD-011, CSD-012, CSD-015, CSD-017, CSD-018, CSD-019]
 ---
@@ -456,7 +456,7 @@ Scenario: Undoing the sale later undoes the settlement
 ```
 
 **REQ-16: The project file** *(event-driven)*
-When the user saves and later opens a project, the app shall restore every category, link, settlement and settlement statement exactly, and if a link points to a house that does not exist, a debt with the category Scholarship or Other has a link, a settlement lacks its settlement statement, a settlement statement belongs to no settlement, or a settled debt has a later statement, then the app shall reject the file with the error code `PROJECT_INVALID_FILE`.
+When the user saves and later opens a project, the app shall restore every category, link, settlement and settlement statement exactly, and if a link points to a house that does not exist, a debt with the category Scholarship or Other has a link, a settlement lacks its settlement statement, a settlement statement belongs to no settlement, or a settled debt has a later statement, then the app shall reject the file with the error code `PROJECT_INVALID_FILE`. A debt settled by an earlier version (its statement of 0.00 in the settlement period is not flagged, and the settlement keeps the statement it replaced) shall open in the current form and be saved in it.
 
 ```gherkin
 @AC-16.1
@@ -464,6 +464,13 @@ Scenario: Round trip
   Given "Example Loan" linked to "Example House" and settled as Cancelled, with a regular and a settlement statement for 2026-06
   When the user saves the project and opens it again
   Then the link, the settlement and both statements are unchanged
+
+@AC-16.6
+Scenario: A debt settled by an earlier version
+  Given a project file in which "Example Mortgage" (yearly) was settled as Cancelled on 01/08/2026 by an earlier version, with an unflagged statement for 2026 with balance 0.00 and a settlement that keeps the replaced statement for 2026 with balance 5000.00 and note "Year end"
+  When the user opens it and saves it
+  Then "Example Mortgage" has for 2026 a regular statement with balance 5000.00 and note "Year end" and, after it, a settlement statement with balance 0.00
+  And the saved file keeps no replaced statement on the settlement
 
 @AC-16.2
 Scenario: A file without categories or links
@@ -540,6 +547,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `cargo d
 - OQ-1: Should the yearly totals of the Debts overview (CSD-011 REQ-19) show the Cancelled-adjusted repaid amount, or the raw drop as today? This CSD adjusts only the wealth accumulation (REQ-12). Owner: Thijs. Blocks: none (default: raw in the Debts overview).
 
 ## 9. Changelog
+- 0.8 (30/10/2026): Files with a debt settled by an earlier version open in the current form (REQ-16, AC-16.6): the 0.00 statement becomes the settlement statement and the replaced statement comes back. Amended without a draft phase at the owner's request.
 - 0.7 (30/10/2026): The settlement adds a final statement and keeps the regular statement of the sale period, so a debt can have two statements in one month or year (definition, REQ-5, REQ-6, REQ-8, REQ-16, new REQ-18). The replaced statement is dropped. Amended without a draft phase at the owner's request.
 - 0.6 (30/10/2026): New debt category Scholarship, which cannot be linked to a house (definition, REQ-1, REQ-2, REQ-14, REQ-16, AC-1.6). Back to `draft` until re-approved.
 - 0.5 (30/10/2026): The linked debts are no longer shown on the Houses overview rows (CSD-019 REQ-9); the Edit house form shows them as a table with the columns Debt, Category, Balance and Outcome (REQ-13, AC-13.1, AC-13.2). Back to `draft` until re-approved.
