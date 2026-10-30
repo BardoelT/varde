@@ -3,7 +3,7 @@ id: CSD-020
 title: Debt linked to a house
 status: approved
 owner: Thijs Bardoel
-version: 0.8
+version: 0.9
 last_updated: 30/10/2026
 related: [CSD-000, CSD-002, CSD-011, CSD-012, CSD-015, CSD-017, CSD-018, CSD-019]
 ---
@@ -102,6 +102,12 @@ Scenario: A scholarship cannot be linked
   Given a debt "Example Study Debt"
   When the user selects the category Scholarship
   Then there is no House dropdown and "Example Study Debt" has the category Scholarship and no house link
+
+@AC-1.7
+Scenario: The Houses overview follows the debt form
+  Given the Edit house form of "Example House" lists no linked debts
+  When the user links "Example Mortgage" to "Example House" in the debt form
+  Then the Edit house form of "Example House" lists "Example Mortgage", without reopening the page
 
 @AC-1.5
 Scenario: The category defaults to Other
@@ -230,6 +236,12 @@ Scenario: Undo removes only the settlement statement
   When the user empties the sell date and sell amount, confirms and saves
   Then the house is held again
   And "Example Loan" has no settlement, is still linked, and has exactly one statement for 2026-06, with balance 3500.00 and note "Mid-June"
+
+@AC-6.3
+Scenario: The Debts overview follows the undo
+  Given the Debts overview shows "Example Loan" with the badge Cancelled and its settlement statement
+  When the user undoes the sale of "Example House" in the Edit house form
+  Then the Debts overview shows "Example Loan" without a badge and without the settlement statement, without reopening the page
 
 @AC-6.2
 Scenario: Undo without confirmation
@@ -547,6 +559,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `cargo d
 - OQ-1: Should the yearly totals of the Debts overview (CSD-011 REQ-19) show the Cancelled-adjusted repaid amount, or the raw drop as today? This CSD adjusts only the wealth accumulation (REQ-12). Owner: Thijs. Blocks: none (default: raw in the Debts overview).
 
 ## 9. Changelog
+- 0.9 (30/10/2026): The Debts overview follows a sale or its undo, and the Houses overview follows the debt form, without reopening the page (AC-6.3, AC-1.7). No requirement changes.
 - 0.8 (30/10/2026): Files with a debt settled by an earlier version open in the current form (REQ-16, AC-16.6): the 0.00 statement becomes the settlement statement and the replaced statement comes back. Amended without a draft phase at the owner's request.
 - 0.7 (30/10/2026): The settlement adds a final statement and keeps the regular statement of the sale period, so a debt can have two statements in one month or year (definition, REQ-5, REQ-6, REQ-8, REQ-16, new REQ-18). The replaced statement is dropped. Amended without a draft phase at the owner's request.
 - 0.6 (30/10/2026): New debt category Scholarship, which cannot be linked to a house (definition, REQ-1, REQ-2, REQ-14, REQ-16, AC-1.6). Back to `draft` until re-approved.
