@@ -311,3 +311,21 @@ fn test_csd015_a_house_change_is_an_unsaved_change() {
     house(&mut project, "Example House", "Monthly");
     assert!(project.status().unsaved_changes);
 }
+
+#[test]
+fn test_csd020_ac_16_5_a_settlement_statement_without_a_settlement_is_an_invalid_file() {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("example-a.wealth");
+    fs::write(
+        &path,
+        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
+            "debts":{"debts":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
+            "name":"Example Loan","statement_period":"Monthly","colour_slot":0}],
+            "statements":[{"debt_id":"671166f4-5827-4794-bcdc-54d7824fb650",
+            "period":"2026-06","balance":"0.00","note":"","settlement":true}]}}"#,
+    )
+    .unwrap();
+    let mut project = Project::new();
+    let error = project.open(&path).unwrap_err();
+    assert_eq!(error.code(), "PROJECT_INVALID_FILE");
+}

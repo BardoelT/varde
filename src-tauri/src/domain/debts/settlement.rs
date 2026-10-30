@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::domain::error::DomainError;
 use crate::domain::houses::{HouseDate, HouseId, Houses};
 use crate::domain::income::PayPeriod;
-use crate::domain::investments::{Note, Period};
+use crate::domain::investments::Period;
 
 use super::{Category, Debt, DebtBalance, DebtId, DebtStatement, Debts};
 
@@ -40,15 +40,6 @@ impl Outcome {
     }
 }
 
-/// The statement a settlement replaced in the sale period, kept so undoing the
-/// sale can restore it (CSD-020 REQ-5, REQ-6).
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Replaced {
-    pub balance: DebtBalance,
-    #[serde(default)]
-    pub note: Note,
-}
-
 /// The outcome, date and settled amount of a settled debt (CSD-020 section 3).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Settlement {
@@ -57,8 +48,6 @@ pub struct Settlement {
     pub date: HouseDate,
     /// The open balance at the sale.
     pub amount: DebtBalance,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub replaced: Option<Replaced>,
 }
 
 /// A linked debt with an open balance at a sale, for the settlement prompt.
@@ -150,7 +139,7 @@ impl Debts {
             .statements
             .iter()
             .filter(|s| s.debt_id == id && s.period.sort_key() <= period.sort_key())
-            .max_by_key(|s| s.period.sort_key())
+            .max_by_key(|s| s.order_key())
             .map(|s| s.balance.value())
             .filter(|balance| !balance.is_zero()))
     }
@@ -182,9 +171,9 @@ impl Debts {
     }
 
     /// Settles a debt on the sale of the house `house_name` on `date`: stores
-    /// the settlement and writes the statement of 0.00 in the sale period,
-    /// keeping a statement it replaces (CSD-020 REQ-5). The debt must have an
-    /// open balance at `date`.
+    /// the settlement and adds the settlement statement of 0.00 in the sale
+    /// period, next to any regular statement of that period (CSD-020 REQ-5).
+    /// The debt must have an open balance at `date`.
     ///
     /// # Errors
     /// Returns `DebtNotFound`, `HouseSettlementInvalid` for a debt without an
@@ -208,12 +197,6 @@ impl Debts {
         {
             return Err(DomainError::DebtStatementAfterSale);
         }
-        let replaced = self.statement(id, period).map(|s| Replaced {
-            balance: s.balance,
-            note: s.note.clone(),
-        });
-        self.statements
-            .retain(|s| !(s.debt_id == id && s.period == period));
         let note = crate::domain::debts::debt_note(&format!(
             "{} on sale of {house_name}",
             outcome.label()
@@ -223,18 +206,18 @@ impl Debts {
             period,
             balance: DebtBalance::new(Decimal::ZERO)?,
             note,
+            settlement: true,
         });
         self.debt_mut(id)?.settlement = Some(Settlement {
             outcome,
             date,
             amount: DebtBalance::new(amount)?,
-            replaced,
         });
         Ok(())
     }
 
-    /// Undoes the settlement of a debt: removes the statement of 0.00 and puts
-    /// back the one it replaced (CSD-020 REQ-6).
+    /// Undoes the settlement of a debt: removes its settlement statement and
+    /// leaves the regular statements as they are (CSD-020 REQ-6).
     ///
     /// # Errors
     /// Returns `DebtNotFound`.
@@ -245,15 +228,7 @@ impl Debts {
         };
         let period = sale_period(debt.statement_period, settlement.date)?;
         self.statements
-            .retain(|s| !(s.debt_id == id && s.period == period));
-        if let Some(replaced) = settlement.replaced {
-            self.statements.push(DebtStatement {
-                debt_id: id,
-                period,
-                balance: replaced.balance,
-                note: replaced.note,
-            });
-        }
+            .retain(|s| !(s.debt_id == id && s.period == period && s.settlement));
         self.debt_mut(id)?.settlement = None;
         Ok(())
     }
@@ -272,6 +247,15 @@ impl Debts {
         Ok(())
     }
 
+    /// Whether a statement can no longer change because its debt is settled and
+    /// the statement lies in or after the settlement period (CSD-020 REQ-8,
+    /// REQ-18).
+    #[must_use]
+    pub fn statement_locked(&self, statement: &DebtStatement) -> bool {
+        self.check_unsettled_at(statement.debt_id, statement.period)
+            .is_err()
+    }
+
     /// Checks that the links and settlements read from a file follow CSD-020, so
     /// a damaged file cannot break them.
     ///
@@ -279,6 +263,20 @@ impl Debts {
     /// Returns `DebtDataInvalid` for the first inconsistency found.
     pub fn validate_links(&self, houses: &Houses) -> Result<(), DomainError> {
         let invalid = DomainError::DebtDataInvalid;
+        // A settlement statement belongs to a settled debt, in its settlement
+        // period (CSD-020 REQ-16).
+        for statement in self.statements.iter().filter(|s| s.settlement) {
+            let debt = self.debt(statement.debt_id)?;
+            let belongs = match &debt.settlement {
+                Some(settlement) => {
+                    sale_period(debt.statement_period, settlement.date)? == statement.period
+                }
+                None => false,
+            };
+            if !belongs {
+                return Err(invalid);
+            }
+        }
         for debt in &self.debts {
             let house = match debt.house_id {
                 Some(house_id) => Some(houses.get(house_id).ok_or(invalid.clone())?),
@@ -291,9 +289,12 @@ impl Debts {
                 continue;
             };
             let period = sale_period(debt.statement_period, settlement.date)?;
-            let zero_statement = self
-                .statement(debt.id, period)
-                .is_some_and(|s| s.balance.value().is_zero());
+            let zero_statement = self.statements.iter().any(|s| {
+                s.debt_id == debt.id
+                    && s.settlement
+                    && s.period == period
+                    && s.balance.value().is_zero()
+            });
             let later = self
                 .statements
                 .iter()

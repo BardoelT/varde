@@ -56,7 +56,7 @@ impl Debts {
                 self.statements
                     .iter()
                     .filter(|s| s.debt_id == debt.id && s.period.year() == year)
-                    .max_by_key(|s| s.period.sort_key())
+                    .max_by_key(|s| s.order_key())
                     .map(|s| (debt, s.balance.value()))
             })
             .collect()
@@ -72,7 +72,7 @@ impl Debts {
                 .statements
                 .iter()
                 .filter(|s| s.debt_id == debt.id && s.period.year() < year)
-                .max_by_key(|s| s.period.sort_key())
+                .max_by_key(|s| s.order_key())
                 .map(|s| s.balance.value());
             if let Some(opening) = opening {
                 repaid = Some(repaid.unwrap_or_else(zero) + opening - closing);

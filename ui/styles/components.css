@@ -264,3 +264,4 @@ dialog p { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
   box-shadow: 0 6px 24px rgba(0,0,0,.3);
   z-index: 1000;
 }
+.note-cell .badge { margin-left: 8px; }
