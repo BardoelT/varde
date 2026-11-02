@@ -3,7 +3,7 @@ id: CSD-021
 title: CI and release pipeline
 status: approved
 owner: Thijs Bardoel
-version: 0.2
+version: 0.3
 last_updated: 02/11/2026
 related: [CSD-000]
 ---
@@ -11,12 +11,11 @@ related: [CSD-000]
 # CSD-021: CI and release pipeline
 
 ## 1. Intent
-The repository has no automated checks and no way to produce an installable app. Format, lint and test failures are only caught if the owner runs them by hand, and a release means building a `.dmg` on one Mac. This capability adds a GitHub Actions pipeline in two parts: checks that run on every change, and a release build that runs when a version tag is pushed and leaves a draft GitHub Release for the owner to publish. It is for the owner, who is the only publisher. GitHub issue 29 asked for it.
+The repository has no automated checks and no way to produce an installable app. Format, lint and test failures are only caught if the owner runs them by hand, and a release means building a `.dmg` on one Mac. This capability adds one GitHub Actions pipeline that runs only when a version tag is pushed: it runs the checks, builds the app and leaves a draft GitHub Release for the owner to publish. Nothing runs on pull requests or merges. It is for the owner, who is the only publisher. GitHub issue 29 asked for it.
 
 ## 2. Scope
 ### 2.1 In scope
-- Checks on pull requests and on pushes to `main`: format, lint, tests and the `cargo deny` licence and advisory check.
-- A release build triggered by a stable version tag, with guards on the tag.
+- A release run triggered by a stable version tag, with guards on the tag. It starts with the checks: format, lint, tests and the `cargo deny` licence and advisory check.
 - A universal macOS `.dmg` (Apple Silicon and Intel) attached to a draft GitHub Release.
 - The bundle settings in `tauri.conf.json` that the `.dmg` needs.
 
@@ -27,6 +26,7 @@ The repository has no automated checks and no way to produce an installable app.
 - NG-4: Automatic updates inside the app.
 - NG-5: Releases from pre-release tags such as `v0.1.0-rc1`.
 - NG-6: Enforcing the strict CSP. `CLAUDE.md` requires it before a release build; OQ-1 tracks it.
+- NG-7: Checks on pull requests or on pushes to any branch. The owner runs them locally before tagging, and the release run repeats them.
 
 ## 3. Definitions
 | Term | Meaning |
@@ -53,27 +53,26 @@ flowchart TD
     G --> H[Owner reviews and publishes]
 ```
 
-**REQ-1: Checks on every change** *(event-driven)*
-When a pull request is opened or updated, or a commit is pushed to `main`, the pipeline shall run the checks.
+**REQ-1: Checks only in the release run** *(event-driven)*
+When a release tag is pushed, the pipeline shall run the checks as the first part of the release run. The pipeline shall not run on pull requests or on pushes to branches.
 
 ```gherkin
 @AC-1.1
-Scenario: A clean pull request passes
-  Given a pull request whose code is formatted, lint-free, tested and licence-compliant
-  When the pull request is opened
-  Then the pipeline runs fmt, clippy, tests and cargo deny
-  And the pull request shows a passing status
+Scenario: A release tag runs the checks
+  Given a release tag is pushed
+  When the release run starts
+  Then it runs fmt, clippy, tests and cargo deny
 
 @AC-1.2
-Scenario: A push to main runs the checks
+Scenario: A push to main starts no run
   Given a pull request merged into "main"
   When the merge commit arrives on "main"
-  Then the pipeline runs the same four checks
+  Then the pipeline starts no run
 
 @AC-1.3
-Scenario: A push to development does not run the checks
-  Given a commit pushed to "development" with no open pull request
-  When the push arrives
+Scenario: A pull request or a push to development starts no run
+  Given a pull request, or a commit pushed to "development"
+  When it is opened, updated or pushed
   Then the pipeline starts no run
 ```
 
@@ -83,15 +82,15 @@ If any check fails, then the pipeline shall mark the run as failed.
 ```gherkin
 @AC-2.1
 Scenario: A clippy warning fails the run
-  Given a pull request that introduces one clippy warning
-  When the pipeline runs
+  Given the tag "v0.1.0" on a commit with one clippy warning
+  When the release run starts
   Then the clippy step fails
-  And the pull request shows a failing status
+  And the run is marked as failed
 
 @AC-2.2
 Scenario: A disallowed licence fails the run
-  Given a dependency licensed "GPL-3.0-only"
-  When the pipeline runs
+  Given the tag "v0.1.0" on a commit with a dependency licensed "GPL-3.0-only"
+  When the release run starts
   Then the cargo deny step fails
 ```
 
@@ -217,8 +216,7 @@ Scenario: A run needs no configured secrets
 ```
 
 ## 5. Interfaces and contracts
-- `.github/workflows/ci.yml`: the checks, run on `pull_request`, on pushes to `main`, and as a reusable workflow.
-- `.github/workflows/release.yml`: the release run, on tags matching `v[0-9]+.[0-9]+.[0-9]+`.
+- `.github/workflows/release.yml`: the only workflow. It runs on tags matching `v[0-9]+.[0-9]+.[0-9]+` and holds the check jobs and the release job. There is no workflow for pull requests or pushes.
 - `deny.toml`: the allowed licences for `cargo deny`, checked for the two macOS targets only.
 - `src-tauri/tauri.conf.json`: `bundle.active` is `true` and the target is `dmg`.
 
@@ -233,8 +231,8 @@ Workflow behaviour cannot be proven with `cargo test`, so ACs are checked in Git
 
 | ACs | How |
 |---|---|
-| AC-1.1, AC-2.1, AC-2.2 | Open a pull request, then one with a deliberate clippy warning, and read the check status. |
-| AC-1.2, AC-1.3 | Merge a pull request and read the run on `main`. Push to `development` with no open pull request and confirm no run starts. |
+| AC-1.1, AC-2.1, AC-2.2 | Push a throwaway tag on a scratch branch or fork, then one on a commit with a deliberate clippy warning, and read the run. |
+| AC-1.2, AC-1.3 | Merge a pull request, open one, and push to `development`. Confirm in the Actions tab that no run starts. |
 | AC-3.1, AC-3.2, AC-5.1, AC-5.2, AC-6.1, AC-6.2 | Push throwaway tags on a scratch branch or fork and read the run. |
 | AC-4.1, AC-7.1, AC-8.1, AC-9.1 | Push the first real tag. Open the draft release, check the file name, run `lipo -archs` on the app binary, push the tag again. |
 | AC-10.1 | Confirm the repository has no Actions secrets and the run completes. |
@@ -243,8 +241,8 @@ Workflow behaviour cannot be proven with `cargo test`, so ACs are checked in Git
 - OQ-1: Set a strict CSP in `tauri.conf.json` before the first release tag (`CLAUDE.md`)? Owner: Thijs. Blocks: the first tag, not a requirement.
 - OQ-2: Which follow-up CSD covers signing and notarization (NG-2)? Owner: Thijs.
 - OQ-3: Who bumps the app version, and in which commit, so the tag matches (REQ-5)? Owner: Thijs.
-- OQ-4: A new `cargo deny` advisory can turn unrelated pull requests red. Add a scheduled run, or accept it? Owner: Thijs. Blocks: REQ-2.
 
 ## 9. Changelog
+- 0.3 (02/11/2026): The pipeline runs only on a release tag, nothing on pull requests or merges: REQ-1 and its ACs rewritten, new NG-7, ACs 2.1, 2.2 reworded, no separate `ci.yml`, sections 1, 2.1, 5 and 7, OQ-4 removed.
 - 0.2 (02/11/2026): Checks no longer run on pushes to `development`, only on pull requests and pushes to `main` (REQ-1, AC-1.2, new AC-1.3, sections 2.1, 5, 7).
 - 0.1 (02/11/2026): initial draft.
