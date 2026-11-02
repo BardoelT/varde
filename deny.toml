@@ -8,6 +8,8 @@ version = 2
 
 [licenses]
 version = 2
+# The app itself is not published, so it needs no license expression.
+private = { ignore = true }
 allow = [
     "MIT",
     "MIT-0",

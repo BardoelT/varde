@@ -30,6 +30,8 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: EmbarkStudios/cargo-deny-action@v2
-        with:
-          command: check
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # The EmbarkStudios action is a Docker action, which macOS runners cannot run.
+      - run: cargo install cargo-deny --locked
+      - run: cargo deny --all-features check
