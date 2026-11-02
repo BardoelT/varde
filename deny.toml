@@ -1,0 +1,34 @@
+# cargo-deny configuration: licenses, advisories and banned crates.
+# macOS is the only supported platform, so other targets are not checked.
+[graph]
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin"]
+
+[advisories]
+version = 2
+
+[licenses]
+version = 2
+allow = [
+    "MIT",
+    "MIT-0",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "0BSD",
+    "CC0-1.0",
+    "Unlicense",
+    "Unicode-3.0",
+    # Weak (file-level) copyleft, pulled in transitively by Tauri's HTML tooling.
+    "MPL-2.0",
+]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
