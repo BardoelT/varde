@@ -3,7 +3,7 @@ id: CSD-021
 title: CI and release pipeline
 status: approved
 owner: Thijs Bardoel
-version: 0.1
+version: 0.2
 last_updated: 02/11/2026
 related: [CSD-000]
 ---
@@ -15,7 +15,7 @@ The repository has no automated checks and no way to produce an installable app.
 
 ## 2. Scope
 ### 2.1 In scope
-- Checks on pull requests and on pushes to `development` and `main`: format, lint, tests and the `cargo deny` licence and advisory check.
+- Checks on pull requests and on pushes to `main`: format, lint, tests and the `cargo deny` licence and advisory check.
 - A release build triggered by a stable version tag, with guards on the tag.
 - A universal macOS `.dmg` (Apple Silicon and Intel) attached to a draft GitHub Release.
 - The bundle settings in `tauri.conf.json` that the `.dmg` needs.
@@ -54,7 +54,7 @@ flowchart TD
 ```
 
 **REQ-1: Checks on every change** *(event-driven)*
-When a pull request is opened or updated, or a commit is pushed to `development` or `main`, the pipeline shall run the checks.
+When a pull request is opened or updated, or a commit is pushed to `main`, the pipeline shall run the checks.
 
 ```gherkin
 @AC-1.1
@@ -65,10 +65,16 @@ Scenario: A clean pull request passes
   And the pull request shows a passing status
 
 @AC-1.2
-Scenario: A push to development runs the checks
-  Given a commit pushed to "development"
-  When the push arrives
+Scenario: A push to main runs the checks
+  Given a pull request merged into "main"
+  When the merge commit arrives on "main"
   Then the pipeline runs the same four checks
+
+@AC-1.3
+Scenario: A push to development does not run the checks
+  Given a commit pushed to "development" with no open pull request
+  When the push arrives
+  Then the pipeline starts no run
 ```
 
 **REQ-2: A failing check fails the run** *(unwanted behaviour)*
@@ -211,7 +217,7 @@ Scenario: A run needs no configured secrets
 ```
 
 ## 5. Interfaces and contracts
-- `.github/workflows/ci.yml`: the checks, run on `pull_request`, on pushes to `development` and `main`, and as a reusable workflow.
+- `.github/workflows/ci.yml`: the checks, run on `pull_request`, on pushes to `main`, and as a reusable workflow.
 - `.github/workflows/release.yml`: the release run, on tags matching `v[0-9]+.[0-9]+.[0-9]+`.
 - `deny.toml`: the allowed licences for `cargo deny`, checked for the two macOS targets only.
 - `src-tauri/tauri.conf.json`: `bundle.active` is `true` and the target is `dmg`.
@@ -227,7 +233,8 @@ Workflow behaviour cannot be proven with `cargo test`, so ACs are checked in Git
 
 | ACs | How |
 |---|---|
-| AC-1.1, AC-1.2, AC-2.1, AC-2.2 | Open a pull request, then one with a deliberate clippy warning, and read the check status. Push to `development` and read the run. |
+| AC-1.1, AC-2.1, AC-2.2 | Open a pull request, then one with a deliberate clippy warning, and read the check status. |
+| AC-1.2, AC-1.3 | Merge a pull request and read the run on `main`. Push to `development` with no open pull request and confirm no run starts. |
 | AC-3.1, AC-3.2, AC-5.1, AC-5.2, AC-6.1, AC-6.2 | Push throwaway tags on a scratch branch or fork and read the run. |
 | AC-4.1, AC-7.1, AC-8.1, AC-9.1 | Push the first real tag. Open the draft release, check the file name, run `lipo -archs` on the app binary, push the tag again. |
 | AC-10.1 | Confirm the repository has no Actions secrets and the run completes. |
@@ -239,4 +246,5 @@ Workflow behaviour cannot be proven with `cargo test`, so ACs are checked in Git
 - OQ-4: A new `cargo deny` advisory can turn unrelated pull requests red. Add a scheduled run, or accept it? Owner: Thijs. Blocks: REQ-2.
 
 ## 9. Changelog
+- 0.2 (02/11/2026): Checks no longer run on pushes to `development`, only on pull requests and pushes to `main` (REQ-1, AC-1.2, new AC-1.3, sections 2.1, 5, 7).
 - 0.1 (02/11/2026): initial draft.
