@@ -6,10 +6,11 @@
 import { h, showToast } from '../shared/dom.js';
 import { errorText } from '../shared/ipc.js';
 import { formatAmount } from '../shared/format.js';
+import { t } from '../shared/i18n.js';
 import { swatch, legendLabel, legendItem, tooltipRow, topToBottom } from '../shared/chart.js';
 import { createYearlyChart, levelMarker, isNegative, yearLabel } from '../shared/yearly-chart.js';
 
-/** The series from the bottom of the bar up: the Rust field, the legend key, the colour class and the label. */
+/** The series from the bottom of the bar up: the Rust field, the legend key, the colour class and the label (English; shown through `t`). */
 const SERIES = [
   ['houses', 'houses', 'nw-houses', 'Houses'],
   ['investments', 'investments', 'nw-investments', 'Investments'],
@@ -31,9 +32,9 @@ function rowsTopToBottom(row) {
 }
 
 function describe(row) {
-  if (!row.has_records) return `${yearLabel(row)}: no records`;
-  const parts = SERIES.map(([field, , , label]) => `${label} ${shown(row, field)}`);
-  return `${yearLabel(row)}: ${parts.join(', ')}, net worth ${formatAmount(row.net_worth)}`;
+  if (!row.has_records) return t('{year}: no records', { year: yearLabel(row) });
+  const parts = SERIES.map(([field, , , label]) => `${t(label)} ${shown(row, field)}`);
+  return t('{year}: {parts}, net worth {worth}', { year: yearLabel(row), parts: parts.join(', '), worth: formatAmount(row.net_worth) });
 }
 
 /**
@@ -44,15 +45,15 @@ function tooltipContent(row) {
   const rows = row.has_records
     ? [
         ...rowsTopToBottom(row).flatMap(([field, key, cssClass, label]) =>
-          tooltipRow(key, swatch(cssClass), label, shown(row, field), field === 'cash' && isNegative(row.cash) ? 'negative' : ''),
+          tooltipRow(key, swatch(cssClass), t(label), shown(row, field), field === 'cash' && isNegative(row.cash) ? 'negative' : ''),
         ),
-        ...tooltipRow('marker', swatch('marker'), 'Net worth', formatAmount(row.net_worth), isNegative(row.net_worth) ? 'negative' : ''),
+        ...tooltipRow('marker', swatch('marker'), t('Net worth'), formatAmount(row.net_worth), isNegative(row.net_worth) ? 'negative' : ''),
       ]
     : [];
   return [
     h('div', { class: 'tip-title' }, yearLabel(row)),
-    row.is_partial ? h('div', { class: 'tip-note' }, 'Partial year: figures so far') : null,
-    row.has_records ? null : h('div', { class: 'tip-note' }, 'No records'),
+    row.is_partial ? h('div', { class: 'tip-note' }, t('Partial year: figures so far')) : null,
+    row.has_records ? null : h('div', { class: 'tip-note' }, t('No records')),
     h('dl', {}, ...rows),
   ].filter(Boolean);
 }
@@ -69,7 +70,7 @@ function piecesOf(row) {
   for (const [field, key, cssClass, label] of SERIES) {
     const value = signed(row, field);
     if (value === 0) continue;
-    const piece = { key, cssClass: `bar-${cssClass}`, label: `${label}, ${row.year}, ${shown(row, field)}`, rounding: false };
+    const piece = { key, cssClass: `bar-${cssClass}`, label: `${t(label)}, ${row.year}, ${shown(row, field)}`, rounding: false };
     if (value > 0) {
       pieces.push({ ...piece, low: up, high: up + value, hangs: false });
       up += value;
@@ -90,15 +91,15 @@ function buildLegend() {
   const legendList = document.getElementById('net-worth-insights-legend');
   const scopes = () => [legendList, document.getElementById('net-worth-insights-chart')];
   legendList.replaceChildren(
-    ...SERIES.map(([, key, cssClass, label]) => legendItem(key, swatch(cssClass), legendLabel(label), scopes)),
-    legendItem('marker', swatch('marker'), legendLabel('Net worth'), scopes),
+    ...SERIES.map(([, key, cssClass, label]) => legendItem(key, swatch(cssClass), legendLabel(t(label)), scopes)),
+    legendItem('marker', swatch('marker'), legendLabel(t('Net worth')), scopes),
   );
 }
 
 const chart = createYearlyChart({
   id: 'net-worth-insights',
   command: 'get_net_worth_insights',
-  ariaLabel: 'Net worth per year',
+  ariaLabel: 'Net worth per year', // shown through `t` by the chart
   onLoaded: buildLegend,
   piecesOf,
   extraLevels: (row) => [Number(row.net_worth)],

@@ -2,6 +2,7 @@
 import { invoke, errorText } from '../shared/ipc.js';
 import { h, iconButton, confirmAction, showToast, showError } from '../shared/dom.js';
 import { formatAmount, formatDate } from '../shared/format.js';
+import { t } from '../shared/i18n.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -13,19 +14,34 @@ function noteSummary(note) {
   return rest.length > 0 ? `${first} …` : first;
 }
 
+/** The category as Rust names it (a fixed list), in the chosen language. */
+function categoryName(category) {
+  switch (category) {
+    case 'Home': return t('Home');
+    case 'Vehicle': return t('Vehicle');
+    case 'Holiday': return t('Holiday');
+    case 'Sport': return t('Sport');
+    case 'Study': return t('Study');
+    case 'Appliances': return t('Appliances');
+    case 'Hobby': return t('Hobby');
+    case 'Other': return t('Other');
+    default: return category;
+  }
+}
+
 // ---- Rendering ----
 
 function renderTotals(totals) {
   $('expense-totals-empty').hidden = totals.length > 0;
   $('expense-totals-table').hidden = totals.length === 0;
   $('expense-totals-rows').replaceChildren(
-    ...totals.map((t) =>
+    ...totals.map((total) =>
       h(
         'tr',
         {},
-        h('th', { scope: 'row' }, String(t.year)),
-        h('td', { class: 'num' }, formatAmount(t.total)),
-        h('td', { class: 'num' }, formatAmount(t.largest)),
+        h('th', { scope: 'row' }, String(total.year)),
+        h('td', { class: 'num' }, formatAmount(total.total)),
+        h('td', { class: 'num' }, formatAmount(total.largest)),
       ),
     ),
   );
@@ -35,7 +51,7 @@ function renderExpenses(list) {
   const none = list.expenses.length === 0;
   $('expenses-empty').hidden = !none;
   $('expenses-table').hidden = none;
-  if (none) $('expenses-empty').textContent = 'No expenses yet. Add your first expense.';
+  if (none) $('expenses-empty').textContent = t('No expenses yet. Add your first expense.');
   $('expenses-total').textContent = formatAmount(list.total);
   $('expenses-rows').replaceChildren(
     ...list.expenses.map((expense) =>
@@ -44,14 +60,14 @@ function renderExpenses(list) {
         {},
         h('th', { scope: 'row' }, formatDate(expense.date)),
         h('td', { class: 'wrap' }, expense.name),
-        h('td', {}, expense.category),
+        h('td', {}, categoryName(expense.category)),
         h('td', { class: 'num' }, formatAmount(expense.amount)),
         h('td', { class: 'note-cell' }, noteSummary(expense.note)),
         h(
           'td',
           { class: 'row-actions' },
-          iconButton('edit', `Edit ${expense.name}`, () => openExpenseDialog(expense)),
-          iconButton('delete', `Delete ${expense.name}`, () => deleteExpense(expense)),
+          iconButton('edit', t('Edit {name}', { name: expense.name }), () => openExpenseDialog(expense)),
+          iconButton('delete', t('Delete {name}', { name: expense.name }), () => deleteExpense(expense)),
         ),
       ),
     ),
@@ -78,7 +94,7 @@ function openExpenseDialog(expense = null) {
   const form = $('expense-form');
   form.reset();
   $('expense-error').hidden = true;
-  $('expense-dialog-title').textContent = expense ? 'Edit expense' : 'Add expense';
+  $('expense-dialog-title').textContent = expense ? t('Edit expense') : t('Add expense');
   $('expense-copy').hidden = Boolean(expense);
   if (expense) {
     form.elements.name.value = expense.name;
@@ -132,9 +148,9 @@ async function copyPrevious() {
 
 async function deleteExpense(expense) {
   const confirmed = await confirmAction({
-    title: `Delete ${expense.name}?`,
-    message: `The expense of ${formatDate(expense.date)} and its note will be deleted.`,
-    confirmLabel: 'Delete expense',
+    title: t('Delete {name}?', { name: expense.name }),
+    message: t('The expense of {date} and its note will be deleted.', { date: formatDate(expense.date) }),
+    confirmLabel: t('Delete expense'),
     danger: true,
   });
   if (!confirmed) return;

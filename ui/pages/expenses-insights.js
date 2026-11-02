@@ -7,32 +7,48 @@ import { formatAmount } from '../shared/format.js';
 import { swatch, noSwatch, legendLabel, legendItem, tooltipRow, topToBottom } from '../shared/chart.js';
 import { createYearlyChart, yearLabel } from '../shared/yearly-chart.js';
 import { initTabs } from '../shared/tabs.js';
+import { t } from '../shared/i18n.js';
 
 /** The categories as Rust returned them, in the fixed order, by name. */
 let categories = new Map();
+
+/** The category as Rust names it (a fixed list), in the chosen language. */
+function categoryName(category) {
+  switch (category) {
+    case 'Home': return t('Home');
+    case 'Vehicle': return t('Vehicle');
+    case 'Holiday': return t('Holiday');
+    case 'Sport': return t('Sport');
+    case 'Study': return t('Study');
+    case 'Appliances': return t('Appliances');
+    case 'Hobby': return t('Hobby');
+    case 'Other': return t('Other');
+    default: return category;
+  }
+}
 
 const keyOf = (category) => `category-${category}`;
 const slotOf = (category) => categories.get(category)?.colour_slot ?? 0;
 
 function describe(row) {
-  if (row.expense_count === 0) return `${yearLabel(row)}: no expenses`;
-  const parts = row.segments.map((segment) => `${segment.category} ${formatAmount(segment.amount)}`);
-  return `${yearLabel(row)}: ${parts.join(', ')}, total ${formatAmount(row.total)}`;
+  if (row.expense_count === 0) return t('{year}: no expenses', { year: yearLabel(row) });
+  const parts = row.segments.map((segment) => `${categoryName(segment.category)} ${formatAmount(segment.amount)}`);
+  return t('{year}: {parts}, total {total}', { year: yearLabel(row), parts: parts.join(', '), total: formatAmount(row.total) });
 }
 
 /** The rows read like the bar: the highest segment first. */
 function tooltipContent(row) {
   return [
     h('div', { class: 'tip-title' }, yearLabel(row)),
-    row.is_partial ? h('div', { class: 'tip-note' }, 'Partial year: expenses so far') : null,
-    row.expense_count === 0 ? h('div', { class: 'tip-note' }, 'No expenses') : null,
+    row.is_partial ? h('div', { class: 'tip-note' }, t('Partial year: expenses so far')) : null,
+    row.expense_count === 0 ? h('div', { class: 'tip-note' }, t('No expenses')) : null,
     h(
       'dl',
       {},
       ...topToBottom(row.segments, (segment) => segment.amount).flatMap((segment) =>
-        tooltipRow(keyOf(segment.category), swatch(`slot-${slotOf(segment.category)}`), segment.category, formatAmount(segment.amount)),
+        tooltipRow(keyOf(segment.category), swatch(`slot-${slotOf(segment.category)}`), categoryName(segment.category), formatAmount(segment.amount)),
       ),
-      ...(row.expense_count === 0 ? [] : tooltipRow(null, noSwatch(), 'Total', formatAmount(row.total))),
+      ...(row.expense_count === 0 ? [] : tooltipRow(null, noSwatch(), t('Total'), formatAmount(row.total))),
     ),
   ].filter(Boolean);
 }
@@ -45,7 +61,7 @@ function piecesOf(row) {
     const piece = {
       key: keyOf(segment.category),
       cssClass: `bar-slot-${slotOf(segment.category)}`,
-      label: `${segment.category}, ${row.year}, ${formatAmount(segment.amount)}`,
+      label: `${categoryName(segment.category)}, ${row.year}, ${formatAmount(segment.amount)}`,
       low: level,
       high: level + value,
       hangs: false,
@@ -65,14 +81,16 @@ function buildLegend({ categories: list }) {
   const legendList = document.getElementById('expenses-insights-legend');
   const scopes = () => [legendList, document.getElementById('expenses-insights-chart')];
   legendList.replaceChildren(
-    ...list.map((category) => legendItem(keyOf(category.name), swatch(`slot-${category.colour_slot}`), legendLabel(category.name), scopes)),
+    ...list.map((category) => legendItem(keyOf(category.name), swatch(`slot-${category.colour_slot}`), legendLabel(categoryName(category.name)), scopes)),
   );
 }
 
 const chart = createYearlyChart({
   id: 'expenses-insights',
   command: 'get_expense_insights',
-  ariaLabel: 'Expenses per year',
+  get ariaLabel() {
+    return t('Expenses per year');
+  },
   onLoaded: buildLegend,
   piecesOf,
   describe,

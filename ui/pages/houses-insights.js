@@ -7,6 +7,7 @@ import { formatAmount } from '../shared/format.js';
 import { swatch, noSwatch, legendLabel, nameLabel, legendItem, tooltipRow, topToBottom } from '../shared/chart.js';
 import { createYearlyChart, levelMarker, isNegative, yearLabel } from '../shared/yearly-chart.js';
 import { initTabs } from '../shared/tabs.js';
+import { t } from '../shared/i18n.js';
 
 /** The houses of the series by id, as Rust returned them (creation order). */
 let items = new Map();
@@ -18,10 +19,14 @@ const slotOf = (id) => items.get(id)?.colour_slot ?? 0;
 const deltaText = (row) => (row.change === null ? '–' : formatAmount(row.change));
 
 function describe(row) {
-  if (row.valuation_count === 0) return `${yearLabel(row)}: no valuations`;
+  if (row.valuation_count === 0) return t('{year}: no valuations', { year: yearLabel(row) });
   const parts = row.segments.map((segment) => `${nameOf(segment)} ${formatAmount(segment.value)}`);
-  const delta = row.change === null ? 'change none' : `change ${formatAmount(row.change)}${isNegative(row.change) ? ' (negative)' : ''}`;
-  return `${yearLabel(row)}: ${parts.join(', ')}, total value ${formatAmount(row.closing_value)}, ${delta}`;
+  const delta = row.change === null
+    ? t('change none')
+    : isNegative(row.change)
+      ? t('change {amount} (negative)', { amount: formatAmount(row.change) })
+      : t('change {amount}', { amount: formatAmount(row.change) });
+  return t('{year}: {parts}, total value {total}, {delta}', { year: yearLabel(row), parts: parts.join(', '), total: formatAmount(row.closing_value), delta });
 }
 
 /** The rows read like the bar: the highest segment first. */
@@ -33,13 +38,13 @@ function tooltipContent(row) {
           ...topToBottom(row.segments, (segment) => segment.value).flatMap((segment) =>
             tooltipRow(keyOf(segment.house_id), swatch(`slot-${slotOf(segment.house_id)}`), nameOf(segment), formatAmount(segment.value)),
           ),
-          ...tooltipRow('marker', swatch('marker'), 'Total value', formatAmount(row.closing_value)),
-          ...tooltipRow(null, noSwatch(), 'Change', deltaText(row), row.change !== null && isNegative(row.change) ? 'negative' : ''),
+          ...tooltipRow('marker', swatch('marker'), t('Total value'), formatAmount(row.closing_value)),
+          ...tooltipRow(null, noSwatch(), t('Change'), deltaText(row), row.change !== null && isNegative(row.change) ? 'negative' : ''),
         ];
   return [
     h('div', { class: 'tip-title' }, yearLabel(row)),
-    row.is_partial ? h('div', { class: 'tip-note' }, 'Partial year: valuations so far') : null,
-    row.valuation_count === 0 ? h('div', { class: 'tip-note' }, 'No valuations') : null,
+    row.is_partial ? h('div', { class: 'tip-note' }, t('Partial year: valuations so far')) : null,
+    row.valuation_count === 0 ? h('div', { class: 'tip-note' }, t('No valuations')) : null,
     h('dl', {}, ...rows),
   ].filter(Boolean);
 }
@@ -78,14 +83,16 @@ function buildLegend({ houses: list }) {
   const scopes = () => [legendList, document.getElementById('houses-insights-chart')];
   legendList.replaceChildren(
     ...list.map((item) => legendItem(keyOf(item.id), swatch(`slot-${item.colour_slot}`), nameLabel(item.name), scopes)),
-    legendItem('marker', swatch('marker'), legendLabel('Total value'), scopes),
+    legendItem('marker', swatch('marker'), legendLabel(t('Total value')), scopes),
   );
 }
 
 const chart = createYearlyChart({
   id: 'houses-insights',
   command: 'get_house_insights',
-  ariaLabel: 'Houses per year',
+  get ariaLabel() {
+    return t('Houses per year');
+  },
   onLoaded: buildLegend,
   piecesOf,
   extraLevels: (row) => [Number(row.closing_value)],

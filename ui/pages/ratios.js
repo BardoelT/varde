@@ -3,6 +3,7 @@
 import { invoke, errorText } from '../shared/ipc.js';
 import { h, iconButton, showToast } from '../shared/dom.js';
 import { formatAmount } from '../shared/format.js';
+import { t } from '../shared/i18n.js';
 import { percentLabel, isNegative, yearLabel } from '../shared/yearly-chart.js';
 
 const $ = (id) => document.getElementById(id);
@@ -12,7 +13,7 @@ const amountCell = (value) => (value === null ? '–' : formatAmount(value));
 /** A percentage with its sign, or a dash. */
 const percentCell = (value) => percentLabel(value);
 
-/** The rows of the table under their sub-headings: label, field, how to show it and how it is calculated (CSD-018 REQ-3, REQ-13). */
+/** The rows of the table under their sub-headings: label, field, how to show it and how it is calculated (CSD-018 REQ-3, REQ-13). The texts are English; they are shown through `t`. */
 const GROUPS = [
   ['Wealth', [
     ['Total income (gross)', 'total_income', amountCell,
@@ -64,7 +65,7 @@ function toggleInfo(button, text) {
 
 /** The info icon after a row label. */
 function infoButton(label, text) {
-  const button = iconButton('info', `How "${label}" is calculated`, (event) => {
+  const button = iconButton('info', t('How "{label}" is calculated', { label }), (event) => {
     event.stopPropagation();
     toggleInfo(button, text);
   });
@@ -80,12 +81,12 @@ function renderTable(years) {
   );
   const rows = GROUPS.flatMap(([title, items]) => [
     // The title is its own sticky cell; one spanning cell would scroll away with the years.
-    h('tr', { class: 'group-row' }, h('th', { scope: 'row' }, title), h('td', { colspan: String(years.length) })),
+    h('tr', { class: 'group-row' }, h('th', { scope: 'row' }, t(title)), h('td', { colspan: String(years.length) })),
     ...items.map(([label, field, show, info]) =>
       h(
         'tr',
         {},
-        h('th', { scope: 'row' }, label, infoButton(label, info)),
+        h('th', { scope: 'row' }, t(label), infoButton(t(label), t(info))),
         ...years.map((row) => {
           const value = row[field];
           const negative = value !== null && isNegative(value);

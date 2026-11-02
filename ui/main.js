@@ -1,6 +1,7 @@
 // Entry point: wires the project controls, the income, investments, bank accounts, houses, debts and expenses views (each with an insights chart), the net worth chart, the ratios table, the settings and the dashboard.
 import { errorText, listen } from './shared/ipc.js';
 import { showToast } from './shared/dom.js';
+import { collectStaticTexts, onLanguageChange } from './shared/i18n.js';
 import { initDateMasks } from './shared/date-mask.js';
 import { initProject, refreshProjectStatus } from './pages/project.js';
 import { initIncomeOverview, reloadIncomeOverview } from './pages/income-overview.js';
@@ -26,6 +27,9 @@ async function refreshStatusAndSettings() {
 }
 
 async function start() {
+  // The texts of the page are noted before any project data is written into it (CSD-022 CON-3).
+  collectStaticTexts();
+
   // The theme comes first: the page stays hidden until it is applied (CSD-008 REQ-6).
   // If it cannot be loaded the app still starts, with the theme macOS gives it.
   try {
@@ -92,25 +96,29 @@ async function start() {
       await refreshProjectStatus();
     },
   });
-  await initProject({
-    onReplaced: async () => {
-      await reloadSettings();
-      await reloadIncomeOverview();
-      await reloadIncomeInsightsIfOpen();
-      await reloadInvestmentsOverview();
-      await reloadInvestmentsInsightsIfOpen();
-      await reloadBankOverview();
-      await reloadBankInsightsIfOpen();
-      await reloadDebtsOverview();
-      await reloadDebtsInsightsIfOpen();
-      await reloadHousesOverview();
-      await reloadHousesInsightsIfOpen();
-      await reloadExpensesOverview();
-      await reloadExpensesInsightsIfOpen();
-      await reloadNetWorthIfOpen();
-      await reloadRatiosIfOpen();
-      await reloadDashboard();
-    },
+  // Everything is drawn again after a project replaced the data, and after a language change (CSD-022 REQ-3).
+  const reloadEverything = async () => {
+    await reloadSettings();
+    await reloadIncomeOverview();
+    await reloadIncomeInsightsIfOpen();
+    await reloadInvestmentsOverview();
+    await reloadInvestmentsInsightsIfOpen();
+    await reloadBankOverview();
+    await reloadBankInsightsIfOpen();
+    await reloadDebtsOverview();
+    await reloadDebtsInsightsIfOpen();
+    await reloadHousesOverview();
+    await reloadHousesInsightsIfOpen();
+    await reloadExpensesOverview();
+    await reloadExpensesInsightsIfOpen();
+    await reloadNetWorthIfOpen();
+    await reloadRatiosIfOpen();
+    await reloadDashboard();
+  };
+  await initProject({ onReplaced: reloadEverything });
+  onLanguageChange(async () => {
+    await refreshProjectStatus();
+    await reloadEverything();
   });
 
   // Settings… in the app menu, and ⌘, (CSD-003 REQ-2).

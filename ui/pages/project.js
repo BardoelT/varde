@@ -1,6 +1,7 @@
 // Project file: runs the File menu actions and shows the unsaved-changes indicator (CSD-002).
 import { invoke, listen, errorText } from '../shared/ipc.js';
 import { confirmAction, showToast } from '../shared/dom.js';
+import { t } from '../shared/i18n.js';
 
 let status = { unsaved_changes: false, has_path: false };
 
@@ -9,13 +10,16 @@ function render() {
   const text = document.getElementById('project-state-text');
   box.classList.toggle('is-unsaved', status.unsaved_changes);
   if (status.unsaved_changes) {
-    text.textContent = 'Unsaved changes';
+    text.textContent = t('Unsaved changes');
   } else if (status.has_path) {
-    text.textContent = 'All changes saved';
+    text.textContent = t('All changes saved');
   } else {
-    text.textContent = 'New project';
+    text.textContent = t('New project');
   }
 }
+
+/** Shows the status again, for example in another language. */
+export const refreshTexts = render;
 
 export async function refreshProjectStatus() {
   status = await invoke('project_status');
@@ -30,13 +34,13 @@ async function attempt(action) {
   }
 }
 
-async function confirmDiscard(action) {
+async function confirmDiscard(message) {
   await refreshProjectStatus();
   if (!status.unsaved_changes) return true;
   return confirmAction({
-    title: 'Discard unsaved changes?',
-    message: `You have unsaved changes. If you ${action}, they will be lost.`,
-    confirmLabel: 'Discard changes',
+    title: t('Discard unsaved changes?'),
+    message,
+    confirmLabel: t('Discard changes'),
     danger: true,
   });
 }
@@ -44,13 +48,13 @@ async function confirmDiscard(action) {
 /** The flows behind the File menu items (CSD-002 REQ-9). */
 const menuActions = (onReplaced) => ({
   'project-new': async () => {
-    if (!(await confirmDiscard('start a new project'))) return;
+    if (!(await confirmDiscard(t('You have unsaved changes. If you start a new project, they will be lost.')))) return;
     status = await invoke('new_project');
     render();
     await onReplaced();
   },
   'project-open': async () => {
-    if (!(await confirmDiscard('open another file'))) return;
+    if (!(await confirmDiscard(t('You have unsaved changes. If you open another file, they will be lost.')))) return;
     const result = await invoke('open_project');
     status = result.status;
     render();
@@ -80,9 +84,9 @@ export async function initProject({ onReplaced }) {
   await listen('close-requested', () =>
     attempt(async () => {
       const quit = await confirmAction({
-        title: 'Quit without saving?',
-        message: 'You have unsaved changes. They will be lost if you quit.',
-        confirmLabel: 'Quit without saving',
+        title: t('Quit without saving?'),
+        message: t('You have unsaved changes. They will be lost if you quit.'),
+        confirmLabel: t('Quit without saving'),
         danger: true,
       });
       if (quit) await invoke('quit_app');
@@ -93,5 +97,5 @@ export async function initProject({ onReplaced }) {
 
   // The last project could not be reopened at start (CSD-002 REQ-11).
   const notice = await invoke('take_startup_notice');
-  if (notice) showToast(`Your last project could not be reopened. ${errorText(notice)}`);
+  if (notice) showToast(t('Your last project could not be reopened. {reason}', { reason: errorText(notice) }));
 }

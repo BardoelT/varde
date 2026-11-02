@@ -7,6 +7,7 @@ import { formatAmount } from '../shared/format.js';
 import { swatch, noSwatch, legendLabel, nameLabel, legendItem, tooltipRow, topToBottom } from '../shared/chart.js';
 import { createYearlyChart, levelMarker, isNegative, yearLabel } from '../shared/yearly-chart.js';
 import { initTabs } from '../shared/tabs.js';
+import { t } from '../shared/i18n.js';
 
 /** The debts of the series by id, as Rust returned them (creation order). */
 let items = new Map();
@@ -18,10 +19,14 @@ const slotOf = (id) => items.get(id)?.colour_slot ?? 0;
 const deltaText = (row) => (row.repaid === null ? '–' : formatAmount(row.repaid));
 
 function describe(row) {
-  if (row.statement_count === 0) return `${yearLabel(row)}: no statements`;
+  if (row.statement_count === 0) return t('{year}: no statements', { year: yearLabel(row) });
   const parts = row.segments.map((segment) => `${nameOf(segment)} ${formatAmount(segment.balance)}`);
-  const delta = row.repaid === null ? 'repaid none' : `repaid ${formatAmount(row.repaid)}${isNegative(row.repaid) ? ' (negative)' : ''}`;
-  return `${yearLabel(row)}: ${parts.join(', ')}, total debt ${formatAmount(row.closing_balance)}, ${delta}`;
+  const delta = row.repaid === null
+    ? t('repaid none')
+    : isNegative(row.repaid)
+      ? t('repaid {amount} (negative)', { amount: formatAmount(row.repaid) })
+      : t('repaid {amount}', { amount: formatAmount(row.repaid) });
+  return t('{year}: {parts}, total debt {total}, {delta}', { year: yearLabel(row), parts: parts.join(', '), total: formatAmount(row.closing_balance), delta });
 }
 
 /** The rows read like the bar: the highest segment first. */
@@ -33,13 +38,13 @@ function tooltipContent(row) {
           ...topToBottom(row.segments, (segment) => segment.balance).flatMap((segment) =>
             tooltipRow(keyOf(segment.debt_id), swatch(`slot-${slotOf(segment.debt_id)}`), nameOf(segment), formatAmount(segment.balance)),
           ),
-          ...tooltipRow('marker', swatch('marker'), 'Total debt', formatAmount(row.closing_balance)),
-          ...tooltipRow(null, noSwatch(), 'Repaid', deltaText(row), row.repaid !== null && isNegative(row.repaid) ? 'negative' : ''),
+          ...tooltipRow('marker', swatch('marker'), t('Total debt'), formatAmount(row.closing_balance)),
+          ...tooltipRow(null, noSwatch(), t('Repaid'), deltaText(row), row.repaid !== null && isNegative(row.repaid) ? 'negative' : ''),
         ];
   return [
     h('div', { class: 'tip-title' }, yearLabel(row)),
-    row.is_partial ? h('div', { class: 'tip-note' }, 'Partial year: statements so far') : null,
-    row.statement_count === 0 ? h('div', { class: 'tip-note' }, 'No statements') : null,
+    row.is_partial ? h('div', { class: 'tip-note' }, t('Partial year: statements so far')) : null,
+    row.statement_count === 0 ? h('div', { class: 'tip-note' }, t('No statements')) : null,
     h('dl', {}, ...rows),
   ].filter(Boolean);
 }
@@ -78,14 +83,16 @@ function buildLegend({ debts: list }) {
   const scopes = () => [legendList, document.getElementById('debts-insights-chart')];
   legendList.replaceChildren(
     ...list.map((item) => legendItem(keyOf(item.id), swatch(`slot-${item.colour_slot}`), nameLabel(item.name), scopes)),
-    legendItem('marker', swatch('marker'), legendLabel('Total debt'), scopes),
+    legendItem('marker', swatch('marker'), legendLabel(t('Total debt')), scopes),
   );
 }
 
 const chart = createYearlyChart({
   id: 'debts-insights',
   command: 'get_debt_insights',
-  ariaLabel: 'Debts per year',
+  get ariaLabel() {
+    return t('Debts per year');
+  },
   onLoaded: buildLegend,
   piecesOf,
   extraLevels: (row) => [Number(row.closing_balance)],

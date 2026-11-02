@@ -4,6 +4,7 @@
 import { invoke } from '../shared/ipc.js';
 import { h } from '../shared/dom.js';
 import { formatAmount } from '../shared/format.js';
+import { t } from '../shared/i18n.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -16,10 +17,10 @@ function cardsFor(totals) {
       h('div', { class: 'card-value' }, value),
     );
   return [
-    card('Total gross', formatAmount(totals.total_gross), true),
-    card('Gross salary', formatAmount(totals.gross_salary)),
-    card('Holiday pay', formatAmount(totals.holiday_pay)),
-    card('Bonus', formatAmount(totals.bonus)),
+    card(t('Total gross'), formatAmount(totals.total_gross), true),
+    card(t('Gross salary'), formatAmount(totals.gross_salary)),
+    card(t('Holiday pay'), formatAmount(totals.holiday_pay)),
+    card(t('Bonus'), formatAmount(totals.bonus)),
   ];
 }
 
@@ -40,15 +41,15 @@ export async function reloadDashboard() {
 
   renderBlock(
     'year',
-    `This year · ${d.year}`,
+    t('This year · {year}', { year: d.year }),
     d.year_to_date,
-    `No entries yet in ${d.year}.`,
+    t('No entries yet in {year}.', { year: d.year }),
   );
   const month = d.last_month ?? '';
   renderBlock(
     'month',
-    `Last month · ${month}`,
+    t('Last month · {month}', { month }),
     d.last_month_totals,
-    `No paycheck for ${month}.`,
+    t('No paycheck for {month}.', { month }),
   );
 }

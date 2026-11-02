@@ -2,6 +2,7 @@
 import { invoke, errorText } from '../shared/ipc.js';
 import { h, iconButton, confirmAction, showToast, showError } from '../shared/dom.js';
 import { formatAmount, formatDate, currentYear, currentMonth } from '../shared/format.js';
+import { t } from '../shared/i18n.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -9,11 +10,16 @@ let jobs = [];
 let onChanged = async () => {};
 
 function jobDates(job) {
-  return `${formatDate(job.start_date)} – ${job.end_date ? formatDate(job.end_date) : 'present'}`;
+  return `${formatDate(job.start_date)} – ${job.end_date ? formatDate(job.end_date) : t('present')}`;
+}
+
+/** The pay period as Rust names it, in the chosen language. */
+function payPeriodName(payPeriod) {
+  return payPeriod === 'Yearly' ? t('Yearly') : t('Monthly');
 }
 
 function jobMeta(job) {
-  return [job.title, jobDates(job), job.pay_period].filter(Boolean).join(' · ');
+  return [job.title, jobDates(job), payPeriodName(job.pay_period)].filter(Boolean).join(' · ');
 }
 
 function amountCell(value) {
@@ -37,8 +43,8 @@ function renderJobs() {
         h(
           'span',
           { class: 'job-actions' },
-          iconButton('edit', `Edit ${job.employer}`, () => openJobDialog(job)),
-          iconButton('delete', `Delete ${job.employer}`, () => deleteJob(job)),
+          iconButton('edit', t('Edit {name}', { name: job.employer }), () => openJobDialog(job)),
+          iconButton('delete', t('Delete {name}', { name: job.employer }), () => deleteJob(job)),
         ),
       ),
     ),
@@ -49,15 +55,15 @@ function renderTotals(totals) {
   $('totals-empty').hidden = totals.length > 0;
   $('totals-table').hidden = totals.length === 0;
   $('totals-rows').replaceChildren(
-    ...totals.map((t) =>
+    ...totals.map((total) =>
       h(
         'tr',
         {},
-        h('th', { scope: 'row' }, String(t.year)),
-        amountCell(t.gross_salary),
-        amountCell(t.holiday_pay),
-        amountCell(t.bonus),
-        amountCell(t.total_gross),
+        h('th', { scope: 'row' }, String(total.year)),
+        amountCell(total.gross_salary),
+        amountCell(total.holiday_pay),
+        amountCell(total.bonus),
+        amountCell(total.total_gross),
       ),
     ),
   );
@@ -80,8 +86,8 @@ function renderEntries(entries) {
         h(
           'td',
           { class: 'row-actions' },
-          iconButton('edit', `Edit ${e.employer} ${e.period}`, () => openEntryDialog(e)),
-          iconButton('delete', `Delete ${e.employer} ${e.period}`, () => deleteEntry(e)),
+          iconButton('edit', t('Edit {name} {period}', { name: e.employer, period: e.period }), () => openEntryDialog(e)),
+          iconButton('delete', t('Delete {name} {period}', { name: e.employer, period: e.period }), () => deleteEntry(e)),
         ),
       ),
     ),
@@ -112,7 +118,7 @@ function openJobDialog(job) {
   const form = $('job-form');
   form.reset();
   $('job-error').hidden = true;
-  $('job-dialog-title').textContent = job ? 'Edit job' : 'Add job';
+  $('job-dialog-title').textContent = job ? t('Edit job') : t('Add job');
   // The pay period is locked once the job has entries (CSD-001 REQ-24).
   const locked = Boolean(job && job.entry_count > 0);
   form.elements.pay_period.disabled = locked;
@@ -153,9 +159,9 @@ async function submitJob(event) {
 
 async function deleteJob(job) {
   const confirmed = await confirmAction({
-    title: `Delete ${job.employer}?`,
-    message: 'This job and all its paychecks and statements will be deleted.',
-    confirmLabel: 'Delete job',
+    title: t('Delete {name}?', { name: job.employer }),
+    message: t('This job and all its paychecks and statements will be deleted.'),
+    confirmLabel: t('Delete job'),
     danger: true,
   });
   if (!confirmed) return;
@@ -177,7 +183,7 @@ function fillJobChoices(selectedId) {
   // The list is in job order, so the first option is the newest job (CSD-001 AC-5.6).
   const select = $('paycheck-form').elements.job_id;
   select.replaceChildren(
-    ...jobs.map((job) => h('option', { value: job.id }, `${job.employer} · from ${formatDate(job.start_date)}`)),
+    ...jobs.map((job) => h('option', { value: job.id }, t('{employer} · from {date}', { employer: job.employer, date: formatDate(job.start_date) }))),
   );
   select.value = selectedId ?? jobs[0]?.id ?? '';
 }
@@ -190,11 +196,11 @@ function chosenJob() {
 function applyPayPeriod({ resetPeriod }) {
   const form = $('paycheck-form');
   const yearly = chosenJob()?.pay_period === 'Yearly';
-  $('paycheck-dialog-title').textContent = yearly ? 'Add annual statement' : 'Add paycheck';
-  $('paycheck-period-label').textContent = yearly ? 'Year' : 'Month';
+  $('paycheck-dialog-title').textContent = yearly ? t('Add annual statement') : t('Add paycheck');
+  $('paycheck-period-label').textContent = yearly ? t('Year') : t('Month');
   form.elements.period.placeholder = yearly ? String(new Date().getFullYear() - 1) : 'yyyy-mm';
   form.elements.period.maxLength = yearly ? 4 : 7;
-  $('paycheck-copy').textContent = yearly ? 'Copy previous year' : 'Copy previous month';
+  $('paycheck-copy').textContent = yearly ? t('Copy previous year') : t('Copy previous month');
   if (resetPeriod && yearly !== formIsYearly) {
     form.elements.period.value = yearly ? currentYear() : currentMonth();
   }
@@ -213,9 +219,9 @@ function openEntryDialog(entry = null) {
   if (entry) {
     const statement = entry.kind === 'statement';
     $('paycheck-dialog-title').textContent = statement
-      ? `Edit annual statement ${entry.period}`
-      : `Edit paycheck ${entry.period}`;
-    $('paycheck-period-label').textContent = statement ? 'Year' : 'Month';
+      ? t('Edit annual statement {period}', { period: entry.period })
+      : t('Edit paycheck {period}', { period: entry.period });
+    $('paycheck-period-label').textContent = statement ? t('Year') : t('Month');
     form.elements.period.maxLength = statement ? 4 : 7;
     form.elements.period.value = entry.period;
     form.elements.gross_salary.value = entry.gross_salary;

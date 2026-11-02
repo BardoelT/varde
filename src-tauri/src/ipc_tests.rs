@@ -1090,13 +1090,13 @@ fn test_csd008_the_theme_is_chosen_saved_and_restored_over_ipc() {
     // AC-2.1: nothing saved yet means System.
     assert_eq!(
         app.ok("get_preferences", json!({})),
-        json!({ "theme": "system" })
+        json!({ "theme": "system", "language": "en" })
     );
 
     // AC-3.2: choosing a theme is not an unsaved project change.
     assert_eq!(
         app.ok("set_theme", json!({ "theme": "dark" })),
-        json!({ "theme": "dark" })
+        json!({ "theme": "dark", "language": "en" })
     );
     assert_eq!(app.ok("get_preferences", json!({}))["theme"], "dark");
     assert_eq!(
@@ -1148,6 +1148,74 @@ fn test_csd008_ac_10_1_a_failed_save_keeps_the_theme_over_ipc() {
         "{message}"
     );
     assert_eq!(app.ok("get_preferences", json!({}))["theme"], "light");
+}
+
+#[test]
+fn test_csd022_the_language_is_chosen_saved_and_restored_over_ipc() {
+    let config = tempfile::TempDir::new().unwrap();
+    let app = harness_in(config.path());
+
+    // AC-2.1: nothing saved yet means English.
+    assert_eq!(app.ok("get_preferences", json!({}))["language"], "en");
+
+    // AC-3.2: choosing a language is not an unsaved project change.
+    assert_eq!(
+        app.ok("set_language", json!({ "language": "nl" })),
+        json!({ "language": "nl" })
+    );
+    assert_eq!(app.ok("get_preferences", json!({}))["language"], "nl");
+    assert_eq!(
+        app.ok("project_status", json!({}))["unsaved_changes"],
+        false
+    );
+
+    // AC-3.4: choosing the current language changes nothing.
+    app.ok("set_language", json!({ "language": "nl" }));
+    assert_eq!(app.ok("get_preferences", json!({}))["language"], "nl");
+
+    // AC-4.1, AC-4.4: a fresh session reads both preferences.
+    app.ok("set_theme", json!({ "theme": "dark" }));
+    let restarted = harness_in(config.path());
+    let saved = restarted.ok("get_preferences", json!({}));
+    assert_eq!(saved["language"], "nl");
+    assert_eq!(saved["theme"], "dark");
+
+    // AC-4.2: the language belongs to the person, not to the project.
+    app.ok("new_project", json!({}));
+    assert_eq!(app.ok("get_preferences", json!({}))["language"], "nl");
+}
+
+#[test]
+fn test_csd022_ac_8_2_unsupported_languages_are_rejected_over_ipc() {
+    let config = tempfile::TempDir::new().unwrap();
+    let app = harness_in(config.path());
+    app.ok("set_language", json!({ "language": "nl" }));
+
+    for bad in ["fr", "NL", ""] {
+        let error = app.err("set_language", json!({ "language": bad }));
+        assert_eq!(error["code"], "PREFERENCES_LANGUAGE_UNSUPPORTED", "{bad:?}");
+        assert_eq!(app.ok("get_preferences", json!({}))["language"], "nl");
+    }
+}
+
+#[test]
+fn test_csd022_ac_9_1_a_failed_save_keeps_the_language_over_ipc() {
+    use std::os::unix::fs::PermissionsExt;
+    let config = tempfile::TempDir::new().unwrap();
+    let app = harness_in(config.path());
+    app.ok("set_language", json!({ "language": "en" }));
+
+    std::fs::set_permissions(config.path(), std::fs::Permissions::from_mode(0o500)).unwrap();
+    let error = app.err("set_language", json!({ "language": "nl" }));
+    std::fs::set_permissions(config.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
+
+    assert_eq!(error["code"], "PREFERENCES_SAVE_FAILED");
+    let message = error["message"].as_str().unwrap();
+    assert!(
+        !message.contains(config.path().to_str().unwrap()),
+        "{message}"
+    );
+    assert_eq!(app.ok("get_preferences", json!({}))["language"], "en");
 }
 
 #[test]
