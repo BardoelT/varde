@@ -3,9 +3,9 @@ id: CSD-008
 title: Application preferences (theme)
 status: approved
 owner: Thijs Bardoel
-version: 0.1
-last_updated: 28/10/2026
-related: [CSD-002, CSD-003]
+version: 0.2
+last_updated: 02/11/2026
+related: [CSD-002, CSD-003, CSD-022]
 ---
 
 # CSD-008: Application preferences (theme)
@@ -25,7 +25,7 @@ The app already has a light and a dark look and follows the macOS appearance, bu
 - NG-2: A theme per project. The project file holds no theme (CSD-003 CON-2 stays as it is).
 - NG-3: Switching the theme on a schedule or by time of day.
 - NG-4: Changing the existing light and dark palettes. This capability only chooses between them.
-- NG-5: Other application preferences. Theme is the first and only one, so later preferences need their own requirements.
+- NG-5: Other application preferences. Theme is the first, so later preferences need their own requirements. The language is the second and is specified in CSD-022; it is kept in the same preference file, and `get_preferences` also returns it.
 
 ## 3. Definitions
 | Term | Meaning |
@@ -291,4 +291,5 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 None.
 
 ## 9. Changelog
+- 0.2 (02/11/2026): The language preference (CSD-022) is kept in the same preference file, and `get_preferences` returns it next to the theme. No requirement of this CSD changes (GitHub issue 22).
 - 0.1 (28/10/2026): initial draft, from GitHub issue 11.
