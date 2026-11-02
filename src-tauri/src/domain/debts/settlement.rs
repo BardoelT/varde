@@ -248,18 +248,44 @@ impl Debts {
         Ok(())
     }
 
-    /// Rejects a change to the statement of `period` when the debt is settled
-    /// and `period` is the settlement period or later (CSD-020 REQ-8).
+    /// Rejects a regular statement for `period` when the debt is settled and
+    /// `period` is after the settlement period (CSD-020 REQ-8). The
+    /// settlement period itself stays open for a regular statement.
     pub(super) fn check_unsettled_at(&self, id: DebtId, period: Period) -> Result<(), DomainError> {
+        if self.is_after_settlement(id, period)? {
+            return Err(DomainError::DebtSettledLocked);
+        }
+        Ok(())
+    }
+
+    /// Rejects changing or deleting the statement of `period` when the debt is
+    /// settled and that statement is after the settlement period, or is the
+    /// settlement statement itself, the only one in the settlement period
+    /// (CSD-020 REQ-8).
+    pub(super) fn check_target_editable(
+        &self,
+        id: DebtId,
+        period: Period,
+    ) -> Result<(), DomainError> {
+        self.check_unsettled_at(id, period)?;
         let debt = self.debt(id)?;
         let Some(settlement) = &debt.settlement else {
             return Ok(());
         };
-        let locked_from = sale_period(debt.statement_period, settlement.date)?;
-        if period.sort_key() >= locked_from.sort_key() {
+        let settled_period = sale_period(debt.statement_period, settlement.date)?;
+        if period == settled_period && self.statement(id, period).is_none() {
             return Err(DomainError::DebtSettledLocked);
         }
         Ok(())
+    }
+
+    fn is_after_settlement(&self, id: DebtId, period: Period) -> Result<bool, DomainError> {
+        let debt = self.debt(id)?;
+        let Some(settlement) = &debt.settlement else {
+            return Ok(false);
+        };
+        let settled_period = sale_period(debt.statement_period, settlement.date)?;
+        Ok(period.sort_key() > settled_period.sort_key())
     }
 
     /// Brings a debt settled by an earlier version into the current form: its
@@ -317,13 +343,15 @@ impl Debts {
         Ok(())
     }
 
-    /// Whether a statement can no longer change because its debt is settled and
-    /// the statement lies in or after the settlement period (CSD-020 REQ-8,
-    /// REQ-18).
+    /// Whether a statement can no longer change: the settlement statement, and
+    /// the statements after the settlement period of a settled debt (CSD-020
+    /// REQ-8, REQ-18).
     #[must_use]
     pub fn statement_locked(&self, statement: &DebtStatement) -> bool {
-        self.check_unsettled_at(statement.debt_id, statement.period)
-            .is_err()
+        statement.settlement
+            || self
+                .is_after_settlement(statement.debt_id, statement.period)
+                .unwrap_or(false)
     }
 
     /// Checks that the links and settlements read from a file follow CSD-020, so

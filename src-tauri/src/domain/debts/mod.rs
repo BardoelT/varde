@@ -175,7 +175,7 @@ impl Debts {
         today: YearMonth,
     ) -> Result<DebtStatement, DomainError> {
         self.debt(debt_id)?;
-        self.check_unsettled_at(debt_id, period)?;
+        self.check_target_editable(debt_id, period)?;
         if self.statement(debt_id, period).is_none() {
             return Err(DomainError::DebtStatementNotFound);
         }
@@ -201,7 +201,7 @@ impl Debts {
     /// Returns `DebtNotFound` or `DebtStatementNotFound`.
     pub fn delete_statement(&mut self, debt_id: DebtId, period: Period) -> Result<(), DomainError> {
         self.debt(debt_id)?;
-        self.check_unsettled_at(debt_id, period)?;
+        self.check_target_editable(debt_id, period)?;
         let before = self.statements.len();
         self.statements
             .retain(|s| !(s.debt_id == debt_id && s.period == period && !s.settlement));

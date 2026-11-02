@@ -3,7 +3,7 @@ id: CSD-020
 title: Debt linked to a house
 status: approved
 owner: Thijs Bardoel
-version: 0.9
+version: 0.10
 last_updated: 30/10/2026
 related: [CSD-000, CSD-002, CSD-011, CSD-012, CSD-015, CSD-017, CSD-018, CSD-019]
 ---
@@ -271,20 +271,19 @@ Scenario: Change the sell amount
 ```
 
 **REQ-8: Settled debts are locked** *(unwanted behaviour)*
-If a debt has a settlement, then the app shall reject, with the error code `DEBT_SETTLED_LOCKED`, adding a statement in or after the settlement period, changing or deleting such a statement or the settlement statement, changing the statement period of the debt, removing its house link and changing its category; statements before the settlement period stay editable.
+If a debt has a settlement, then the app shall reject, with the error code `DEBT_SETTLED_LOCKED`, adding a statement after the settlement period, changing or deleting a statement after it or the settlement statement, changing the statement period of the debt, removing its house link and changing its category; statements before the settlement period and the regular statement of the settlement period itself stay editable.
 
 ```gherkin
 @AC-8.1
 Scenario Outline: Locked operations
-  Given "Example Mortgage" settled on 10/06/2026 (settlement period 2026-06) with statements for 2026-03 and 2026-06
+  Given "Example Mortgage" settled on 10/06/2026 (settlement period 2026-06) with a regular statement for 2026-03 and the settlement statement for 2026-06
   When the user <operation>
   Then it is rejected with error code "DEBT_SETTLED_LOCKED"
 
   Examples:
     | operation                                         |
     | adds a statement for 2026-07                      |
-    | edits the regular statement for 2026-06           |
-    | deletes the regular statement for 2026-06         |
+    | edits the settlement statement for 2026-06        |
     | deletes the settlement statement for 2026-06      |
     | unlinks it or changes its category in the Edit debt form |
 
@@ -293,6 +292,13 @@ Scenario: Earlier statements stay editable
   Given the same debt
   When the user edits the statement for 2026-03 to balance 189000.00
   Then the statement is saved and the settled amount stays 190000.00
+
+@AC-8.3
+Scenario: The regular statement of the settlement period stays editable
+  Given "Example Loan" settled on 10/06/2026 with a regular statement for 2026-06 with balance 3500.00 and its settlement statement
+  When the user edits the regular statement for 2026-06 to balance 3400.00
+  Then the statement is saved with balance 3400.00
+  And the settlement statement, the settlement and the settled amount 3500.00 are unchanged
 ```
 
 **REQ-9: Deleting a house or a debt** *(unwanted behaviour)*
@@ -498,7 +504,7 @@ Scenario: A damaged link
 ```
 
 **REQ-18: The Statements table shows the settlement statement** *(ubiquitous)*
-The app shall show both statements of a period in the Statements table of the Debts overview, the settlement statement above the regular one, with the badge of the settlement on the settlement row, and shall show no Edit and Delete buttons on the settlement statement and on the regular statements of the settlement period and later of a settled debt.
+The app shall show both statements of a period in the Statements table of the Debts overview, the settlement statement above the regular one, with the badge of the settlement on the settlement row, and shall show no Edit and Delete buttons on the settlement statement and on the statements after the settlement period of a settled debt, and the Edit and Delete buttons on the regular statement of the settlement period.
 
 ```gherkin
 @AC-18.1
@@ -506,7 +512,7 @@ Scenario: Two rows in one period
   Given "Example Loan" settled as Cancelled with a regular statement for 2026-06 (balance 3500.00) and its settlement statement
   When the user opens the Debts overview
   Then the Statements table lists the settlement statement "Cancelled on sale of Example House" with balance 0.00 and the badge Cancelled directly above the regular statement for 2026-06 with balance 3500.00
-  And neither row has Edit or Delete buttons
+  And the settlement row has no Edit or Delete buttons and the regular row has both
 
 @AC-18.2
 Scenario: The change of the settlement statement
@@ -559,6 +565,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `cargo d
 - OQ-1: Should the yearly totals of the Debts overview (CSD-011 REQ-19) show the Cancelled-adjusted repaid amount, or the raw drop as today? This CSD adjusts only the wealth accumulation (REQ-12). Owner: Thijs. Blocks: none (default: raw in the Debts overview).
 
 ## 9. Changelog
+- 0.10 (02/11/2026): Only the settlement statement is locked in the settlement period; the regular statement of that period stays editable (REQ-8, REQ-18, AC-8.1, AC-8.3, AC-18.1). Statements after the settlement period stay locked.
 - 0.9 (30/10/2026): The Debts overview follows a sale or its undo, and the Houses overview follows the debt form, without reopening the page (AC-6.3, AC-1.7). No requirement changes.
 - 0.8 (30/10/2026): Files with a debt settled by an earlier version open in the current form (REQ-16, AC-16.6): the 0.00 statement becomes the settlement statement and the replaced statement comes back. Amended without a draft phase at the owner's request.
 - 0.7 (30/10/2026): The settlement adds a final statement and keeps the regular statement of the sale period, so a debt can have two statements in one month or year (definition, REQ-5, REQ-6, REQ-8, REQ-16, new REQ-18). The replaced statement is dropped. Amended without a draft phase at the owner's request.
