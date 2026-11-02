@@ -148,4 +148,4 @@ The repo is public, so fixtures and test data must be obviously fake (for exampl
 
 ## License
 
-No license has been chosen yet.
+Varde is free software under the [GNU General Public License v3.0](LICENSE). You may use, study, change and share it, and a version you distribute must stay under the same license with its source available. The license covers the code only. Your project files stay yours.
