@@ -2,6 +2,7 @@
 import { invoke, errorText } from '../shared/ipc.js';
 import { h, iconButton, confirmAction, showToast, showError } from '../shared/dom.js';
 import { formatAmount, currentYear, currentMonth } from '../shared/format.js';
+import { t } from '../shared/i18n.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -44,8 +45,8 @@ function renderAccounts(overview) {
         h(
           'span',
           { class: 'job-actions' },
-          iconButton('edit', `Edit ${account.name}`, () => openAccountDialog(account)),
-          iconButton('delete', `Delete ${account.name}`, () => deleteAccount(account)),
+          iconButton('edit', t('Edit {name}', { name: account.name }), () => openAccountDialog(account)),
+          iconButton('delete', t('Delete {name}', { name: account.name }), () => deleteAccount(account)),
         ),
       ),
     ),
@@ -90,8 +91,8 @@ function renderStatements(statements) {
         h(
           'td',
           { class: 'row-actions' },
-          iconButton('edit', `Edit ${s.account_name} ${s.period}`, () => openStatementDialog(s)),
-          iconButton('delete', `Delete ${s.account_name} ${s.period}`, () => deleteStatement(s)),
+          iconButton('edit', t('Edit {account} {period}', { account: s.account_name, period: s.period }), () => openStatementDialog(s)),
+          iconButton('delete', t('Delete {account} {period}', { account: s.account_name, period: s.period }), () => deleteStatement(s)),
         ),
       ),
     ),
@@ -128,7 +129,7 @@ function openAccountDialog(account) {
   const form = $('account-form');
   form.reset();
   $('account-error').hidden = true;
-  $('account-dialog-title').textContent = account ? 'Edit account' : 'Add account';
+  $('account-dialog-title').textContent = account ? t('Edit account') : t('Add account');
   // The statement period is locked once the account has statements (CSD-005 REQ-4).
   const locked = Boolean(account && account.statement_count > 0);
   form.elements.statement_period.disabled = locked;
@@ -163,9 +164,9 @@ async function submitAccount(event) {
 
 async function deleteAccount(account) {
   const confirmed = await confirmAction({
-    title: `Delete ${account.name}?`,
-    message: 'This account and all its statements will be deleted.',
-    confirmLabel: 'Delete account',
+    title: t('Delete {name}?', { name: account.name }),
+    message: t('This account and all its statements will be deleted.'),
+    confirmLabel: t('Delete account'),
     danger: true,
   });
   if (!confirmed) return;
@@ -198,10 +199,10 @@ function chosenAccount() {
 function applyStatementPeriod({ resetPeriod }) {
   const form = $('statement-form');
   const yearly = chosenAccount()?.statement_period === 'Yearly';
-  $('statement-period-label').textContent = yearly ? 'Year' : 'Month';
-  form.elements.period.placeholder = yearly ? String(new Date().getFullYear() - 1) : 'yyyy-mm';
+  $('statement-period-label').textContent = yearly ? t('Year') : t('Month');
+  form.elements.period.placeholder = yearly ? String(new Date().getFullYear() - 1) : t('yyyy-mm');
   form.elements.period.maxLength = yearly ? 4 : 7;
-  $('statement-copy').textContent = yearly ? 'Copy previous year' : 'Copy previous month';
+  $('statement-copy').textContent = yearly ? t('Copy previous year') : t('Copy previous month');
   if (resetPeriod && yearly !== formIsYearly) {
     form.elements.period.value = yearly ? currentYear() : currentMonth();
   }
@@ -299,8 +300,8 @@ function openStatementDialog(statement = null) {
   calculationRun += 1; // drop any calculation still under way
   markCalculated(null);
   if (statement) {
-    $('statement-dialog-title').textContent = `Edit statement ${statement.period}`;
-    $('statement-period-label').textContent = statement.period.length === 4 ? 'Year' : 'Month';
+    $('statement-dialog-title').textContent = t('Edit statement {period}', { period: statement.period });
+    $('statement-period-label').textContent = statement.period.length === 4 ? t('Year') : t('Month');
     form.elements.period.maxLength = statement.period.length;
     form.elements.period.value = statement.period;
     formIsYearly = statement.period.length === 4;
@@ -309,7 +310,7 @@ function openStatementDialog(statement = null) {
     form.elements.note.value = statement.note;
     recalculate();
   } else {
-    $('statement-dialog-title').textContent = 'Add statement';
+    $('statement-dialog-title').textContent = t('Add statement');
     formIsYearly = null; // force the period to its default for the first account
     form.elements.period.value = '';
     applyStatementPeriod({ resetPeriod: true });
@@ -365,9 +366,9 @@ async function copyPrevious() {
 
 async function deleteStatement(statement) {
   const confirmed = await confirmAction({
-    title: `Delete the statement of ${statement.period}?`,
-    message: `The statement of ${statement.period} of ${statement.account_name} and its note will be deleted.`,
-    confirmLabel: 'Delete statement',
+    title: t('Delete the statement of {period}?', { period: statement.period }),
+    message: t('The statement of {period} of {account} and its note will be deleted.', { period: statement.period, account: statement.account_name }),
+    confirmLabel: t('Delete statement'),
     danger: true,
   });
   if (!confirmed) return;

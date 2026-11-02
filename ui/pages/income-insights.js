@@ -6,19 +6,20 @@ import { formatAmount } from '../shared/format.js';
 import { svg, swatch, noSwatch, legendLabel, legendItem, tooltipRow } from '../shared/chart.js';
 import { createYearlyChart, percentLabel, isNegative, yearLabel } from '../shared/yearly-chart.js';
 import { initTabs } from '../shared/tabs.js';
+import { t } from '../shared/i18n.js';
 
-/** The stacked series, bottom to top: the Rust field, the legend key and the label. */
-const SEGMENTS = [
-  ['gross_salary', 'salary', 'Gross salary'],
-  ['holiday_pay', 'holiday', 'Holiday pay'],
-  ['bonus', 'bonus', 'Bonus'],
+/** The stacked series, bottom to top: the Rust field, the legend key and the label (in the chosen language). */
+const segments = () => [
+  ['gross_salary', 'salary', t('Gross salary')],
+  ['holiday_pay', 'holiday', t('Holiday pay')],
+  ['bonus', 'bonus', t('Bonus')],
 ];
 
 /** The stacked pieces of a year, bottom to top. */
 function piecesOf(row) {
   let level = 0;
   const pieces = [];
-  for (const [field, key] of SEGMENTS) {
+  for (const [field, key] of segments()) {
     const value = Number(row[field]);
     if (value <= 0) continue;
     pieces.push({ key, cssClass: `bar-${key}`, low: level, high: level + value });
@@ -28,11 +29,16 @@ function piecesOf(row) {
 }
 
 function describe(row) {
-  const growth = row.growth_percent === null ? 'no growth figure' : `growth ${percentLabel(row.growth_percent)}`;
-  return (
-    `${yearLabel(row)}: gross salary ${formatAmount(row.gross_salary)}, holiday pay ${formatAmount(row.holiday_pay)}, ` +
-    `bonus ${formatAmount(row.bonus)}, total gross ${formatAmount(row.total_gross)}, ${growth}`
-  );
+  const growth =
+    row.growth_percent === null ? t('no growth figure') : t('growth {percent}', { percent: percentLabel(row.growth_percent) });
+  return t('{year}: gross salary {salary}, holiday pay {holiday}, bonus {bonus}, total gross {total}, {growth}', {
+    year: yearLabel(row),
+    salary: formatAmount(row.gross_salary),
+    holiday: formatAmount(row.holiday_pay),
+    bonus: formatAmount(row.bonus),
+    total: formatAmount(row.total_gross),
+    growth,
+  });
 }
 
 /** The rows read like the bar: the top piece first. */
@@ -43,9 +49,9 @@ function tooltipContent(row) {
     h(
       'dl',
       {},
-      ...[...SEGMENTS].reverse().flatMap(([field, key, label]) => tooltipRow(key, swatch(key), label, formatAmount(row[field]))),
-      ...tooltipRow(null, noSwatch(), 'Total gross', formatAmount(row.total_gross)),
-      ...tooltipRow(null, noSwatch(), 'Growth', percentLabel(row.growth_percent), negative ? 'negative' : ''),
+      ...segments().reverse().flatMap(([field, key, label]) => tooltipRow(key, swatch(key), label, formatAmount(row[field]))),
+      ...tooltipRow(null, noSwatch(), t('Total gross'), formatAmount(row.total_gross)),
+      ...tooltipRow(null, noSwatch(), t('Growth'), percentLabel(row.growth_percent), negative ? 'negative' : ''),
     ),
   ];
 }
@@ -54,13 +60,15 @@ function tooltipContent(row) {
 function buildLegend() {
   const legendList = document.getElementById('income-insights-legend');
   const scopes = () => [legendList, document.getElementById('income-insights-chart')];
-  legendList.replaceChildren(...SEGMENTS.map(([, key, label]) => legendItem(key, swatch(key), legendLabel(label), scopes)));
+  legendList.replaceChildren(...segments().map(([, key, label]) => legendItem(key, swatch(key), legendLabel(label), scopes)));
 }
 
 const chart = createYearlyChart({
   id: 'income-insights',
   command: 'get_income_insights',
-  ariaLabel: 'Income per year',
+  get ariaLabel() {
+    return t('Income per year');
+  },
   onLoaded: buildLegend,
   piecesOf,
   describe,

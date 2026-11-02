@@ -6,6 +6,7 @@
 // figures; this file only stacks and scales them, so the only arithmetic here
 // is turning values into positions.
 import { invoke } from './ipc.js';
+import { t } from './i18n.js';
 import { svg, niceScale, compact, segmentShape, createTooltip, bindHighlight } from './chart.js';
 
 const MARGIN = { top: 28, right: 16, left: 48 };
@@ -24,7 +25,7 @@ export const isNegative = (text) => text.startsWith('-');
 
 /** "2025", or "2026 YTD" for the running year. */
 export function yearLabel(row) {
-  return row.is_partial ? `${row.year} YTD` : String(row.year);
+  return row.is_partial ? t('{year} YTD', { year: row.year }) : String(row.year);
 }
 
 /** An axis or marker label: compact, with a real minus sign below zero. */
@@ -119,7 +120,7 @@ export function createYearlyChart(strategy) {
     const allTicks = [...Array.from({ length: below }, (_, i) => -(below - i) * step), ...ticks];
     const yOf = (value) => margin.top + ((top - value) / (top - bottom)) * plotHeight;
 
-    const chart = svg('svg', { viewBox: `0 0 ${width} ${height}`, role: 'group', 'aria-label': strategy.ariaLabel });
+    const chart = svg('svg', { viewBox: `0 0 ${width} ${height}`, role: 'group', 'aria-label': t(strategy.ariaLabel) });
     // The container is as wide as the chart, so the tooltip is placed against the whole chart.
     inner.style.minWidth = `${width}px`;
     chart.style.minWidth = `${width}px`;

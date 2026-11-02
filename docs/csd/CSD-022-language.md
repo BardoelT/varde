@@ -3,7 +3,7 @@ id: CSD-022
 title: Language (English and Dutch)
 status: approved
 owner: Thijs Bardoel
-version: 0.1
+version: 0.2
 last_updated: 02/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-008]
 ---
@@ -267,7 +267,7 @@ Error codes: `PREFERENCES_LANGUAGE_UNSUPPORTED` (new), `PREFERENCES_SAVE_FAILED`
 ## 6. Constraints
 - CON-1: The language is stored only in the preference file of CSD-008, with the same rules (outside the project file, atomic, owner-only, never committed). Rationale: it belongs to the person and the Mac, and it is needed before any project is open.
 - CON-2: Rust is the only place the preference is kept. The frontend holds no copy (no `localStorage`). Rationale: one source of truth, CSD-008 CON-2.
-- CON-3: The texts live in one dictionary per language in `ui/`, read through one helper, with no new dependency and no build step. The frontend contains no text that bypasses the helper. Rationale: `CLAUDE.md` (vanilla frontend), and one place to find and review all texts.
+- CON-3: The English text is written where it is used and is the key of its Dutch version, which lives in the Dutch dictionary in `ui/locales/` (split by area, merged in one file). Texts are read through one helper, with no new dependency and no build step. The frontend contains no text that bypasses the helper. Rationale: `CLAUDE.md` (vanilla frontend), English can never be missing, and one place to find and review the Dutch texts.
 - CON-4: Rust sends error codes and English messages, never translated text, and `domain/` holds no texts for the screens. Rationale: `CLAUDE.md` layout rule and the safe error rule.
 - CON-5: The language is a closed set (`en`, `nl`), not free text beyond the command edge. Rationale: invalid states are unrepresentable per `CLAUDE.md`.
 - CON-6: No new plugin, capability or permission, and no network access. Rationale: least privilege per `CLAUDE.md`.
@@ -289,3 +289,4 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 
 ## 9. Changelog
 - 0.1 (02/11/2026): initial draft, from GitHub issue 22 and the interview. Beyond the interview: the macOS language is not followed (NG-4), the native menu and file dialogs stay as they are (NG-6), and a text without a translation falls back to English (REQ-6).
+- 0.2 (02/11/2026): CON-3 clarified for the implementation: English texts are the keys, so there is a Dutch dictionary only (no clarification of behaviour).

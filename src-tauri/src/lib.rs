@@ -26,6 +26,10 @@ fn has_unsaved_changes(state: &AppState) -> bool {
 
 /// Registers state, commands and the close confirmation on a builder. Shared by
 /// the real app and by the IPC tests, which run it on the mock runtime.
+#[allow(
+    clippy::too_many_lines,
+    reason = "one flat list of the registered commands, one line per command"
+)]
 fn configure<R: Runtime>(builder: tauri::Builder<R>, utc_offset: UtcOffset) -> tauri::Builder<R> {
     builder
         .manage(AppState::new(utc_offset))
@@ -112,6 +116,7 @@ fn configure<R: Runtime>(builder: tauri::Builder<R>, utc_offset: UtcOffset) -> t
             settings::set_currency,
             preferences::get_preferences,
             preferences::set_theme,
+            preferences::set_language,
             project::project_status,
             project::take_startup_notice,
             project::new_project,

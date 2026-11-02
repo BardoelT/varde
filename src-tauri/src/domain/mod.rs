@@ -42,7 +42,7 @@ pub use investments::{
 };
 pub use money::{Amounts, Currency};
 pub use net_worth::NetWorthInsights;
-pub use preferences::Theme;
+pub use preferences::{Language, Theme};
 pub use project_data::ProjectData;
 pub use ratios::Ratios;
 pub use settings::Settings;

@@ -4,27 +4,32 @@
 // investments: the waterfall pieces, the closing-balance marker and the growth
 // percentage.
 import { h } from '../shared/dom.js';
+import { t } from '../shared/i18n.js';
 import { formatAmount } from '../shared/format.js';
 import { swatch, noSwatch, legendLabel, legendItem, tooltipRow } from '../shared/chart.js';
 import { createYearlyChart, levelMarker, percentLabel, isNegative, yearLabel } from '../shared/yearly-chart.js';
 import { initTabs } from '../shared/tabs.js';
 
 /** The legend items in the order of the bar from the bottom: key and label. A loss and a gain are two items. */
-const LEGEND = [
-  ['opening', 'Opening balance'],
-  ['deposits', 'Net deposits'],
-  ['growth-up', 'Capital growth (gain)'],
-  ['growth-down', 'Capital growth (loss)'],
+const legendItems = () => [
+  ['opening', t('Opening balance')],
+  ['deposits', t('Net deposits')],
+  ['growth-up', t('Capital growth (gain)')],
+  ['growth-down', t('Capital growth (loss)')],
 ];
 
 function describe(row) {
-  if (row.statement_count === 0) return `${yearLabel(row)}: no statements`;
-  const growth = isNegative(row.capital_growth) ? `${formatAmount(row.capital_growth)} (negative)` : formatAmount(row.capital_growth);
-  return (
-    `${yearLabel(row)}: opening balance ${formatAmount(row.opening_balance)}, ` +
-    `net deposits ${formatAmount(row.net_deposits)}, capital growth ${growth}, growth ${percentLabel(row.growth_percent)}, ` +
-    `closing balance ${formatAmount(row.closing_balance)}`
-  );
+  if (row.statement_count === 0) return t('{year}: no statements', { year: yearLabel(row) });
+  const amount = formatAmount(row.capital_growth);
+  const growth = isNegative(row.capital_growth) ? t('{amount} (negative)', { amount }) : amount;
+  return t('{year}: opening balance {opening}, net deposits {deposits}, capital growth {growth}, growth {percent}, closing balance {closing}', {
+    year: yearLabel(row),
+    opening: formatAmount(row.opening_balance),
+    deposits: formatAmount(row.net_deposits),
+    growth,
+    percent: percentLabel(row.growth_percent),
+    closing: formatAmount(row.closing_balance),
+  });
 }
 
 /** The rows read like the bar, top to bottom: capital growth, net deposits, opening balance. */
@@ -34,15 +39,15 @@ function tooltipContent(row) {
     row.statement_count === 0
       ? []
       : [
-          ...tooltipRow(growthKey, swatch(growthKey), 'Capital growth', formatAmount(row.capital_growth), isNegative(row.capital_growth) ? 'negative' : ''),
-          ...tooltipRow('deposits', swatch('deposits'), 'Net deposits', formatAmount(row.net_deposits)),
-          ...tooltipRow('opening', swatch('opening'), 'Opening balance', formatAmount(row.opening_balance)),
-          ...tooltipRow('marker', swatch('marker'), 'Closing balance', formatAmount(row.closing_balance)),
-          ...tooltipRow(null, noSwatch(), 'Growth', percentLabel(row.growth_percent), row.growth_percent !== null && isNegative(row.growth_percent) ? 'negative' : ''),
+          ...tooltipRow(growthKey, swatch(growthKey), t('Capital growth'), formatAmount(row.capital_growth), isNegative(row.capital_growth) ? 'negative' : ''),
+          ...tooltipRow('deposits', swatch('deposits'), t('Net deposits'), formatAmount(row.net_deposits)),
+          ...tooltipRow('opening', swatch('opening'), t('Opening balance'), formatAmount(row.opening_balance)),
+          ...tooltipRow('marker', swatch('marker'), t('Closing balance'), formatAmount(row.closing_balance)),
+          ...tooltipRow(null, noSwatch(), t('Growth'), percentLabel(row.growth_percent), row.growth_percent !== null && isNegative(row.growth_percent) ? 'negative' : ''),
         ];
   return [
     h('div', { class: 'tip-title' }, yearLabel(row)),
-    row.statement_count === 0 ? h('div', { class: 'tip-note' }, 'No statements') : null,
+    row.statement_count === 0 ? h('div', { class: 'tip-note' }, t('No statements')) : null,
     h('dl', {}, ...rows),
   ].filter(Boolean);
 }
@@ -78,15 +83,18 @@ function buildLegend() {
   const legendList = document.getElementById('investments-insights-legend');
   const scopes = () => [legendList, document.getElementById('investments-insights-chart')];
   legendList.replaceChildren(
-    ...LEGEND.map(([key, label]) => legendItem(key, swatch(key), legendLabel(label), scopes)),
-    legendItem('marker', swatch('marker'), legendLabel('Closing balance'), scopes),
+    ...legendItems().map(([key, label]) => legendItem(key, swatch(key), legendLabel(label), scopes)),
+    legendItem('marker', swatch('marker'), legendLabel(t('Closing balance')), scopes),
   );
 }
 
 const chart = createYearlyChart({
   id: 'investments-insights',
   command: 'get_investment_insights',
-  ariaLabel: 'Investments per year',
+  // A getter, so the name follows the language when the chart is drawn again.
+  get ariaLabel() {
+    return t('Investments per year');
+  },
   onLoaded: buildLegend,
   piecesOf,
   extraLevels: (row) => [Number(row.closing_balance)],

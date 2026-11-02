@@ -1,6 +1,7 @@
 // The "Settle linked debts" prompt: Repaid or Cancelled for each open debt (CSD-020 REQ-15).
 import { h } from './dom.js';
 import { formatAmount } from './format.js';
+import { t } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -19,7 +20,7 @@ export function askSettlements(openDebts) {
         h('span', {}, `${debt.debt_name} ${formatAmount(debt.amount)}`),
         h(
           'span',
-          { class: 'settle-choices', role: 'radiogroup', 'aria-label': `Outcome of ${debt.debt_name}` },
+          { class: 'settle-choices', role: 'radiogroup', 'aria-label': t('Outcome of {debt}', { debt: debt.debt_name }) },
           ...['Repaid', 'Cancelled'].map((outcome) =>
             h(
               'label',
@@ -33,7 +34,7 @@ export function askSettlements(openDebts) {
                   save.disabled = chosen.size < openDebts.length;
                 },
               }),
-              outcome,
+              outcome === 'Repaid' ? t('Repaid') : t('Cancelled'),
             ),
           ),
         ),

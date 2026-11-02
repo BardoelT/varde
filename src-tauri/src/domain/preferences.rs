@@ -28,6 +28,31 @@ impl Theme {
     }
 }
 
+/// The language of the app's own texts (CSD-022). English is the default.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Language {
+    #[default]
+    #[serde(rename = "en")]
+    English,
+    #[serde(rename = "nl")]
+    Dutch,
+}
+
+impl Language {
+    /// Parses the code `"en"` or `"nl"` (REQ-8). Anything else, including other
+    /// capitalisation, is rejected.
+    ///
+    /// # Errors
+    /// Returns `PreferencesLanguageUnsupported` for any other text.
+    pub fn parse(text: &str) -> Result<Self, DomainError> {
+        match text {
+            "en" => Ok(Self::English),
+            "nl" => Ok(Self::Dutch),
+            _ => Err(DomainError::PreferencesLanguageUnsupported),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -55,6 +80,31 @@ mod tests {
         for text in ["sepia", "Dark", "DARK", " dark", "dark ", ""] {
             let error = Theme::parse(text).unwrap_err();
             assert_eq!(error.code(), "PREFERENCES_THEME_UNSUPPORTED", "{text:?}");
+        }
+    }
+
+    #[test]
+    fn test_csd022_ac_2_1_the_default_language_is_english() {
+        assert_eq!(Language::default(), Language::English);
+    }
+
+    #[test]
+    fn test_csd022_ac_4_1_languages_round_trip_as_codes() {
+        for (language, code) in [(Language::English, "en"), (Language::Dutch, "nl")] {
+            assert_eq!(Language::parse(code), Ok(language));
+            assert_eq!(serde_json::to_value(language).unwrap(), code);
+            assert_eq!(
+                serde_json::from_value::<Language>(code.into()).unwrap(),
+                language
+            );
+        }
+    }
+
+    #[test]
+    fn test_csd022_ac_8_2_unsupported_languages_are_rejected() {
+        for text in ["fr", "NL", "En", " nl", "nl ", "dutch", ""] {
+            let error = Language::parse(text).unwrap_err();
+            assert_eq!(error.code(), "PREFERENCES_LANGUAGE_UNSUPPORTED", "{text:?}");
         }
     }
 }

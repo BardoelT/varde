@@ -2,6 +2,7 @@
 import { invoke, errorText } from '../shared/ipc.js';
 import { h, iconButton, confirmAction, showToast, showError } from '../shared/dom.js';
 import { formatAmount, currentYear, currentMonth } from '../shared/format.js';
+import { t } from '../shared/i18n.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -42,8 +43,8 @@ function renderAccounts(overview) {
         h(
           'span',
           { class: 'job-actions' },
-          iconButton('edit', `Edit ${account.name}`, () => openAccountDialog(account)),
-          iconButton('delete', `Delete ${account.name}`, () => deleteAccount(account)),
+          iconButton('edit', t('Edit {name}', { name: account.name }), () => openAccountDialog(account)),
+          iconButton('delete', t('Delete {name}', { name: account.name }), () => deleteAccount(account)),
         ),
       ),
     ),
@@ -83,8 +84,8 @@ function renderEntries(entries) {
         h(
           'td',
           { class: 'row-actions' },
-          iconButton('edit', `Edit ${e.account_name} ${e.period}`, () => openEntryDialog(e)),
-          iconButton('delete', `Delete ${e.account_name} ${e.period}`, () => deleteEntry(e)),
+          iconButton('edit', t('Edit {account} {period}', { account: e.account_name, period: e.period }), () => openEntryDialog(e)),
+          iconButton('delete', t('Delete {account} {period}', { account: e.account_name, period: e.period }), () => deleteEntry(e)),
         ),
       ),
     ),
@@ -115,7 +116,7 @@ function openAccountDialog(account) {
   const form = $('bank-account-form');
   form.reset();
   $('bank-account-error').hidden = true;
-  $('bank-account-dialog-title').textContent = account ? 'Edit account' : 'Add account';
+  $('bank-account-dialog-title').textContent = account ? t('Edit account') : t('Add account');
   // The entry period is locked once the account has entries (CSD-009 REQ-5).
   const locked = Boolean(account && account.entry_count > 0);
   form.elements.entry_period.disabled = locked;
@@ -150,9 +151,9 @@ async function submitAccount(event) {
 
 async function deleteAccount(account) {
   const confirmed = await confirmAction({
-    title: `Delete ${account.name}?`,
-    message: 'This account and all its entries will be deleted.',
-    confirmLabel: 'Delete account',
+    title: t('Delete {name}?', { name: account.name }),
+    message: t('This account and all its entries will be deleted.'),
+    confirmLabel: t('Delete account'),
     danger: true,
   });
   if (!confirmed) return;
@@ -185,10 +186,10 @@ function chosenAccount() {
 function applyEntryPeriod({ resetPeriod }) {
   const form = $('bank-entry-form');
   const yearly = chosenAccount()?.entry_period === 'Yearly';
-  $('bank-entry-period-label').textContent = yearly ? 'Year' : 'Month';
-  form.elements.period.placeholder = yearly ? String(new Date().getFullYear() - 1) : 'yyyy-mm';
+  $('bank-entry-period-label').textContent = yearly ? t('Year') : t('Month');
+  form.elements.period.placeholder = yearly ? String(new Date().getFullYear() - 1) : t('yyyy-mm');
   form.elements.period.maxLength = yearly ? 4 : 7;
-  $('bank-entry-copy').textContent = yearly ? 'Copy previous year' : 'Copy previous month';
+  $('bank-entry-copy').textContent = yearly ? t('Copy previous year') : t('Copy previous month');
   if (resetPeriod && yearly !== formIsYearly) {
     form.elements.period.value = yearly ? currentYear() : currentMonth();
   }
@@ -206,15 +207,15 @@ function openEntryDialog(entry = null) {
   $('bank-entry-copy').hidden = Boolean(entry);
   if (entry) {
     // The period is editable too; the account is not (CSD-009 REQ-12).
-    $('bank-entry-dialog-title').textContent = `Edit entry ${entry.period}`;
-    $('bank-entry-period-label').textContent = entry.period.length === 4 ? 'Year' : 'Month';
+    $('bank-entry-dialog-title').textContent = t('Edit entry {period}', { period: entry.period });
+    $('bank-entry-period-label').textContent = entry.period.length === 4 ? t('Year') : t('Month');
     form.elements.period.maxLength = entry.period.length;
     form.elements.period.value = entry.period;
     formIsYearly = entry.period.length === 4;
     form.elements.balance.value = entry.balance;
     form.elements.note.value = entry.note;
   } else {
-    $('bank-entry-dialog-title').textContent = 'Add entry';
+    $('bank-entry-dialog-title').textContent = t('Add entry');
     formIsYearly = null; // force the period to its default for the first account
     form.elements.period.value = '';
     applyEntryPeriod({ resetPeriod: true });
@@ -260,9 +261,9 @@ async function copyPrevious() {
 
 async function deleteEntry(entry) {
   const confirmed = await confirmAction({
-    title: `Delete the entry of ${entry.period}?`,
-    message: `The entry of ${entry.period} of ${entry.account_name} and its note will be deleted.`,
-    confirmLabel: 'Delete entry',
+    title: t('Delete the entry of {period}?', { period: entry.period }),
+    message: t('The entry of {period} of {account} and its note will be deleted.', { period: entry.period, account: entry.account_name }),
+    confirmLabel: t('Delete entry'),
     danger: true,
   });
   if (!confirmed) return;

@@ -4,6 +4,7 @@
 // what is specific to banks: the segments, the legend of banks and the
 // closing-balance marker.
 import { h } from '../shared/dom.js';
+import { t } from '../shared/i18n.js';
 import { formatAmount } from '../shared/format.js';
 import { swatch, legendLabel, nameLabel, legendItem, tooltipRow, topToBottom } from '../shared/chart.js';
 import { createYearlyChart, levelMarker, isNegative, yearLabel } from '../shared/yearly-chart.js';
@@ -17,11 +18,18 @@ const nameOf = (segment) => banks.get(segment.account_id)?.name ?? '';
 const slotOf = (accountId) => banks.get(accountId)?.colour_slot ?? 0;
 
 function describe(row) {
-  if (row.entry_count === 0) return `${yearLabel(row)}: no entries`;
+  if (row.entry_count === 0) return t('{year}: no entries', { year: yearLabel(row) });
   const parts = row.segments.map(
-    (segment) => `${nameOf(segment)} ${formatAmount(segment.balance)}${isNegative(segment.balance) ? ' (negative)' : ''}`,
+    (segment) => {
+      const amount = formatAmount(segment.balance);
+      return `${nameOf(segment)} ${isNegative(segment.balance) ? t('{amount} (negative)', { amount }) : amount}`;
+    },
   );
-  return `${yearLabel(row)}: ${parts.join(', ')}, closing balance ${formatAmount(row.closing_balance)}`;
+  return t('{year}: {parts}, closing balance {closing}', {
+    year: yearLabel(row),
+    parts: parts.join(', '),
+    closing: formatAmount(row.closing_balance),
+  });
 }
 
 /** The rows read like the bar: the highest segment first, those below the zero line last. */
@@ -39,12 +47,12 @@ function tooltipContent(row) {
               isNegative(segment.balance) ? 'negative' : '',
             ),
           ),
-          ...tooltipRow('marker', swatch('marker'), 'Closing balance', formatAmount(row.closing_balance), isNegative(row.closing_balance) ? 'negative' : ''),
+          ...tooltipRow('marker', swatch('marker'), t('Closing balance'), formatAmount(row.closing_balance), isNegative(row.closing_balance) ? 'negative' : ''),
         ];
   return [
     h('div', { class: 'tip-title' }, yearLabel(row)),
-    row.is_partial ? h('div', { class: 'tip-note' }, 'Partial year: entries so far') : null,
-    row.entry_count === 0 ? h('div', { class: 'tip-note' }, 'No entries') : null,
+    row.is_partial ? h('div', { class: 'tip-note' }, t('Partial year: entries so far')) : null,
+    row.entry_count === 0 ? h('div', { class: 'tip-note' }, t('No entries')) : null,
     h('dl', {}, ...rows),
   ].filter(Boolean);
 }
@@ -88,14 +96,17 @@ function buildLegend({ banks: list }) {
   const scopes = () => [legendList, document.getElementById('bank-insights-chart')];
   legendList.replaceChildren(
     ...list.map((bank) => legendItem(keyOf(bank.id), swatch(`slot-${bank.colour_slot}`), nameLabel(bank.name), scopes)),
-    legendItem('marker', swatch('marker'), legendLabel('Closing balance'), scopes),
+    legendItem('marker', swatch('marker'), legendLabel(t('Closing balance')), scopes),
   );
 }
 
 const chart = createYearlyChart({
   id: 'bank-insights',
   command: 'get_bank_insights',
-  ariaLabel: 'Bank accounts per year',
+  // A getter, so the name follows the language when the chart is drawn again.
+  get ariaLabel() {
+    return t('Bank accounts per year');
+  },
   onLoaded: buildLegend,
   piecesOf,
   extraLevels: (row) => [Number(row.closing_balance)],
