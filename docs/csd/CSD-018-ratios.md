@@ -3,8 +3,8 @@ id: CSD-018
 title: Ratios
 status: approved
 owner: Thijs Bardoel
-version: 0.3
-last_updated: 30/10/2026
+version: 0.4
+last_updated: 02/11/2026
 related: [CSD-000, CSD-001, CSD-004, CSD-005, CSD-007, CSD-009, CSD-011, CSD-013, CSD-017, CSD-019, CSD-020]
 ---
 
@@ -17,6 +17,7 @@ The charts show how each area develops, but not how the owner's income relates t
 ### 2.1 In scope
 - A page "Ratios" in the Insights group, after "Net worth" (CSD-004 REQ-1).
 - A table with the years as columns and the seven rows of REQ-3, and its empty state.
+- An info icon after each row label that opens a tooltip with how the row is calculated (REQ-13).
 
 ### 2.2 Non-goals
 - NG-1: Net income, taxes, or any income other than the total gross of CSD-001.
@@ -328,6 +329,29 @@ Scenario: Figures follow changes
   Then the disposable income of 2025 shows 10500.00
 ```
 
+**REQ-13: Explanations** *(event-driven)*
+Where a row label is shown, the app shall show an info icon after it, and when the user clicks the icon the app shall open a tooltip with a short explanation of how that row is calculated, and shall close it when the user clicks elsewhere, presses Escape or scrolls the table. The explanations are fixed texts; the app computes nothing for them.
+
+```gherkin
+@AC-13.1
+Scenario: Open an explanation
+  Given the table shows "Total income (gross)"
+  When the user clicks the info icon after "Total income (gross)"
+  Then a tooltip opens with the explanation of that row
+
+@AC-13.2
+Scenario: Close an explanation
+  Given the tooltip of a row is open
+  When the user clicks elsewhere or presses Escape
+  Then the tooltip closes
+
+@AC-13.3
+Scenario: One tooltip at a time
+  Given the tooltip of "Total income (gross)" is open
+  When the user clicks the info icon after "Disposable income"
+  Then only the explanation of "Disposable income" is shown
+```
+
 ## 5. Interfaces and contracts
 
 Command: `get_ratios()` returns the series, oldest year first, and an empty list when no area has a record:
@@ -358,7 +382,7 @@ The figures are computed in Rust, so REQ-2 and REQ-4 to REQ-9 are proven by `car
 | Requirement | Command |
 |---|---|
 | REQ-2 (AC-2.1, AC-2.3), REQ-4 to REQ-9, AC-12.1 (the data) | `cargo test test_csd018_` |
-| REQ-1, AC-2.2, REQ-3, REQ-10, REQ-11, AC-12.1 (the screen) | Manual checklist: page without tabs, column order and "YTD", rows and sub-headings, signs and "–", negative colour, sideways scrolling with the labels in view, empty state. There is no frontend test setup |
+| REQ-1, AC-2.2, REQ-3, REQ-10, REQ-11, AC-12.1 (the screen) | Manual checklist: page without tabs, column order and "YTD", rows and sub-headings, signs and "–", negative colour, sideways scrolling with the labels in view, info tooltips (open, close, one at a time), empty state. There is no frontend test setup |
 | One requirement, e.g. REQ-5 | `cargo test test_csd018_ac_5_` |
 
 Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
@@ -367,6 +391,7 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 None.
 
 ## 9. Changelog
+- 0.4 (02/11/2026): Each row gets an info icon with a tooltip that explains its calculation (REQ-13, GitHub issue 33).
 - 0.3 (30/10/2026): Houses replace assets in the wording. The definition of Repaid and REQ-5 gain the treatment of a Cancelled debt (CSD-020): its settled amount is subtracted from the repaid amount of the sale year (AC-5.6 to AC-5.8). NG-7 is unchanged. Back to `draft` until re-approved (GitHub issue 31).
 - 0.2 (29/10/2026): Wealth growth follows the net worth, which no longer counts a sold house from its sale year (CSD-017, CSD-019 REQ-11; GitHub issue 27). No requirement changes.
 - 0.1 (29/10/2026): initial draft, from GitHub issue 25 and the grill-me interview. Beyond the interview, a year in which no bank account has an increase, no investment account has a statement and no debt has a repaid amount has no wealth accumulation (REQ-5, AC-5.5), and the growth of total wealth is none when the year itself has no records (REQ-8). Approving it also changes CSD-004 REQ-1 (the Insights group holds Net worth and Ratios).
