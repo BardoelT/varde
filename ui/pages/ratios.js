@@ -34,7 +34,8 @@ function renderTable(years) {
     h('tr', {}, h('th', { scope: 'col' }, ''), ...years.map((row) => h('th', { scope: 'col', class: 'num' }, yearLabel(row)))),
   );
   const rows = GROUPS.flatMap(([title, items]) => [
-    h('tr', { class: 'group-row' }, h('th', { scope: 'colgroup', colspan: String(years.length + 1) }, title)),
+    // The title is its own sticky cell; one spanning cell would scroll away with the years.
+    h('tr', { class: 'group-row' }, h('th', { scope: 'row' }, title), h('td', { colspan: String(years.length) })),
     ...items.map(([label, field, show]) =>
       h(
         'tr',

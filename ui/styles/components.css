@@ -177,7 +177,7 @@
 /* The ratios table: the row labels stay in view while the years scroll sideways (CSD-018 REQ-10). */
 .ratios-table th:first-child { position: sticky; left: 0; z-index: 1; background: var(--card-bg); }
 .ratios-table tbody th:first-child { font-weight: 400; }
-.ratios-table tbody tr.group-row th { font-weight: 700; background: var(--bg); color: var(--text); }
+.ratios-table tbody tr.group-row th, .ratios-table tbody tr.group-row td { font-weight: 700; background: var(--bg); color: var(--text); }
 .data-table td.row-actions { text-align: right; white-space: nowrap; }
 .icon-btn {
   display: inline-flex;
