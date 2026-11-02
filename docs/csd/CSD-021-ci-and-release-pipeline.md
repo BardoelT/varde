@@ -21,7 +21,7 @@ The repository has no automated checks and no way to produce an installable app.
 
 ### 2.2 Non-goals
 - NG-1: Publishing a release automatically. The owner publishes the draft.
-- NG-2: Code signing and notarization. Builds are unsigned, so macOS asks the user to open the app with right-click > Open.
+- NG-2: Code signing and notarization. Builds are unsigned, so macOS blocks the first launch. The user allows it with Open Anyway in System Settings > Privacy & Security (macOS 15 and later) or right-click > Open (older versions), as the README explains.
 - NG-3: Windows and Linux builds (`CLAUDE.md`: macOS only).
 - NG-4: Automatic updates inside the app.
 - NG-5: Releases from pre-release tags such as `v0.1.0-rc1`.
@@ -243,6 +243,6 @@ Workflow behaviour cannot be proven with `cargo test`, so ACs are checked in Git
 - OQ-3: Who bumps the app version, and in which commit, so the tag matches (REQ-5)? Owner: Thijs.
 
 ## 9. Changelog
-- 0.3 (02/11/2026): The pipeline runs only on a release tag, nothing on pull requests or merges: REQ-1 and its ACs rewritten, new NG-7, ACs 2.1, 2.2 reworded, no separate `ci.yml`, sections 1, 2.1, 5 and 7, OQ-4 removed.
+- 0.3 (02/11/2026): The pipeline runs only on a release tag, nothing on pull requests or merges: REQ-1 and its ACs rewritten, new NG-7, ACs 2.1, 2.2 reworded, no separate `ci.yml`, sections 1, 2.1, 5 and 7, OQ-4 removed. NG-2 now names the current macOS way to open an unsigned app.
 - 0.2 (02/11/2026): Checks no longer run on pushes to `development`, only on pull requests and pushes to `main` (REQ-1, AC-1.2, new AC-1.3, sections 2.1, 5, 7).
 - 0.1 (02/11/2026): initial draft.

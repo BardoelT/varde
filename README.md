@@ -35,6 +35,18 @@ All insights charts look and behave alike: hovering a legend item highlights tha
 
 The frontend only displays what Rust returns. It never computes financial figures. How the code is organised, and why, is in [docs/architecture.md](docs/architecture.md).
 
+## Installing a release
+
+Download the `.dmg` of the latest version from the [Releases](../../releases) page, open it and drag Varde to Applications. It works on Apple Silicon and Intel Macs.
+
+The app is not signed or notarized yet, so macOS blocks it the first time you open it. To allow it:
+
+1. Try to open Varde once, then close the warning.
+2. Open **System Settings > Privacy & Security**, scroll down to the message about Varde and choose **Open Anyway**.
+3. Confirm with your password or Touch ID. macOS remembers the choice.
+
+On macOS 14 and older you can instead right-click the app and choose **Open**.
+
 ## Getting started
 
 Prerequisites: a recent stable [Rust toolchain](https://rustup.rs/) and the Tauri CLI.
