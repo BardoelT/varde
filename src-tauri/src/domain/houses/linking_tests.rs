@@ -56,6 +56,23 @@ fn balance_of(data: &ProjectData, id: DebtId, at: &str) -> Option<(String, Strin
         .map(|(_, s)| (s.balance.value().to_string(), s.note.as_str().to_owned()))
 }
 
+/// The statements of a debt for one period in table order (the settlement
+/// statement first), as balance, note and whether it is the settlement one.
+fn statements_of(data: &ProjectData, id: DebtId, at: &str) -> Vec<(String, String, bool)> {
+    data.debts
+        .all_statements()
+        .into_iter()
+        .filter(|(d, s)| d.id == id && s.period == parse_period(at).unwrap())
+        .map(|(_, s)| {
+            (
+                s.balance.value().to_string(),
+                s.note.as_str().to_owned(),
+                s.settlement,
+            )
+        })
+        .collect()
+}
+
 fn links(choices: &[(DebtId, &str)], confirm_undo: bool) -> DebtLinksInput {
     DebtLinksInput {
         settlements: choices
@@ -452,7 +469,7 @@ fn test_csd020_ac_5_1_the_settlement_statement() {
 }
 
 #[test]
-fn test_csd020_ac_5_2_a_statement_in_the_sale_period_is_replaced() {
+fn test_csd020_ac_5_2_a_statement_in_the_sale_period_stays() {
     let mut data = ProjectData::default();
     let loan = debt(&mut data, "Example Loan", "Monthly");
     statement(&mut data, loan, "2026-06", "3500.00", "Mid-June");
@@ -466,32 +483,34 @@ fn test_csd020_ac_5_2_a_statement_in_the_sale_period_is_replaced() {
     )
     .unwrap();
     assert_eq!(
-        balance_of(&data, loan, "2026-06"),
-        Some((
-            "0.00".to_owned(),
-            "Cancelled on sale of Example House".to_owned()
-        ))
+        statements_of(&data, loan, "2026-06"),
+        vec![
+            (
+                "0.00".to_owned(),
+                "Cancelled on sale of Example House".to_owned(),
+                true
+            ),
+            ("3500.00".to_owned(), "Mid-June".to_owned(), false),
+        ]
     );
     assert_eq!(
         settlement_of(&data, loan),
         Some((Outcome::Cancelled, "3500.00".to_owned()))
     );
-    let replaced = data.debts.debts()[0]
-        .settlement
-        .as_ref()
-        .and_then(|s| s.replaced.as_ref())
-        .map(|r| (r.balance.value().to_string(), r.note.as_str().to_owned()));
     assert_eq!(
-        replaced,
-        Some(("3500.00".to_owned(), "Mid-June".to_owned()))
+        data.debts.overview().debts[0]
+            .latest_balance
+            .map(|b| b.to_string()),
+        Some("0.00".to_owned())
     );
 }
 
 #[test]
-fn test_csd020_ac_5_3_a_yearly_debt_settles_in_the_sale_year() {
+fn test_csd020_ac_5_3_a_yearly_debt_gets_a_second_statement_in_the_sale_year() {
     let mut data = ProjectData::default();
     let mortgage = debt(&mut data, "Example Mortgage", "Yearly");
     statement(&mut data, mortgage, "2025", "200000.00", "");
+    statement(&mut data, mortgage, "2026", "150000.00", "");
     let house = add_house(&mut data, "Example House", &[mortgage]);
     save(
         &mut data,
@@ -501,17 +520,20 @@ fn test_csd020_ac_5_3_a_yearly_debt_settles_in_the_sale_year() {
         &links(&[(mortgage, "Repaid")], false),
     )
     .unwrap();
-    assert_eq!(balance_of(&data, mortgage, "2026").unwrap().0, "0.00");
+    let rows = statements_of(&data, mortgage, "2026");
+    assert_eq!(rows.len(), 2);
+    assert!(rows[0].2 && rows[0].0 == "0.00");
+    assert!(!rows[1].2 && rows[1].0 == "150000.00");
     assert_eq!(
         settlement_of(&data, mortgage),
-        Some((Outcome::Repaid, "200000.00".to_owned()))
+        Some((Outcome::Repaid, "150000.00".to_owned()))
     );
 }
 
 // REQ-6: undo
 
 #[test]
-fn test_csd020_ac_6_1_undo_restores_the_debts() {
+fn test_csd020_ac_6_1_undo_removes_only_the_settlement_statement() {
     let mut data = ProjectData::default();
     let loan = debt(&mut data, "Example Loan", "Monthly");
     statement(&mut data, loan, "2026-06", "3500.00", "Mid-June");
@@ -536,8 +558,8 @@ fn test_csd020_ac_6_1_undo_restores_the_debts() {
     assert_eq!(settlement_of(&data, loan), None);
     assert_eq!(data.debts.house_of(loan), Some(house));
     assert_eq!(
-        balance_of(&data, loan, "2026-06"),
-        Some(("3500.00".to_owned(), "Mid-June".to_owned()))
+        statements_of(&data, loan, "2026-06"),
+        vec![("3500.00".to_owned(), "Mid-June".to_owned(), false)]
     );
 }
 
@@ -981,4 +1003,129 @@ fn test_csd020_ac_1_6_changing_a_linked_loan_to_scholarship_removes_the_link() {
     link(&mut data, loan, "Scholarship", None).unwrap();
     assert_eq!(category_of(&data, loan), Category::Scholarship);
     assert_eq!(data.debts.house_of(loan), None);
+}
+
+// REQ-8, REQ-18: the settlement statement
+
+#[test]
+fn test_csd020_ac_8_1_the_settlement_statement_cannot_be_deleted() {
+    let (mut data, _house, mortgage) = sold_house();
+    assert_eq!(
+        data.debts
+            .delete_statement(mortgage, parse_period("2026-06").unwrap())
+            .unwrap_err()
+            .code(),
+        "DEBT_SETTLED_LOCKED"
+    );
+    assert_eq!(statements_of(&data, mortgage, "2026-06").len(), 1);
+}
+
+#[test]
+fn test_csd020_ac_18_1_both_rows_show_and_are_locked() {
+    let mut data = ProjectData::default();
+    let loan = debt(&mut data, "Example Loan", "Monthly");
+    statement(&mut data, loan, "2026-05", "4000.00", "");
+    statement(&mut data, loan, "2026-06", "3500.00", "Mid-June");
+    let house = add_house(&mut data, "Example House", &[loan]);
+    save(
+        &mut data,
+        house,
+        "Example House",
+        ("10/06/2026", "300000.00"),
+        &links(&[(loan, "Cancelled")], false),
+    )
+    .unwrap();
+    let rows: Vec<_> = data
+        .debts
+        .all_statements()
+        .into_iter()
+        .map(|(_, s)| {
+            (
+                s.period.to_string(),
+                s.settlement,
+                data.debts.statement_locked(s),
+            )
+        })
+        .collect();
+    assert_eq!(
+        rows,
+        vec![
+            ("2026-06".to_owned(), true, true),
+            ("2026-06".to_owned(), false, false),
+            ("2026-05".to_owned(), false, false),
+        ]
+    );
+}
+
+#[test]
+fn test_csd020_ac_18_2_the_change_of_the_settlement_statement() {
+    let mut data = ProjectData::default();
+    let loan = debt(&mut data, "Example Loan", "Monthly");
+    statement(&mut data, loan, "2026-05", "4000.00", "");
+    statement(&mut data, loan, "2026-06", "3500.00", "");
+    let house = add_house(&mut data, "Example House", &[loan]);
+    save(
+        &mut data,
+        house,
+        "Example House",
+        ("10/06/2026", "300000.00"),
+        &links(&[(loan, "Cancelled")], false),
+    )
+    .unwrap();
+    let changes: Vec<_> = data
+        .debts
+        .all_statements()
+        .into_iter()
+        .map(|(_, s)| data.debts.change(s).map(|c| c.to_string()))
+        .collect();
+    assert_eq!(
+        changes,
+        vec![Some("3500.00".to_owned()), Some("500.00".to_owned()), None]
+    );
+}
+
+#[test]
+fn test_csd020_ac_8_3_the_regular_statement_of_the_settlement_period_stays_editable() {
+    let mut data = ProjectData::default();
+    let loan = debt(&mut data, "Example Loan", "Monthly");
+    statement(&mut data, loan, "2026-06", "3500.00", "Mid-June");
+    let house = add_house(&mut data, "Example House", &[loan]);
+    save(
+        &mut data,
+        house,
+        "Example House",
+        ("10/06/2026", "300000.00"),
+        &links(&[(loan, "Cancelled")], false),
+    )
+    .unwrap();
+    data.debts
+        .update_statement(
+            loan,
+            parse_period("2026-06").unwrap(),
+            parse_period("2026-06").unwrap(),
+            DebtBalance::parse("3400.00").unwrap(),
+            Note::default(),
+            today(),
+        )
+        .unwrap();
+    let rows = statements_of(&data, loan, "2026-06");
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0].0, "0.00");
+    assert!(rows[0].2);
+    assert_eq!(rows[1].0, "3400.00");
+    assert_eq!(
+        settlement_of(&data, loan),
+        Some((Outcome::Cancelled, "3500.00".to_owned()))
+    );
+    data.debts
+        .delete_statement(loan, parse_period("2026-06").unwrap())
+        .unwrap();
+    assert_eq!(statements_of(&data, loan, "2026-06").len(), 1);
+    assert_eq!(
+        data.debts
+            .delete_statement(loan, parse_period("2026-06").unwrap())
+            .unwrap_err()
+            .code(),
+        "DEBT_SETTLED_LOCKED"
+    );
 }

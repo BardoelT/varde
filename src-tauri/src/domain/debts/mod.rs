@@ -150,6 +150,7 @@ impl Debts {
             period,
             balance,
             note,
+            settlement: false,
         };
         self.statements.push(statement.clone());
         Ok(statement)
@@ -174,10 +175,10 @@ impl Debts {
         today: YearMonth,
     ) -> Result<DebtStatement, DomainError> {
         self.debt(debt_id)?;
+        self.check_target_editable(debt_id, period)?;
         if self.statement(debt_id, period).is_none() {
             return Err(DomainError::DebtStatementNotFound);
         }
-        self.check_unsettled_at(debt_id, period)?;
         if new_period != period {
             self.check_new_period(debt_id, new_period, today)?;
             self.check_unsettled_at(debt_id, new_period)?;
@@ -185,7 +186,7 @@ impl Debts {
         let statement = self
             .statements
             .iter_mut()
-            .find(|s| s.debt_id == debt_id && s.period == period)
+            .find(|s| s.debt_id == debt_id && s.period == period && !s.settlement)
             .ok_or(DomainError::DebtStatementNotFound)?;
         statement.period = new_period;
         statement.balance = balance;
@@ -200,10 +201,10 @@ impl Debts {
     /// Returns `DebtNotFound` or `DebtStatementNotFound`.
     pub fn delete_statement(&mut self, debt_id: DebtId, period: Period) -> Result<(), DomainError> {
         self.debt(debt_id)?;
-        self.check_unsettled_at(debt_id, period)?;
+        self.check_target_editable(debt_id, period)?;
         let before = self.statements.len();
         self.statements
-            .retain(|s| !(s.debt_id == debt_id && s.period == period));
+            .retain(|s| !(s.debt_id == debt_id && s.period == period && !s.settlement));
         if self.statements.len() == before {
             return Err(DomainError::DebtStatementNotFound);
         }
@@ -226,10 +227,7 @@ impl Debts {
             })
             .collect();
         rows.sort_by_cached_key(|(debt, statement)| {
-            (
-                std::cmp::Reverse(statement.period.sort_key()),
-                debt_order(debt),
-            )
+            (std::cmp::Reverse(statement.order_key()), debt_order(debt))
         });
         rows
     }
@@ -260,7 +258,7 @@ impl Debts {
                 .debt(statement.debt_id)
                 .is_ok_and(|debt| debt.statement_period == statement.period.kind());
             if !matches_debt
-                || !seen.insert((statement.debt_id, statement.period))
+                || !seen.insert((statement.debt_id, statement.period, statement.settlement))
                 || DebtBalance::new(statement.balance.value()).is_err()
                 || debt_note(statement.note.as_str()).is_err()
             {
@@ -284,10 +282,12 @@ impl Debts {
             .ok_or(DomainError::DebtNotFound)
     }
 
+    /// The regular statement of a period; the settlement statement is not one
+    /// (CSD-011 REQ-8).
     fn statement(&self, debt_id: DebtId, period: Period) -> Option<&DebtStatement> {
         self.statements
             .iter()
-            .find(|s| s.debt_id == debt_id && s.period == period)
+            .find(|s| s.debt_id == debt_id && s.period == period && !s.settlement)
     }
 
     /// The rules a period must follow for a debt to hold a statement for it:
@@ -315,7 +315,7 @@ impl Debts {
         self.statements
             .iter()
             .filter(|statement| statement.debt_id == id)
-            .max_by_key(|statement| statement.period.sort_key())
+            .max_by_key(|statement| statement.order_key())
     }
 
     /// The lowest colour slot used by the fewest debts (REQ-3).

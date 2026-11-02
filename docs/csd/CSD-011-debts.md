@@ -3,7 +3,7 @@ id: CSD-011
 title: Debts
 status: approved
 owner: Thijs Bardoel
-version: 0.6
+version: 0.7
 last_updated: 30/10/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-005, CSD-009, CSD-012, CSD-020]
 ---
@@ -47,7 +47,7 @@ The app tracks wealth, but has no view of what the user owes: a mortgage, a stud
 | **Statement period** | How a debt is recorded: **Monthly** (one statement per calendar month, `YYYY-MM`) or **Yearly** (one statement per calendar year, `YYYY`). A debt is Monthly unless Yearly is chosen. |
 | **Statement** | The record of one debt for one period: the remaining balance and an optional note. |
 | **Balance** | What the user still owes on the debt at the end of the period, as one amount of 0.00 or more in the project currency. |
-| **Previous statement** | The statement of the same debt with the latest period before that of the statement at hand, also when periods in between have none. |
+| **Previous statement** | The statement of the same debt that comes right before the statement at hand: the one with the latest period before it, also when periods in between have none, or, for a settlement statement (CSD-020), the regular statement of its own period when there is one. |
 | **Change** | For a statement: the balance of its previous statement minus its own balance. Positive when the debt was repaid, negative when it grew. It is derived and never stored. A first statement has no change. |
 | **Latest balance** | The balance of the statement with the most recent period of a debt. |
 | **Total debt** | The sum of the latest balances of all debts that have at least one statement. |
@@ -322,7 +322,7 @@ Scenario Outline: Invalid period rejected
 ```
 
 **REQ-8: One statement per debt per period** *(unwanted behaviour)*
-If the user adds a statement for a debt and period that already has one, then the app shall reject it with the error code `DEBT_STATEMENT_DUPLICATE` and leave the existing statement unchanged.
+If the user adds a statement for a debt and period that already has one, then the app shall reject it with the error code `DEBT_STATEMENT_DUPLICATE` and leave the existing statement unchanged. The only exception is the settlement statement that selling a house adds (CSD-020 REQ-5), which may share its period with a regular statement.
 
 ```gherkin
 @AC-8.1
@@ -1042,6 +1042,7 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 None.
 
 ## 9. Changelog
+- 0.7 (30/10/2026): The one statement per period rule has one exception, the settlement statement of CSD-020 (REQ-8, definition of Previous statement). Amended without a draft phase at the owner's request.
 - 0.6 (30/10/2026): A debt whose latest statement is 0.00 is marked Repaid in the Debts overview (new REQ-26; NG-7 reworded). Back to `draft` until re-approved.
 - 0.5 (30/10/2026): NG-8 allows the debt category of CSD-020 (Mortgage, Loan, Scholarship, Other) and the house link set in the debt form. Back to `draft` until re-approved.
 - 0.4 (30/10/2026): A debt may be linked to a house and settled when that house is sold (CSD-020). NG-3 and NG-7 no longer exclude the link and the Repaid/Cancelled marking; NG-8 stays (there is no debt type). Back to `draft` until re-approved (GitHub issue 31).

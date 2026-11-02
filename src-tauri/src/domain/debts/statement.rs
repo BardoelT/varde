@@ -16,6 +16,18 @@ pub struct DebtStatement {
     pub balance: DebtBalance,
     #[serde(default)]
     pub note: Note,
+    /// The final statement a settlement adds (CSD-020 REQ-5); it may share its
+    /// period with a regular statement and comes after it.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub settlement: bool,
+}
+
+impl DebtStatement {
+    /// The order of a debt's statements: by period, and within a period the
+    /// settlement statement after the regular one (CSD-011 REQ-8).
+    pub(super) fn order_key(&self) -> ((i32, u8), bool) {
+        (self.period.sort_key(), self.settlement)
+    }
 }
 
 /// Parses `YYYY-MM` or `YYYY` typed by the user (CSD-011 REQ-7).
@@ -53,10 +65,8 @@ impl Debts {
     pub fn change(&self, statement: &DebtStatement) -> Option<Decimal> {
         self.statements
             .iter()
-            .filter(|s| {
-                s.debt_id == statement.debt_id && s.period.sort_key() < statement.period.sort_key()
-            })
-            .max_by_key(|s| s.period.sort_key())
+            .filter(|s| s.debt_id == statement.debt_id && s.order_key() < statement.order_key())
+            .max_by_key(|s| s.order_key())
             .map(|previous| previous.balance.value() - statement.balance.value())
     }
 }

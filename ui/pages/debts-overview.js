@@ -94,12 +94,18 @@ function renderStatements(statements) {
         h('td', { class: 'wrap' }, s.debt_name),
         h('td', { class: 'num' }, formatAmount(s.balance)),
         h('td', { class: 'num' }, optionalAmount(s.change)),
-        h('td', { class: 'note-cell' }, noteSummary(s.note)),
+        h(
+          'td',
+          { class: 'note-cell' },
+          noteSummary(s.note),
+          s.settlement && s.outcome ? h('span', { class: 'badge' }, s.outcome) : '',
+        ),
+        // A statement of a settled debt, from its settlement period on, cannot change (CSD-020 REQ-18).
         h(
           'td',
           { class: 'row-actions' },
-          iconButton('edit', `Edit ${s.debt_name} ${s.period}`, () => openStatementDialog(s)),
-          iconButton('delete', `Delete ${s.debt_name} ${s.period}`, () => deleteStatement(s)),
+          s.locked ? '' : iconButton('edit', `Edit ${s.debt_name} ${s.period}`, () => openStatementDialog(s)),
+          s.locked ? '' : iconButton('delete', `Delete ${s.debt_name} ${s.period}`, () => deleteStatement(s)),
         ),
       ),
     ),

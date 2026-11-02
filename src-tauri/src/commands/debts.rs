@@ -8,8 +8,8 @@ use serde::Serialize;
 use tauri::State;
 
 use super::AppState;
-use crate::domain::debts::OpenDebt;
 use crate::domain::debts::{debt_note, parse_period, DebtBalance};
+use crate::domain::debts::{OpenDebt, Outcome};
 use crate::domain::houses::linking::{self, DebtFormInput, DebtsView};
 use crate::domain::HouseId;
 use crate::domain::{
@@ -31,6 +31,12 @@ pub struct StatementView {
     /// statement (REQ-25).
     change: Option<Decimal>,
     note: String,
+    /// The settlement statement a sale added (CSD-020 REQ-5).
+    settlement: bool,
+    /// `Repaid` or `Cancelled` on the settlement statement.
+    outcome: Option<Outcome>,
+    /// Whether the statement can no longer change (CSD-020 REQ-18).
+    locked: bool,
 }
 
 impl StatementView {
@@ -42,6 +48,12 @@ impl StatementView {
             balance: statement.balance.value(),
             change: debts.change(statement),
             note: statement.note.as_str().to_owned(),
+            settlement: statement.settlement,
+            outcome: statement
+                .settlement
+                .then(|| debt.settlement.as_ref().map(|settled| settled.outcome))
+                .flatten(),
+            locked: debts.statement_locked(statement),
         }
     }
 }

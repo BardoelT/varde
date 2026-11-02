@@ -311,3 +311,74 @@ fn test_csd015_a_house_change_is_an_unsaved_change() {
     house(&mut project, "Example House", "Monthly");
     assert!(project.status().unsaved_changes);
 }
+
+#[test]
+fn test_csd020_ac_16_5_a_settlement_statement_without_a_settlement_is_an_invalid_file() {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("example-a.wealth");
+    fs::write(
+        &path,
+        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
+            "debts":{"debts":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
+            "name":"Example Loan","statement_period":"Monthly","colour_slot":0}],
+            "statements":[{"debt_id":"671166f4-5827-4794-bcdc-54d7824fb650",
+            "period":"2026-06","balance":"0.00","note":"","settlement":true}]}}"#,
+    )
+    .unwrap();
+    let mut project = Project::new();
+    let error = project.open(&path).unwrap_err();
+    assert_eq!(error.code(), "PROJECT_INVALID_FILE");
+}
+
+#[test]
+fn test_csd020_ac_16_6_a_debt_settled_by_an_earlier_version_opens_in_the_current_form() {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("example-a.wealth");
+    fs::write(
+        &path,
+        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
+            "houses":{"houses":[{"id":"11111111-1111-4111-8111-111111111111",
+            "name":"Example House","valuation_period":"Yearly","colour_slot":0,
+            "purchase_date":"2020-01-01","purchase_amount":"100000.00",
+            "sell_date":"2026-08-01","sell_amount":"200000.00"}],"valuations":[]},
+            "debts":{"debts":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
+            "name":"Example Mortgage","statement_period":"Yearly","colour_slot":0,
+            "category":"Mortgage","house_id":"11111111-1111-4111-8111-111111111111",
+            "settlement":{"outcome":"Cancelled","date":"2026-08-01","amount":"5000.00",
+            "replaced":{"balance":"5000.00","note":"Year end"}}}],
+            "statements":[
+            {"debt_id":"671166f4-5827-4794-bcdc-54d7824fb650","period":"2025","balance":"6000.00"},
+            {"debt_id":"671166f4-5827-4794-bcdc-54d7824fb650","period":"2026","balance":"0.00",
+            "note":"Cancelled on sale of Example House"}]}}"#,
+    )
+    .unwrap();
+    let mut project = Project::new();
+    project.open(&path).unwrap();
+    let rows: Vec<_> = project
+        .debts()
+        .all_statements()
+        .into_iter()
+        .map(|(_, s)| {
+            (
+                s.period.to_string(),
+                s.balance.value().to_string(),
+                s.settlement,
+            )
+        })
+        .collect();
+    assert_eq!(
+        rows,
+        vec![
+            ("2026".to_owned(), "0.00".to_owned(), true),
+            ("2026".to_owned(), "5000.00".to_owned(), false),
+            ("2025".to_owned(), "6000.00".to_owned(), false),
+        ]
+    );
+    let saved = dir.path().join("example-b.wealth");
+    project.save_as(saved.clone()).unwrap();
+    let text = fs::read_to_string(saved).unwrap();
+    assert!(!text.contains("replaced"));
+    let mut reopened = Project::new();
+    reopened.open(&dir.path().join("example-b.wealth")).unwrap();
+    assert_eq!(reopened.debts(), project.debts());
+}
