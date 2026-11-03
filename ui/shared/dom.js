@@ -2,6 +2,9 @@
 // and the confirmation dialog.
 import { errorText } from './ipc.js';
 
+/** The element with the given id. */
+export const $ = (id) => document.getElementById(id);
+
 /** Builds an element. Strings become text nodes, so user data is never parsed as HTML. */
 export function h(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);

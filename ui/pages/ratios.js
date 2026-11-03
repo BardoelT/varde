@@ -1,12 +1,10 @@
 // Ratios: the table on the Ratios page, with the years as columns (CSD-018). The
 // figures come from Rust; this file only lays them out.
 import { invoke, errorText } from '../shared/ipc.js';
-import { h, iconButton, showToast } from '../shared/dom.js';
+import { $, h, iconButton, showToast } from '../shared/dom.js';
 import { formatAmount } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 import { percentLabel, isNegative, yearLabel } from '../shared/yearly-chart.js';
-
-const $ = (id) => document.getElementById(id);
 
 /** An amount, or a dash when Rust has none (CSD-018 REQ-10). */
 const amountCell = (value) => (value === null ? '–' : formatAmount(value));

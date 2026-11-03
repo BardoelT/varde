@@ -1,93 +1,55 @@
 // Bank accounts: accounts with a monthly or yearly entry, each a closing balance and a note (CSD-009).
-import { invoke, errorText } from '../shared/ipc.js';
-import { h, iconButton, confirmAction, showToast, showError, submitOnce, reloadAfterSave } from '../shared/dom.js';
-import { formatAmount, currentYear, currentMonth } from '../shared/format.js';
+import { invoke } from '../shared/ipc.js';
+import { $, h, showError, submitOnce } from '../shared/dom.js';
+import { formatAmount, noteSummary } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
-
-const $ = (id) => document.getElementById(id);
+import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
+import { createRecordForm } from '../shared/record-form.js';
+import { accountRow, latestAmount, numCell, recordActions, renderTable, rowHeader, showTotal, toggleEmpty } from '../shared/list-rows.js';
 
 let accounts = [];
 let onChanged = async () => {};
 
-/** The first line of a note, with an ellipsis when there is more (CSD-009 REQ-20). */
-function noteSummary(note) {
-  const [first, ...rest] = note.split('\n');
-  return rest.length > 0 ? `${first} …` : first;
-}
-
 // ---- Rendering ----
-
-function latestBalance(account) {
-  if (account.latest_balance === null) return h('span', { class: 'account-amount' }, '—');
-  return h(
-    'span',
-    { class: 'account-amount' },
-    formatAmount(account.latest_balance),
-    h('small', {}, account.latest_period),
-  );
-}
 
 function renderAccounts(overview) {
   accounts = overview.accounts;
   const hasAccounts = accounts.length > 0;
-  $('bank-empty').hidden = hasAccounts;
-  $('bank-content').hidden = !hasAccounts;
+  toggleEmpty('bank-empty', 'bank-content', hasAccounts);
   $('bank-account-list').replaceChildren(
     ...accounts.map((account) =>
-      h(
-        'li',
-        { class: 'job-row' },
-        h('span', { class: 'job-name' }, account.name),
-        h('span', { class: 'job-meta' }, account.period),
-        latestBalance(account),
-        h(
-          'span',
-          { class: 'job-actions' },
-          iconButton('edit', t('Edit {name}', { name: account.name }), () => openAccountDialog(account)),
-          iconButton('delete', t('Delete {name}', { name: account.name }), () => deleteAccount(account)),
-        ),
-      ),
+      accountRow({
+        name: account.name,
+        meta: account.period,
+        amount: latestAmount(account.latest_balance, account.latest_period),
+        edit: { label: t('Edit {name}', { name: account.name }), onClick: () => openAccountDialog(account) },
+        remove: { label: t('Delete {name}', { name: account.name }), onClick: () => deleteAccount(account) },
+      }),
     ),
   );
-  $('bank-account-total').hidden = !hasAccounts;
-  $('bank-account-total-value').textContent = overview.total === null ? '—' : formatAmount(overview.total);
+  showTotal('bank-account-total', 'bank-account-total-value', overview.total, hasAccounts);
 }
 
 /** Yearly totals over all accounts, as returned by Rust (CSD-009 REQ-19). */
 function renderTotals(totals) {
-  $('bank-totals-empty').hidden = totals.length > 0;
-  $('bank-totals-table').hidden = totals.length === 0;
-  $('bank-totals-rows').replaceChildren(
-    ...totals.map((t) =>
-      h(
-        'tr',
-        {},
-        h('th', { scope: 'row' }, String(t.year)),
-        h('td', { class: 'num' }, formatAmount(t.closing_balance)),
-      ),
-    ),
+  renderTable({ empty: 'bank-totals-empty', table: 'bank-totals-table', body: 'bank-totals-rows' }, totals, (total) =>
+    h('tr', {}, rowHeader(String(total.year)), numCell(formatAmount(total.closing_balance))),
   );
 }
 
 function renderEntries(entries) {
-  $('bank-entries-empty').hidden = entries.length > 0;
-  $('bank-entries-table').hidden = entries.length === 0;
-  $('bank-entries-rows').replaceChildren(
-    ...entries.map((e) =>
-      h(
-        'tr',
-        {},
-        h('th', { scope: 'row' }, e.period),
-        h('td', { class: 'wrap' }, e.account_name),
-        h('td', { class: 'num' }, formatAmount(e.balance)),
-        h('td', { class: 'note-cell' }, noteSummary(e.note)),
-        h(
-          'td',
-          { class: 'row-actions' },
-          iconButton('edit', t('Edit {account} {period}', { account: e.account_name, period: e.period }), () => openEntryDialog(e)),
-          iconButton('delete', t('Delete {account} {period}', { account: e.account_name, period: e.period }), () => deleteEntry(e)),
-        ),
-      ),
+  renderTable({ empty: 'bank-entries-empty', table: 'bank-entries-table', body: 'bank-entries-rows' }, entries, (e) =>
+    h(
+      'tr',
+      {},
+      rowHeader(e.period),
+      h('td', { class: 'wrap' }, e.account_name),
+      numCell(formatAmount(e.balance)),
+      h('td', { class: 'note-cell' }, noteSummary(e.note)),
+      recordActions({
+        edit: { label: t('Edit {account} {period}', { account: e.account_name, period: e.period }), onClick: () => entryForm.open(e) },
+        remove: { label: t('Delete {account} {period}', { account: e.account_name, period: e.period }), onClick: () => deleteEntry(e) },
+      }),
     ),
   );
 }
@@ -113,119 +75,71 @@ let editingAccount = null;
 
 function openAccountDialog(account) {
   editingAccount = account;
-  const form = $('bank-account-form');
-  form.reset();
-  $('bank-account-error').hidden = true;
-  $('bank-account-dialog-title').textContent = account ? t('Edit account') : t('Add account');
-  // The entry period is locked once the account has entries (CSD-009 REQ-5).
-  const locked = Boolean(account && account.entry_count > 0);
-  form.elements.period.disabled = locked;
-  $('bank-account-period-hint').hidden = !locked;
-  if (account) {
-    form.elements.name.value = account.name;
-    form.elements.period.value = account.period;
-  }
-  $('bank-account-dialog').showModal();
-  form.elements.name.focus();
+  openDialog({
+    dialog: 'bank-account-dialog',
+    form: 'bank-account-form',
+    error: 'bank-account-error',
+    title: 'bank-account-dialog-title',
+    titleText: account ? t('Edit account') : t('Add account'),
+    focus: 'name',
+    fill(form) {
+      // The entry period is locked once the account has entries (CSD-009 REQ-5).
+      const locked = Boolean(account && account.entry_count > 0);
+      form.elements.period.disabled = locked;
+      $('bank-account-period-hint').hidden = !locked;
+      if (account) {
+        form.elements.name.value = account.name;
+        form.elements.period.value = account.period;
+      }
+    },
+  });
 }
 
-async function submitAccount(event) {
-  event.preventDefault();
+function submitAccount() {
   const form = $('bank-account-form');
   const input = { name: form.elements.name.value };
   if (!form.elements.period.disabled) {
     input.period = form.elements.period.value;
   }
-  try {
-    if (editingAccount) {
-      await invoke('update_bank_account', { accountId: editingAccount.id, input });
-    } else {
-      await invoke('create_bank_account', { input });
-    }
-    $('bank-account-dialog').close();
-    await reloadAfterSave(changed);
-  } catch (error) {
-    showError('bank-account-error', error);
-  }
+  return saveDialog({
+    dialog: 'bank-account-dialog',
+    error: 'bank-account-error',
+    changed,
+    save: () =>
+      editingAccount
+        ? invoke('update_bank_account', { accountId: editingAccount.id, input })
+        : invoke('create_bank_account', { input }),
+  });
 }
 
-async function deleteAccount(account) {
-  const confirmed = await confirmAction({
+function deleteAccount(account) {
+  return deleteWithConfirm({
     title: t('Delete {name}?', { name: account.name }),
     message: t('This account and all its entries will be deleted.'),
     confirmLabel: t('Delete account'),
-    danger: true,
+    command: 'delete_bank_account',
+    args: { accountId: account.id },
+    changed,
   });
-  if (!confirmed) return;
-  try {
-    await invoke('delete_bank_account', { accountId: account.id });
-    await changed();
-  } catch (error) {
-    showToast(errorText(error));
-  }
 }
 
 // ---- Entry dialog ----
 
-let editingEntry = null;
-/** Whether the form currently asks for a year, so the period resets only when it changes. */
-let formIsYearly = false;
+const entryForm = createRecordForm({
+  form: 'bank-entry-form',
+  dialog: 'bank-entry-dialog',
+  title: 'bank-entry-dialog-title',
+  error: 'bank-entry-error',
+  periodLabel: 'bank-entry-period-label',
+  copy: 'bank-entry-copy',
+  parentField: 'account_id',
+  parents: () => accounts,
+  valueFields: ['balance', 'note'],
+  focusField: 'balance',
+  titleText: (entry) => (entry ? t('Edit entry {period}', { period: entry.period }) : t('Add entry')),
+});
 
-function fillAccountChoices(selectedId) {
-  // The list is alphabetical, so the first option is the first account by name.
-  const select = $('bank-entry-form').elements.account_id;
-  select.replaceChildren(...accounts.map((account) => h('option', { value: account.id }, account.name)));
-  select.value = selectedId ?? accounts[0]?.id ?? '';
-}
-
-function chosenAccount() {
-  return accounts.find((account) => account.id === $('bank-entry-form').elements.account_id.value);
-}
-
-/** Asks for a month or a year, following the chosen account (CSD-009 REQ-16). */
-function applyEntryPeriod({ resetPeriod }) {
-  const form = $('bank-entry-form');
-  const yearly = chosenAccount()?.period === 'Yearly';
-  $('bank-entry-period-label').textContent = yearly ? t('Year') : t('Month');
-  form.elements.period.placeholder = yearly ? String(new Date().getFullYear() - 1) : t('yyyy-mm');
-  form.elements.period.maxLength = yearly ? 4 : 7;
-  $('bank-entry-copy').textContent = yearly ? t('Copy previous year') : t('Copy previous month');
-  if (resetPeriod && yearly !== formIsYearly) {
-    form.elements.period.value = yearly ? currentYear() : currentMonth();
-  }
-  formIsYearly = yearly;
-}
-
-/** Opens the form to add an entry, or to edit `entry` when given. */
-function openEntryDialog(entry = null) {
-  editingEntry = entry;
-  const form = $('bank-entry-form');
-  form.reset();
-  $('bank-entry-error').hidden = true;
-  fillAccountChoices(entry?.account_id);
-  form.elements.account_id.disabled = Boolean(entry);
-  $('bank-entry-copy').hidden = Boolean(entry);
-  if (entry) {
-    // The period is editable too; the account is not (CSD-009 REQ-12).
-    $('bank-entry-dialog-title').textContent = t('Edit entry {period}', { period: entry.period });
-    $('bank-entry-period-label').textContent = entry.period.length === 4 ? t('Year') : t('Month');
-    form.elements.period.maxLength = entry.period.length;
-    form.elements.period.value = entry.period;
-    formIsYearly = entry.period.length === 4;
-    form.elements.balance.value = entry.balance;
-    form.elements.note.value = entry.note;
-  } else {
-    $('bank-entry-dialog-title').textContent = t('Add entry');
-    formIsYearly = null; // force the period to its default for the first account
-    form.elements.period.value = '';
-    applyEntryPeriod({ resetPeriod: true });
-  }
-  $('bank-entry-dialog').showModal();
-  (entry ? form.elements.balance : form.elements.period).focus();
-}
-
-async function submitEntry(event) {
-  event.preventDefault();
+function submitEntry() {
   const form = $('bank-entry-form');
   const args = {
     accountId: form.elements.account_id.value,
@@ -233,18 +147,17 @@ async function submitEntry(event) {
     balance: form.elements.balance.value,
     note: form.elements.note.value,
   };
-  try {
-    if (editingEntry) {
-      // The entry is found by its current period; the field holds the new one (CSD-009 REQ-12).
-      await invoke('update_bank_entry', { ...args, period: editingEntry.period, newPeriod: args.period });
-    } else {
-      await invoke('add_bank_entry', args);
-    }
-    $('bank-entry-dialog').close();
-    await reloadAfterSave(changed);
-  } catch (error) {
-    showError('bank-entry-error', error);
-  }
+  const editing = entryForm.editing;
+  return saveDialog({
+    dialog: 'bank-entry-dialog',
+    error: 'bank-entry-error',
+    changed,
+    save: () =>
+      editing
+        ? // The entry is found by its current period; the field holds the new one (CSD-009 REQ-12).
+          invoke('update_bank_entry', { ...args, period: editing.period, newPeriod: args.period })
+        : invoke('add_bank_entry', args),
+  });
 }
 
 /** Fills the balance from the latest entry of the account chosen in the form (CSD-009 REQ-15). */
@@ -259,20 +172,15 @@ async function copyPrevious() {
   }
 }
 
-async function deleteEntry(entry) {
-  const confirmed = await confirmAction({
+function deleteEntry(entry) {
+  return deleteWithConfirm({
     title: t('Delete the entry of {period}?', { period: entry.period }),
     message: t('The entry of {period} of {account} and its note will be deleted.', { period: entry.period, account: entry.account_name }),
     confirmLabel: t('Delete entry'),
-    danger: true,
+    command: 'delete_bank_entry',
+    args: { accountId: entry.account_id, period: entry.period },
+    changed,
   });
-  if (!confirmed) return;
-  try {
-    await invoke('delete_bank_entry', { accountId: entry.account_id, period: entry.period });
-    await changed();
-  } catch (error) {
-    showToast(errorText(error));
-  }
 }
 
 export function initBankOverview({ onChanged: callback }) {
@@ -280,8 +188,8 @@ export function initBankOverview({ onChanged: callback }) {
   $('bank-account-add').addEventListener('click', () => openAccountDialog(null));
   $('bank-account-add-first').addEventListener('click', () => openAccountDialog(null));
   submitOnce($('bank-account-form'), submitAccount);
-  $('bank-entry-add').addEventListener('click', () => openEntryDialog());
+  $('bank-entry-add').addEventListener('click', () => entryForm.open());
   $('bank-entry-copy').addEventListener('click', copyPrevious);
   submitOnce($('bank-entry-form'), submitEntry);
-  $('bank-entry-form').elements.account_id.addEventListener('change', () => applyEntryPeriod({ resetPeriod: true }));
+  $('bank-entry-form').elements.account_id.addEventListener('change', () => entryForm.apply({ resetPeriod: true }));
 }

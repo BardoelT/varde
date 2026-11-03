@@ -22,3 +22,9 @@ export function currentMonth() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
+
+/** The first line of a note, with an ellipsis when there is more (the notes column of every record table). */
+export function noteSummary(note) {
+  const [first, ...rest] = note.split('\n');
+  return rest.length > 0 ? `${first} …` : first;
+}

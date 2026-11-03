@@ -2,11 +2,9 @@
 // Entries are paychecks and annual statements.
 // The figures come from Rust; this file only displays them.
 import { invoke } from '../shared/ipc.js';
-import { h } from '../shared/dom.js';
+import { $, h } from '../shared/dom.js';
 import { formatAmount } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
-
-const $ = (id) => document.getElementById(id);
 
 function cardsFor(totals) {
   const card = (label, value, primary = false) =>

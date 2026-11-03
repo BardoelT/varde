@@ -1,21 +1,16 @@
 // Houses: things the user owns with a monthly or yearly valuation, each a value and a note (CSD-015),
 // bought once and possibly sold (CSD-020 REQ-1, REQ-2).
-import { invoke, errorText } from '../shared/ipc.js';
-import { h, iconButton, confirmAction, showToast, showError, submitOnce, reloadAfterSave } from '../shared/dom.js';
-import { formatAmount, formatDate, currentYear, currentMonth } from '../shared/format.js';
+import { invoke } from '../shared/ipc.js';
+import { $, h, confirmAction, showError, submitOnce } from '../shared/dom.js';
+import { formatAmount, formatDate, noteSummary } from '../shared/format.js';
 import { askSettlements } from '../shared/settle.js';
 import { t } from '../shared/i18n.js';
-
-const $ = (id) => document.getElementById(id);
+import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
+import { createRecordForm } from '../shared/record-form.js';
+import { accountRow, latestAmount, numCell, recordActions, renderTable, rowHeader, showTotal, toggleEmpty } from '../shared/list-rows.js';
 
 let houses = [];
 let onChanged = async () => {};
-
-/** The first line of a note, with an ellipsis when there is more (CSD-015 REQ-20). */
-function noteSummary(note) {
-  const [first, ...rest] = note.split('\n');
-  return rest.length > 0 ? `${first} …` : first;
-}
 
 /** An amount that Rust may leave out (a change of none): a dash then. */
 function optionalAmount(value) {
@@ -23,11 +18,6 @@ function optionalAmount(value) {
 }
 
 // ---- Rendering ----
-
-function latestValue(house) {
-  if (house.latest_value === null) return h('span', { class: 'account-amount' }, '—');
-  return h('span', { class: 'account-amount' }, formatAmount(house.latest_value), h('small', {}, house.latest_period));
-}
 
 /** Only the valuation period and Held or Sold; the purchase and sale are in the edit form (CSD-020 REQ-8). */
 function holdingText(house) {
@@ -37,66 +27,48 @@ function holdingText(house) {
 function renderHouses(overview) {
   houses = overview.houses;
   const hasHouses = houses.length > 0;
-  $('houses-empty').hidden = hasHouses;
-  $('houses-content').hidden = !hasHouses;
+  toggleEmpty('houses-empty', 'houses-content', hasHouses);
   $('house-list').replaceChildren(
     ...houses.map((house) =>
-      h(
-        'li',
-        { class: 'job-row' },
-        h('span', { class: 'job-name' }, house.name),
-        h('span', { class: 'job-meta' }, holdingText(house)),
-        latestValue(house),
-        h(
-          'span',
-          { class: 'job-actions' },
-          iconButton('edit', t('Edit {name}', { name: house.name }), () => openHouseDialog(house)),
-          iconButton('delete', t('Delete {name}', { name: house.name }), () => deleteHouse(house)),
-        ),
-      ),
+      accountRow({
+        name: house.name,
+        meta: holdingText(house),
+        amount: latestAmount(house.latest_value, house.latest_period),
+        edit: { label: t('Edit {name}', { name: house.name }), onClick: () => openHouseDialog(house) },
+        remove: { label: t('Delete {name}', { name: house.name }), onClick: () => deleteHouse(house) },
+      }),
     ),
   );
-  $('house-total').hidden = !hasHouses;
-  $('house-total-value').textContent = overview.total === null ? '—' : formatAmount(overview.total);
+  showTotal('house-total', 'house-total-value', overview.total, hasHouses);
 }
 
 /** Yearly values over all houses, as returned by Rust (CSD-015 REQ-19). */
 function renderTotals(totals) {
-  $('house-totals-empty').hidden = totals.length > 0;
-  $('house-totals-table').hidden = totals.length === 0;
-  $('house-totals-rows').replaceChildren(
-    ...totals.map((t) =>
-      h(
-        'tr',
-        {},
-        h('th', { scope: 'row' }, String(t.year)),
-        h('td', { class: 'num' }, formatAmount(t.closing_value)),
-        h('td', { class: 'num' }, optionalAmount(t.change)),
-      ),
+  renderTable({ empty: 'house-totals-empty', table: 'house-totals-table', body: 'house-totals-rows' }, totals, (total) =>
+    h(
+      'tr',
+      {},
+      rowHeader(String(total.year)),
+      numCell(formatAmount(total.closing_value)),
+      numCell(optionalAmount(total.change)),
     ),
   );
 }
 
 function renderValuations(valuations) {
-  $('house-valuations-empty').hidden = valuations.length > 0;
-  $('house-valuations-table').hidden = valuations.length === 0;
-  $('house-valuations-rows').replaceChildren(
-    ...valuations.map((s) =>
-      h(
-        'tr',
-        {},
-        h('th', { scope: 'row' }, s.period),
-        h('td', { class: 'wrap' }, s.house_name),
-        h('td', { class: 'num' }, formatAmount(s.value)),
-        h('td', { class: 'num' }, optionalAmount(s.change)),
-        h('td', { class: 'note-cell' }, noteSummary(s.note)),
-        h(
-          'td',
-          { class: 'row-actions' },
-          iconButton('edit', t('Edit {name} {period}', { name: s.house_name, period: s.period }), () => openValuationDialog(s)),
-          iconButton('delete', t('Delete {name} {period}', { name: s.house_name, period: s.period }), () => deleteValuation(s)),
-        ),
-      ),
+  renderTable({ empty: 'house-valuations-empty', table: 'house-valuations-table', body: 'house-valuations-rows' }, valuations, (s) =>
+    h(
+      'tr',
+      {},
+      rowHeader(s.period),
+      h('td', { class: 'wrap' }, s.house_name),
+      numCell(formatAmount(s.value)),
+      numCell(optionalAmount(s.change)),
+      h('td', { class: 'note-cell' }, noteSummary(s.note)),
+      recordActions({
+        edit: { label: t('Edit {name} {period}', { name: s.house_name, period: s.period }), onClick: () => valuationForm.open(s) },
+        remove: { label: t('Delete {name} {period}', { name: s.house_name, period: s.period }), onClick: () => deleteValuation(s) },
+      }),
     ),
   );
 }
@@ -140,29 +112,32 @@ function fillLinkedDebts(house) {
 
 function openHouseDialog(house) {
   editingHouse = house;
-  const form = $('house-form');
-  form.reset();
-  $('house-error').hidden = true;
-  $('house-dialog-title').textContent = house ? t('Edit house') : t('Add house');
-  // The valuation period is locked once the house has valuations (CSD-015 REQ-5).
-  const locked = Boolean(house && house.valuation_count > 0);
-  form.elements.period.disabled = locked;
-  $('house-period-hint').hidden = !locked;
-  if (house) {
-    form.elements.name.value = house.name;
-    form.elements.period.value = house.period;
-    form.elements.purchase_date.value = formatDate(house.purchase_date);
-    form.elements.purchase_amount.value = house.purchase_amount;
-    form.elements.sell_date.value = house.sell_date === null ? '' : formatDate(house.sell_date);
-    form.elements.sell_amount.value = house.sell_amount ?? '';
-  }
-  fillLinkedDebts(house);
-  $('house-dialog').showModal();
-  form.elements.name.focus();
+  openDialog({
+    dialog: 'house-dialog',
+    form: 'house-form',
+    error: 'house-error',
+    title: 'house-dialog-title',
+    titleText: house ? t('Edit house') : t('Add house'),
+    focus: 'name',
+    fill(form) {
+      // The valuation period is locked once the house has valuations (CSD-015 REQ-5).
+      const locked = Boolean(house && house.valuation_count > 0);
+      form.elements.period.disabled = locked;
+      $('house-period-hint').hidden = !locked;
+      if (house) {
+        form.elements.name.value = house.name;
+        form.elements.period.value = house.period;
+        form.elements.purchase_date.value = formatDate(house.purchase_date);
+        form.elements.purchase_amount.value = house.purchase_amount;
+        form.elements.sell_date.value = house.sell_date === null ? '' : formatDate(house.sell_date);
+        form.elements.sell_amount.value = house.sell_amount ?? '';
+      }
+      fillLinkedDebts(house);
+    },
+  });
 }
 
-async function submitHouse(event) {
-  event.preventDefault();
+function submitHouse() {
   const form = $('house-form');
   const input = {
     name: form.elements.name.value,
@@ -175,117 +150,67 @@ async function submitHouse(event) {
     input.period = form.elements.period.value;
   }
   const links = { settlements: [], confirm_undo: false };
-  try {
-    const sellDate = input.sell_date.trim();
-    const sold = editingHouse !== null && !editingHouse.held;
-    if (sellDate && !sold) {
-      // A new sale: linked debts with an open balance need Repaid or Cancelled (CSD-020 REQ-18).
-      const open = editingHouse ? await invoke('list_open_debts', { houseId: editingHouse.id, sellDate }) : [];
-      if (open.length > 0) {
-        const choices = await askSettlements(open);
-        if (choices === null) return;
-        links.settlements = choices;
+  return saveDialog({
+    dialog: 'house-dialog',
+    error: 'house-error',
+    changed,
+    async save() {
+      const sellDate = input.sell_date.trim();
+      const sold = editingHouse !== null && !editingHouse.held;
+      if (sellDate && !sold) {
+        // A new sale: linked debts with an open balance need Repaid or Cancelled (CSD-020 REQ-18).
+        const open = editingHouse ? await invoke('list_open_debts', { houseId: editingHouse.id, sellDate }) : [];
+        if (open.length > 0) {
+          const choices = await askSettlements(open);
+          if (choices === null) return false;
+          links.settlements = choices;
+        }
+      } else if (!sellDate && sold && editingHouse.linked_debts.some((debt) => debt.settlement)) {
+        // Undoing the sale also undoes the settled debts (CSD-020 REQ-21).
+        const confirmed = await confirmAction({
+          title: t('Undo the sale?'),
+          message: t('The debts settled on this sale go back to their earlier balances.'),
+          confirmLabel: t('Undo sale'),
+          danger: true,
+        });
+        if (!confirmed) return false;
+        links.confirm_undo = true;
       }
-    } else if (!sellDate && sold && editingHouse.linked_debts.some((debt) => debt.settlement)) {
-      // Undoing the sale also undoes the settled debts (CSD-020 REQ-21).
-      const confirmed = await confirmAction({
-        title: t('Undo the sale?'),
-        message: t('The debts settled on this sale go back to their earlier balances.'),
-        confirmLabel: t('Undo sale'),
-        danger: true,
-      });
-      if (!confirmed) return;
-      links.confirm_undo = true;
-    }
-    if (editingHouse) {
-      await invoke('update_house', { houseId: editingHouse.id, input, links });
-    } else {
-      await invoke('create_house', { input, links });
-    }
-    $('house-dialog').close();
-    await reloadAfterSave(changed);
-  } catch (error) {
-    showError('house-error', error);
-  }
+      return editingHouse
+        ? invoke('update_house', { houseId: editingHouse.id, input, links })
+        : invoke('create_house', { input, links });
+    },
+  });
 }
 
-async function deleteHouse(house) {
-  const confirmed = await confirmAction({
+function deleteHouse(house) {
+  return deleteWithConfirm({
     title: t('Delete {name}?', { name: house.name }),
     message: t('This house and all its valuations will be deleted.'),
     confirmLabel: t('Delete house'),
-    danger: true,
+    command: 'delete_house',
+    args: { houseId: house.id },
+    changed,
   });
-  if (!confirmed) return;
-  try {
-    await invoke('delete_house', { houseId: house.id });
-    await changed();
-  } catch (error) {
-    showToast(errorText(error));
-  }
 }
 
 // ---- Valuation dialog ----
 
-let editingValuation = null;
-/** Whether the form currently asks for a year, so the period resets only when it changes. */
-let formIsYearly = false;
+const valuationForm = createRecordForm({
+  form: 'house-valuation-form',
+  dialog: 'house-valuation-dialog',
+  title: 'house-valuation-dialog-title',
+  error: 'house-valuation-error',
+  periodLabel: 'house-valuation-period-label',
+  copy: 'house-valuation-copy',
+  parentField: 'house_id',
+  parents: () => houses,
+  valueFields: ['value', 'note'],
+  focusField: 'value',
+  titleText: (valuation) => (valuation ? t('Edit valuation {period}', { period: valuation.period }) : t('Add valuation')),
+});
 
-function fillHouseChoices(selectedId) {
-  // The list is alphabetical, so the first option is the first house by name.
-  const select = $('house-valuation-form').elements.house_id;
-  select.replaceChildren(...houses.map((house) => h('option', { value: house.id }, house.name)));
-  select.value = selectedId ?? houses[0]?.id ?? '';
-}
-
-function chosenHouse() {
-  return houses.find((house) => house.id === $('house-valuation-form').elements.house_id.value);
-}
-
-/** Asks for a month or a year, following the chosen house (CSD-015 REQ-16). */
-function applyValuationPeriod({ resetPeriod }) {
-  const form = $('house-valuation-form');
-  const yearly = chosenHouse()?.period === 'Yearly';
-  $('house-valuation-period-label').textContent = yearly ? t('Year') : t('Month');
-  form.elements.period.placeholder = yearly ? String(new Date().getFullYear() - 1) : t('yyyy-mm');
-  form.elements.period.maxLength = yearly ? 4 : 7;
-  $('house-valuation-copy').textContent = yearly ? t('Copy previous year') : t('Copy previous month');
-  if (resetPeriod && yearly !== formIsYearly) {
-    form.elements.period.value = yearly ? currentYear() : currentMonth();
-  }
-  formIsYearly = yearly;
-}
-
-/** Opens the form to add a valuation, or to edit `valuation` when given. */
-function openValuationDialog(valuation = null) {
-  editingValuation = valuation;
-  const form = $('house-valuation-form');
-  form.reset();
-  $('house-valuation-error').hidden = true;
-  fillHouseChoices(valuation?.house_id);
-  form.elements.house_id.disabled = Boolean(valuation);
-  $('house-valuation-copy').hidden = Boolean(valuation);
-  if (valuation) {
-    // The period is editable too; the house is not (CSD-015 REQ-12).
-    $('house-valuation-dialog-title').textContent = t('Edit valuation {period}', { period: valuation.period });
-    $('house-valuation-period-label').textContent = valuation.period.length === 4 ? t('Year') : t('Month');
-    form.elements.period.maxLength = valuation.period.length;
-    form.elements.period.value = valuation.period;
-    formIsYearly = valuation.period.length === 4;
-    form.elements.value.value = valuation.value;
-    form.elements.note.value = valuation.note;
-  } else {
-    $('house-valuation-dialog-title').textContent = t('Add valuation');
-    formIsYearly = null; // force the period to its default for the first house
-    form.elements.period.value = '';
-    applyValuationPeriod({ resetPeriod: true });
-  }
-  $('house-valuation-dialog').showModal();
-  (valuation ? form.elements.value : form.elements.period).focus();
-}
-
-async function submitValuation(event) {
-  event.preventDefault();
+function submitValuation() {
   const form = $('house-valuation-form');
   const args = {
     houseId: form.elements.house_id.value,
@@ -293,18 +218,17 @@ async function submitValuation(event) {
     value: form.elements.value.value,
     note: form.elements.note.value,
   };
-  try {
-    if (editingValuation) {
-      // The valuation is found by its current period; the field holds the new one (CSD-015 REQ-12).
-      await invoke('update_house_valuation', { ...args, period: editingValuation.period, newPeriod: args.period });
-    } else {
-      await invoke('add_house_valuation', args);
-    }
-    $('house-valuation-dialog').close();
-    await reloadAfterSave(changed);
-  } catch (error) {
-    showError('house-valuation-error', error);
-  }
+  const editing = valuationForm.editing;
+  return saveDialog({
+    dialog: 'house-valuation-dialog',
+    error: 'house-valuation-error',
+    changed,
+    save: () =>
+      editing
+        ? // The valuation is found by its current period; the field holds the new one (CSD-015 REQ-12).
+          invoke('update_house_valuation', { ...args, period: editing.period, newPeriod: args.period })
+        : invoke('add_house_valuation', args),
+  });
 }
 
 /** Fills the value from the latest valuation of the house chosen in the form (CSD-015 REQ-15). */
@@ -319,20 +243,15 @@ async function copyPrevious() {
   }
 }
 
-async function deleteValuation(valuation) {
-  const confirmed = await confirmAction({
+function deleteValuation(valuation) {
+  return deleteWithConfirm({
     title: t('Delete the valuation of {period}?', { period: valuation.period }),
     message: t('The valuation of {period} of {name} and its note will be deleted.', { period: valuation.period, name: valuation.house_name }),
     confirmLabel: t('Delete valuation'),
-    danger: true,
+    command: 'delete_house_valuation',
+    args: { houseId: valuation.house_id, period: valuation.period },
+    changed,
   });
-  if (!confirmed) return;
-  try {
-    await invoke('delete_house_valuation', { houseId: valuation.house_id, period: valuation.period });
-    await changed();
-  } catch (error) {
-    showToast(errorText(error));
-  }
 }
 
 export function initHousesOverview({ onChanged: callback }) {
@@ -340,8 +259,8 @@ export function initHousesOverview({ onChanged: callback }) {
   $('house-add').addEventListener('click', () => openHouseDialog(null));
   $('house-add-first').addEventListener('click', () => openHouseDialog(null));
   submitOnce($('house-form'), submitHouse);
-  $('house-valuation-add').addEventListener('click', () => openValuationDialog());
+  $('house-valuation-add').addEventListener('click', () => valuationForm.open());
   $('house-valuation-copy').addEventListener('click', copyPrevious);
   submitOnce($('house-valuation-form'), submitValuation);
-  $('house-valuation-form').elements.house_id.addEventListener('change', () => applyValuationPeriod({ resetPeriod: true }));
+  $('house-valuation-form').elements.house_id.addEventListener('change', () => valuationForm.apply({ resetPeriod: true }));
 }
