@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::domain::common::Note;
 use crate::domain::error::DomainError;
 use crate::domain::money::{bounded, plain_decimal, Money};
+use crate::domain::series;
 
 /// The closing balance of an entry, in the project currency, signed, with
 /// exactly two decimals (CSD-009 REQ-10). Negative when the account is
@@ -52,5 +53,5 @@ impl BankBalance {
 /// # Errors
 /// Returns `BankEntryNoteTooLong`.
 pub fn bank_note(text: &str) -> Result<Note, DomainError> {
-    Note::new(text).map_err(|_| DomainError::BankEntryNoteTooLong)
+    series::record_note(text, DomainError::BankEntryNoteTooLong)
 }

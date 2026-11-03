@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::domain::common::Note;
 use crate::domain::error::DomainError;
 use crate::domain::money::{bounded, plain_decimal, Money};
+use crate::domain::series;
 
 /// What the house is worth at the end of a period, in the project currency, from
 /// 0.00 up, with exactly two decimals (CSD-015 REQ-10).
@@ -68,5 +69,5 @@ impl HouseValue {
 /// # Errors
 /// Returns `HouseValuationNoteTooLong`.
 pub fn house_note(text: &str) -> Result<Note, DomainError> {
-    Note::new(text).map_err(|_| DomainError::HouseValuationNoteTooLong)
+    series::record_note(text, DomainError::HouseValuationNoteTooLong)
 }

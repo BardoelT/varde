@@ -9,6 +9,7 @@ use crate::domain::money::{zero, Money, MoneyError};
 use super::amounts::parse_growth;
 use super::{Balance, InvestmentAccountId, InvestmentStatement, Investments, NetDeposits};
 use crate::domain::common::Period;
+use crate::domain::series::SeriesData;
 
 /// Which of balance and capital growth the user typed in the statement form
 /// (CSD-005 REQ-24).

@@ -5,6 +5,7 @@ use serde::Serialize;
 
 use super::{InvestmentAccount, Investments};
 use crate::domain::common::Period;
+use crate::domain::series::{self, SeriesData};
 
 /// One account row of the Investments view: its latest balance and period
 /// (CSD-005 REQ-15).
@@ -43,10 +44,7 @@ impl Investments {
                 }
             })
             .collect();
-        let mut balances = accounts.iter().filter_map(|summary| summary.latest_balance);
-        let total = balances
-            .next()
-            .map(|first| balances.fold(first, |sum, balance| sum + balance));
+        let total = series::total_of(accounts.iter().filter_map(|summary| summary.latest_balance));
         InvestmentsOverview { accounts, total }
     }
 }

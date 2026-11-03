@@ -4,6 +4,7 @@ use rust_decimal::Decimal;
 use serde::Serialize;
 
 use crate::domain::common::Period;
+use crate::domain::series::{self, SeriesData};
 
 use super::{House, Houses};
 
@@ -51,13 +52,12 @@ impl Houses {
                 }
             })
             .collect();
-        let mut values = houses
-            .iter()
-            .filter(|summary| summary.held)
-            .filter_map(|summary| summary.latest_value);
-        let total = values
-            .next()
-            .map(|first| values.fold(first, |sum, value| sum + value));
+        let total = series::total_of(
+            houses
+                .iter()
+                .filter(|summary| summary.held)
+                .filter_map(|summary| summary.latest_value),
+        );
         HousesOverview { houses, total }
     }
 }

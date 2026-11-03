@@ -11,6 +11,7 @@ use crate::domain::debts::{
     Debt, DebtCategory, DebtId, DebtInput, DebtSummary, Debts, OpenDebt, Outcome, Settlement,
 };
 use crate::domain::error::DomainError;
+use crate::domain::series::SeriesData;
 
 use super::{House, HouseDate, HouseId, HouseInput, HouseSummary, Houses};
 
@@ -92,7 +93,7 @@ pub fn update_house(
     let parsed = links.parse()?;
     let mut new_houses = houses.clone();
     let mut new_debts = debts.clone();
-    let old = new_houses.house(id)?.clone();
+    let old = new_houses.account(id)?.clone();
     let house = new_houses.update_house(id, input)?;
     apply(&mut new_debts, Some(&old), &house, &parsed)?;
     *houses = new_houses;
@@ -105,7 +106,7 @@ pub fn update_house(
 /// # Errors
 /// Returns `HouseNotFound` or `HouseHasLinkedDebts`.
 pub fn delete_house(houses: &mut Houses, debts: &Debts, id: HouseId) -> Result<(), DomainError> {
-    houses.house(id)?;
+    houses.account(id)?;
     if !debts.linked_to(id).is_empty() {
         return Err(DomainError::HouseHasLinkedDebts);
     }

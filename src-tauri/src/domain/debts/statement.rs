@@ -6,7 +6,9 @@ use serde::{Deserialize, Serialize};
 use crate::domain::common::{Note, Period};
 use crate::domain::error::DomainError;
 
-use super::{DebtBalance, DebtId, Debts};
+use crate::domain::series::{self, SeriesData, SeriesRecord};
+
+use super::{debt_note, DebtBalance, DebtId, Debts};
 
 /// Whether a statement is one the user entered or the final one a settlement
 /// added. The variants are in statement order: within a period the settlement
@@ -80,11 +82,40 @@ impl DebtStatement {
     pub fn is_settlement(&self) -> bool {
         self.kind == StatementKind::Settlement
     }
+}
 
-    /// The order of a debt's statements: by period, and within a period the
-    /// settlement statement after the regular one (CSD-011 REQ-8).
-    pub(super) fn order_key(&self) -> ((i32, u8), StatementKind) {
+impl SeriesRecord for DebtStatement {
+    type AccountId = DebtId;
+    /// By period, and within a period the settlement statement after the
+    /// regular one (CSD-011 REQ-8).
+    type Order = ((i32, u8), StatementKind);
+
+    fn account_id(&self) -> DebtId {
+        self.debt_id
+    }
+
+    fn period(&self) -> Period {
+        self.period
+    }
+
+    fn set_period(&mut self, period: Period) {
+        self.period = period;
+    }
+
+    fn order_key(&self) -> ((i32, u8), StatementKind) {
         (self.period.sort_key(), self.kind)
+    }
+
+    fn amount(&self) -> Decimal {
+        self.balance.value()
+    }
+
+    fn is_regular(&self) -> bool {
+        !self.is_settlement()
+    }
+
+    fn is_valid(&self) -> bool {
+        DebtBalance::new(self.balance.value()).is_ok() && debt_note(self.note.as_str()).is_ok()
     }
 }
 
@@ -93,7 +124,7 @@ impl DebtStatement {
 /// # Errors
 /// Returns `DebtStatementPeriodInvalid` for any other text.
 pub fn parse_period(text: &str) -> Result<Period, DomainError> {
-    Period::parse(text).map_err(|_| DomainError::DebtStatementPeriodInvalid)
+    series::parse_period(text, DomainError::DebtStatementPeriodInvalid)
 }
 
 /// Form values for "copy previous month" or "copy previous year" (CSD-011
@@ -110,9 +141,8 @@ impl Debts {
     /// # Errors
     /// Returns `DebtNotFound`.
     pub fn prefill_from_latest(&self, id: DebtId) -> Result<DebtStatementPrefill, DomainError> {
-        self.debt(id)?;
         Ok(DebtStatementPrefill {
-            balance: self.latest(id).map(|statement| statement.balance.value()),
+            balance: self.latest_amount(id)?,
         })
     }
 
@@ -121,10 +151,7 @@ impl Debts {
     /// each time, never stored.
     #[must_use]
     pub fn change(&self, statement: &DebtStatement) -> Option<Decimal> {
-        self.statements
-            .iter()
-            .filter(|s| s.debt_id == statement.debt_id && s.order_key() < statement.order_key())
-            .max_by_key(|s| s.order_key())
+        self.previous_record(statement)
             .map(|previous| previous.balance.value() - statement.balance.value())
     }
 }

@@ -1,13 +1,11 @@
 //! The yearly series behind the Bank accounts Insights chart (CSD-010).
 
-use std::collections::BTreeMap;
-
 use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::charts::{stack_from_zero, Axis, ChartYear, Marker, Piece};
-use crate::domain::common::{series_years, ColourSlot, YearMonth};
-use crate::domain::money::zero;
+use crate::domain::charts::{Axis, ChartYear, Marker, Piece};
+use crate::domain::common::{ColourSlot, YearMonth};
+use crate::domain::series::SeriesData;
 
 use super::{BankAccountId, BankAccounts};
 
@@ -69,55 +67,33 @@ impl BankAccounts {
     /// partial; a year after it is not.
     #[must_use]
     pub fn insights(&self, today: YearMonth) -> BankInsights {
-        let mut counts: BTreeMap<i32, usize> = BTreeMap::new();
-        for entry in &self.entries {
-            *counts.entry(entry.period.year()).or_default() += 1;
-        }
-        let years: Vec<BankInsightsYear> = series_years(counts.keys().copied(), today.year())
-            .into_iter()
-            .map(|year| {
-                let segments: Vec<InsightsSegment> = self
-                    .year_segments(year)
-                    .into_iter()
-                    .map(|(account, balance)| InsightsSegment {
-                        account_id: account.id,
-                        balance,
-                    })
-                    .collect();
-                let closing_balance = segments
-                    .iter()
-                    .fold(zero(), |sum, segment| sum + segment.balance);
-                let entry_count = counts.get(&year).copied().unwrap_or(0);
-                let pieces = stack_from_zero(
-                    segments
-                        .iter()
-                        .map(|segment| (format!("bank-{}", segment.account_id), segment.balance)),
-                );
-                BankInsightsYear {
-                    year,
-                    closing_balance,
-                    entry_count,
-                    is_partial: year == today.year(),
-                    segments,
-                    pieces,
-                    marker: (entry_count > 0).then(|| Marker::at(closing_balance)),
-                }
-            })
-            .collect();
+        let figures = self.year_figures(today);
         let banks = self
-            .accounts
-            .iter()
-            .filter(|account| {
-                years.iter().any(|year| {
-                    year.segments
-                        .iter()
-                        .any(|segment| segment.account_id == account.id)
-                })
-            })
+            .legend(&figures)
+            .into_iter()
             .map(|account| InsightsBank {
                 id: account.id,
                 name: account.name.clone(),
                 colour_slot: account.colour_slot,
+            })
+            .collect();
+        let years: Vec<BankInsightsYear> = figures
+            .into_iter()
+            .map(|figure| BankInsightsYear {
+                year: figure.year,
+                closing_balance: figure.closing,
+                entry_count: figure.count,
+                is_partial: figure.is_partial,
+                segments: figure
+                    .segments
+                    .iter()
+                    .map(|(account, balance)| InsightsSegment {
+                        account_id: account.id,
+                        balance: *balance,
+                    })
+                    .collect(),
+                pieces: figure.pieces,
+                marker: figure.marker,
             })
             .collect();
         let axis = Axis::of_years(&years);

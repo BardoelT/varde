@@ -3,9 +3,9 @@
 use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::charts::{stack_from_zero, Axis, ChartYear, Marker, Piece};
-use crate::domain::common::{series_years, ColourSlot, YearMonth};
-use crate::domain::money::zero;
+use crate::domain::charts::{Axis, ChartYear, Marker, Piece};
+use crate::domain::common::{ColourSlot, YearMonth};
+use crate::domain::series::SeriesData;
 
 use super::{HouseId, Houses};
 
@@ -68,53 +68,34 @@ impl Houses {
     /// year after it is not.
     #[must_use]
     pub fn insights(&self, today: YearMonth) -> HouseInsights {
-        let counts = self.counted_valuations_per_year();
-        let years: Vec<HouseInsightsYear> = series_years(counts.keys().copied(), today.year())
-            .into_iter()
-            .map(|year| {
-                let segments: Vec<InsightsSegment> = self
-                    .year_segments(year)
-                    .into_iter()
-                    .map(|(house, value)| InsightsSegment {
-                        house_id: house.id,
-                        value,
-                    })
-                    .collect();
-                let closing_value = segments
-                    .iter()
-                    .fold(zero(), |sum, segment| sum + segment.value);
-                let valuation_count = counts.get(&year).copied().unwrap_or(0);
-                let pieces = stack_from_zero(
-                    segments
-                        .iter()
-                        .map(|segment| (format!("house-{}", segment.house_id), segment.value)),
-                );
-                HouseInsightsYear {
-                    year,
-                    closing_value,
-                    change: self.year_change(year),
-                    valuation_count,
-                    is_partial: year == today.year(),
-                    segments,
-                    pieces,
-                    marker: (valuation_count > 0).then(|| Marker::at(closing_value)),
-                }
-            })
-            .collect();
+        let figures = self.year_figures(today);
         let houses = self
-            .houses
-            .iter()
-            .filter(|house| {
-                years.iter().any(|year| {
-                    year.segments
-                        .iter()
-                        .any(|segment| segment.house_id == house.id)
-                })
-            })
+            .legend(&figures)
+            .into_iter()
             .map(|house| InsightsHouse {
                 id: house.id,
                 name: house.name.clone(),
                 colour_slot: house.colour_slot,
+            })
+            .collect();
+        let years: Vec<HouseInsightsYear> = figures
+            .into_iter()
+            .map(|figure| HouseInsightsYear {
+                year: figure.year,
+                closing_value: figure.closing,
+                change: self.year_change(figure.year),
+                valuation_count: figure.count,
+                is_partial: figure.is_partial,
+                segments: figure
+                    .segments
+                    .iter()
+                    .map(|(house, value)| InsightsSegment {
+                        house_id: house.id,
+                        value: *value,
+                    })
+                    .collect(),
+                pieces: figure.pieces,
+                marker: figure.marker,
             })
             .collect();
         let axis = Axis::of_years(&years);

@@ -9,6 +9,8 @@ use crate::domain::charts::{percent_label, waterfall, ChartYear, Marker, Piece};
 use crate::domain::common::{series_years, YearMonth};
 use crate::domain::money::{percent_of, zero};
 
+use crate::domain::series::SeriesData;
+
 use super::{InvestmentYearlyTotal, Investments};
 
 /// One year of the insights chart: the parts of the closing balance, whether
@@ -112,21 +114,10 @@ impl Investments {
     /// The balance a year opens with: for each account with a statement in
     /// the year, its latest balance before the year (CSD-007 section 3).
     fn opening_balance(&self, year: i32) -> Decimal {
-        self.accounts
-            .iter()
-            .filter(|account| {
-                self.statements
-                    .iter()
-                    .any(|s| s.account_id == account.id && s.period.year() == year)
-            })
-            .filter_map(|account| {
-                self.statements
-                    .iter()
-                    .filter(|s| s.account_id == account.id && s.period.year() < year)
-                    .max_by_key(|s| s.period.sort_key())
-                    .map(|s| s.balance.value())
-            })
-            .fold(zero(), |sum, balance| sum + balance)
+        self.year_segments(year)
+            .into_iter()
+            .filter_map(|(account, _)| self.latest_before_year(account.id, year))
+            .fold(zero(), |sum, statement| sum + statement.balance.value())
     }
 
     /// The capital growth in a year of the accounts that have an opening

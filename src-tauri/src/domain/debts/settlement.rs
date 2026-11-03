@@ -8,6 +8,8 @@ use crate::domain::common::{parse_wire_name, wire_name, Period, Year, YearMonth}
 use crate::domain::error::DomainError;
 use crate::domain::houses::{HouseDate, HouseId, Houses};
 
+use crate::domain::series::{SeriesData, SeriesRecord};
+
 use super::{Debt, DebtBalance, DebtCategory, DebtId, DebtStatement, Debts, StatementKind};
 
 /// How a debt ended on the sale of its house (CSD-020 section 3).
@@ -64,7 +66,7 @@ impl Debts {
     /// The house a debt is linked to.
     #[must_use]
     pub fn house_of(&self, id: DebtId) -> Option<HouseId> {
-        self.debt(id).ok().and_then(|debt| debt.house_id)
+        self.account(id).ok().and_then(|debt| debt.house_id)
     }
 
     /// The ids of the debts linked to `house_id`.
@@ -80,13 +82,13 @@ impl Debts {
     /// A debt by id.
     #[must_use]
     pub fn get(&self, id: DebtId) -> Option<&Debt> {
-        self.debts.iter().find(|debt| debt.id == id)
+        self.account(id).ok()
     }
 
     /// Whether a debt has a settlement.
     #[must_use]
     pub fn is_settled(&self, id: DebtId) -> bool {
-        self.debt(id).is_ok_and(|debt| debt.settlement.is_some())
+        self.account(id).is_ok_and(|debt| debt.settlement.is_some())
     }
 
     /// Sets the category of a debt (CSD-020 REQ-15). A settled debt cannot change.
@@ -98,7 +100,7 @@ impl Debts {
         id: DebtId,
         category: DebtCategory,
     ) -> Result<(), DomainError> {
-        let debt = self.debt_mut(id)?;
+        let debt = self.account_mut(id)?;
         if debt.category != category && debt.settlement.is_some() {
             return Err(DomainError::DebtSettledLocked);
         }
@@ -111,7 +113,7 @@ impl Debts {
         id: DebtId,
         house_id: Option<HouseId>,
     ) -> Result<(), DomainError> {
-        self.debt_mut(id)?.house_id = house_id;
+        self.account_mut(id)?.house_id = house_id;
         Ok(())
     }
 
@@ -126,7 +128,7 @@ impl Debts {
         id: DebtId,
         date: HouseDate,
     ) -> Result<Option<Decimal>, DomainError> {
-        let period = sale_period(self.debt(id)?.period, date)?;
+        let period = sale_period(self.account(id)?.period, date)?;
         Ok(self
             .statements
             .iter()
@@ -178,7 +180,7 @@ impl Debts {
         house_name: &str,
         date: HouseDate,
     ) -> Result<(), DomainError> {
-        let period = sale_period(self.debt(id)?.period, date)?;
+        let period = sale_period(self.account(id)?.period, date)?;
         let amount = self
             .open_balance(id, date)?
             .ok_or(DomainError::HouseSettlementInvalid)?;
@@ -200,7 +202,7 @@ impl Debts {
             note,
             kind: StatementKind::Settlement,
         });
-        self.debt_mut(id)?.settlement = Some(Settlement {
+        self.account_mut(id)?.settlement = Some(Settlement {
             outcome,
             date,
             amount: DebtBalance::new(amount)?,
@@ -214,14 +216,14 @@ impl Debts {
     /// # Errors
     /// Returns `DebtNotFound`.
     pub fn unsettle(&mut self, id: DebtId) -> Result<(), DomainError> {
-        let debt = self.debt(id)?;
+        let debt = self.account(id)?;
         let Some(settlement) = debt.settlement.clone() else {
             return Ok(());
         };
         let period = sale_period(debt.period, settlement.date)?;
         self.statements
             .retain(|s| !(s.debt_id == id && s.period == period && s.is_settlement()));
-        self.debt_mut(id)?.settlement = None;
+        self.account_mut(id)?.settlement = None;
         Ok(())
     }
 
@@ -245,19 +247,19 @@ impl Debts {
         period: Period,
     ) -> Result<(), DomainError> {
         self.check_unsettled_at(id, period)?;
-        let debt = self.debt(id)?;
+        let debt = self.account(id)?;
         let Some(settlement) = &debt.settlement else {
             return Ok(());
         };
         let settled_period = sale_period(debt.period, settlement.date)?;
-        if period == settled_period && self.statement(id, period).is_none() {
+        if period == settled_period && self.record(id, period).is_none() {
             return Err(DomainError::DebtSettledLocked);
         }
         Ok(())
     }
 
     fn is_after_settlement(&self, id: DebtId, period: Period) -> Result<bool, DomainError> {
-        let debt = self.debt(id)?;
+        let debt = self.account(id)?;
         let Some(settlement) = &debt.settlement else {
             return Ok(false);
         };
@@ -286,7 +288,7 @@ impl Debts {
         // A settlement statement belongs to a settled debt, in its settlement
         // period (CSD-020 REQ-33).
         for statement in self.statements.iter().filter(|s| s.is_settlement()) {
-            let debt = self.debt(statement.debt_id)?;
+            let debt = self.account(statement.debt_id)?;
             let belongs = match &debt.settlement {
                 Some(settlement) => sale_period(debt.period, settlement.date)? == statement.period,
                 None => false,

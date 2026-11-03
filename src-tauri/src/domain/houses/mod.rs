@@ -30,18 +30,15 @@ pub use overview::HouseSummary;
 pub use totals::HouseYearlyValue;
 pub use valuation::{parse_period, HouseValuation, HouseValuationPrefill};
 
-use std::collections::HashSet;
-
 use serde::{Deserialize, Serialize};
 
 use crate::domain::common::{Note, Period};
 use crate::domain::error::DomainError;
-
-use crate::domain::common::{ColourSlot, MAX_NAME_CHARS};
-use crate::domain::series;
+use crate::domain::series::{self, SeriesData, SeriesError};
 
 /// All houses with their valuations. Houses are kept in the order they were
-/// created (CSD-015 section 5).
+/// created (CSD-015 section 5). The rules every series shares are those of
+/// [`SeriesData`]; a house adds its holding window (CSD-020).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Houses {
@@ -59,14 +56,14 @@ impl Houses {
     /// purchase and sale errors of CSD-020 REQ-1 to REQ-5.
     pub fn create_house(&mut self, input: &HouseInput) -> Result<House, DomainError> {
         let valid = input.validate()?;
-        if self.name_taken(&valid.name, None) {
-            return Err(DomainError::HouseNameDuplicate);
-        }
+        self.check_name_free(&valid.name, None)?;
         let house = House {
             id: HouseId::new(),
             name: valid.name,
             period: valid.period.unwrap_or_default(),
-            colour_slot: self.next_colour_slot(),
+            colour_slot: series::next_colour_slot(
+                self.houses.iter().map(|house| house.colour_slot),
+            ),
             purchase_date: valid.purchase_date,
             purchase_amount: valid.purchase_amount,
             sale: valid.sale,
@@ -85,15 +82,11 @@ impl Houses {
     /// `HousePeriodLocked` or `HouseDatesExcludeValuations`.
     pub fn update_house(&mut self, id: HouseId, input: &HouseInput) -> Result<House, DomainError> {
         let valid = input.validate()?;
-        let current = self.house(id)?.period;
-        if self.name_taken(&valid.name, Some(id)) {
-            return Err(DomainError::HouseNameDuplicate);
-        }
+        let current = self.account(id)?.period;
+        self.check_name_free(&valid.name, Some(id))?;
         let period = valid.period.unwrap_or(current);
-        if period != current && self.valuation_count(id) > 0 {
-            return Err(DomainError::HousePeriodLocked);
-        }
-        let mut updated = self.house(id)?.clone();
+        self.check_period_unlocked(id, current, period)?;
+        let mut updated = self.account(id)?.clone();
         updated.name = valid.name;
         updated.period = period;
         updated.purchase_date = valid.purchase_date;
@@ -106,7 +99,7 @@ impl Houses {
         {
             return Err(DomainError::HouseDatesExcludeValuations);
         }
-        *self.house_mut(id)? = updated.clone();
+        *self.account_mut(id)? = updated.clone();
         Ok(updated)
     }
 
@@ -115,27 +108,19 @@ impl Houses {
     /// # Errors
     /// Returns `HouseNotFound`.
     pub fn delete_house(&mut self, id: HouseId) -> Result<(), DomainError> {
-        self.house(id)?;
-        self.houses.retain(|house| house.id != id);
-        self.valuations.retain(|valuation| valuation.house_id != id);
-        Ok(())
+        self.remove_account(id)
     }
 
     /// Houses alphabetically by name, ignoring case (REQ-18).
     #[must_use]
     pub fn houses(&self) -> Vec<&House> {
-        let mut houses: Vec<&House> = self.houses.iter().collect();
-        houses.sort_by_cached_key(|house| house_order(house));
-        houses
+        self.sorted_accounts()
     }
 
     /// How many valuations a house has.
     #[must_use]
     pub fn valuation_count(&self, id: HouseId) -> usize {
-        self.valuations
-            .iter()
-            .filter(|valuation| valuation.house_id == id)
-            .count()
+        self.record_count(id)
     }
 
     /// How many valuations all houses have together.
@@ -148,8 +133,8 @@ impl Houses {
     /// included (REQ-7 to REQ-9).
     ///
     /// # Errors
-    /// Returns `HouseNotFound`, `HousePeriodMismatch` or
-    /// `HouseValuationDuplicate`.
+    /// Returns `HouseNotFound`, `HousePeriodMismatch`,
+    /// `HouseValuationOutsideHolding` or `HouseValuationDuplicate`.
     pub fn add_valuation(
         &mut self,
         house_id: HouseId,
@@ -157,26 +142,23 @@ impl Houses {
         value: HouseValue,
         note: Note,
     ) -> Result<HouseValuation, DomainError> {
-        self.check_new_period(house_id, period)?;
-        let valuation = HouseValuation {
+        self.add_record(HouseValuation {
             house_id,
             period,
             value,
             note,
-        };
-        self.valuations.push(valuation.clone());
-        Ok(valuation)
+        })
     }
 
     /// Changes the value and note of a valuation and, when `new_period` is a
     /// different period, moves it there. The new period follows the rules of
-    /// adding a valuation: the kind of the house, not
-    /// taken by another valuation of the house. The edit is applied as a whole
-    /// or not at all (REQ-12, REQ-13).
+    /// adding a valuation: the kind of the house, inside the holding window,
+    /// not taken by another valuation of the house. The edit is applied as a
+    /// whole or not at all (REQ-12, REQ-13).
     ///
     /// # Errors
-    /// Returns `HouseNotFound`, `HouseValuationNotFound`, `HousePeriodMismatch`
-    /// or `HouseValuationDuplicate`.
+    /// Returns `HouseNotFound`, `HouseValuationNotFound`, `HousePeriodMismatch`,
+    /// `HouseValuationOutsideHolding` or `HouseValuationDuplicate`.
     pub fn update_valuation(
         &mut self,
         house_id: HouseId,
@@ -185,22 +167,10 @@ impl Houses {
         value: HouseValue,
         note: Note,
     ) -> Result<HouseValuation, DomainError> {
-        self.house(house_id)?;
-        if self.valuation(house_id, period).is_none() {
-            return Err(DomainError::HouseValuationNotFound);
-        }
-        if new_period != period {
-            self.check_new_period(house_id, new_period)?;
-        }
-        let valuation = self
-            .valuations
-            .iter_mut()
-            .find(|s| s.house_id == house_id && s.period == period)
-            .ok_or(DomainError::HouseValuationNotFound)?;
-        valuation.period = new_period;
-        valuation.value = value;
-        valuation.note = note;
-        Ok(valuation.clone())
+        self.update_record(house_id, period, new_period, |valuation| {
+            valuation.value = value;
+            valuation.note = note;
+        })
     }
 
     /// Removes one valuation and nothing else (REQ-14). The caller asks for
@@ -213,14 +183,7 @@ impl Houses {
         house_id: HouseId,
         period: Period,
     ) -> Result<(), DomainError> {
-        self.house(house_id)?;
-        let before = self.valuations.len();
-        self.valuations
-            .retain(|s| !(s.house_id == house_id && s.period == period));
-        if self.valuations.len() == before {
-            return Err(DomainError::HouseValuationNotFound);
-        }
-        Ok(())
+        self.delete_record(house_id, period)
     }
 
     /// The valuations of all houses, newest period first. A yearly valuation
@@ -228,23 +191,7 @@ impl Houses {
     /// the houses (REQ-18).
     #[must_use]
     pub fn all_valuations(&self) -> Vec<(&House, &HouseValuation)> {
-        let mut rows: Vec<(&House, &HouseValuation)> = self
-            .valuations
-            .iter()
-            .filter_map(|valuation| {
-                self.houses
-                    .iter()
-                    .find(|house| house.id == valuation.house_id)
-                    .map(|house| (house, valuation))
-            })
-            .collect();
-        rows.sort_by_cached_key(|(house, valuation)| {
-            (
-                std::cmp::Reverse(valuation.period.sort_key()),
-                house_order(house),
-            )
-        });
-        rows
+        self.all_records()
     }
 
     /// Checks that data read from a file follows the rules of CSD-015, so a
@@ -253,126 +200,84 @@ impl Houses {
     /// # Errors
     /// Returns `HouseDataInvalid` for the first inconsistency found.
     pub fn validate(&self) -> Result<(), DomainError> {
-        let invalid = DomainError::HouseDataInvalid;
-        let mut ids = HashSet::new();
-        let mut names = HashSet::new();
-        for house in &self.houses {
-            let name = house.name.trim();
-            if name.is_empty()
-                || name.chars().count() > MAX_NAME_CHARS
-                || !ids.insert(house.id)
-                || !names.insert(name.to_lowercase())
-                || !purchase_and_sale_consistent(house)
-            {
-                return Err(invalid);
-            }
-        }
-        let mut seen = HashSet::new();
-        for valuation in &self.valuations {
-            let matches_house = self
-                .house(valuation.house_id)
-                .is_ok_and(|house| house.period == valuation.period.kind());
-            let in_window = self
-                .house(valuation.house_id)
-                .is_ok_and(|house| house.window_contains(valuation.period));
-            if !matches_house
-                || !in_window
-                || !seen.insert((valuation.house_id, valuation.period))
-                || HouseValue::new(valuation.value.value()).is_err()
-                || house_note(valuation.note.as_str()).is_err()
-            {
-                return Err(invalid);
-            }
-        }
-        Ok(())
+        SeriesData::validate(self)
     }
 
     /// A house by id.
     #[must_use]
     pub fn get(&self, id: HouseId) -> Option<&House> {
-        self.houses.iter().find(|house| house.id == id)
+        self.account(id).ok()
     }
+}
 
-    fn house(&self, id: HouseId) -> Result<&House, DomainError> {
-        self.houses
-            .iter()
-            .find(|house| house.id == id)
-            .ok_or(DomainError::HouseNotFound)
-    }
+impl SeriesData for Houses {
+    type Account = House;
+    type Record = HouseValuation;
 
-    fn house_mut(&mut self, id: HouseId) -> Result<&mut House, DomainError> {
-        self.houses
-            .iter_mut()
-            .find(|house| house.id == id)
-            .ok_or(DomainError::HouseNotFound)
-    }
+    const PIECE_PREFIX: &'static str = "house";
 
-    fn valuation(&self, house_id: HouseId, period: Period) -> Option<&HouseValuation> {
-        self.valuations
-            .iter()
-            .find(|s| s.house_id == house_id && s.period == period)
-    }
-
-    /// The rules a period must follow for a house to hold a valuation for it:
-    /// the kind of the house, inside the holding window
-    /// (CSD-020 REQ-6), not taken (REQ-7 to REQ-9).
-    fn check_new_period(&self, house_id: HouseId, period: Period) -> Result<(), DomainError> {
-        let house = self.house(house_id)?;
-        if house.period != period.kind() {
-            return Err(DomainError::HousePeriodMismatch);
+    fn error(kind: SeriesError) -> DomainError {
+        match kind {
+            SeriesError::AccountNotFound => DomainError::HouseNotFound,
+            SeriesError::NameRequired => DomainError::HouseNameRequired,
+            SeriesError::NameTooLong => DomainError::HouseNameTooLong,
+            SeriesError::NameDuplicate => DomainError::HouseNameDuplicate,
+            SeriesError::PeriodUnsupported => DomainError::HousePeriodUnsupported,
+            SeriesError::PeriodLocked => DomainError::HousePeriodLocked,
+            SeriesError::PeriodMismatch => DomainError::HousePeriodMismatch,
+            SeriesError::RecordNotFound => DomainError::HouseValuationNotFound,
+            SeriesError::RecordDuplicate => DomainError::HouseValuationDuplicate,
+            SeriesError::DataInvalid => DomainError::HouseDataInvalid,
         }
-        if !house.window_contains(period) {
+    }
+
+    fn accounts_list(&self) -> &[House] {
+        &self.houses
+    }
+
+    fn accounts_list_mut(&mut self) -> &mut Vec<House> {
+        &mut self.houses
+    }
+
+    fn records_list(&self) -> &[HouseValuation] {
+        &self.valuations
+    }
+
+    fn records_list_mut(&mut self) -> &mut Vec<HouseValuation> {
+        &mut self.valuations
+    }
+
+    /// The sale is not before the purchase and the amounts are valid
+    /// (CSD-020 REQ-5, REQ-13). That the sale has both a date and an amount is
+    /// the type `Sale`.
+    fn account_is_consistent(&self, house: &House) -> bool {
+        let amounts_valid = [
+            Some(house.purchase_amount),
+            house.sale.map(|sale| sale.amount),
+        ]
+        .into_iter()
+        .flatten()
+        .all(|amount| HouseValue::new(amount.value()).is_ok());
+        let sale_valid = house
+            .sale
+            .is_none_or(|sale| sale.date >= house.purchase_date);
+        amounts_valid && sale_valid
+    }
+
+    fn period_fits(&self, house: &House, period: Period) -> bool {
+        house.window_contains(period)
+    }
+
+    /// A valuation lies inside the holding window (CSD-020 REQ-6).
+    fn check_period_allowed(&self, id: HouseId, period: Period) -> Result<(), DomainError> {
+        if !self.account(id)?.window_contains(period) {
             return Err(DomainError::HouseValuationOutsideHolding);
-        }
-        if self.valuation(house_id, period).is_some() {
-            return Err(DomainError::HouseValuationDuplicate);
         }
         Ok(())
     }
 
-    /// The valuation with the most recent period of a house.
-    fn latest(&self, id: HouseId) -> Option<&HouseValuation> {
-        self.valuations
-            .iter()
-            .filter(|valuation| valuation.house_id == id)
-            .max_by_key(|valuation| valuation.period.sort_key())
+    /// Only the houses held at the end of a year count in it (CSD-020 REQ-10).
+    fn counts_in_year(&self, house: &House, year: i32) -> bool {
+        house.held_at_end_of(year)
     }
-
-    /// The lowest colour slot used by the fewest houses (REQ-3).
-    fn next_colour_slot(&self) -> ColourSlot {
-        series::next_colour_slot(self.houses.iter().map(|house| house.colour_slot))
-    }
-
-    /// Whether another house already has this name, ignoring case (REQ-2).
-    fn name_taken(&self, name: &str, except: Option<HouseId>) -> bool {
-        series::name_taken(
-            self.houses
-                .iter()
-                .map(|house| (house.id, house.name.as_str())),
-            name,
-            except,
-        )
-    }
-}
-
-/// Whether the sale of a house read from a file is not before the purchase and
-/// whether the amounts are valid (CSD-020 REQ-5, REQ-13). That the sale has
-/// both a date and an amount is the type `Sale`.
-fn purchase_and_sale_consistent(house: &House) -> bool {
-    let amounts_valid = [
-        Some(house.purchase_amount),
-        house.sale.map(|sale| sale.amount),
-    ]
-    .into_iter()
-    .flatten()
-    .all(|amount| HouseValue::new(amount.value()).is_ok());
-    let sale_valid = house
-        .sale
-        .is_none_or(|sale| sale.date >= house.purchase_date);
-    amounts_valid && sale_valid
-}
-
-/// Alphabetical order ignoring case, with the id as a stable tie-break.
-fn house_order(house: &House) -> (String, String) {
-    series::name_order(&house.name, &house.id)
 }

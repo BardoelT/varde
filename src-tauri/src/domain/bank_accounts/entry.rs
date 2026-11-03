@@ -5,8 +5,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::common::{Note, Period};
 use crate::domain::error::DomainError;
+use crate::domain::series::{self, SeriesData, SeriesRecord};
 
-use super::{BankAccountId, BankAccounts, BankBalance};
+use super::{bank_note, BankAccountId, BankAccounts, BankBalance};
 
 /// The record of one account for one period (CSD-009 REQ-7).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -18,12 +19,41 @@ pub struct BankEntry {
     pub note: Note,
 }
 
+impl SeriesRecord for BankEntry {
+    type AccountId = BankAccountId;
+    type Order = (i32, u8);
+
+    fn account_id(&self) -> BankAccountId {
+        self.account_id
+    }
+
+    fn period(&self) -> Period {
+        self.period
+    }
+
+    fn set_period(&mut self, period: Period) {
+        self.period = period;
+    }
+
+    fn order_key(&self) -> (i32, u8) {
+        self.period.sort_key()
+    }
+
+    fn amount(&self) -> Decimal {
+        self.balance.value()
+    }
+
+    fn is_valid(&self) -> bool {
+        BankBalance::new(self.balance.value()).is_ok() && bank_note(self.note.as_str()).is_ok()
+    }
+}
+
 /// Parses `YYYY-MM` or `YYYY` typed by the user (CSD-009 REQ-7).
 ///
 /// # Errors
 /// Returns `BankEntryPeriodInvalid` for any other text.
 pub fn parse_period(text: &str) -> Result<Period, DomainError> {
-    Period::parse(text).map_err(|_| DomainError::BankEntryPeriodInvalid)
+    series::parse_period(text, DomainError::BankEntryPeriodInvalid)
 }
 
 /// Form values for "copy previous month" or "copy previous year" (CSD-009
@@ -40,9 +70,8 @@ impl BankAccounts {
     /// # Errors
     /// Returns `BankAccountNotFound`.
     pub fn prefill_from_latest(&self, id: BankAccountId) -> Result<EntryPrefill, DomainError> {
-        self.account(id)?;
         Ok(EntryPrefill {
-            balance: self.latest(id).map(|entry| entry.balance.value()),
+            balance: self.latest_amount(id)?,
         })
     }
 }

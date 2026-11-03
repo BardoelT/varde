@@ -6,7 +6,9 @@ use serde::{Deserialize, Serialize};
 use crate::domain::common::{Note, Period};
 use crate::domain::error::DomainError;
 
-use super::{HouseId, HouseValue, Houses};
+use crate::domain::series::{self, SeriesData, SeriesRecord};
+
+use super::{house_note, HouseId, HouseValue, Houses};
 
 /// The record of one house for one period (CSD-015 REQ-7).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -18,12 +20,41 @@ pub struct HouseValuation {
     pub note: Note,
 }
 
+impl SeriesRecord for HouseValuation {
+    type AccountId = HouseId;
+    type Order = (i32, u8);
+
+    fn account_id(&self) -> HouseId {
+        self.house_id
+    }
+
+    fn period(&self) -> Period {
+        self.period
+    }
+
+    fn set_period(&mut self, period: Period) {
+        self.period = period;
+    }
+
+    fn order_key(&self) -> (i32, u8) {
+        self.period.sort_key()
+    }
+
+    fn amount(&self) -> Decimal {
+        self.value.value()
+    }
+
+    fn is_valid(&self) -> bool {
+        HouseValue::new(self.value.value()).is_ok() && house_note(self.note.as_str()).is_ok()
+    }
+}
+
 /// Parses `YYYY-MM` or `YYYY` typed by the user (CSD-015 REQ-7).
 ///
 /// # Errors
 /// Returns `HouseValuationPeriodInvalid` for any other text.
 pub fn parse_period(text: &str) -> Result<Period, DomainError> {
-    Period::parse(text).map_err(|_| DomainError::HouseValuationPeriodInvalid)
+    series::parse_period(text, DomainError::HouseValuationPeriodInvalid)
 }
 
 /// Form values for "copy previous month" or "copy previous year" (CSD-015
@@ -40,9 +71,8 @@ impl Houses {
     /// # Errors
     /// Returns `HouseNotFound`.
     pub fn prefill_from_latest(&self, id: HouseId) -> Result<HouseValuationPrefill, DomainError> {
-        self.house(id)?;
         Ok(HouseValuationPrefill {
-            value: self.latest(id).map(|valuation| valuation.value.value()),
+            value: self.latest_amount(id)?,
         })
     }
 
@@ -51,13 +81,7 @@ impl Houses {
     /// each time, never stored.
     #[must_use]
     pub fn change(&self, valuation: &HouseValuation) -> Option<Decimal> {
-        self.valuations
-            .iter()
-            .filter(|s| {
-                s.house_id == valuation.house_id
-                    && s.period.sort_key() < valuation.period.sort_key()
-            })
-            .max_by_key(|s| s.period.sort_key())
+        self.previous_record(valuation)
             .map(|previous| valuation.value.value() - previous.value.value())
     }
 }

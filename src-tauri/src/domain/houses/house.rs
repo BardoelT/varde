@@ -5,12 +5,12 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::common::Period;
-use crate::domain::common::MAX_NAME_CHARS;
 use crate::domain::common::{ColourSlot, PayPeriod};
 use crate::domain::common::{Id, IdKind};
 use crate::domain::error::DomainError;
+use crate::domain::series::{self, SeriesAccount};
 
-use super::{HouseDate, HouseValue};
+use super::{HouseDate, HouseValue, Houses};
 
 /// Identifies a House.
 pub type HouseId = Id<House>;
@@ -98,6 +98,22 @@ impl From<House> for HouseRaw {
     }
 }
 
+impl SeriesAccount for House {
+    type Id = HouseId;
+
+    fn id(&self) -> HouseId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn period(&self) -> PayPeriod {
+        self.period
+    }
+}
+
 impl House {
     /// Whether the house has no sale (CSD-020 section 3).
     #[must_use]
@@ -170,20 +186,7 @@ fn filled(text: Option<&str>) -> Option<&str> {
 impl HouseInput {
     /// Validates the input (CSD-020 REQ-1 to REQ-5).
     pub(super) fn validate(&self) -> Result<ValidHouse, DomainError> {
-        let name = self.name.trim();
-        if name.is_empty() {
-            return Err(DomainError::HouseNameRequired);
-        }
-        if name.chars().count() > MAX_NAME_CHARS {
-            return Err(DomainError::HouseNameTooLong);
-        }
-        let period = self
-            .period
-            .as_deref()
-            .map(str::trim)
-            .filter(|text| !text.is_empty())
-            .map(|text| PayPeriod::parse(text).ok_or(DomainError::HousePeriodUnsupported))
-            .transpose()?;
+        let identity = series::validate_identity::<Houses>(&self.name, self.period.as_deref())?;
         let purchase_date = filled(self.purchase_date.as_deref())
             .ok_or(DomainError::HousePurchaseDateRequired)
             .and_then(HouseDate::parse)?;
@@ -208,8 +211,8 @@ impl HouseInput {
             _ => return Err(DomainError::HouseSaleIncomplete),
         };
         Ok(ValidHouse {
-            name: name.to_owned(),
-            period,
+            name: identity.name,
+            period: identity.period,
             purchase_date,
             purchase_amount,
             sale,

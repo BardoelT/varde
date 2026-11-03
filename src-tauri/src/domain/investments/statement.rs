@@ -8,6 +8,7 @@ use crate::domain::money::zero;
 
 use super::{Balance, InvestmentAccountId, Investments, NetDeposits};
 use crate::domain::common::{Note, Period};
+use crate::domain::series::{SeriesData, SeriesRecord};
 
 /// The record of one account for one period (CSD-005 REQ-6).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -18,6 +19,37 @@ pub struct InvestmentStatement {
     pub balance: Balance,
     pub net_deposits: NetDeposits,
     pub note: Note,
+}
+
+impl SeriesRecord for InvestmentStatement {
+    type AccountId = InvestmentAccountId;
+    type Order = (i32, u8);
+
+    fn account_id(&self) -> InvestmentAccountId {
+        self.account_id
+    }
+
+    fn period(&self) -> Period {
+        self.period
+    }
+
+    fn set_period(&mut self, period: Period) {
+        self.period = period;
+    }
+
+    fn order_key(&self) -> (i32, u8) {
+        self.period.sort_key()
+    }
+
+    fn amount(&self) -> Decimal {
+        self.balance.value()
+    }
+
+    fn is_valid(&self) -> bool {
+        Balance::new(self.balance.value()).is_ok()
+            && NetDeposits::new(self.net_deposits.value()).is_ok()
+            && Note::new(self.note.as_str()).is_ok()
+    }
 }
 
 /// Form values for "copy previous month" or "copy previous year" (CSD-005
@@ -38,9 +70,8 @@ impl Investments {
         &self,
         id: InvestmentAccountId,
     ) -> Result<InvestmentStatementPrefill, DomainError> {
-        self.account(id)?;
         Ok(InvestmentStatementPrefill {
-            balance: self.latest(id).map(|statement| statement.balance.value()),
+            balance: self.latest_amount(id)?,
             net_deposits: zero(),
         })
     }

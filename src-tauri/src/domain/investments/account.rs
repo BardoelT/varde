@@ -3,9 +3,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::domain::common::PayPeriod;
-use crate::domain::common::MAX_NAME_CHARS;
 use crate::domain::common::{Id, IdKind};
 use crate::domain::error::DomainError;
+use crate::domain::series::{AccountInput, SeriesAccount};
 
 /// Identifies a `InvestmentAccount`.
 pub type InvestmentAccountId = Id<InvestmentAccount>;
@@ -26,39 +26,20 @@ pub struct InvestmentAccount {
 }
 
 /// Account fields as typed by the user, before validation.
-#[derive(Clone, Debug, Default, Deserialize)]
-pub struct InvestmentAccountInput {
-    #[serde(default)]
-    pub name: String,
-    /// `None` means Monthly when creating and "unchanged" when editing.
-    #[serde(default)]
-    pub period: Option<String>,
-}
+pub type InvestmentAccountInput = AccountInput;
 
-pub(super) struct ValidAccount {
-    pub(super) name: String,
-    pub(super) period: Option<PayPeriod>,
-}
+impl SeriesAccount for InvestmentAccount {
+    type Id = InvestmentAccountId;
 
-impl InvestmentAccountInput {
-    pub(super) fn validate(&self) -> Result<ValidAccount, DomainError> {
-        let name = self.name.trim();
-        if name.is_empty() {
-            return Err(DomainError::InvestmentAccountNameRequired);
-        }
-        if name.chars().count() > MAX_NAME_CHARS {
-            return Err(DomainError::InvestmentAccountNameTooLong);
-        }
-        let period = self
-            .period
-            .as_deref()
-            .map(str::trim)
-            .filter(|text| !text.is_empty())
-            .map(|text| PayPeriod::parse(text).ok_or(DomainError::InvestmentPeriodUnsupported))
-            .transpose()?;
-        Ok(ValidAccount {
-            name: name.to_owned(),
-            period,
-        })
+    fn id(&self) -> InvestmentAccountId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn period(&self) -> PayPeriod {
+        self.period
     }
 }

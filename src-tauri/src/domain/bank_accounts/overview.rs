@@ -4,6 +4,7 @@ use rust_decimal::Decimal;
 use serde::Serialize;
 
 use crate::domain::common::Period;
+use crate::domain::series::{self, SeriesData};
 
 use super::{BankAccount, BankAccounts};
 
@@ -44,10 +45,7 @@ impl BankAccounts {
                 }
             })
             .collect();
-        let mut balances = accounts.iter().filter_map(|summary| summary.latest_balance);
-        let total = balances
-            .next()
-            .map(|first| balances.fold(first, |sum, balance| sum + balance));
+        let total = series::total_of(accounts.iter().filter_map(|summary| summary.latest_balance));
         BankOverview { accounts, total }
     }
 }
