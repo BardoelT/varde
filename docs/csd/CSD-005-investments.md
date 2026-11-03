@@ -1,11 +1,11 @@
 ---
 id: CSD-005
 title: Investments
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.11
-last_updated: 29/10/2026
-related: [CSD-000, CSD-001, CSD-002, CSD-003, CSD-007]
+version: 1.0
+last_updated: 03/11/2026
+related: [CSD-000, CSD-001, CSD-002, CSD-003, CSD-007, CSD-025]
 ---
 
 # CSD-005: Investments
@@ -215,7 +215,7 @@ Scenario Outline: The deletion confirmation states no count
 ### 4.2 Statements
 
 **REQ-6: Add a statement** *(event-driven)*
-When the user submits a statement for the account chosen in the add form, a period and a balance, the app shall store it with the given note, or with an empty note if none is given, and shall accept any period that is not later than the current month (monthly account) or the current year (yearly account), including periods before the account existed in the app.
+When the user submits a statement for the account chosen in the add form, a period and a balance, the app shall store it with the given note, or with an empty note if none is given, and shall accept any valid period, including a period in the future and a period before the account existed in the app.
 
 ```gherkin
 @AC-6.1
@@ -233,24 +233,22 @@ Scenario: Yearly statement without a note
   Then the statement for 2025 has balance 80000.00 and an empty note
 
 @AC-6.3
-Scenario: Old periods are accepted
-  Given a monthly account "Example Brokerage"
-  When the user adds a statement for 2019-01 with balance 1000.00
-  Then the statement for 2019-01 exists
-
-@AC-6.4
-Scenario Outline: Current period accepted, later period rejected
+Scenario Outline: Any valid period is accepted
   Given the current date is 26/10/2026
   And a <period_type> account "Example Account"
   When the user adds a statement for "<period>" with balance 1000.00
-  Then <outcome>
+  Then the statement for "<period>" exists
 
   Examples:
-    | period_type | period  | outcome                                                           |
-    | monthly     | 2026-10 | the statement for 2026-10 exists                                  |
-    | monthly     | 2026-11 | it is rejected with error code "INVESTMENT_STATEMENT_IN_FUTURE"   |
-    | yearly      | 2026    | the statement for 2026 exists                                     |
-    | yearly      | 2027    | it is rejected with error code "INVESTMENT_STATEMENT_IN_FUTURE"   |
+    | period_type | period  |
+    | monthly     | 2019-01 |
+    | monthly     | 1899-12 |
+    | monthly     | 2026-10 |
+    | monthly     | 2026-11 |
+    | yearly      | 2026    |
+    | yearly      | 2027    |
+
+# @AC-6.4 (removed in v1.0): a period in the future is no longer rejected, see AC-6.3.
 
 @AC-6.5
 Scenario Outline: Invalid period rejected
@@ -265,7 +263,6 @@ Scenario Outline: Invalid period rejected
     | monthly     | abcd     |
     | yearly      | 26       |
     | yearly      | abcd     |
-    | yearly      | 1899     |
 ```
 
 **REQ-7: One statement per account per period** *(unwanted behaviour)*
@@ -460,21 +457,10 @@ Scenario: A move is an unsaved change
 ```
 
 **REQ-29: Invalid new period** *(unwanted behaviour)*
-If the new period of an edited statement is later than the current month (monthly account) or the current year (yearly account), or the account already has another statement for it, or it does not match the statement period of the account, or the edit also has an invalid value, then the app shall reject the whole edit with the error code of the violated rule and leave the statement, with its period and its values, as it was. Another account may have a statement for the same period.
+If the new period of an edited statement is not a valid period, or the account already has another statement for it, or it does not match the statement period of the account, or the edit also has an invalid value, then the app shall reject the whole edit with the error code of the violated rule and leave the statement, with its period and its values, as it was. Another account may have a statement for the same period.
 
 ```gherkin
-@AC-29.1
-Scenario Outline: A period in the future is rejected
-  Given the current date is 26/10/2026
-  And <account> with a statement for <old> with balance 12500.00
-  When the user changes its period to "<new>"
-  Then the edit is rejected with error code "INVESTMENT_STATEMENT_IN_FUTURE"
-  And the statement for <old> still has balance 12500.00
-
-  Examples:
-    | account         | old     | new     |
-    | a monthly account | 2026-09 | 2026-11 |
-    | a yearly account  | 2025    | 2027    |
+# @AC-29.1 (removed in v1.0): a period in the future is no longer rejected.
 
 @AC-29.2
 Scenario: A period that already has a statement is rejected
@@ -642,14 +628,14 @@ Scenario: Same period is ordered by account
 ```
 
 **REQ-17: Investments view layout** *(ubiquitous)*
-The app shall offer Investments as its own item in the left pane (CSD-004 REQ-1), and shall show the view as the sections Accounts, Yearly totals and Statements in that order, with the statement period (and no statement count), the latest balance with its period and the icon buttons Edit (pencil) and Delete (trash) (flush right) on each account row, the button "Add account" in the header of the Accounts section, the icon buttons Edit (pencil) and Delete (trash) flush right on each statement row, the total in a footer row of the Accounts section, the columns Year, Closing balance, Net deposits, Capital growth and no actions in the Yearly totals section, the columns Period, Account, Balance, Net deposits, Capital growth and Note in the Statements section, and no account selection that changes what the sections show. A note longer than one line is cut to one line in the table and shown in full when the statement is edited. The app shall display no count of statements anywhere on the page: not in the yearly totals, on the account rows, in a confirmation, in a chart tooltip or in the screen-reader description of a chart.
+The app shall offer Investments as its own item in the left pane (CSD-024 REQ-1), and shall show the view as the sections Accounts, Yearly totals and Statements in that order, with the statement period (and no statement count), the latest balance with its period and the icon buttons Edit (pencil) and Delete (trash) (flush right) on each account row, the button "Add account" in the header of the Accounts section, the icon buttons Edit (pencil) and Delete (trash) flush right on each statement row, the total in a footer row of the Accounts section, the columns Year, Closing balance, Net deposits, Capital growth and no actions in the Yearly totals section, the columns Period, Account, Balance, Net deposits, Capital growth and Note in the Statements section, and no account selection that changes what the sections show. A note longer than one line is cut to one line in the table and shown in full when the statement is edited. The app shall display no count of statements anywhere on the page: not in the yearly totals, on the account rows, in a confirmation, in a chart tooltip or in the screen-reader description of a chart.
 
 ```gherkin
 @AC-17.1
 Scenario: Sections in order
   Given an account with a statement
   Then the sections appear in the order Accounts, Yearly totals, Statements
-  And Investments is an item in the left pane (CSD-004 REQ-1)
+  And Investments is an item in the left pane (CSD-024 REQ-1)
 
 @AC-17.2
 Scenario: Account rows carry their period, latest balance and actions
@@ -754,7 +740,7 @@ Scenario: Changing the currency changes no title
 ### 4.4 Saving and loading
 
 **REQ-19: Investments are part of the project file** *(event-driven)*
-When the user saves and later opens a project, the app shall restore all investment accounts and statements exactly, including net deposits and notes. When the project file has no `investments` section, the app shall open the project with no investment accounts, and when a statement in the file has no net deposits, the app shall open it with net deposits 0.00.
+When the user saves and later opens a project, the app shall restore all investment accounts and statements exactly, including net deposits and notes.
 
 ```gherkin
 @AC-19.1
@@ -763,11 +749,7 @@ Scenario: Round trip
   When the user saves the project and opens it again
   Then the account and the statement exist unchanged, including the two-line note
 
-@AC-19.2
-Scenario: File without the section
-  Given a project file made before this capability, without an "investments" section
-  When the user opens it
-  Then it opens with no investment accounts and no error
+# @AC-19.2 (removed in v1.0): there is no legacy handling for a file without the section. The project file has a strict schema (CSD-002).
 
 @AC-19.3
 Scenario: Net deposits round trip
@@ -775,12 +757,7 @@ Scenario: Net deposits round trip
   When the user saves the project and opens it again
   Then the statement has balance 12500.00 and net deposits -250.00
 
-@AC-19.4
-Scenario: Statement without net deposits in the file
-  Given a project file with a statement for 2026-09 with balance 12500.00 and no net deposits
-  When the user opens it
-  Then the statement has net deposits 0.00
-  And no error is shown
+# @AC-19.4 (removed in v1.0): a statement without net deposits is no longer opened with 0.00. The schema is strict (CSD-002).
 ```
 
 ### 4.5 Net deposits and capital growth
@@ -1164,7 +1141,7 @@ Scenario: Newest year first
 
 ## 5. Interfaces and contracts
 
-Periods: a monthly statement has period `YYYY-MM` and a yearly one `YYYY`, everywhere (UI, commands, project file). The year must be 1900 or later, like annual statements in CSD-001. Months are shown to the user as `YYYY-MM` (CSD-000 CON-7).
+Periods: a monthly statement has period `YYYY-MM` and a yearly one `YYYY`, everywhere (UI, commands, project file). There is no earliest or latest date: a period in the future is valid. Months are shown to the user as `YYYY-MM` (CSD-000 CON-7). In the project file and in IPC the field that holds the period of a statement and the field that holds the period kind of an account (Monthly or Yearly) are both called `period`; "statement period" stays the term in the text.
 
 ```mermaid
 erDiagram
@@ -1172,7 +1149,7 @@ erDiagram
     INVESTMENT_ACCOUNT {
         InvestmentAccountId id
         string name "required, trimmed, max 100, unique ignoring case"
-        PayPeriod statement_period "Monthly or Yearly; default Monthly"
+        PayPeriod period "Monthly or Yearly; default Monthly"
     }
     INVESTMENT_STATEMENT {
         InvestmentAccountId account_id
@@ -1185,11 +1162,11 @@ erDiagram
 
 Capital growth is not part of the model: it is derived (REQ-23).
 
-The project file gets a new section `investments` with the lists `accounts` and `statements`. Balances and net deposits are decimal strings. `format_version` stays 1 and nothing is migrated: a file without the section opens with no accounts, and a statement without `net_deposits` opens with 0.00, as the app is not released yet.
+The project file gets a new section `investments` with the lists `accounts` and `statements`. Balances and net deposits are decimal strings. The section and every field, `net_deposits` included, are required and unknown fields are rejected (strict schema, CSD-002). Nothing is migrated.
 
 Commands (all inputs validated in Rust; amounts cross IPC as decimal strings): `list_investment_accounts()` (each account with its statement count, which is not displayed, and latest balance and period, plus the total), `create_investment_account`, `update_investment_account`, `delete_investment_account`, `list_investment_statements()` (statements of all accounts, each with its account name, its net deposits and its capital growth), `add_investment_statement` and `update_investment_statement` (both take the net deposits; `update_investment_statement` keeps the period that identifies the statement as an argument and takes the new period as an extra one, equal to it when the period does not change, and applies the edit as a whole or not at all, REQ-29), `delete_investment_statement`, `copy_previous_investment_statement(account_id)`, `yearly_investment_totals()` (over all accounts; each row has the year, closing balance, net deposits, capital growth and statement count, newest year first; the count is not displayed, but the frontend may use it, for example to lock the period or to detect an empty year), and `calculate_investment_statement(account_id, period, net_deposits, input, value, ignore_period)` (`input` is `balance` or `growth`; `ignore_period` is optional: the current period of the statement being edited, which never counts as a previous statement, REQ-24; returns the balance and the capital growth, or an error code; it stores nothing). Project commands (save, open, new) are in CSD-002.
 
-Error codes (returned as code plus safe message): `INVESTMENT_ACCOUNT_NAME_REQUIRED`, `INVESTMENT_ACCOUNT_NAME_TOO_LONG`, `INVESTMENT_ACCOUNT_NAME_DUPLICATE`, `INVESTMENT_PERIOD_UNSUPPORTED`, `INVESTMENT_PERIOD_LOCKED`, `INVESTMENT_PERIOD_MISMATCH`, `INVESTMENT_STATEMENT_IN_FUTURE`, `INVESTMENT_STATEMENT_PERIOD_INVALID`, `INVESTMENT_STATEMENT_DUPLICATE`, `INVESTMENT_BALANCE_INVALID`, `INVESTMENT_BALANCE_NEGATIVE`, `INVESTMENT_BALANCE_PRECISION`, `INVESTMENT_BALANCE_TOO_LARGE`, `INVESTMENT_NOTE_TOO_LONG`, `INVESTMENT_NET_DEPOSITS_INVALID`, `INVESTMENT_NET_DEPOSITS_PRECISION`, `INVESTMENT_NET_DEPOSITS_TOO_LARGE`, `INVESTMENT_GROWTH_INVALID`, `INVESTMENT_GROWTH_PRECISION`, `INVESTMENT_GROWTH_TOO_LARGE`, `INVESTMENT_ACCOUNT_NOT_FOUND`, `INVESTMENT_STATEMENT_NOT_FOUND`. The last two are returned for an account or a statement that does not exist (a stale screen). Project error codes are in CSD-002.
+Error codes (returned as code plus safe message): `INVESTMENT_ACCOUNT_NAME_REQUIRED`, `INVESTMENT_ACCOUNT_NAME_TOO_LONG`, `INVESTMENT_ACCOUNT_NAME_DUPLICATE`, `INVESTMENT_PERIOD_UNSUPPORTED`, `INVESTMENT_PERIOD_LOCKED`, `INVESTMENT_PERIOD_MISMATCH`, `INVESTMENT_STATEMENT_PERIOD_INVALID`, `INVESTMENT_STATEMENT_DUPLICATE`, `INVESTMENT_BALANCE_INVALID`, `INVESTMENT_BALANCE_NEGATIVE`, `INVESTMENT_BALANCE_PRECISION`, `INVESTMENT_BALANCE_TOO_LARGE`, `INVESTMENT_NOTE_TOO_LONG`, `INVESTMENT_NET_DEPOSITS_INVALID`, `INVESTMENT_NET_DEPOSITS_PRECISION`, `INVESTMENT_NET_DEPOSITS_TOO_LARGE`, `INVESTMENT_GROWTH_INVALID`, `INVESTMENT_GROWTH_PRECISION`, `INVESTMENT_GROWTH_TOO_LARGE`, `INVESTMENT_ACCOUNT_NOT_FOUND`, `INVESTMENT_STATEMENT_NOT_FOUND` (`INVESTMENT_STATEMENT_IN_FUTURE` was removed in v1.0). The last two are returned for an account or a statement that does not exist (a stale screen). Project error codes are in CSD-002.
 
 ## 6. Constraints
 - CON-1: Amounts use `rust_decimal::Decimal` and are in the project currency (CSD-003), so adding balances across accounts never mixes currencies. Rationale: `CLAUDE.md` money rules.
@@ -1202,28 +1179,32 @@ Error codes (returned as code plus safe message): `INVESTMENT_ACCOUNT_NAME_REQUI
 - CON-8: The length of a name or a note is counted in characters (Unicode scalar values), not bytes. Rationale: names and notes in any language must fit the stated limits.
 - CON-9: Capital growth is computed from the stored balances and net deposits each time it is needed, and is never stored in the project file. Rationale: a stored growth would be wrong after an earlier statement is edited, added or deleted (AC-23.6 to AC-23.8).
 - CON-10: The form calculation (REQ-24) runs in Rust through a command, and the frontend computes no amounts. Rationale: CON-2.
+- CON-12: Every amount and every derived figure follows the rounding rule of CSD-000 CON-8. Amounts entered here have at most two decimals (REQ-9, REQ-22), so no rounding changes a stored value. Rationale: one rounding rule for the whole application.
 - CON-11: The yearly totals are computed in Rust each time they are needed and are never stored in the project file. Rationale: CON-2, and stored totals would go stale when a statement changes.
 
 ## 7. Verification
-All ACs are proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd005_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
+Rust-side behaviour is proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd005_ac_<n>_<m>_<description>` (CSD-000 REQ-6). Display ACs are covered by DOM tests of the Investments page, one per AC, with the AC ID in the test title.
 
 | Requirement | Command |
 |---|---|
-| All of REQ-1 to REQ-13 (except AC-5.3), REQ-15, REQ-16, REQ-19, REQ-21 to REQ-23, REQ-26, REQ-28 (except AC-28.6) and REQ-29 | `cargo test test_csd005_` |
-| AC-24.1 to AC-24.5, AC-24.9, AC-24.11 to AC-24.14, AC-25.1 to AC-25.4 (the calculation itself) | `cargo test test_csd005_ac_24_` and `cargo test test_csd005_ac_25_` cover the `calculate_investment_statement` command and the domain logic behind it |
-| AC-5.3 (confirmation text), AC-14.1 to AC-14.3, REQ-17 (all ACs, with AC-17.9, including that no count is displayed), REQ-18 (with AC-18.3), REQ-20 and AC-28.6 (the period field in the edit form), AC-17.4, AC-17.7, AC-24.6 to AC-24.8, AC-24.10, REQ-27 (form behaviour) | Manual checklist: form labels, section order and contents, section titles without a currency, button placement, left-pane item, empty states, note cut-off, plain-text note, no statement counts anywhere, the delete confirmation text, the calculated marking, the enabled growth field and the note when there is no earlier statement. There is no frontend test setup |
+| REQ-1 to REQ-4, REQ-6 to REQ-11 (except AC-11.3, removed), REQ-13, REQ-15, REQ-16, REQ-19, REQ-21 to REQ-23, REQ-26, REQ-28 (except AC-28.6) and REQ-29 (except AC-29.4) | `cargo test test_csd005_` |
+| AC-24.1 to AC-24.5, AC-24.7 to AC-24.9, AC-24.11 to AC-24.14, AC-25.1 to AC-25.4 (the calculation itself) | `cargo test test_csd005_ac_24_` and `cargo test test_csd005_ac_25_` cover the `calculate_investment_statement` command and the domain logic behind it |
+| AC-17.2, AC-17.3, AC-17.8 (data) | `cargo test test_csd005_ac_17_` covers the data of the accounts and statements tables |
+| AC-5.2, AC-5.3, AC-12.2, AC-14.1 to AC-14.3, AC-17.1, AC-17.4 to AC-17.7, AC-17.9, AC-18.1 to AC-18.3, AC-20.1, AC-20.2, AC-24.6, AC-27.1 to AC-27.4, AC-28.6 (the screen: forms, section order and contents, titles without a currency, button placement, empty states, note cut-off, plain-text note, no counts, delete confirmations, the calculated marking, the note when there is no earlier statement) | DOM tests of the Investments page. Not covered yet: no DOM test exists |
+| AC-29.4 (the whole edit is rejected, no unsaved indicator) | Not covered: no test exists for it yet; the Rust part gets a `cargo test` and the indicator a DOM test |
 | The currency confirmation for investment statements | Governed by CSD-003 REQ-5 (AC-5.5, AC-5.6), verified there |
-| AC-17.2, AC-17.3 (data) | `cargo test test_csd005_ac_17_` covers the data of the accounts and statements tables |
 | One requirement, e.g. REQ-6 | `cargo test test_csd005_ac_6_` |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass, and the DOM tests pass.
 
 ## 8. Open questions
 - OQ-1: (resolved in v0.2) Investment statements count as entries for the currency confirmation: CSD-003 0.3 (REQ-5, AC-5.5, AC-5.6).
 - OQ-2: (resolved in v0.2) The Investments section titles show the project currency, "Accounts · EUR" and "Statements · EUR": REQ-20.
 - OQ-3: (resolved in v0.2) Deleting a statement asks for a confirmation, unlike CSD-001 REQ-8, on purpose: the note of a statement cannot be recreated by copying the previous period (REQ-13). CSD-001 is unchanged.
+- OQ-4: Now that there is no date bound, the Insights series of CSD-007 runs from the earliest statement to the current year, so a statement in a very early year (for example 0001-01) would give thousands of empty slots, and a statement after the current year has no slot. What shall the series do? Owner: Thijs. Blocks: the year series of CSD-007.
 
 ## 9. Changelog
+- 1.0 (03/11/2026): No date bounds (decision D11): REQ-6 accepts any valid period including future periods and the year 1899 and earlier (AC-6.3 rewritten, AC-6.4 removed, the 1899 row of AC-6.5 removed), REQ-29 no longer rejects a future period (AC-29.1 removed), error code `INVESTMENT_STATEMENT_IN_FUTURE` removed. No legacy handling (D12): REQ-19 loses the rules for a missing section and for a missing net deposits (AC-19.2, AC-19.4 removed), the schema is strict (CSD-002). The period field in the project file and IPC is called `period` for both account and statement (D13). Rounding follows CSD-000 CON-8 (new CON-12). Verification: display ACs are covered by DOM tests, and ACs without a test are marked not covered (AC-29.4). New OQ-4. Back to draft for re-approval.
 - 0.11 (29/10/2026): The position in the left pane is stated in CSD-004 REQ-1 and no longer repeated here (GitHub issue 21).
 - 0.10 (29/10/2026): Statement counts are no longer displayed. REQ-17 drops the count from the account rows and the Statements column from the yearly totals (AC-17.2, AC-17.9 amended) and says no count is shown anywhere, REQ-5 gets a fixed delete confirmation text without a number (AC-5.3 added), AC-18.2 amended, REQ-26 and the definitions say the count is still returned over IPC (used for the period lock and empty-year detection) but not shown. Verification marks AC-5.3 and the amended ACs as manual checklist items.
 - 0.9 (28/10/2026): The period of a statement can be changed when editing (GitHub issue 12). REQ-11 no longer forbids it, AC-11.3 is removed, new REQ-28 (AC-28.1 to AC-28.8) and REQ-29 (AC-29.1 to AC-29.5) reuse the add rules and error codes, REQ-24 ignores the statement being edited as a previous statement (AC-24.13, AC-24.14), NG-11 and NG-12 added, `update_investment_statement` takes a new period and `calculate_investment_statement` an optional `ignore_period`. Back to `draft` until the owner approves.

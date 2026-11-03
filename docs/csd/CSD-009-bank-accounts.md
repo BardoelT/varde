@@ -1,11 +1,11 @@
 ---
 id: CSD-009
 title: Bank accounts
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.4
-last_updated: 29/10/2026
-related: [CSD-000, CSD-002, CSD-003, CSD-005, CSD-010]
+version: 1.0
+last_updated: 03/11/2026
+related: [CSD-000, CSD-002, CSD-003, CSD-005, CSD-010, CSD-025]
 ---
 
 # CSD-009: Bank accounts
@@ -247,7 +247,7 @@ Scenario Outline: The deletion confirmation states no count
 ### 4.2 Entries
 
 **REQ-7: Add an entry** *(event-driven)*
-When the user submits an entry for the account chosen in the add form, a period and a balance, the app shall store it with the given note, or with an empty note if none is given, and shall accept any period that is not later than the current month (monthly account) or the current year (yearly account), including periods before the account existed in the app.
+When the user submits an entry for the account chosen in the add form, a period and a balance, the app shall store it with the given note, or with an empty note if none is given, and shall accept any valid period, including a period in the future and a period before the account existed in the app.
 
 ```gherkin
 @AC-7.1
@@ -265,24 +265,22 @@ Scenario: Yearly entry without a note
   Then the entry for 2025 has balance 8000.00 and an empty note
 
 @AC-7.3
-Scenario: Old periods are accepted
-  Given a monthly account "Example Current Account"
-  When the user adds an entry for 2019-01 with balance 1000.00
-  Then the entry for 2019-01 exists
-
-@AC-7.4
-Scenario Outline: Current period accepted, later period rejected
+Scenario Outline: Any valid period is accepted
   Given the current date is 26/10/2026
   And a <period_type> account "Example Account"
   When the user adds an entry for "<period>" with balance 1000.00
-  Then <outcome>
+  Then the entry for "<period>" exists
 
   Examples:
-    | period_type | period  | outcome                                                    |
-    | monthly     | 2026-10 | the entry for 2026-10 exists                               |
-    | monthly     | 2026-11 | it is rejected with error code "BANK_ENTRY_IN_FUTURE"      |
-    | yearly      | 2026    | the entry for 2026 exists                                  |
-    | yearly      | 2027    | it is rejected with error code "BANK_ENTRY_IN_FUTURE"      |
+    | period_type | period  |
+    | monthly     | 2019-01 |
+    | monthly     | 1899-12 |
+    | monthly     | 2026-10 |
+    | monthly     | 2026-11 |
+    | yearly      | 2026    |
+    | yearly      | 2027    |
+
+# @AC-7.4 (removed in v1.0): a period in the future is no longer rejected, see AC-7.3.
 
 @AC-7.5
 Scenario Outline: Invalid period rejected
@@ -297,7 +295,6 @@ Scenario Outline: Invalid period rejected
     | monthly     | abcd     |
     | yearly      | 26       |
     | yearly      | abcd     |
-    | yearly      | 1899     |
 ```
 
 **REQ-8: One entry per account per period** *(unwanted behaviour)*
@@ -469,21 +466,10 @@ Scenario: An edit is an unsaved change
 ```
 
 **REQ-13: Invalid new period** *(unwanted behaviour)*
-If the new period of an edited entry is later than the current month (monthly account) or the current year (yearly account), or is not a valid period, or the account already has another entry for it, or it does not match the entry period of the account, or the edit also has an invalid value, then the app shall reject the whole edit with the error code of the violated rule and leave the entry, with its period and its values, as it was. Another account may have an entry for the same period.
+If the new period of an edited entry is not a valid period, or the account already has another entry for it, or it does not match the entry period of the account, or the edit also has an invalid value, then the app shall reject the whole edit with the error code of the violated rule and leave the entry, with its period and its values, as it was. Another account may have an entry for the same period.
 
 ```gherkin
-@AC-13.1
-Scenario Outline: A period in the future is rejected
-  Given the current date is 26/10/2026
-  And <account> with an entry for <old> with balance 2500.00
-  When the user changes its period to "<new>"
-  Then the edit is rejected with error code "BANK_ENTRY_IN_FUTURE"
-  And the entry for <old> still has balance 2500.00
-
-  Examples:
-    | account           | old     | new     |
-    | a monthly account | 2026-09 | 2026-11 |
-    | a yearly account  | 2025    | 2027    |
+# @AC-13.1 (removed in v1.0): a period in the future is no longer rejected.
 
 @AC-13.2
 Scenario: A period that already has an entry is rejected
@@ -731,14 +717,14 @@ Scenario: Newest year first
 ```
 
 **REQ-20: Bank accounts view layout** *(ubiquitous)*
-The app shall offer Bank accounts as its own item in the left pane (CSD-004 REQ-1), and shall show the Overview tab as the sections Accounts, Yearly totals and Entries in that order, with the entry period (and no entry count), the latest balance with its period and the icon buttons Edit (pencil) and Delete (trash) (flush right) on each account row, the button "Add account" in the header of the Accounts section, the button "Add entry" in the header of the Entries section, the icon buttons Edit (pencil) and Delete (trash) flush right on each entry row, the total in a footer row of the Accounts section, the column Year and the column Closing balance, and no entries column and no actions, in the Yearly totals section, the columns Period, Account, Balance and Note in the Entries section, and no account selection that changes what the sections show. A note longer than one line is cut to one line in the table and shown in full when the entry is edited, and a negative balance is shown with a minus sign. The app shall display no count of entries anywhere on the page: not in the yearly totals, on the account rows, in a confirmation, in a chart tooltip or in the screen-reader description of a chart.
+The app shall offer Bank accounts as its own item in the left pane (CSD-024 REQ-1), and shall show the Overview tab as the sections Accounts, Yearly totals and Entries in that order, with the entry period (and no entry count), the latest balance with its period and the icon buttons Edit (pencil) and Delete (trash) (flush right) on each account row, the button "Add account" in the header of the Accounts section, the button "Add entry" in the header of the Entries section, the icon buttons Edit (pencil) and Delete (trash) flush right on each entry row, the total in a footer row of the Accounts section, the column Year and the column Closing balance, and no entries column and no actions, in the Yearly totals section, the columns Period, Account, Balance and Note in the Entries section, and no account selection that changes what the sections show. A note longer than one line is cut to one line in the table and shown in full when the entry is edited, and a negative balance is shown with a minus sign. The app shall display no count of entries anywhere on the page: not in the yearly totals, on the account rows, in a confirmation, in a chart tooltip or in the screen-reader description of a chart.
 
 ```gherkin
 @AC-20.1
 Scenario: Sections in order
   Given an account with an entry
   Then the sections appear in the order Accounts, Yearly totals, Entries
-  And Bank accounts is an item in the left pane (CSD-004 REQ-1)
+  And Bank accounts is an item in the left pane (CSD-024 REQ-1)
 
 @AC-20.2
 Scenario: Account rows carry their period, latest balance and actions
@@ -834,7 +820,7 @@ Scenario: No currency in the sections
 ### 4.4 Saving, loading and currency
 
 **REQ-23: Bank accounts are part of the project file** *(event-driven)*
-When the user saves and later opens a project, the app shall restore all bank accounts and entries exactly, including colour slots, signed balances and notes. When the project file has no `bank_accounts` section, the app shall open the project with no bank accounts.
+When the user saves and later opens a project, the app shall restore all bank accounts and entries exactly, including colour slots, signed balances and notes.
 
 ```gherkin
 @AC-23.1
@@ -843,11 +829,7 @@ Scenario: Round trip
   When the user saves the project and opens it again
   Then the account, its colour slot and the entry exist unchanged, including the two-line note
 
-@AC-23.2
-Scenario: File without the section
-  Given a project file made before this capability, without a "bank_accounts" section
-  When the user opens it
-  Then it opens with no bank accounts and no error
+# @AC-23.2 (removed in v1.0): there is no legacy handling for a file without the section. The project file has a strict schema (CSD-002).
 
 @AC-23.3
 Scenario: Negative balance round trip
@@ -882,7 +864,7 @@ Scenario: A bank account without entries needs no confirmation
 
 ## 5. Interfaces and contracts
 
-Periods: a monthly entry has period `YYYY-MM` and a yearly one `YYYY`, everywhere (UI, commands, project file). The year must be 1900 or later, like annual statements in CSD-001 and statements in CSD-005. Months are shown to the user as `YYYY-MM` (CSD-000 CON-7).
+Periods: a monthly entry has period `YYYY-MM` and a yearly one `YYYY`, everywhere (UI, commands, project file). There is no earliest or latest date: a period in the future is valid. Months are shown to the user as `YYYY-MM` (CSD-000 CON-7).
 
 ```mermaid
 erDiagram
@@ -890,7 +872,7 @@ erDiagram
     BANK_ACCOUNT {
         BankAccountId id
         string name "required, trimmed, max 100, unique ignoring case"
-        PayPeriod entry_period "Monthly or Yearly; default Monthly"
+        PayPeriod period "Monthly or Yearly; default Monthly"
         u8 colour_slot "0 to 7; assigned at creation (REQ-3)"
     }
     BANK_ENTRY {
@@ -901,11 +883,11 @@ erDiagram
     }
 ```
 
-The project file gets a new section `bank_accounts` with the lists `accounts` and `entries`, accounts in the order they were created. Balances are decimal strings. `format_version` stays 1 and nothing is migrated: a file without the section opens with no accounts, as the app is not released yet.
+The project file gets a new section `bank_accounts` with the lists `accounts` and `entries`, accounts in the order they were created. Balances are decimal strings. The section and every field are required and unknown fields are rejected (strict schema, CSD-002). Nothing is migrated. In the project file and in IPC the field that holds the period of an entry and the field that holds the period kind of an account (Monthly or Yearly) are both called `period`; "entry period" stays the term in the text.
 
 Commands (all inputs validated in Rust; amounts cross IPC as decimal strings): `list_bank_accounts()` (each account with its entry count, which is not displayed, latest balance and period and colour slot, plus the total), `create_bank_account`, `update_bank_account`, `delete_bank_account`, `list_bank_entries()` (entries of all accounts, each with its account name), `add_bank_entry`, `update_bank_entry` (keeps the period that identifies the entry as an argument and takes the new period as an extra one, equal to it when the period does not change, and applies the edit as a whole or not at all, REQ-13), `delete_bank_entry`, `copy_previous_bank_entry(account_id)` and `yearly_bank_totals()` (over all accounts; each row has the year, closing balance and entry count, newest year first; the count is not displayed, but the frontend may use it, for example to lock the period or to detect an empty year). The insights command is in CSD-010. Project commands (save, open, new) are in CSD-002.
 
-Error codes (returned as code plus safe message): `BANK_ACCOUNT_NAME_REQUIRED`, `BANK_ACCOUNT_NAME_TOO_LONG`, `BANK_ACCOUNT_NAME_DUPLICATE`, `BANK_ACCOUNT_PERIOD_UNSUPPORTED`, `BANK_ACCOUNT_PERIOD_LOCKED`, `BANK_ACCOUNT_NOT_FOUND`, `BANK_ENTRY_PERIOD_MISMATCH`, `BANK_ENTRY_IN_FUTURE`, `BANK_ENTRY_PERIOD_INVALID`, `BANK_ENTRY_DUPLICATE`, `BANK_ENTRY_BALANCE_INVALID`, `BANK_ENTRY_BALANCE_PRECISION`, `BANK_ENTRY_BALANCE_TOO_LARGE`, `BANK_ENTRY_NOTE_TOO_LONG`, `BANK_ENTRY_NOT_FOUND`. The two NOT_FOUND codes are returned for an account or an entry that does not exist (a stale screen). Project error codes are in CSD-002.
+Error codes (returned as code plus safe message): `BANK_ACCOUNT_NAME_REQUIRED`, `BANK_ACCOUNT_NAME_TOO_LONG`, `BANK_ACCOUNT_NAME_DUPLICATE`, `BANK_ACCOUNT_PERIOD_UNSUPPORTED`, `BANK_ACCOUNT_PERIOD_LOCKED`, `BANK_ACCOUNT_NOT_FOUND`, `BANK_ENTRY_PERIOD_MISMATCH`, `BANK_ENTRY_PERIOD_INVALID`, `BANK_ENTRY_DUPLICATE`, `BANK_ENTRY_BALANCE_INVALID`, `BANK_ENTRY_BALANCE_PRECISION`, `BANK_ENTRY_BALANCE_TOO_LARGE`, `BANK_ENTRY_NOTE_TOO_LONG`, `BANK_ENTRY_NOT_FOUND` (`BANK_ENTRY_IN_FUTURE` was removed in v1.0). The two NOT_FOUND codes are returned for an account or an entry that does not exist (a stale screen). Project error codes are in CSD-002.
 
 ## 6. Constraints
 - CON-1: Amounts use `rust_decimal::Decimal` and are in the project currency (CSD-003), so adding balances across accounts never mixes currencies. Rationale: `CLAUDE.md` money rules.
@@ -918,25 +900,28 @@ Error codes (returned as code plus safe message): `BANK_ACCOUNT_NAME_REQUIRED`, 
 - CON-8: The length of a name or a note is counted in characters (Unicode scalar values), not bytes. Rationale: names and notes in any language must fit the stated limits.
 - CON-9: The yearly totals and the total are computed in Rust each time they are needed and are never stored in the project file. Rationale: CON-2, and stored totals would go stale when an entry changes.
 - CON-10: Bank accounts get their own module, commands and page. Shared helpers may be reused or extracted when that is small, and Investments is not refactored. Rationale: `CLAUDE.md` asks before large refactors across modules.
+- CON-11: Every amount and every derived figure follows the rounding rule of CSD-000 CON-8. Balances have at most two decimals (REQ-10), so no rounding changes a stored value. Rationale: one rounding rule for the whole application.
 
 ## 7. Verification
-All ACs are proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd009_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
+Rust-side behaviour is proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd009_ac_<n>_<m>_<description>` (CSD-000 REQ-6). Display ACs are covered by DOM tests of the Bank accounts page, one per AC, with the AC ID in the test title.
 
 | Requirement | Command |
 |---|---|
-| REQ-1 to REQ-19 (except AC-6.3), REQ-23 and REQ-24 (data) | `cargo test test_csd009_` |
-| AC-17.1 to AC-17.4, AC-20.2 and AC-20.3 (data of the accounts and entries tables) | `cargo test test_csd009_ac_17_` and `cargo test test_csd009_ac_20_` |
-| AC-6.3 (confirmation text), AC-12.7, AC-16.1 to AC-16.3, REQ-20 (all ACs, including that no count is displayed), REQ-21, REQ-22, AC-24.1 (the dialog) | Manual checklist: form labels, period field in the edit form, section order and contents, titles without a currency, button placement, left-pane item, empty states, note cut-off, plain-text note, no entry counts anywhere, the delete confirmation text, negative balance display, the currency confirmation dialog. There is no frontend test setup |
-| The currency confirmation for bank entries | Governed by CSD-003 REQ-5 (AC-5.7, AC-5.8), verified there |
+| REQ-1 to REQ-5, REQ-7 to REQ-11, REQ-12 (except AC-12.2, AC-12.7, AC-12.9), REQ-13 (except AC-13.4), REQ-15, REQ-17 (except AC-17.6), REQ-18 (except AC-18.3), REQ-19 and REQ-23 (data) | `cargo test test_csd009_` |
+| AC-17.1 to AC-17.5, AC-20.2 and AC-20.3 (data of the accounts and entries tables) | `cargo test test_csd009_ac_17_` and `cargo test test_csd009_ac_20_` |
+| AC-6.2, AC-6.3, AC-12.7, AC-12.9, AC-14.2, AC-16.1 to AC-16.3, REQ-20 (all ACs, including that no count is displayed), REQ-21, REQ-22 (the screen: form labels, period field in the edit form, section order and contents, titles without a currency, button placement, empty states, note cut-off, plain-text note, no entry counts anywhere, delete confirmations, negative balance display) | DOM tests of the Bank accounts page. Not covered yet: no DOM test exists |
+| AC-12.2, AC-13.4, AC-17.6, AC-18.3 | Not covered: no test exists for them yet (clearing a note, an invalid value rejecting the whole edit, an older entry not changing the latest balance, ordering of entries of one period) |
+| AC-24.1 (the dialog), AC-24.2 | Governed by CSD-003 REQ-5 (AC-5.7, AC-5.8), verified there; there is no test for AC-24.1 and AC-24.2 in this CSD |
 | One requirement, e.g. REQ-7 | `cargo test test_csd009_ac_7_` |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass, and the DOM tests pass.
 
 ## 8. Open questions
 - OQ-1: (resolved in v0.2) CSD-003 0.6 amends REQ-5 (AC-5.7, AC-5.8) and `entry_count` so that bank entries count for the currency confirmation.
 - OQ-2: Whether `docs/architecture.md` and the layout line of `CLAUDE.md` ("money, income, investments") get a bank accounts mention when this CSD is implemented. Owner: Thijs. Blocks: none.
 
 ## 9. Changelog
+- 1.0 (03/11/2026): No date bounds (decision D11): REQ-7 accepts any valid period including future periods and the year 1899 and earlier (AC-7.3 rewritten, AC-7.4 removed, the 1899 row of AC-7.5 removed), REQ-13 no longer rejects a future period (AC-13.1 removed), error code `BANK_ENTRY_IN_FUTURE` and the year-1900 rule removed. No legacy handling (D12): REQ-23 loses the rule for a missing section (AC-23.2 removed), the schema is strict (CSD-002). The period field in the project file and IPC is called `period` for both account and entry (D13). Rounding follows CSD-000 CON-8 (new CON-11). Verification: display ACs are covered by DOM tests, and ACs without a test are marked not covered. Back to draft for re-approval.
 - 0.4 (29/10/2026): The position in the left pane is stated in CSD-004 REQ-1 and no longer repeated here (GitHub issue 21).
 - 0.3 (29/10/2026): Entry counts are no longer displayed. REQ-20 drops the count from the account rows and the Entries column from the yearly totals (AC-20.2, AC-20.8 amended) and says no count is shown anywhere, REQ-6 gets a fixed delete confirmation text without a number (AC-6.3 added), AC-21.2 amended, REQ-19 and the definitions say the count is still returned over IPC (used for the period lock and empty-year detection) but not shown. Verification marks AC-6.3 and the amended ACs as manual checklist items.
 - 0.2 (28/10/2026): Resolved OQ-1: CSD-003 0.6 covers bank entries in the currency confirmation. REQ-24 and its verification row point to CSD-003 AC-5.7 and AC-5.8.
