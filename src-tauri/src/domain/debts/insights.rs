@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
+use crate::domain::charts::{stack_from_zero, Axis, ChartYear, Marker, Piece};
 use crate::domain::common::{series_years, ColourSlot, YearMonth};
 use crate::domain::money::zero;
 
@@ -34,12 +35,28 @@ pub struct DebtInsightsYear {
     pub statement_count: usize,
     pub is_partial: bool,
     pub segments: Vec<InsightsSegment>,
+    /// The stacked pieces of the bar (CSD-025 section 5).
+    pub pieces: Vec<Piece>,
+    /// The total debt, for a year with statements.
+    pub marker: Option<Marker>,
+}
+
+impl ChartYear for DebtInsightsYear {
+    fn pieces(&self) -> &[Piece] {
+        &self.pieces
+    }
+
+    fn marker(&self) -> Option<&Marker> {
+        self.marker.as_ref()
+    }
 }
 
 /// The payload of `get_debt_insights` (CSD-012 section 5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtInsights {
     pub debts: Vec<InsightsDebt>,
+    /// The axis of the chart (CSD-025 REQ-3).
+    pub axis: Axis,
     pub years: Vec<DebtInsightsYear>,
 }
 
@@ -68,15 +85,24 @@ impl Debts {
                         balance,
                     })
                     .collect();
+                let closing_balance = segments
+                    .iter()
+                    .fold(zero(), |sum, segment| sum + segment.balance);
+                let statement_count = counts.get(&year).copied().unwrap_or(0);
+                let pieces = stack_from_zero(
+                    segments
+                        .iter()
+                        .map(|segment| (format!("debt-{}", segment.debt_id), segment.balance)),
+                );
                 DebtInsightsYear {
                     year,
-                    closing_balance: segments
-                        .iter()
-                        .fold(zero(), |sum, segment| sum + segment.balance),
+                    closing_balance,
                     repaid: self.repaid(year),
-                    statement_count: counts.get(&year).copied().unwrap_or(0),
+                    statement_count,
                     is_partial: year == today.year(),
                     segments,
+                    pieces,
+                    marker: (statement_count > 0).then(|| Marker::at(closing_balance)),
                 }
             })
             .collect();
@@ -96,6 +122,7 @@ impl Debts {
                 colour_slot: debt.colour_slot,
             })
             .collect();
-        DebtInsights { debts, years }
+        let axis = Axis::of_years(&years);
+        DebtInsights { debts, axis, years }
     }
 }

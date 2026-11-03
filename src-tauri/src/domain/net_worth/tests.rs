@@ -269,8 +269,10 @@ fn test_csd017_ac_12_2_areas_without_records_contribute_zero() {
 fn test_csd017_section_5_amounts_cross_ipc_as_decimal_strings() {
     let mut data = ProjectData::default();
     add_house(&mut data, "2026", "300000.00");
+    let years = series(&data);
     let json = serde_json::to_value(NetWorthInsights {
-        years: series(&data),
+        axis: crate::domain::charts::Axis::of_years(&years),
+        years,
     })
     .unwrap();
     assert_eq!(json["years"][0]["houses"], "300000.00");
@@ -387,4 +389,67 @@ fn test_csd017_ac_2_3_a_later_record_in_another_area_limits_the_old_start() {
     let rows = years(&data);
     assert_eq!(rows.len(), 50);
     assert_eq!((rows[0], rows[49]), (2011, 2060));
+}
+
+// ---- CSD-025: pieces, marker and axis come from Rust ----
+
+#[test]
+fn test_csd017_ac_7_1_the_marker_is_the_net_worth_with_its_short_label() {
+    let mut data = ProjectData::default();
+    add_house(&mut data, "2025", "316000.00");
+    let row = year(&data, 2025);
+    let marker = row.marker.unwrap();
+    assert_eq!(marker.value.to_string(), "316000.00");
+    assert_eq!(marker.label, "316.00k");
+    // 2026 has no record: no marker, no pieces.
+    let later = year(&data, 2026);
+    assert!(later.marker.is_none() && later.pieces.is_empty());
+}
+
+#[test]
+fn test_csd017_ac_7_2_a_negative_marker_and_the_axis_below_the_zero_line() {
+    let mut data = ProjectData::default();
+    add_cash(&mut data, "2025", "1000.00");
+    add_debt(&mut data, "2025", "9000.00");
+    let insights = net_worth_insights(
+        &data.houses,
+        &data.investments,
+        &data.bank_accounts,
+        &data.debts,
+        today(),
+    );
+    let row = insights.years.iter().find(|y| y.year == 2025).unwrap();
+    assert_eq!(row.marker.as_ref().unwrap().label, "-8.00k");
+    assert_eq!(row.marker.as_ref().unwrap().value.to_string(), "-8000.00");
+    // CSD-017 AC-6.4: the axis reaches below -9000.00.
+    assert!(insights.axis.ticks.first().unwrap().value <= "-9000.00".parse().unwrap());
+    // Cash rises, debts hang below the zero line.
+    let pieces: Vec<_> = row
+        .pieces
+        .iter()
+        .map(|p| {
+            (
+                p.series.as_str(),
+                p.low.to_string(),
+                p.high.to_string(),
+                p.hangs,
+            )
+        })
+        .collect();
+    assert_eq!(
+        pieces,
+        [
+            ("cash", "0.00".to_owned(), "1000.00".to_owned(), false),
+            ("debts", "-9000.00".to_owned(), "0.00".to_owned(), true),
+        ]
+    );
+}
+
+#[test]
+fn test_csd017_ac_6_3_a_series_with_nothing_adds_no_piece() {
+    let mut data = ProjectData::default();
+    add_cash(&mut data, "2024", "5000.00");
+    let row = year(&data, 2024);
+    assert_eq!(row.pieces.len(), 1);
+    assert_eq!(row.pieces[0].series, "cash");
 }

@@ -1708,3 +1708,51 @@ fn test_csd006_ac_4_2_a_future_year_is_not_marked_partial() {
     assert!(series[0].is_partial);
     assert!(!series[1].is_partial);
 }
+
+// ---- CSD-025: the growth label, the pieces and the axis come from Rust ----
+
+#[test]
+fn test_csd006_ac_8_1_growth_label_is_built_by_rust() {
+    for (previous, current, label) in [
+        ("32400.00", "34480.00", "+6.42%"),
+        ("40000.00", "39000.00", "-2.50%"),
+        ("20000.00", "20000.00", "0.00%"),
+        // A decrease that rounds to zero shows no sign.
+        ("100000.00", "99999.00", "0.00%"),
+    ] {
+        let mut income = Income::default();
+        let id = yearly_job_named(&mut income, "Example Employer");
+        add_statement_of(&mut income, id, "2023", [previous, "", ""]);
+        add_statement_of(&mut income, id, "2024", [current, "", ""]);
+        let series = income.insights(today());
+        let year = series.iter().find(|y| y.year == 2024).unwrap();
+        assert_eq!(year.growth_label, label, "{previous} -> {current}");
+        assert_eq!(series[0].growth_label, "–", "the first year has no growth");
+    }
+}
+
+#[test]
+fn test_csd025_ac_3_2_income_pieces_stack_salary_holiday_and_bonus() {
+    let mut income = Income::default();
+    let id = yearly_job_named(&mut income, "Example Employer");
+    add_statement_of(&mut income, id, "2024", ["30000.00", "2400.00", "600.00"]);
+    let series = income.insights(today());
+    let year = series.iter().find(|y| y.year == 2024).unwrap();
+    let pieces: Vec<_> = year
+        .pieces
+        .iter()
+        .map(|p| (p.series.as_str(), p.low.to_string(), p.high.to_string()))
+        .collect();
+    assert_eq!(
+        pieces,
+        [
+            ("salary", "0.00".to_owned(), "30000.00".to_owned()),
+            ("holiday", "30000.00".to_owned(), "32400.00".to_owned()),
+            ("bonus", "32400.00".to_owned(), "33000.00".to_owned()),
+        ]
+    );
+    assert!(year.marker.is_none());
+    let axis = crate::domain::charts::Axis::of_years(&series);
+    assert!(axis.ticks.last().unwrap().value >= year.total_gross);
+    assert!(series.iter().all(|y| y.pieces.iter().all(|p| !p.hangs)));
+}

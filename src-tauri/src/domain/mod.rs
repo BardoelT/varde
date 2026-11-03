@@ -1,6 +1,7 @@
 //! Pure business logic: no Tauri, no IO.
 
 pub mod bank_accounts;
+pub mod charts;
 pub mod common;
 pub mod debts;
 pub mod error;

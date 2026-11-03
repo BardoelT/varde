@@ -1156,3 +1156,79 @@ fn test_csd009_ac_19_10_a_year_after_the_current_year_has_a_row_like_any_other()
     assert_eq!(insights[0].closing_balance.to_string(), "3000.00");
     assert_eq!(insights[1].closing_balance.to_string(), "3500.00");
 }
+
+// ---- CSD-025: pieces, marker and axis come from Rust ----
+
+#[test]
+fn test_csd010_ac_2_4_pieces_marker_and_labels_are_delivered() {
+    let mut banks = BankAccounts::default();
+    let current = account(&mut banks, "Example Current Account", "Monthly");
+    let savings = account(&mut banks, "Example Savings", "Monthly");
+    add(&mut banks, current, "2025-12", "2000.00");
+    add(&mut banks, savings, "2025-12", "8000.00");
+    let insights = banks.insights(insights_today());
+    let year = &insights.years[0];
+    let spans: Vec<_> = year
+        .pieces
+        .iter()
+        .map(|p| (p.series.clone(), p.low.to_string(), p.high.to_string()))
+        .collect();
+    assert_eq!(
+        spans,
+        [
+            (
+                format!("bank-{current}"),
+                "0.00".to_owned(),
+                "2000.00".to_owned()
+            ),
+            (
+                format!("bank-{savings}"),
+                "2000.00".to_owned(),
+                "10000.00".to_owned()
+            ),
+        ]
+    );
+    let marker = year.marker.as_ref().unwrap();
+    assert_eq!(
+        (marker.value.to_string(), marker.label.as_str()),
+        ("10000.00".to_owned(), "10.00k")
+    );
+    let ticks: Vec<_> = insights
+        .axis
+        .ticks
+        .iter()
+        .map(|t| (t.value.to_string(), t.label.as_str()))
+        .collect();
+    assert!(ticks.contains(&("0.00".to_owned(), "0")));
+    assert!(ticks.contains(&("10000.00".to_owned(), "10k")));
+}
+
+#[test]
+fn test_csd010_ac_6_3_the_axis_covers_the_highest_and_the_lowest_level() {
+    let mut banks = BankAccounts::default();
+    let a = account(&mut banks, "Example Current Account", "Yearly");
+    let b = account(&mut banks, "Example Overdraft", "Yearly");
+    add(&mut banks, a, "2026", "13100.00");
+    add(&mut banks, b, "2026", "-1000.00");
+    let insights = banks.insights(insights_today());
+    let ticks = &insights.axis.ticks;
+    assert!(ticks.first().unwrap().value <= "-1000.00".parse().unwrap());
+    assert!(ticks.last().unwrap().value >= "13100.00".parse().unwrap());
+    let pieces = &insights.years[0].pieces;
+    assert!(pieces[1].hangs);
+    assert_eq!(pieces[0].rounding, crate::domain::charts::Rounding::Top);
+    assert_eq!(pieces[1].rounding, crate::domain::charts::Rounding::Bottom);
+    // The marker is the net sum, 12100.00.
+    assert_eq!(insights.years[0].marker.as_ref().unwrap().label, "12.10k");
+}
+
+#[test]
+fn test_csd010_ac_6_5_a_gap_year_has_no_pieces_and_no_marker() {
+    let mut banks = BankAccounts::default();
+    let a = account(&mut banks, "Example Current Account", "Yearly");
+    add(&mut banks, a, "2024", "100.00");
+    add(&mut banks, a, "2026", "300.00");
+    let years = banks.insights(insights_today()).years;
+    let gap = years.iter().find(|y| y.year == 2025).unwrap();
+    assert!(gap.pieces.is_empty() && gap.marker.is_none());
+}

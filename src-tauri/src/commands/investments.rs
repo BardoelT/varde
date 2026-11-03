@@ -8,6 +8,7 @@ use serde::Serialize;
 use tauri::State;
 
 use super::AppState;
+use crate::domain::charts::Axis;
 use crate::domain::{
     Balance, CalculationInput, InvestmentAccount, InvestmentAccountId, InvestmentAccountInput,
     InvestmentInsightsYear, InvestmentStatement, InvestmentStatementPrefill, InvestmentYearlyTotal,
@@ -197,14 +198,18 @@ pub fn yearly_investment_totals(
 pub fn get_investment_insights(state: State<'_, AppState>) -> Result<InvestmentInsights, AppError> {
     let today = state.today();
     let project = state.project()?;
+    let years = project.investments().insights(today);
     Ok(InvestmentInsights {
-        years: project.investments().insights(today),
+        axis: Axis::of_years(&years),
+        years,
     })
 }
 
 /// Payload of `get_investment_insights` (CSD-007 section 5).
 #[derive(Serialize)]
 pub struct InvestmentInsights {
+    /// The axis of the chart (CSD-025 REQ-3).
+    axis: Axis,
     years: Vec<InvestmentInsightsYear>,
 }
 

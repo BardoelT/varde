@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use super::AppState;
+use crate::domain::charts::Axis;
 use crate::domain::{
     Amounts, Entry, Income, IncomeInsightsYear, IncomeYearlyTotal, Job, JobId, JobInput,
     PaycheckPrefill, Year, YearMonth,
@@ -262,13 +263,17 @@ pub fn yearly_totals(state: State<'_, AppState>) -> Result<Vec<IncomeYearlyTotal
 pub fn get_income_insights(state: State<'_, AppState>) -> Result<IncomeInsights, AppError> {
     let today = state.today();
     let project = state.project()?;
+    let years = project.income().insights(today);
     Ok(IncomeInsights {
-        years: project.income().insights(today),
+        axis: Axis::of_years(&years),
+        years,
     })
 }
 
 /// Payload of `get_income_insights` (CSD-006 section 5).
 #[derive(Serialize)]
 pub struct IncomeInsights {
+    /// The axis of the chart (CSD-025 REQ-3).
+    axis: Axis,
     years: Vec<IncomeInsightsYear>,
 }

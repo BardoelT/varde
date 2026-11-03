@@ -1244,3 +1244,38 @@ fn test_csd016_ac_4_3_a_future_year_is_not_marked_partial() {
     let partial: Vec<(i32, bool)> = years.iter().map(|y| (y.year, y.is_partial)).collect();
     assert_eq!(partial, [(2026, true), (2027, false), (2028, false)]);
 }
+
+// ---- CSD-025: pieces, marker and axis come from Rust ----
+
+#[test]
+fn test_csd016_ac_7_1_the_marker_is_the_total_value_with_its_short_label() {
+    let mut houses = Houses::default();
+    let a = new_house(&mut houses, "Example House", "Yearly");
+    let b = new_house(&mut houses, "Example Flat", "Yearly");
+    add(&mut houses, a, "2025", "2000.00");
+    add(&mut houses, b, "2025", "8000.00");
+    let insights = houses.insights(today());
+    let year = &insights.years[0];
+    let marker = year.marker.as_ref().unwrap();
+    assert_eq!(
+        (marker.value.to_string(), marker.label.as_str()),
+        ("10000.00".to_owned(), "10.00k")
+    );
+    assert_eq!(year.pieces[0].series, format!("house-{a}"));
+    assert_eq!(year.pieces[1].series, format!("house-{b}"));
+    assert_eq!(year.pieces[1].high.to_string(), "10000.00");
+}
+
+#[test]
+fn test_csd016_ac_6_6_axis_labels_are_whole_numbers_built_by_rust() {
+    let mut houses = Houses::default();
+    let a = new_house(&mut houses, "Example House", "Yearly");
+    add(&mut houses, a, "2025", "350000.00");
+    let insights = houses.insights(today());
+    let ticks = &insights.axis.ticks;
+    assert!(ticks.last().unwrap().value >= "350000.00".parse().unwrap());
+    assert!(ticks.iter().all(|t| !t.label.contains('.')));
+    assert!(ticks.iter().skip(1).all(|t| t.label.ends_with('k')));
+    let gap = insights.years.iter().find(|y| y.year == 2026).unwrap();
+    assert!(gap.pieces.is_empty() && gap.marker.is_none());
+}

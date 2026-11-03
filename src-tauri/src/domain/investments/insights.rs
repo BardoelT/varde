@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
+use crate::domain::charts::{percent_label, waterfall, ChartYear, Marker, Piece};
 use crate::domain::common::{series_years, YearMonth};
 use crate::domain::money::{percent_of, zero};
 
@@ -24,6 +25,23 @@ pub struct InvestmentInsightsYear {
     pub closing_balance: Decimal,
     pub statement_count: usize,
     pub is_partial: bool,
+    /// The growth percentage as the chart shows it: "+6.09%", "-2.50%",
+    /// "0.00%" or a dash (CSD-007 REQ-10).
+    pub growth_label: String,
+    /// The waterfall pieces of the bar (CSD-007 REQ-8, CSD-025 section 5).
+    pub pieces: Vec<Piece>,
+    /// The closing balance, for a year with statements.
+    pub marker: Option<Marker>,
+}
+
+impl ChartYear for InvestmentInsightsYear {
+    fn pieces(&self) -> &[Piece] {
+        &self.pieces
+    }
+
+    fn marker(&self) -> Option<&Marker> {
+        self.marker.as_ref()
+    }
 }
 
 /// Capital growth in percent of the opening balance (CSD-007 REQ-6). `None`
@@ -62,15 +80,30 @@ impl Investments {
                         },
                     );
                 let opening_balance = self.opening_balance(year);
+                let growth_percent =
+                    growth_percent(self.growth_with_opening(year), opening_balance);
+                let growth_key = if capital_growth < zero() {
+                    "growth-down"
+                } else {
+                    "growth-up"
+                };
+                let pieces = waterfall([
+                    ("opening".to_owned(), opening_balance),
+                    ("deposits".to_owned(), net_deposits),
+                    (growth_key.to_owned(), capital_growth),
+                ]);
                 InvestmentInsightsYear {
                     year,
                     opening_balance,
                     net_deposits,
                     capital_growth,
-                    growth_percent: growth_percent(self.growth_with_opening(year), opening_balance),
+                    growth_percent,
                     closing_balance,
                     statement_count,
                     is_partial: year == today.year(),
+                    growth_label: percent_label(growth_percent),
+                    pieces,
+                    marker: (statement_count > 0).then(|| Marker::at(closing_balance)),
                 }
             })
             .collect()

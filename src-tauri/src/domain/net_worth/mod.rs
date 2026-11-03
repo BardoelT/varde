@@ -6,6 +6,7 @@ use rust_decimal::Decimal;
 use serde::Serialize;
 
 use crate::domain::bank_accounts::BankAccounts;
+use crate::domain::charts::{stack_from_zero, Axis, ChartYear, Marker, Piece};
 use crate::domain::common::{series_years, YearMonth};
 use crate::domain::debts::Debts;
 use crate::domain::houses::Houses;
@@ -32,11 +33,27 @@ pub struct NetWorthYear {
     /// Whether any of the four areas has a record in the year.
     pub has_records: bool,
     pub is_partial: bool,
+    /// The stacked pieces of the bar (CSD-025 section 5).
+    pub pieces: Vec<Piece>,
+    /// The net worth, for a year with records.
+    pub marker: Option<Marker>,
+}
+
+impl ChartYear for NetWorthYear {
+    fn pieces(&self) -> &[Piece] {
+        &self.pieces
+    }
+
+    fn marker(&self) -> Option<&Marker> {
+        self.marker.as_ref()
+    }
 }
 
 /// The payload of `get_net_worth_insights` (CSD-017 section 5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct NetWorthInsights {
+    /// The axis of the chart (CSD-025 REQ-3).
+    pub axis: Axis,
     pub years: Vec<NetWorthYear>,
 }
 
@@ -105,17 +122,31 @@ pub fn net_worth_insights(
         .into_iter()
         .map(|year| {
             let figures = by_year.get(&year).copied().unwrap_or_default();
+            let net_worth = figures.houses + figures.investments + figures.cash - figures.debts;
+            // Houses, investments and cash rise, debts hang below the zero
+            // line, and an overdrawn cash hangs too (CSD-017 REQ-6).
+            let pieces = stack_from_zero([
+                ("houses".to_owned(), figures.houses),
+                ("investments".to_owned(), figures.investments),
+                ("cash".to_owned(), figures.cash),
+                ("debts".to_owned(), -figures.debts),
+            ]);
             NetWorthYear {
                 year,
                 houses: figures.houses,
                 investments: figures.investments,
                 cash: figures.cash,
                 debts: figures.debts,
-                net_worth: figures.houses + figures.investments + figures.cash - figures.debts,
+                net_worth,
                 has_records: figures.has_records,
                 is_partial: year == today.year(),
+                pieces,
+                marker: figures.has_records.then(|| Marker::at(net_worth)),
             }
         })
-        .collect();
-    NetWorthInsights { years }
+        .collect::<Vec<_>>();
+    NetWorthInsights {
+        axis: Axis::of_years(&years),
+        years,
+    }
 }

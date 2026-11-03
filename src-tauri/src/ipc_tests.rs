@@ -65,6 +65,14 @@ impl Harness {
     }
 }
 
+/// The axis of a chart without figures: 0.00 to 1.00 (CSD-025 REQ-3).
+fn empty_axis() -> Value {
+    json!({ "ticks": [
+        { "value": "0.00", "label": "0" },
+        { "value": "1.00", "label": "1" },
+    ] })
+}
+
 fn job_input() -> Value {
     json!({
         "employer": "Example Employer",
@@ -966,14 +974,14 @@ fn test_csd006_income_insights_over_ipc() {
     // An empty project has an empty series (AC-10.1).
     assert_eq!(
         app.ok("get_income_insights", json!({})),
-        json!({ "years": [] })
+        json!({ "axis": empty_axis(), "years": [] })
     );
 
     let job = app.ok("create_job", json!({ "input": job_input() }));
     let job_id = job["id"].as_str().unwrap().to_owned();
     assert_eq!(
         app.ok("get_income_insights", json!({})),
-        json!({ "years": [] }),
+        json!({ "axis": empty_axis(), "years": [] }),
         "a job without entries has no years"
     );
 
@@ -992,6 +1000,27 @@ fn test_csd006_income_insights_over_ipc() {
     assert_eq!(years[0]["is_partial"], false);
     assert_eq!(years[0]["growth_percent"], Value::Null);
     assert_eq!(years.last().unwrap()["is_partial"], true);
+    // CSD-025 section 5: the axis, the pieces and the labels come with the series.
+    assert_eq!(years[0]["growth_label"], "–");
+    assert_eq!(years[0]["marker"], Value::Null);
+    assert_eq!(
+        years[0]["pieces"],
+        json!([
+            { "series": "salary", "low": "0.00", "high": "3000.00", "hangs": false, "rounding": "none" },
+            { "series": "bonus", "low": "3000.00", "high": "4000.00", "hangs": false, "rounding": "top" },
+        ])
+    );
+    assert_eq!(years.last().unwrap()["pieces"], json!([]));
+    assert_eq!(
+        insights["axis"],
+        json!({ "ticks": [
+            { "value": "0.00", "label": "0" },
+            { "value": "1000.00", "label": "1k" },
+            { "value": "2000.00", "label": "2k" },
+            { "value": "3000.00", "label": "3k" },
+            { "value": "4000.00", "label": "4k" },
+        ] })
+    );
 }
 
 #[test]
@@ -1030,7 +1059,7 @@ fn test_csd007_investment_insights_over_ipc() {
     // AC-2.3: no statements, no series.
     assert_eq!(
         app.ok("get_investment_insights", json!({})),
-        json!({ "years": [] })
+        json!({ "axis": empty_axis(), "years": [] })
     );
     let account = app.ok(
         "create_investment_account",
@@ -1058,11 +1087,24 @@ fn test_csd007_investment_insights_over_ipc() {
             "growth_percent": null,
             "closing_balance": "11500.00",
             "statement_count": 2,
-            "is_partial": false
+            "is_partial": false,
+            "growth_label": "–",
+            "pieces": [
+                { "series": "deposits", "low": "0.00", "high": "11200.00", "hangs": false, "rounding": "none" },
+                { "series": "growth-up", "low": "11200.00", "high": "11500.00", "hangs": false, "rounding": "top" },
+            ],
+            "marker": { "value": "11500.00", "label": "11.50k" }
         })
     );
     assert!(years.len() >= 2);
     assert_eq!(years.last().unwrap()["is_partial"], true);
+    assert_eq!(years.last().unwrap()["marker"], Value::Null);
+    let ticks = insights["axis"]["ticks"].as_array().unwrap();
+    assert_eq!(ticks[0], json!({ "value": "0.00", "label": "0" }));
+    assert!(ticks.last().unwrap()["label"]
+        .as_str()
+        .unwrap()
+        .ends_with('k'));
 }
 
 #[test]
@@ -1510,7 +1552,10 @@ fn test_csd003_ac_5_7_a_bank_entry_counts_for_the_currency_confirmation() {
 fn test_csd010_the_insights_reach_the_frontend_with_banks_and_segments() {
     let app = harness();
     let empty = app.ok("get_bank_insights", json!({}));
-    assert_eq!(empty, json!({ "banks": [], "years": [] }));
+    assert_eq!(
+        empty,
+        json!({ "banks": [], "axis": empty_axis(), "years": [] })
+    );
     let current = app.ok(
         "create_bank_account",
         json!({ "input": bank_input("Example Current Account", "Monthly") }),
@@ -1537,6 +1582,20 @@ fn test_csd010_the_insights_reach_the_frontend_with_banks_and_segments() {
     assert_eq!(first["is_partial"], false);
     assert_eq!(first["segments"][0]["account_id"], current["id"]);
     assert_eq!(first["segments"][1]["balance"], "-1000.00");
+    // CSD-025 section 5: pieces, marker and axis.
+    assert_eq!(
+        first["pieces"],
+        json!([
+            { "series": format!("bank-{}", current["id"].as_str().unwrap()), "low": "0.00", "high": "5000.00", "hangs": false, "rounding": "top" },
+            { "series": format!("bank-{}", overdraft["id"].as_str().unwrap()), "low": "-1000.00", "high": "0.00", "hangs": true, "rounding": "bottom" },
+        ])
+    );
+    assert_eq!(
+        first["marker"],
+        json!({ "value": "4000.00", "label": "4.00k" })
+    );
+    let ticks = &insights["axis"]["ticks"];
+    assert_eq!(ticks[0], json!({ "value": "-2000.00", "label": "-2k" }));
     // The current year is in the series even without entries (CSD-010 AC-4.2).
     let last = insights["years"]
         .as_array()
@@ -1744,7 +1803,7 @@ fn test_csd012_the_debt_insights_reach_the_frontend_with_segments_and_repaid() {
     let app = harness();
     assert_eq!(
         app.ok("get_debt_insights", json!({})),
-        json!({ "debts": [], "years": [] })
+        json!({ "debts": [], "axis": empty_axis(), "years": [] })
     );
     let mortgage = app.ok(
         "create_debt",
@@ -1990,7 +2049,7 @@ fn test_csd016_the_house_insights_reach_the_frontend_with_segments_and_change() 
     let app = harness();
     assert_eq!(
         app.ok("get_house_insights", json!({})),
-        json!({ "houses": [], "years": [] })
+        json!({ "houses": [], "axis": empty_axis(), "years": [] })
     );
     let mortgage = app.ok(
         "create_house",
@@ -2053,7 +2112,7 @@ fn test_csd017_the_net_worth_insights_reach_the_frontend_and_follow_the_project(
     let app = harness();
     assert_eq!(
         app.ok("get_net_worth_insights", json!({})),
-        json!({ "years": [] })
+        json!({ "axis": empty_axis(), "years": [] })
     );
     let bank = app.ok(
         "create_bank_account",
@@ -2071,8 +2130,17 @@ fn test_csd017_the_net_worth_insights_reach_the_frontend_and_follow_the_project(
         "add_debt_statement",
         json!({ "debtId": debt["id"], "period": "2025", "balance": "9000.00" }),
     );
-    let years = app.ok("get_net_worth_insights", json!({}))["years"].clone();
+    let insights = app.ok("get_net_worth_insights", json!({}));
+    let years = insights["years"].clone();
     let first = &years[0];
+    // CSD-025 section 5: the marker is -4000.00, debts hang below the zero line.
+    assert_eq!(
+        first["marker"],
+        json!({ "value": "-4000.00", "label": "-4.00k" })
+    );
+    assert_eq!(first["pieces"][1]["series"], "debts");
+    assert_eq!(first["pieces"][1]["hangs"], true);
+    assert_eq!(insights["axis"]["ticks"][0]["value"], "-10000.00");
     assert_eq!(first["year"], 2025);
     assert_eq!(first["cash"], "5000.00");
     assert_eq!(first["debts"], "9000.00");
@@ -2086,7 +2154,7 @@ fn test_csd017_the_net_worth_insights_reach_the_frontend_and_follow_the_project(
     app.ok("new_project", json!({}));
     assert_eq!(
         app.ok("get_net_worth_insights", json!({})),
-        json!({ "years": [] })
+        json!({ "axis": empty_axis(), "years": [] })
     );
 }
 

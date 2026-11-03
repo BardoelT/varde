@@ -2157,3 +2157,80 @@ fn test_csd005_oq_4_the_series_ends_with_the_latest_statement_and_equals_the_tot
         assert_eq!(row.statement_count, total.statement_count);
     }
 }
+
+// ---- CSD-025: the growth label, the pieces, the marker and the axis come from Rust ----
+
+#[test]
+fn test_csd007_ac_10_1_growth_percentage_label_is_built_by_rust() {
+    for (opening, closing, label) in [
+        ("11500.00", "12200.00", "+6.09%"),
+        ("40000.00", "39000.00", "-2.50%"),
+        ("20000.00", "20000.00", "0.00%"),
+        ("100000.00", "99999.00", "0.00%"),
+    ] {
+        let mut investments = Investments::default();
+        let id = add_account(&mut investments, "Example Brokerage", "Monthly");
+        add_with_deposits(&mut investments, id, "2024-12", opening, opening);
+        add(&mut investments, id, "2025-12", closing);
+        let series = investments.insights(today());
+        let year = series.iter().find(|y| y.year == 2025).unwrap();
+        assert_eq!(year.growth_label, label, "{opening} -> {closing}");
+        assert_eq!(series[0].growth_label, "–", "no opening balance");
+    }
+}
+
+#[test]
+fn test_csd007_ac_9_1_the_marker_is_the_closing_balance_with_its_short_label() {
+    let mut investments = Investments::default();
+    let id = add_account(&mut investments, "Example Brokerage", "Monthly");
+    add_with_deposits(&mut investments, id, "2025-12", "11500.00", "11500.00");
+    let series = investments.insights(today());
+    let marker = series[0].marker.as_ref().unwrap();
+    assert_eq!(marker.value.to_string(), "11500.00");
+    assert_eq!(marker.label, "11.50k");
+    // 2026 has no statement: no marker, no pieces.
+    let gap = series.iter().find(|y| y.year == 2026).unwrap();
+    assert!(gap.marker.is_none() && gap.pieces.is_empty());
+    let axis = crate::domain::charts::Axis::of_years(&series);
+    assert!(axis.ticks.last().unwrap().value >= marker.value);
+}
+
+#[test]
+fn test_csd007_ac_8_1_pieces_are_a_waterfall_with_a_loss_hanging_from_the_total() {
+    let mut investments = Investments::default();
+    let id = add_account(&mut investments, "Example Brokerage", "Monthly");
+    add_with_deposits(&mut investments, id, "2024-12", "1000.00", "1000.00");
+    add_with_deposits(&mut investments, id, "2025-12", "1300.00", "500.00");
+    let series = investments.insights(today());
+    let year = series.iter().find(|y| y.year == 2025).unwrap();
+    let pieces: Vec<_> = year
+        .pieces
+        .iter()
+        .map(|p| {
+            (
+                p.series.as_str(),
+                p.low.to_string(),
+                p.high.to_string(),
+                p.hangs,
+            )
+        })
+        .collect();
+    assert_eq!(
+        pieces,
+        [
+            ("opening", "0.00".to_owned(), "1000.00".to_owned(), false),
+            (
+                "deposits",
+                "1000.00".to_owned(),
+                "1500.00".to_owned(),
+                false
+            ),
+            (
+                "growth-down",
+                "1300.00".to_owned(),
+                "1500.00".to_owned(),
+                true
+            ),
+        ]
+    );
+}

@@ -933,3 +933,44 @@ fn test_csd013_ac_3_2_the_category_names_are_the_wire_names_and_match_exactly() 
         );
     }
 }
+
+// ---- CSD-025: pieces and axis come from Rust ----
+
+#[test]
+fn test_csd014_ac_5_7_axis_labels_and_pieces_come_from_rust() {
+    let mut expenses = Expenses::default();
+    add(&mut expenses, "A", "1000.00", "10/05/2025", "Vehicle");
+    add(&mut expenses, "B", "1549.99", "11/05/2025", "Home");
+    let insights = insights(&expenses);
+    let year = &insights.years[0];
+    // The pieces follow the fixed order of the categories, Home first.
+    let spans: Vec<_> = year
+        .pieces
+        .iter()
+        .map(|p| (p.series.as_str(), p.low.to_string(), p.high.to_string()))
+        .collect();
+    assert_eq!(
+        spans,
+        [
+            ("category-Home", "0.00".to_owned(), "1549.99".to_owned()),
+            (
+                "category-Vehicle",
+                "1549.99".to_owned(),
+                "2549.99".to_owned()
+            ),
+        ]
+    );
+    // CSD-014 AC-5.6: no marker.
+    assert!(insights.years.iter().all(|y| y.marker.is_none()));
+    let labels: Vec<_> = insights
+        .axis
+        .ticks
+        .iter()
+        .map(|t| t.label.as_str())
+        .collect();
+    assert_eq!(labels, ["0", "1k", "2k", "3k"]);
+    assert_eq!(
+        insights.years[0].pieces.last().map(|p| p.rounding),
+        Some(crate::domain::charts::Rounding::Top)
+    );
+}

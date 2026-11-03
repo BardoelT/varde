@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
+use crate::domain::charts::{percent_label, stack_from_zero, ChartYear, Marker, Piece};
 use crate::domain::money::{percent_of, zero};
 
 use super::{Income, IncomeYearlyTotal};
@@ -23,6 +24,23 @@ pub struct IncomeInsightsYear {
     pub is_partial: bool,
     /// Percent with two decimals, `None` when there is nothing to compare.
     pub growth_percent: Option<Decimal>,
+    /// The growth as the chart shows it: "+6.42%", "-2.50%", "0.00%" or a dash
+    /// (CSD-006 REQ-8).
+    pub growth_label: String,
+    /// The stacked pieces of the bar, bottom to top (CSD-025 section 5).
+    pub pieces: Vec<Piece>,
+    /// Income has no marker; always `None`.
+    pub marker: Option<Marker>,
+}
+
+impl ChartYear for IncomeInsightsYear {
+    fn pieces(&self) -> &[Piece] {
+        &self.pieces
+    }
+
+    fn marker(&self) -> Option<&Marker> {
+        self.marker.as_ref()
+    }
 }
 
 impl Income {
@@ -61,6 +79,11 @@ impl Income {
                     .and_then(|change| percent_of(change, previous.total_gross)),
                 _ => None,
             };
+            let pieces = stack_from_zero([
+                ("salary".to_owned(), gross_salary),
+                ("holiday".to_owned(), holiday_pay),
+                ("bonus".to_owned(), bonus),
+            ]);
             series.push(IncomeInsightsYear {
                 year,
                 gross_salary,
@@ -70,6 +93,9 @@ impl Income {
                 entry_count,
                 is_partial,
                 growth_percent,
+                growth_label: percent_label(growth_percent),
+                pieces,
+                marker: None,
             });
         }
         series

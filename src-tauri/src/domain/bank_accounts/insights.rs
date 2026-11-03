@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
+use crate::domain::charts::{stack_from_zero, Axis, ChartYear, Marker, Piece};
 use crate::domain::common::{series_years, ColourSlot, YearMonth};
 use crate::domain::money::zero;
 
@@ -33,12 +34,28 @@ pub struct BankInsightsYear {
     pub entry_count: usize,
     pub is_partial: bool,
     pub segments: Vec<InsightsSegment>,
+    /// The stacked pieces of the bar (CSD-025 section 5).
+    pub pieces: Vec<Piece>,
+    /// The closing balance, for a year with entries.
+    pub marker: Option<Marker>,
+}
+
+impl ChartYear for BankInsightsYear {
+    fn pieces(&self) -> &[Piece] {
+        &self.pieces
+    }
+
+    fn marker(&self) -> Option<&Marker> {
+        self.marker.as_ref()
+    }
 }
 
 /// The payload of `get_bank_insights` (CSD-010 section 5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct BankInsights {
     pub banks: Vec<InsightsBank>,
+    /// The axis of the chart (CSD-025 REQ-3).
+    pub axis: Axis,
     pub years: Vec<BankInsightsYear>,
 }
 
@@ -67,14 +84,23 @@ impl BankAccounts {
                         balance,
                     })
                     .collect();
+                let closing_balance = segments
+                    .iter()
+                    .fold(zero(), |sum, segment| sum + segment.balance);
+                let entry_count = counts.get(&year).copied().unwrap_or(0);
+                let pieces = stack_from_zero(
+                    segments
+                        .iter()
+                        .map(|segment| (format!("bank-{}", segment.account_id), segment.balance)),
+                );
                 BankInsightsYear {
                     year,
-                    closing_balance: segments
-                        .iter()
-                        .fold(zero(), |sum, segment| sum + segment.balance),
-                    entry_count: counts.get(&year).copied().unwrap_or(0),
+                    closing_balance,
+                    entry_count,
                     is_partial: year == today.year(),
                     segments,
+                    pieces,
+                    marker: (entry_count > 0).then(|| Marker::at(closing_balance)),
                 }
             })
             .collect();
@@ -94,6 +120,7 @@ impl BankAccounts {
                 colour_slot: account.colour_slot,
             })
             .collect();
-        BankInsights { banks, years }
+        let axis = Axis::of_years(&years);
+        BankInsights { banks, axis, years }
     }
 }

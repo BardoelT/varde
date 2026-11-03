@@ -1,5 +1,29 @@
 {
   "get_bank_insights": {
+    "axis": {
+      "ticks": [
+        {
+          "label": "-1k",
+          "value": "-1000.00"
+        },
+        {
+          "label": "0",
+          "value": "0.00"
+        },
+        {
+          "label": "1k",
+          "value": "1000.00"
+        },
+        {
+          "label": "2k",
+          "value": "2000.00"
+        },
+        {
+          "label": "3k",
+          "value": "3000.00"
+        }
+      ]
+    },
     "banks": [
       {
         "colour_slot": 0,
@@ -17,6 +41,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1978
       },
@@ -24,6 +50,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1979
       },
@@ -31,6 +59,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1980
       },
@@ -38,6 +68,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1981
       },
@@ -45,6 +77,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1982
       },
@@ -52,6 +86,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1983
       },
@@ -59,6 +95,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1984
       },
@@ -66,6 +104,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1985
       },
@@ -73,6 +113,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1986
       },
@@ -80,6 +122,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1987
       },
@@ -87,6 +131,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1988
       },
@@ -94,6 +140,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1989
       },
@@ -101,6 +149,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1990
       },
@@ -108,6 +158,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1991
       },
@@ -115,6 +167,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1992
       },
@@ -122,6 +176,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1993
       },
@@ -129,6 +185,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1994
       },
@@ -136,6 +194,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1995
       },
@@ -143,6 +203,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1996
       },
@@ -150,6 +212,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1997
       },
@@ -157,6 +221,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1998
       },
@@ -164,6 +230,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 1999
       },
@@ -171,6 +239,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2000
       },
@@ -178,6 +248,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2001
       },
@@ -185,6 +257,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2002
       },
@@ -192,6 +266,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2003
       },
@@ -199,6 +275,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2004
       },
@@ -206,6 +284,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2005
       },
@@ -213,6 +293,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2006
       },
@@ -220,6 +302,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2007
       },
@@ -227,6 +311,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2008
       },
@@ -234,6 +320,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2009
       },
@@ -241,6 +329,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2010
       },
@@ -248,6 +338,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2011
       },
@@ -255,6 +347,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2012
       },
@@ -262,6 +356,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2013
       },
@@ -269,6 +365,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2014
       },
@@ -276,6 +374,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2015
       },
@@ -283,6 +383,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2016
       },
@@ -290,6 +392,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2017
       },
@@ -297,6 +401,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2018
       },
@@ -304,6 +410,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2019
       },
@@ -311,6 +419,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2020
       },
@@ -318,6 +428,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2021
       },
@@ -325,6 +437,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2022
       },
@@ -332,6 +446,8 @@
         "closing_balance": "0.00",
         "entry_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "year": 2023
       },
@@ -339,6 +455,19 @@
         "closing_balance": "-400.00",
         "entry_count": 1,
         "is_partial": false,
+        "marker": {
+          "label": "-400.00",
+          "value": "-400.00"
+        },
+        "pieces": [
+          {
+            "hangs": true,
+            "high": "0.00",
+            "low": "-400.00",
+            "rounding": "bottom",
+            "series": "bank-id-2"
+          }
+        ],
         "segments": [
           {
             "account_id": "id-2",
@@ -351,6 +480,26 @@
         "closing_balance": "3000.00",
         "entry_count": 2,
         "is_partial": false,
+        "marker": {
+          "label": "3.00k",
+          "value": "3000.00"
+        },
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "2000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "bank-id-1"
+          },
+          {
+            "hangs": false,
+            "high": "3000.00",
+            "low": "2000.00",
+            "rounding": "top",
+            "series": "bank-id-2"
+          }
+        ],
         "segments": [
           {
             "account_id": "id-1",
@@ -367,6 +516,19 @@
         "closing_balance": "2500.50",
         "entry_count": 1,
         "is_partial": true,
+        "marker": {
+          "label": "2.50k",
+          "value": "2500.50"
+        },
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "2500.50",
+            "low": "0.00",
+            "rounding": "top",
+            "series": "bank-id-1"
+          }
+        ],
         "segments": [
           {
             "account_id": "id-1",
@@ -379,6 +541,19 @@
         "closing_balance": "1500.00",
         "entry_count": 1,
         "is_partial": false,
+        "marker": {
+          "label": "1.50k",
+          "value": "1500.00"
+        },
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "1500.00",
+            "low": "0.00",
+            "rounding": "top",
+            "series": "bank-id-2"
+          }
+        ],
         "segments": [
           {
             "account_id": "id-2",
@@ -409,6 +584,30 @@
     }
   },
   "get_debt_insights": {
+    "axis": {
+      "ticks": [
+        {
+          "label": "0",
+          "value": "0.00"
+        },
+        {
+          "label": "50k",
+          "value": "50000.00"
+        },
+        {
+          "label": "100k",
+          "value": "100000.00"
+        },
+        {
+          "label": "150k",
+          "value": "150000.00"
+        },
+        {
+          "label": "200k",
+          "value": "200000.00"
+        }
+      ]
+    },
     "debts": [
       {
         "colour_slot": 0,
@@ -430,6 +629,26 @@
       {
         "closing_balance": "158000.00",
         "is_partial": false,
+        "marker": {
+          "label": "158.00k",
+          "value": "158000.00"
+        },
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "150000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "debt-id-3"
+          },
+          {
+            "hangs": false,
+            "high": "158000.00",
+            "low": "150000.00",
+            "rounding": "top",
+            "series": "debt-id-5"
+          }
+        ],
         "repaid": null,
         "segments": [
           {
@@ -447,6 +666,19 @@
       {
         "closing_balance": "7000.00",
         "is_partial": true,
+        "marker": {
+          "label": "7.00k",
+          "value": "7000.00"
+        },
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "7000.00",
+            "low": "0.00",
+            "rounding": "top",
+            "series": "debt-id-5"
+          }
+        ],
         "repaid": "151000.00",
         "segments": [
           {
@@ -468,6 +700,30 @@
     ]
   },
   "get_expense_insights": {
+    "axis": {
+      "ticks": [
+        {
+          "label": "0",
+          "value": "0.00"
+        },
+        {
+          "label": "500",
+          "value": "500.00"
+        },
+        {
+          "label": "1000",
+          "value": "1000.00"
+        },
+        {
+          "label": "1500",
+          "value": "1500.00"
+        },
+        {
+          "label": "2000",
+          "value": "2000.00"
+        }
+      ]
+    },
     "categories": [
       {
         "colour_slot": 0,
@@ -506,6 +762,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1977
@@ -513,6 +771,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1978
@@ -520,6 +780,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1979
@@ -527,6 +789,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1980
@@ -534,6 +798,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1981
@@ -541,6 +807,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1982
@@ -548,6 +816,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1983
@@ -555,6 +825,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1984
@@ -562,6 +834,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1985
@@ -569,6 +843,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1986
@@ -576,6 +852,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1987
@@ -583,6 +861,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1988
@@ -590,6 +870,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1989
@@ -597,6 +879,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1990
@@ -604,6 +888,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1991
@@ -611,6 +897,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1992
@@ -618,6 +906,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1993
@@ -625,6 +915,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1994
@@ -632,6 +924,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1995
@@ -639,6 +933,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1996
@@ -646,6 +942,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1997
@@ -653,6 +951,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1998
@@ -660,6 +960,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 1999
@@ -667,6 +969,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2000
@@ -674,6 +978,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2001
@@ -681,6 +987,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2002
@@ -688,6 +996,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2003
@@ -695,6 +1005,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2004
@@ -702,6 +1014,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2005
@@ -709,6 +1023,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2006
@@ -716,6 +1032,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2007
@@ -723,6 +1041,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2008
@@ -730,6 +1050,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2009
@@ -737,6 +1059,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2010
@@ -744,6 +1068,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2011
@@ -751,6 +1077,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2012
@@ -758,6 +1086,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2013
@@ -765,6 +1095,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2014
@@ -772,6 +1104,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2015
@@ -779,6 +1113,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2016
@@ -786,6 +1122,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2017
@@ -793,6 +1131,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2018
@@ -800,6 +1140,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2019
@@ -807,6 +1149,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2020
@@ -814,6 +1158,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2021
@@ -821,6 +1167,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2022
@@ -828,6 +1176,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2023
@@ -835,6 +1185,8 @@
       {
         "expense_count": 0,
         "is_partial": false,
+        "marker": null,
+        "pieces": [],
         "segments": [],
         "total": "0.00",
         "year": 2024
@@ -842,6 +1194,23 @@
       {
         "expense_count": 2,
         "is_partial": false,
+        "marker": null,
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "500.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "category-Vehicle"
+          },
+          {
+            "hangs": false,
+            "high": "1750.50",
+            "low": "500.00",
+            "rounding": "top",
+            "series": "category-Holiday"
+          }
+        ],
         "segments": [
           {
             "amount": "500.00",
@@ -858,6 +1227,23 @@
       {
         "expense_count": 2,
         "is_partial": true,
+        "marker": null,
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "800.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "category-Home"
+          },
+          {
+            "hangs": false,
+            "high": "920.00",
+            "low": "800.00",
+            "rounding": "top",
+            "series": "category-Study"
+          }
+        ],
         "segments": [
           {
             "amount": "800.00",
@@ -874,6 +1260,30 @@
     ]
   },
   "get_house_insights": {
+    "axis": {
+      "ticks": [
+        {
+          "label": "0",
+          "value": "0.00"
+        },
+        {
+          "label": "100k",
+          "value": "100000.00"
+        },
+        {
+          "label": "200k",
+          "value": "200000.00"
+        },
+        {
+          "label": "300k",
+          "value": "300000.00"
+        },
+        {
+          "label": "400k",
+          "value": "400000.00"
+        }
+      ]
+    },
     "houses": [
       {
         "colour_slot": 0,
@@ -891,6 +1301,26 @@
         "change": null,
         "closing_value": "365000.00",
         "is_partial": false,
+        "marker": {
+          "label": "365.00k",
+          "value": "365000.00"
+        },
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "260000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "house-id-6"
+          },
+          {
+            "hangs": false,
+            "high": "365000.00",
+            "low": "260000.00",
+            "rounding": "top",
+            "series": "house-id-7"
+          }
+        ],
         "segments": [
           {
             "house_id": "id-6",
@@ -908,6 +1338,19 @@
         "change": "5000.00",
         "closing_value": "110000.00",
         "is_partial": true,
+        "marker": {
+          "label": "110.00k",
+          "value": "110000.00"
+        },
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "110000.00",
+            "low": "0.00",
+            "rounding": "top",
+            "series": "house-id-7"
+          }
+        ],
         "segments": [
           {
             "house_id": "id-7",
@@ -920,14 +1363,60 @@
     ]
   },
   "get_income_insights": {
+    "axis": {
+      "ticks": [
+        {
+          "label": "0",
+          "value": "0.00"
+        },
+        {
+          "label": "10k",
+          "value": "10000.00"
+        },
+        {
+          "label": "20k",
+          "value": "20000.00"
+        },
+        {
+          "label": "30k",
+          "value": "30000.00"
+        },
+        {
+          "label": "40k",
+          "value": "40000.00"
+        },
+        {
+          "label": "50k",
+          "value": "50000.00"
+        }
+      ]
+    },
     "years": [
       {
         "bonus": "2000.00",
         "entry_count": 1,
         "gross_salary": "36000.00",
+        "growth_label": "–",
         "growth_percent": null,
         "holiday_pay": "0.00",
         "is_partial": false,
+        "marker": null,
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "36000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "salary"
+          },
+          {
+            "hangs": false,
+            "high": "38000.00",
+            "low": "36000.00",
+            "rounding": "top",
+            "series": "bonus"
+          }
+        ],
         "total_gross": "38000.00",
         "year": 2023
       },
@@ -935,9 +1424,27 @@
         "bonus": "2000.00",
         "entry_count": 2,
         "gross_salary": "41000.00",
+        "growth_label": "+13.16%",
         "growth_percent": "13.16",
         "holiday_pay": "0.00",
         "is_partial": false,
+        "marker": null,
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "41000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "salary"
+          },
+          {
+            "hangs": false,
+            "high": "43000.00",
+            "low": "41000.00",
+            "rounding": "top",
+            "series": "bonus"
+          }
+        ],
         "total_gross": "43000.00",
         "year": 2024
       },
@@ -945,9 +1452,34 @@
         "bonus": "2500.00",
         "entry_count": 2,
         "gross_salary": "43200.00",
+        "growth_label": "+11.86%",
         "growth_percent": "11.86",
         "holiday_pay": "2400.00",
         "is_partial": false,
+        "marker": null,
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "43200.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "salary"
+          },
+          {
+            "hangs": false,
+            "high": "45600.00",
+            "low": "43200.00",
+            "rounding": "none",
+            "series": "holiday"
+          },
+          {
+            "hangs": false,
+            "high": "48100.00",
+            "low": "45600.00",
+            "rounding": "top",
+            "series": "bonus"
+          }
+        ],
         "total_gross": "48100.00",
         "year": 2025
       },
@@ -955,49 +1487,167 @@
         "bonus": "1000.00",
         "entry_count": 2,
         "gross_salary": "6600.00",
+        "growth_label": "–",
         "growth_percent": null,
         "holiday_pay": "0.00",
         "is_partial": true,
+        "marker": null,
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "6600.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "salary"
+          },
+          {
+            "hangs": false,
+            "high": "7600.00",
+            "low": "6600.00",
+            "rounding": "top",
+            "series": "bonus"
+          }
+        ],
         "total_gross": "7600.00",
         "year": 2026
       }
     ]
   },
   "get_investment_insights": {
+    "axis": {
+      "ticks": [
+        {
+          "label": "0",
+          "value": "0.00"
+        },
+        {
+          "label": "5k",
+          "value": "5000.00"
+        },
+        {
+          "label": "10k",
+          "value": "10000.00"
+        },
+        {
+          "label": "15k",
+          "value": "15000.00"
+        },
+        {
+          "label": "20k",
+          "value": "20000.00"
+        }
+      ]
+    },
     "years": [
       {
         "capital_growth": "5000.00",
         "closing_balance": "5000.00",
+        "growth_label": "–",
         "growth_percent": null,
         "is_partial": false,
+        "marker": {
+          "label": "5.00k",
+          "value": "5000.00"
+        },
         "net_deposits": "0.00",
         "opening_balance": "0.00",
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "5000.00",
+            "low": "0.00",
+            "rounding": "top",
+            "series": "growth-up"
+          }
+        ],
         "statement_count": 1,
         "year": 2024
       },
       {
         "capital_growth": "11000.00",
         "closing_balance": "16000.00",
+        "growth_label": "+20.00%",
         "growth_percent": "20.00",
         "is_partial": false,
+        "marker": {
+          "label": "16.00k",
+          "value": "16000.00"
+        },
         "net_deposits": "0.00",
         "opening_balance": "5000.00",
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "5000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "opening"
+          },
+          {
+            "hangs": false,
+            "high": "16000.00",
+            "low": "5000.00",
+            "rounding": "top",
+            "series": "growth-up"
+          }
+        ],
         "statement_count": 2,
         "year": 2025
       },
       {
         "capital_growth": "2000.00",
         "closing_balance": "12000.00",
+        "growth_label": "+20.00%",
         "growth_percent": "20.00",
         "is_partial": true,
+        "marker": {
+          "label": "12.00k",
+          "value": "12000.00"
+        },
         "net_deposits": "0.00",
         "opening_balance": "10000.00",
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "10000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "opening"
+          },
+          {
+            "hangs": false,
+            "high": "12000.00",
+            "low": "10000.00",
+            "rounding": "top",
+            "series": "growth-up"
+          }
+        ],
         "statement_count": 2,
         "year": 2026
       }
     ]
   },
   "get_net_worth_insights": {
+    "axis": {
+      "ticks": [
+        {
+          "label": "-200k",
+          "value": "-200000.00"
+        },
+        {
+          "label": "0",
+          "value": "0.00"
+        },
+        {
+          "label": "200k",
+          "value": "200000.00"
+        },
+        {
+          "label": "400k",
+          "value": "400000.00"
+        }
+      ]
+    },
     "years": [
       {
         "cash": "0.00",
@@ -1006,7 +1656,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1978
       },
       {
@@ -1016,7 +1668,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1979
       },
       {
@@ -1026,7 +1680,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1980
       },
       {
@@ -1036,7 +1692,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1981
       },
       {
@@ -1046,7 +1704,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1982
       },
       {
@@ -1056,7 +1716,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1983
       },
       {
@@ -1066,7 +1728,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1984
       },
       {
@@ -1076,7 +1740,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1985
       },
       {
@@ -1086,7 +1752,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1986
       },
       {
@@ -1096,7 +1764,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1987
       },
       {
@@ -1106,7 +1776,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1988
       },
       {
@@ -1116,7 +1788,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1989
       },
       {
@@ -1126,7 +1800,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1990
       },
       {
@@ -1136,7 +1812,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1991
       },
       {
@@ -1146,7 +1824,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1992
       },
       {
@@ -1156,7 +1836,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1993
       },
       {
@@ -1166,7 +1848,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1994
       },
       {
@@ -1176,7 +1860,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1995
       },
       {
@@ -1186,7 +1872,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1996
       },
       {
@@ -1196,7 +1884,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1997
       },
       {
@@ -1206,7 +1896,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1998
       },
       {
@@ -1216,7 +1908,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 1999
       },
       {
@@ -1226,7 +1920,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2000
       },
       {
@@ -1236,7 +1932,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2001
       },
       {
@@ -1246,7 +1944,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2002
       },
       {
@@ -1256,7 +1956,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2003
       },
       {
@@ -1266,7 +1968,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2004
       },
       {
@@ -1276,7 +1980,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2005
       },
       {
@@ -1286,7 +1992,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2006
       },
       {
@@ -1296,7 +2004,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2007
       },
       {
@@ -1306,7 +2016,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2008
       },
       {
@@ -1316,7 +2028,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2009
       },
       {
@@ -1326,7 +2040,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2010
       },
       {
@@ -1336,7 +2052,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2011
       },
       {
@@ -1346,7 +2064,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2012
       },
       {
@@ -1356,7 +2076,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2013
       },
       {
@@ -1366,7 +2088,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2014
       },
       {
@@ -1376,7 +2100,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2015
       },
       {
@@ -1386,7 +2112,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2016
       },
       {
@@ -1396,7 +2124,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2017
       },
       {
@@ -1406,7 +2136,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2018
       },
       {
@@ -1416,7 +2148,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2019
       },
       {
@@ -1426,7 +2160,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2020
       },
       {
@@ -1436,7 +2172,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2021
       },
       {
@@ -1446,7 +2184,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2022
       },
       {
@@ -1456,7 +2196,9 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": null,
         "net_worth": "0.00",
+        "pieces": [],
         "year": 2023
       },
       {
@@ -1466,7 +2208,27 @@
         "houses": "0.00",
         "investments": "5000.00",
         "is_partial": false,
+        "marker": {
+          "label": "4.60k",
+          "value": "4600.00"
+        },
         "net_worth": "4600.00",
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "5000.00",
+            "low": "0.00",
+            "rounding": "top",
+            "series": "investments"
+          },
+          {
+            "hangs": true,
+            "high": "0.00",
+            "low": "-400.00",
+            "rounding": "bottom",
+            "series": "cash"
+          }
+        ],
         "year": 2024
       },
       {
@@ -1476,7 +2238,41 @@
         "houses": "365000.00",
         "investments": "16000.00",
         "is_partial": false,
+        "marker": {
+          "label": "226.00k",
+          "value": "226000.00"
+        },
         "net_worth": "226000.00",
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "365000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "houses"
+          },
+          {
+            "hangs": false,
+            "high": "381000.00",
+            "low": "365000.00",
+            "rounding": "none",
+            "series": "investments"
+          },
+          {
+            "hangs": false,
+            "high": "384000.00",
+            "low": "381000.00",
+            "rounding": "top",
+            "series": "cash"
+          },
+          {
+            "hangs": true,
+            "high": "0.00",
+            "low": "-158000.00",
+            "rounding": "bottom",
+            "series": "debts"
+          }
+        ],
         "year": 2025
       },
       {
@@ -1486,7 +2282,41 @@
         "houses": "110000.00",
         "investments": "12000.00",
         "is_partial": true,
+        "marker": {
+          "label": "117.50k",
+          "value": "117500.50"
+        },
         "net_worth": "117500.50",
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "110000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "houses"
+          },
+          {
+            "hangs": false,
+            "high": "122000.00",
+            "low": "110000.00",
+            "rounding": "none",
+            "series": "investments"
+          },
+          {
+            "hangs": false,
+            "high": "124500.50",
+            "low": "122000.00",
+            "rounding": "top",
+            "series": "cash"
+          },
+          {
+            "hangs": true,
+            "high": "0.00",
+            "low": "-7000.00",
+            "rounding": "bottom",
+            "series": "debts"
+          }
+        ],
         "year": 2026
       },
       {
@@ -1496,7 +2326,20 @@
         "houses": "0.00",
         "investments": "0.00",
         "is_partial": false,
+        "marker": {
+          "label": "1.50k",
+          "value": "1500.00"
+        },
         "net_worth": "1500.00",
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "1500.00",
+            "low": "0.00",
+            "rounding": "top",
+            "series": "cash"
+          }
+        ],
         "year": 2027
       }
     ]

@@ -3,6 +3,7 @@
 use rust_decimal::Decimal;
 use serde::Serialize;
 
+use crate::domain::charts::{stack_from_zero, Axis, ChartYear, Marker, Piece};
 use crate::domain::common::{series_years, ColourSlot, YearMonth};
 use crate::domain::money::zero;
 
@@ -32,12 +33,28 @@ pub struct HouseInsightsYear {
     pub valuation_count: usize,
     pub is_partial: bool,
     pub segments: Vec<InsightsSegment>,
+    /// The stacked pieces of the bar (CSD-025 section 5).
+    pub pieces: Vec<Piece>,
+    /// The total value, for a year with valuations.
+    pub marker: Option<Marker>,
+}
+
+impl ChartYear for HouseInsightsYear {
+    fn pieces(&self) -> &[Piece] {
+        &self.pieces
+    }
+
+    fn marker(&self) -> Option<&Marker> {
+        self.marker.as_ref()
+    }
 }
 
 /// The payload of `get_house_insights` (CSD-016 section 5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HouseInsights {
     pub houses: Vec<InsightsHouse>,
+    /// The axis of the chart (CSD-025 REQ-3).
+    pub axis: Axis,
     pub years: Vec<HouseInsightsYear>,
 }
 
@@ -63,15 +80,24 @@ impl Houses {
                         value,
                     })
                     .collect();
+                let closing_value = segments
+                    .iter()
+                    .fold(zero(), |sum, segment| sum + segment.value);
+                let valuation_count = counts.get(&year).copied().unwrap_or(0);
+                let pieces = stack_from_zero(
+                    segments
+                        .iter()
+                        .map(|segment| (format!("house-{}", segment.house_id), segment.value)),
+                );
                 HouseInsightsYear {
                     year,
-                    closing_value: segments
-                        .iter()
-                        .fold(zero(), |sum, segment| sum + segment.value),
+                    closing_value,
                     change: self.year_change(year),
-                    valuation_count: counts.get(&year).copied().unwrap_or(0),
+                    valuation_count,
                     is_partial: year == today.year(),
                     segments,
+                    pieces,
+                    marker: (valuation_count > 0).then(|| Marker::at(closing_value)),
                 }
             })
             .collect();
@@ -91,6 +117,11 @@ impl Houses {
                 colour_slot: house.colour_slot,
             })
             .collect();
-        HouseInsights { houses, years }
+        let axis = Axis::of_years(&years);
+        HouseInsights {
+            houses,
+            axis,
+            years,
+        }
     }
 }

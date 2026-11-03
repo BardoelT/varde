@@ -1329,3 +1329,57 @@ fn test_csd020_ac_15_1_other_category_and_outcome_text_is_rejected_with_its_own_
         );
     }
 }
+
+// ---- CSD-025: pieces, marker and axis come from Rust ----
+
+#[test]
+fn test_csd012_ac_7_1_the_marker_is_the_total_debt_with_its_short_label() {
+    let mut debts = Debts::default();
+    let a = debt(&mut debts, "Example Mortgage", "Yearly");
+    let b = debt(&mut debts, "Example Loan", "Yearly");
+    add(&mut debts, a, "2025", "2000.00");
+    add(&mut debts, b, "2025", "8000.00");
+    let insights = debts.insights(today());
+    let year = &insights.years[0];
+    let marker = year.marker.as_ref().unwrap();
+    assert_eq!(
+        (marker.value.to_string(), marker.label.as_str()),
+        ("10000.00".to_owned(), "10.00k")
+    );
+    let spans: Vec<_> = year
+        .pieces
+        .iter()
+        .map(|p| (p.series.clone(), p.high.to_string(), p.rounding))
+        .collect();
+    assert_eq!(
+        spans,
+        [
+            (
+                format!("debt-{a}"),
+                "2000.00".to_owned(),
+                crate::domain::charts::Rounding::None
+            ),
+            (
+                format!("debt-{b}"),
+                "10000.00".to_owned(),
+                crate::domain::charts::Rounding::Top
+            ),
+        ]
+    );
+    assert_eq!(
+        insights.axis.ticks.first().unwrap().value.to_string(),
+        "0.00"
+    );
+}
+
+#[test]
+fn test_csd012_ac_6_2_the_axis_covers_the_highest_level_and_a_repaid_debt_adds_no_piece() {
+    let mut debts = Debts::default();
+    let a = debt(&mut debts, "Example Mortgage", "Yearly");
+    let b = debt(&mut debts, "Example Loan", "Yearly");
+    add(&mut debts, a, "2025", "158000.00");
+    add(&mut debts, b, "2025", "0.00");
+    let insights = debts.insights(today());
+    assert_eq!(insights.years[0].pieces.len(), 1);
+    assert!(insights.axis.ticks.last().unwrap().value >= "158000.00".parse().unwrap());
+}
