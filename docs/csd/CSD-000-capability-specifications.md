@@ -371,7 +371,7 @@ Sections 1, 2, 4, 7 and 9 are **required**. Sections 3, 5, 6 and 8 may be omitte
 - **CON-3:** Acceptance criteria are valid Gherkin. Rationale: they are precise enough to drive Rust test naming and serve as executable specs if a Rust BDD crate is adopted later.
 - **CON-4:** Language: English. Rationale: consistent with code and tooling.
 - **CON-5:** No secrets, credentials, or real financial data (including PII) in CSDs. Use synthetic examples (e.g. "Example Bank", round amounts in EUR). Rationale: specs are widely read and fed into agent context; the repo is public.
-- **CON-6:** IDs (`REQ`, `AC`, `NG`, `CON`, `OQ`) are stable. Removed items are marked `(removed in vX)`, never renumbered. Rationale: tests and PRs reference them. The merge of CSD-019 into CSD-020 (v3.0 of this CSD, 03/11/2026) renumbered the IDs once, as a one-time exception granted by the owner.
+- **CON-6:** IDs (`REQ`, `AC`, `NG`, `CON`, `OQ`) are stable. Removed items are marked `(removed in vX)`, never renumbered. Rationale: tests and PRs reference them.
 - **CON-7:** Dates are written dd/mm/yyyy (for example 25/10/2026), in CSDs and in everything the app shows or accepts: front matter, changelogs, Gherkin examples, screens and messages. Months are written YYYY-MM. Machine-facing data (the project file and IPC) may use ISO 8601 and is converted at the edge. Rationale: one unambiguous convention for the owner, and no mix of formats in the specs.
 - **CON-8:** Money rounding is one rule for the whole application. Every money amount is rounded to 2 decimals, half-up (the midpoint rounds away from zero, so -0.125 becomes -0.13). No money value has more than 2 decimals outside the function that computes it. Percentages and ratios follow the same rule (2 decimals, half-up, for example "12.50"). A decrease that rounds to 0.00 is shown without a sign (0.00, not -0.00). CSDs that handle money, percentages or ratios reference CON-8 instead of restating the rule. Rationale: one unambiguous rounding rule, so figures agree across screens, tests and specs.
 
@@ -393,7 +393,7 @@ This CSD is working when:
 
 ## 9. Changelog
 
-- 3.0 (03/11/2026): The `implemented` status is removed (statuses: draft, review, approved, deprecated); REQ-16 removed, REQ-2 table and state diagram updated, an approved CSD returns to `draft` when behaviour changes. Any reviewer may approve or restore `approved` (REQ-13). V-4 is advisory; OQ-1 to OQ-4 resolved. New CON-8 (money rounding: 2 decimals, half-up, no sign on a zero decrease). CON-6 notes the one-time renumbering of the CSD-019 into CSD-020 merge. Fixed the REQ-14 reference in the flowchart and the AC-1.1 example.
+- 3.0 (03/11/2026): The `implemented` status is removed (statuses: draft, review, approved, deprecated); REQ-16 removed, REQ-2 table and state diagram updated, an approved CSD returns to `draft` when behaviour changes. Any reviewer may approve or restore `approved` (REQ-13). V-4 is advisory; OQ-1 to OQ-4 resolved. New CON-8 (money rounding: 2 decimals, half-up, no sign on a zero decrease). Fixed the REQ-14 reference in the flowchart and the AC-1.1 example.
 
 - 2.2 (25/10/2026): Dates are written dd/mm/yyyy everywhere (new CON-7, template placeholders, Appendix A checklist, existing dates converted). Months stay YYYY-MM.
 - 2.1 (25/10/2026): Test names now include the CSD number (`test_csd<NNN>_ac_n_m_…`) because AC numbers restart in every CSD (REQ-6, OQ-3, Appendix B).

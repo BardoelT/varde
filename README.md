@@ -133,7 +133,6 @@ Behaviour is defined in Capability Specification Documents in [`docs/csd/`](docs
 | [CSD-014](docs/csd/CSD-014-expense-insights.md) | Expense insights chart |
 | [CSD-015](docs/csd/CSD-015-houses.md) | Houses |
 | [CSD-016](docs/csd/CSD-016-house-insights.md) | House insights chart |
-| [CSD-019](docs/csd/CSD-019-house-purchase-and-sale.md) | House purchase and sale |
 | [CSD-017](docs/csd/CSD-017-net-worth-insights.md) | Net worth insights (the Net worth page) |
 | [CSD-018](docs/csd/CSD-018-ratios.md) | Ratios (the Ratios page) |
 | [CSD-020](docs/csd/CSD-020-debt-linked-to-house.md) | Debt linked to a house |
