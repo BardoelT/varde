@@ -825,7 +825,7 @@ fn test_csd020_ac_27_3_more_cancelled_than_repaid_is_shown_as_is() {
 // REQ-13, REQ-14: views
 
 #[test]
-fn test_csd020_ac_29_1_the_houses_view_lists_the_linked_debts() {
+fn test_csd020_ac_29_2_the_houses_view_lists_the_linked_debts() {
     let (mut data, house, mortgage, loan) = house_with_two_debts();
     save(
         &mut data,

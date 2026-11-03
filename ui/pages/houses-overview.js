@@ -151,8 +151,8 @@ function openHouseDialog(house) {
   if (house) {
     form.elements.name.value = house.name;
     form.elements.period.value = house.period;
-    form.elements.purchase_date.value = house.purchase_date === null ? '' : formatDate(house.purchase_date);
-    form.elements.purchase_amount.value = house.purchase_amount ?? '';
+    form.elements.purchase_date.value = formatDate(house.purchase_date);
+    form.elements.purchase_amount.value = house.purchase_amount;
     form.elements.sell_date.value = house.sell_date === null ? '' : formatDate(house.sell_date);
     form.elements.sell_amount.value = house.sell_amount ?? '';
   }
