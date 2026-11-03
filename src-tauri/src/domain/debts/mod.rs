@@ -38,10 +38,9 @@ use crate::domain::series::{self, COLOUR_SLOTS, MAX_NAME_CHARS};
 /// All debts with their statements. Debts are kept in the order they were
 /// created (CSD-011 section 5).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Debts {
-    #[serde(default)]
     debts: Vec<Debt>,
-    #[serde(default)]
     statements: Vec<DebtStatement>,
 }
 

@@ -74,6 +74,7 @@ impl Category {
 
 /// One amount the user owes to one party (CSD-011 REQ-1).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Debt {
     pub id: DebtId,
     pub name: String,
@@ -81,7 +82,6 @@ pub struct Debt {
     /// 0 to 7, fixed when the debt is created (CSD-011 REQ-3).
     pub colour_slot: u8,
     /// Mortgage, Loan or Other (CSD-020 REQ-1).
-    #[serde(default)]
     pub category: Category,
     /// The house this debt is linked to (CSD-020 REQ-1).
     #[serde(default, skip_serializing_if = "Option::is_none")]

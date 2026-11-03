@@ -10,11 +10,11 @@ use super::{BankAccountId, BankAccounts, BankBalance};
 
 /// The record of one account for one period (CSD-009 REQ-7).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct BankEntry {
     pub account_id: BankAccountId,
     pub period: Period,
     pub balance: BankBalance,
-    #[serde(default)]
     pub note: Note,
 }
 

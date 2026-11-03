@@ -44,10 +44,9 @@ use crate::domain::series::{self, COLOUR_SLOTS, MAX_NAME_CHARS};
 /// All houses with their valuations. Houses are kept in the order they were
 /// created (CSD-015 section 5).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Houses {
-    #[serde(default, alias = "assets")]
     houses: Vec<House>,
-    #[serde(default)]
     valuations: Vec<HouseValuation>,
 }
 
@@ -69,8 +68,8 @@ impl Houses {
             name: valid.name,
             period: valid.period.unwrap_or_default(),
             colour_slot: self.next_colour_slot(),
-            purchase_date: Some(valid.purchase_date),
-            purchase_amount: Some(valid.purchase_amount),
+            purchase_date: valid.purchase_date,
+            purchase_amount: valid.purchase_amount,
             sell_date: valid.sale.map(|(date, _)| date),
             sell_amount: valid.sale.map(|(_, amount)| amount),
         };
@@ -104,8 +103,8 @@ impl Houses {
         let mut updated = self.house(id)?.clone();
         updated.name = valid.name;
         updated.period = period;
-        updated.purchase_date = Some(valid.purchase_date);
-        updated.purchase_amount = Some(valid.purchase_amount);
+        updated.purchase_date = valid.purchase_date;
+        updated.purchase_amount = valid.purchase_amount;
         updated.sell_date = valid.sale.map(|(date, _)| date);
         updated.sell_amount = valid.sale.map(|(_, amount)| amount);
         if self
@@ -375,23 +374,16 @@ impl Houses {
     }
 }
 
-/// Whether the purchase and sale of a house read from a file follow CSD-019:
-/// a purchase is both fields or neither, a sale needs a purchase and is both
-/// fields, the sell date is not before the purchase date and the amounts are
-/// valid.
+/// Whether the sale of a house read from a file is both fields, not before the
+/// purchase, and whether the amounts are valid (CSD-020 REQ-5, REQ-13).
 fn purchase_and_sale_consistent(house: &House) -> bool {
-    let amounts_valid = [house.purchase_amount, house.sell_amount]
+    let amounts_valid = [Some(house.purchase_amount), house.sell_amount]
         .into_iter()
         .flatten()
         .all(|amount| HouseValue::new(amount.value()).is_ok());
-    let purchase = match (house.purchase_date, house.purchase_amount) {
-        (Some(date), Some(_)) => Some(date),
-        (None, None) => None,
-        _ => return false,
-    };
     let sale_valid = match (house.sell_date, house.sell_amount) {
         (None, None) => true,
-        (Some(sold), Some(_)) => purchase.is_some_and(|bought| sold >= bought),
+        (Some(sold), Some(_)) => sold >= house.purchase_date,
         _ => false,
     };
     amounts_valid && sale_valid

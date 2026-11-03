@@ -10,12 +10,11 @@ use super::{HouseId, HouseValue, Houses};
 
 /// The record of one house for one period (CSD-015 REQ-7).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct HouseValuation {
-    #[serde(alias = "asset_id")]
     pub house_id: HouseId,
     pub period: Period,
     pub value: HouseValue,
-    #[serde(default)]
     pub note: Note,
 }
 

@@ -44,21 +44,18 @@ impl fmt::Display for HouseId {
 
 /// One thing the user owns that has a value (CSD-015 REQ-1).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct House {
     pub id: HouseId,
     pub name: String,
     pub period: PayPeriod,
     /// 0 to 7, fixed when the house is created (CSD-015 REQ-3).
     pub colour_slot: u8,
-    /// `None` only for a house from a file made before CSD-019 (REQ-6).
-    #[serde(default)]
-    pub purchase_date: Option<HouseDate>,
-    #[serde(default)]
-    pub purchase_amount: Option<HouseValue>,
+    /// Every house has a purchase (CSD-020 REQ-1).
+    pub purchase_date: HouseDate,
+    pub purchase_amount: HouseValue,
     /// The sale: both fields or neither (CSD-019 REQ-5).
-    #[serde(default)]
     pub sell_date: Option<HouseDate>,
-    #[serde(default)]
     pub sell_amount: Option<HouseValue>,
 }
 
@@ -73,15 +70,13 @@ impl House {
     /// REQ-9). It is derived and never stored.
     #[must_use]
     pub fn result(&self) -> Option<Decimal> {
-        Some(self.sell_amount?.value() - self.purchase_amount?.value())
+        Some(self.sell_amount?.value() - self.purchase_amount.value())
     }
 
     /// Whether the house was purchased on or before 31/12 of `year` and not
-    /// sold on or before it (CSD-019 REQ-11). A house without a purchase
-    /// counts as purchased before any year.
+    /// sold on or before it (CSD-019 REQ-11).
     pub(super) fn held_at_end_of(&self, year: i32) -> bool {
-        self.purchase_date.is_none_or(|date| date.year() <= year)
-            && self.sell_date.is_none_or(|date| date.year() > year)
+        self.purchase_date.year() <= year && self.sell_date.is_none_or(|date| date.year() > year)
     }
 
     /// Whether `period` lies in the holding window: not before the period of
@@ -96,8 +91,7 @@ impl House {
             Period::Month(_) => period.sort_key(),
             Period::Year(_) => (period.year(), 0),
         };
-        self.purchase_date.is_none_or(|date| own >= key(date))
-            && self.sell_date.is_none_or(|date| own <= key(date))
+        own >= key(self.purchase_date) && self.sell_date.is_none_or(|date| own <= key(date))
     }
 }
 

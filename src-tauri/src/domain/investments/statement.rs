@@ -10,13 +10,12 @@ use super::{Balance, InvestmentAccountId, Investments, NetDeposits, Note, Period
 
 /// The record of one account for one period (CSD-005 REQ-6).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct InvestmentStatement {
     pub account_id: InvestmentAccountId,
     pub period: Period,
     pub balance: Balance,
-    #[serde(default)]
     pub net_deposits: NetDeposits,
-    #[serde(default)]
     pub note: Note,
 }
 

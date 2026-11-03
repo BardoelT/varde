@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::domain::error::DomainError;
 use crate::domain::houses::{HouseDate, HouseId, Houses};
 use crate::domain::income::PayPeriod;
-use crate::domain::investments::{Note, Period};
+use crate::domain::investments::Period;
 
 use super::{Category, Debt, DebtBalance, DebtId, DebtStatement, Debts};
 
@@ -40,28 +40,15 @@ impl Outcome {
     }
 }
 
-/// The statement an earlier version of the settlement replaced in the sale
-/// period. Only read from old files, to turn it back into a regular statement
-/// (CSD-020 REQ-16).
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub(super) struct Replaced {
-    balance: DebtBalance,
-    #[serde(default)]
-    note: Note,
-}
-
 /// The outcome, date and settled amount of a settled debt (CSD-020 section 3).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Settlement {
     pub outcome: Outcome,
     /// The sell date of the house.
     pub date: HouseDate,
     /// The open balance at the sale.
     pub amount: DebtBalance,
-    /// Read from files saved before the settlement statement was added next to
-    /// the regular one; never written.
-    #[serde(default, skip_serializing)]
-    pub(super) replaced: Option<Replaced>,
 }
 
 /// A linked debt with an open balance at a sale, for the settlement prompt.
@@ -226,7 +213,6 @@ impl Debts {
             outcome,
             date,
             amount: DebtBalance::new(amount)?,
-            replaced: None,
         });
         Ok(())
     }
@@ -286,58 +272,6 @@ impl Debts {
         };
         let settled_period = sale_period(debt.period, settlement.date)?;
         Ok(period.sort_key() > settled_period.sort_key())
-    }
-
-    /// Brings a debt settled by an earlier version into the current form: its
-    /// unflagged statement of 0.00 in the settlement period becomes the
-    /// settlement statement, and the statement it replaced comes back as a
-    /// regular one (CSD-020 REQ-16). Files saved by this version change nothing.
-    ///
-    /// # Errors
-    /// Returns `DebtDataInvalid` when the settlement date has no valid period.
-    pub fn migrate_legacy_settlements(&mut self) -> Result<(), DomainError> {
-        for index in 0..self.debts.len() {
-            let Some(debt) = self.debts.get(index) else {
-                continue;
-            };
-            let Some(settlement) = debt.settlement.clone() else {
-                continue;
-            };
-            let (id, period) = (debt.id, sale_period(debt.period, settlement.date)?);
-            let has_flagged = self
-                .statements
-                .iter()
-                .any(|s| s.debt_id == id && s.period == period && s.settlement);
-            if !has_flagged {
-                if let Some(zero) = self.statements.iter_mut().find(|s| {
-                    s.debt_id == id
-                        && s.period == period
-                        && !s.settlement
-                        && s.balance.value().is_zero()
-                }) {
-                    zero.settlement = true;
-                }
-            }
-            if let Some(replaced) = settlement.replaced {
-                if self.statement(id, period).is_none() {
-                    self.statements.push(DebtStatement {
-                        debt_id: id,
-                        period,
-                        balance: replaced.balance,
-                        note: replaced.note,
-                        settlement: false,
-                    });
-                }
-                if let Some(settled) = self
-                    .debts
-                    .get_mut(index)
-                    .and_then(|d| d.settlement.as_mut())
-                {
-                    settled.replaced = None;
-                }
-            }
-        }
-        Ok(())
     }
 
     /// Whether a statement can no longer change: the settlement statement, and

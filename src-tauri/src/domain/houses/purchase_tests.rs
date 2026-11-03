@@ -1,14 +1,6 @@
 //! Tests for CSD-019: the purchase and sale of a house.
 
 use super::*;
-const LEGACY_FILE: &str = r#"{
-  "houses": [
-    {"id": "11111111-1111-4111-8111-111111111111", "name": "Example House",
-     "period": "Monthly", "colour_slot": 0}
-  ],
-  "valuations": []
-}"#;
-
 fn today_date() -> Date {
     time::macros::date!(2026 - 10 - 29)
 }
@@ -110,10 +102,7 @@ fn test_csd019_ac_1_1_a_house_with_a_purchase() {
         serde_json::to_value(created.purchase_date).unwrap(),
         "2024-03-15"
     );
-    assert_eq!(
-        created.purchase_amount.unwrap().value().to_string(),
-        "250000.00"
-    );
+    assert_eq!(created.purchase_amount.value().to_string(), "250000.00");
     assert!(created.is_held());
     assert_eq!(created.sell_date, None);
 }
@@ -296,69 +285,6 @@ fn test_csd019_ac_5_1_half_a_sale_is_rejected() {
         assert_eq!(code(result), "HOUSE_SALE_INCOMPLETE");
         assert!(house(&houses, id).is_held());
     }
-}
-
-// REQ-6
-
-fn legacy() -> (Houses, HouseId) {
-    let houses: Houses = serde_json::from_str(LEGACY_FILE).unwrap();
-    houses.validate().unwrap();
-    let id = houses.houses()[0].id;
-    (houses, id)
-}
-
-#[test]
-fn test_csd019_ac_6_1_a_legacy_file_opens() {
-    let (houses, id) = legacy();
-    let legacy = house(&houses, id);
-    assert!(legacy.is_held());
-    assert_eq!(legacy.purchase_date, None);
-    assert_eq!(legacy.purchase_amount, None);
-    let overview = houses.overview();
-    assert!(overview.houses[0].held);
-}
-
-#[test]
-fn test_csd019_ac_6_2_editing_a_legacy_house_needs_the_purchase() {
-    let (mut houses, id) = legacy();
-    let result = houses.update_house(
-        id,
-        &input("Example Home", "Monthly", ("", ""), ("", "")),
-        today_date(),
-    );
-    assert_eq!(code(result), "HOUSE_PURCHASE_DATE_REQUIRED");
-    assert_eq!(house(&houses, id).name, "Example House");
-}
-
-#[test]
-fn test_csd019_ac_6_3_a_legacy_house_is_complete_once_the_purchase_is_filled_in() {
-    let (mut houses, id) = legacy();
-    houses
-        .update_house(
-            id,
-            &input(
-                "Example House",
-                "Monthly",
-                ("15/03/2024", "250000.00"),
-                ("", ""),
-            ),
-            today_date(),
-        )
-        .unwrap();
-    assert_eq!(
-        house(&houses, id)
-            .purchase_amount
-            .unwrap()
-            .value()
-            .to_string(),
-        "250000.00"
-    );
-}
-
-#[test]
-fn test_csd019_ac_6_4_a_legacy_house_has_no_lower_bound_on_valuations() {
-    let (mut houses, id) = legacy();
-    assert_eq!(code(add(&mut houses, id, "2019-01", "200000.00")), "OK");
 }
 
 // REQ-7

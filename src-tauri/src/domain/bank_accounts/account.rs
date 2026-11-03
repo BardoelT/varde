@@ -38,6 +38,7 @@ impl fmt::Display for BankAccountId {
 
 /// One place where the user keeps money at a bank (CSD-009 REQ-1).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct BankAccount {
     pub id: BankAccountId,
     pub name: String,

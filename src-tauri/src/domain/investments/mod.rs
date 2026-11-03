@@ -39,10 +39,9 @@ use crate::domain::series::{self, MAX_NAME_CHARS};
 
 /// All investment accounts with their statements.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Investments {
-    #[serde(default)]
     accounts: Vec<InvestmentAccount>,
-    #[serde(default)]
     statements: Vec<InvestmentStatement>,
 }
 

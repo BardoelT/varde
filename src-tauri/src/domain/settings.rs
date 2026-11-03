@@ -5,9 +5,9 @@ use super::money::Currency;
 
 /// Settings of the whole project (CSD-003). They are saved in the project file.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Settings {
     /// The one currency of every amount in the project; a new project uses EUR.
-    #[serde(default)]
     pub currency: Currency,
 }
 

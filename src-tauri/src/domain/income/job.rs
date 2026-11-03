@@ -64,16 +64,16 @@ impl PayPeriod {
 
 /// One employment relationship (CSD-001 REQ-1).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Job {
     pub id: JobId,
     pub employer: String,
     pub title: Option<String>,
     #[serde(with = "iso_date")]
     pub start_date: Date,
-    #[serde(default, with = "iso_date::option")]
+    #[serde(with = "iso_date::option")]
     pub end_date: Option<Date>,
     /// A job without a pay period (an older file) is monthly.
-    #[serde(default)]
     pub period: PayPeriod,
 }
 

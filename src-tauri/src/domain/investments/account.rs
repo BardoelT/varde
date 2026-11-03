@@ -38,6 +38,7 @@ impl fmt::Display for InvestmentAccountId {
 
 /// One place where the user holds investments (CSD-005 REQ-1).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct InvestmentAccount {
     pub id: InvestmentAccountId,
     pub name: String,

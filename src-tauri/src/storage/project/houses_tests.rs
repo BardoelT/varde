@@ -267,3 +267,32 @@ fn test_csd020_ac_16_5_a_settlement_statement_without_a_settlement_is_an_invalid
     let error = project.open(&path).unwrap_err();
     assert_eq!(error.code(), "PROJECT_INVALID_FILE");
 }
+
+#[test]
+fn test_csd020_ac_13_4_a_house_without_a_purchase_is_an_invalid_file() {
+    let dir = TempDir::new().unwrap();
+    let mut project = Project::new();
+    house(&mut project, "Example House", "Monthly");
+    let path = dir.path().join("example-a.varde");
+    project.save_as(path.clone()).unwrap();
+    let mut value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+    for field in ["purchase_date", "purchase_amount"] {
+        let mut damaged = value.clone();
+        damaged["houses"]["houses"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove(field);
+        let bad = dir.path().join("bad.varde");
+        fs::write(&bad, damaged.to_string()).unwrap();
+        let error = Project::new().open(&bad).unwrap_err();
+        assert_eq!(error.code(), "PROJECT_INVALID_FILE", "{field}");
+    }
+    value["houses"]["houses"][0]["former_field"] = serde_json::json!("x");
+    let bad = dir.path().join("bad.varde");
+    fs::write(&bad, value.to_string()).unwrap();
+    assert_eq!(
+        Project::new().open(&bad).unwrap_err().code(),
+        "PROJECT_INVALID_FILE"
+    );
+}

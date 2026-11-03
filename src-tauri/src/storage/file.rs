@@ -77,10 +77,6 @@ pub(super) fn from_json(text: &str) -> Result<ProjectData, StorageError> {
         return Err(StorageError::FileNewer);
     }
     let file: FileOwned = serde_json::from_value(value).map_err(|_| StorageError::InvalidFile)?;
-    let mut file = file;
-    file.debts
-        .migrate_legacy_settlements()
-        .map_err(|_| StorageError::InvalidFile)?;
     file.income
         .validate()
         .map_err(|_| StorageError::InvalidFile)?;

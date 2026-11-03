@@ -9,6 +9,7 @@ use super::{JobId, Year, YearMonth};
 
 /// The monthly pay record of one job (CSD-001 REQ-5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Paycheck {
     pub job_id: JobId,
     pub month: YearMonth,
@@ -18,6 +19,7 @@ pub struct Paycheck {
 
 /// The yearly pay record of one job (CSD-001 REQ-25).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AnnualStatement {
     pub job_id: JobId,
     pub year: Year,

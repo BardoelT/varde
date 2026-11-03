@@ -41,13 +41,13 @@ impl fmt::Display for ExpenseId {
 
 /// One purchase or cost (CSD-013 section 3).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Expense {
     pub id: ExpenseId,
     pub name: String,
     pub amount: ExpenseAmount,
     pub date: ExpenseDate,
     pub category: Category,
-    #[serde(default)]
     pub note: Note,
 }
 

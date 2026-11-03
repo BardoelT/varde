@@ -671,23 +671,16 @@ fn test_csd013_ac_16_1_serialisation_round_trip_keeps_everything() {
 }
 
 #[test]
-fn test_csd013_ac_16_2_a_missing_section_is_empty() {
-    let back: Expenses = serde_json::from_str("{}").unwrap();
-    assert_eq!(back, Expenses::default());
-}
-
-#[test]
 fn test_csd013_ac_16_4_damaged_expenses_are_rejected() {
     let id = "671166f4-5827-4794-bcdc-54d7824fb650";
     let expense = |amount: &str, date: &str, category: &str| {
         format!(
-            r#"{{"expenses":[{{"id":"{id}","name":"Example","amount":"{amount}","date":"{date}","category":"{category}"}}]}}"#
+            r#"{{"expenses":[{{"id":"{id}","name":"Example","amount":"{amount}","date":"{date}","category":"{category}","note":""}}]}}"#
         )
     };
     for (damage, text) in [
         ("category", expense("1.00", "2026-09-15", "Health")),
         ("date", expense("1.00", "2026-02-30", "Home")),
-        ("old date", expense("1.00", "1899-12-31", "Home")),
         ("zero amount", expense("0.00", "2026-09-15", "Home")),
         ("three decimals", expense("1.001", "2026-09-15", "Home")),
     ] {
@@ -698,7 +691,7 @@ fn test_csd013_ac_16_4_damaged_expenses_are_rejected() {
         );
     }
     let two = format!(
-        r#"{{"expenses":[{{"id":"{id}","name":"A","amount":"1.00","date":"2026-09-15","category":"Home"}},{{"id":"{id}","name":"B","amount":"1.00","date":"2026-09-15","category":"Home"}}]}}"#
+        r#"{{"expenses":[{{"id":"{id}","name":"A","amount":"1.00","date":"2026-09-15","category":"Home","note":""}},{{"id":"{id}","name":"B","amount":"1.00","date":"2026-09-15","category":"Home","note":""}}]}}"#
     );
     let parsed: Expenses = serde_json::from_str(&two).unwrap();
     assert_eq!(

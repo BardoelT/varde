@@ -36,8 +36,8 @@ use crate::domain::series::MAX_NAME_CHARS;
 
 /// All expenses, in the order they were added (CSD-013 section 5).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Expenses {
-    #[serde(default)]
     expenses: Vec<Expense>,
 }
 

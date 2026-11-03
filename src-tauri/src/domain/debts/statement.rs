@@ -10,11 +10,11 @@ use super::{DebtBalance, DebtId, Debts};
 
 /// The record of one debt for one period (CSD-011 REQ-7).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DebtStatement {
     pub debt_id: DebtId,
     pub period: Period,
     pub balance: DebtBalance,
-    #[serde(default)]
     pub note: Note,
     /// The final statement a settlement adds (CSD-020 REQ-5); it may share its
     /// period with a regular statement and comes after it.

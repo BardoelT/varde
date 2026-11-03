@@ -36,10 +36,9 @@ use crate::domain::series::{self, COLOUR_SLOTS, MAX_NAME_CHARS};
 /// All bank accounts with their entries. Accounts are kept in the order they
 /// were created (CSD-009 section 5).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct BankAccounts {
-    #[serde(default)]
     accounts: Vec<BankAccount>,
-    #[serde(default)]
     entries: Vec<BankEntry>,
 }
 

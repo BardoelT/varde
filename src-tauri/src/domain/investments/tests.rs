@@ -800,13 +800,6 @@ fn test_csd005_ac_19_1_serialising_and_reading_back_gives_the_same_data() {
     back.validate().unwrap();
 }
 
-#[test]
-fn test_csd005_ac_19_2_a_missing_section_is_empty() {
-    let investments: Investments = serde_json::from_str("{}").unwrap();
-    assert_eq!(investments, Investments::default());
-    investments.validate().unwrap();
-}
-
 // ---- REQ-13: net deposits are not copied ----
 
 #[test]
@@ -834,25 +827,12 @@ fn test_csd005_ac_19_3_net_deposits_round_trip() {
 }
 
 #[test]
-fn test_csd005_ac_19_4_a_statement_without_net_deposits_gets_zero() {
-    let id = Uuid::new_v4();
-    let json = format!(
-        r#"{{"accounts":[{{"id":"{id}","name":"Example","period":"Monthly"}}],
-            "statements":[{{"account_id":"{id}","period":"2026-09","balance":"12500.00"}}]}}"#
-    );
-    let investments: Investments = serde_json::from_str(&json).unwrap();
-    investments.validate().unwrap();
-    let rows = investments.all_statements();
-    assert_eq!(rows[0].1.net_deposits.value().to_string(), "0.00");
-}
-
-#[test]
 fn validate_rejects_net_deposits_out_of_range() {
     let id = Uuid::new_v4();
     let json = format!(
         r#"{{"accounts":[{{"id":"{id}","name":"Example","period":"Monthly"}}],
             "statements":[{{"account_id":"{id}","period":"2026-09","balance":"1.00",
-            "net_deposits":"1000000000.01"}}]}}"#
+            "net_deposits":"1000000000.01","note":""}}]}}"#
     );
     let investments: Investments = serde_json::from_str(&json).unwrap();
     assert_eq!(
@@ -1892,8 +1872,8 @@ fn statements_after_the_current_year_are_not_in_the_series() {
     let json = format!(
         r#"{{"accounts":[{{"id":"{id}","name":"Example","period":"Monthly"}}],
             "statements":[
-            {{"account_id":"{id}","period":"2026-03","balance":"1000.00"}},
-            {{"account_id":"{id}","period":"2027-03","balance":"2000.00"}}]}}"#
+            {{"account_id":"{id}","period":"2026-03","balance":"1000.00","net_deposits":"0.00","note":""}},
+            {{"account_id":"{id}","period":"2027-03","balance":"2000.00","net_deposits":"0.00","note":""}}]}}"#
     );
     let investments: Investments = serde_json::from_str(&json).unwrap();
     assert_eq!(insight_years(&investments), [2026]);
@@ -1908,31 +1888,33 @@ fn validate_rejects_inconsistent_files() {
         format!(
             r#"{{"accounts":[
                 {{"id":"{id}","name":"Example","period":"Monthly"}},
-                {{"id":"{other}","name":"EXAMPLE","period":"Monthly"}}]}}"#
+                {{"id":"{other}","name":"EXAMPLE","period":"Monthly"}}],"statements":[]}}"#
         ),
         // statement of an unknown account
         format!(
-            r#"{{"statements":[{{"account_id":"{id}","period":"2026-09","balance":"1.00"}}]}}"#
+            r#"{{"accounts":[],"statements":[{{"account_id":"{id}","period":"2026-09","balance":"1.00","net_deposits":"0.00","note":""}}]}}"#
         ),
         // statement period does not match the account
         format!(
             r#"{{"accounts":[{{"id":"{id}","name":"Example","period":"Yearly"}}],
-                "statements":[{{"account_id":"{id}","period":"2026-09","balance":"1.00"}}]}}"#
+                "statements":[{{"account_id":"{id}","period":"2026-09","balance":"1.00","net_deposits":"0.00","note":""}}]}}"#
         ),
         // duplicate period
         format!(
             r#"{{"accounts":[{{"id":"{id}","name":"Example","period":"Monthly"}}],
                 "statements":[
-                {{"account_id":"{id}","period":"2026-09","balance":"1.00"}},
-                {{"account_id":"{id}","period":"2026-09","balance":"2.00"}}]}}"#
+                {{"account_id":"{id}","period":"2026-09","balance":"1.00","net_deposits":"0.00","note":""}},
+                {{"account_id":"{id}","period":"2026-09","balance":"2.00","net_deposits":"0.00","note":""}}]}}"#
         ),
         // negative balance
         format!(
             r#"{{"accounts":[{{"id":"{id}","name":"Example","period":"Monthly"}}],
-                "statements":[{{"account_id":"{id}","period":"2026-09","balance":"-1.00"}}]}}"#
+                "statements":[{{"account_id":"{id}","period":"2026-09","balance":"-1.00","net_deposits":"0.00","note":""}}]}}"#
         ),
         // blank name
-        format!(r#"{{"accounts":[{{"id":"{id}","name":"  ","period":"Monthly"}}]}}"#),
+        format!(
+            r#"{{"accounts":[{{"id":"{id}","name":"  ","period":"Monthly"}}],"statements":[]}}"#
+        ),
     ];
     for json in cases {
         let investments: Investments = serde_json::from_str(&json).unwrap();
@@ -1946,7 +1928,7 @@ fn validate_rejects_inconsistent_files() {
 
 #[test]
 fn an_unparseable_period_in_a_file_fails_to_read() {
-    let json = r#"{"statements":[{"account_id":"00000000-0000-0000-0000-000000000000","period":"2026-13","balance":"1.00"}]}"#;
+    let json = r#"{"statements":[{"account_id":"00000000-0000-0000-0000-000000000000","period":"2026-13","balance":"1.00","net_deposits":"0.00","note":""}]}"#;
     assert!(serde_json::from_str::<Investments>(json).is_err());
 }
 

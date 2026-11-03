@@ -27,11 +27,11 @@ use crate::domain::money::{zero, Amounts};
 
 /// All employment income: jobs with their paychecks or annual statements.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Income {
     jobs: Vec<Job>,
     paychecks: Vec<Paycheck>,
     /// A file without annual statements (an older one) has none.
-    #[serde(default)]
     statements: Vec<AnnualStatement>,
 }
 

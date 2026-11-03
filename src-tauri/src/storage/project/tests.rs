@@ -1048,4 +1048,25 @@ fn test_csd002_ac_17_1_a_file_that_does_not_match_the_schema_is_rejected() {
         assert_eq!(error.code(), "PROJECT_INVALID_FILE", "{name}");
         assert_eq!(job_count(&project), 1, "{name}");
     }
+    for section in [
+        "income",
+        "investments",
+        "bank_accounts",
+        "debts",
+        "expenses",
+        "houses",
+        "settings",
+    ] {
+        let mut value = good.clone();
+        value[section]["notes"] = serde_json::json!("x");
+        let bad = dir.path().join("bad.varde");
+        fs::write(&bad, value.to_string()).unwrap();
+        let error = project.open(&bad).unwrap_err();
+        assert_eq!(
+            error.code(),
+            "PROJECT_INVALID_FILE",
+            "extra field in {section}"
+        );
+        assert_eq!(job_count(&project), 1, "{section}");
+    }
 }
