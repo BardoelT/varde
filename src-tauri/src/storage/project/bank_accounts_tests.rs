@@ -11,7 +11,7 @@ fn account(project: &mut Project, name: &str, period: &str) -> BankAccountId {
         .bank_accounts_mut()
         .create_account(&AccountInput {
             name: name.to_owned(),
-            entry_period: Some(period.to_owned()),
+            period: Some(period.to_owned()),
         })
         .unwrap()
         .id
@@ -88,7 +88,7 @@ fn test_csd009_ac_23_4_the_other_sections_are_untouched() {
         .investments_mut()
         .create_account(&crate::domain::AccountInput {
             name: "Example Brokerage".to_owned(),
-            statement_period: None,
+            period: None,
         })
         .unwrap();
     let path = dir.path().join("example-a.varde");

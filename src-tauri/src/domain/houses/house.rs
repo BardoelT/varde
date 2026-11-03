@@ -47,7 +47,7 @@ impl fmt::Display for HouseId {
 pub struct House {
     pub id: HouseId,
     pub name: String,
-    pub valuation_period: PayPeriod,
+    pub period: PayPeriod,
     /// 0 to 7, fixed when the house is created (CSD-015 REQ-3).
     pub colour_slot: u8,
     /// `None` only for a house from a file made before CSD-019 (REQ-6).
@@ -108,7 +108,7 @@ pub struct HouseInput {
     pub name: String,
     /// `None` means Monthly when creating and "unchanged" when editing.
     #[serde(default)]
-    pub valuation_period: Option<String>,
+    pub period: Option<String>,
     /// `dd/mm/yyyy`; required (CSD-019 REQ-1).
     #[serde(default)]
     pub purchase_date: Option<String>,
@@ -123,7 +123,7 @@ pub struct HouseInput {
 
 pub(super) struct ValidHouse {
     pub(super) name: String,
-    pub(super) valuation_period: Option<PayPeriod>,
+    pub(super) period: Option<PayPeriod>,
     pub(super) purchase_date: HouseDate,
     pub(super) purchase_amount: HouseValue,
     pub(super) sale: Option<(HouseDate, HouseValue)>,
@@ -145,8 +145,8 @@ impl HouseInput {
         if name.chars().count() > MAX_NAME_CHARS {
             return Err(DomainError::HouseNameTooLong);
         }
-        let valuation_period = self
-            .valuation_period
+        let period = self
+            .period
             .as_deref()
             .map(str::trim)
             .filter(|text| !text.is_empty())
@@ -174,7 +174,7 @@ impl HouseInput {
         };
         Ok(ValidHouse {
             name: name.to_owned(),
-            valuation_period,
+            period,
             purchase_date,
             purchase_amount,
             sale,

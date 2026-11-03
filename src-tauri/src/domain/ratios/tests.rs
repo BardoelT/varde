@@ -32,7 +32,7 @@ fn add_income(data: &mut ProjectData, year: &str, gross: &str) {
             title: None,
             start_date: Some("01/01/2020".to_owned()),
             end_date: None,
-            pay_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
         })
         .unwrap()
         .id;
@@ -67,7 +67,7 @@ fn add_bank(data: &mut ProjectData, name: &str, entries: &[(&str, &str)]) {
         .bank_accounts
         .create_account(&BankInput {
             name: name.to_owned(),
-            entry_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
         })
         .unwrap()
         .id;
@@ -90,7 +90,7 @@ fn add_investment(data: &mut ProjectData, statements: &[(&str, &str, &str)]) {
         .investments
         .create_account(&InvestmentInput {
             name: "Example Brokerage".to_owned(),
-            statement_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
         })
         .unwrap()
         .id;
@@ -114,7 +114,7 @@ fn add_debt(data: &mut ProjectData, statements: &[(&str, &str)]) {
         .debts
         .create_debt(&DebtInput {
             name: "Example Loan".to_owned(),
-            statement_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
         })
         .unwrap()
         .id;
@@ -137,7 +137,7 @@ fn add_house(data: &mut ProjectData, at: &str, value: &str) {
         .create_house(
             &HouseInput {
                 name: "Example House".to_owned(),
-                valuation_period: Some("Yearly".to_owned()),
+                period: Some("Yearly".to_owned()),
                 purchase_date: Some("01/01/1900".to_owned()),
                 purchase_amount: Some("0.00".to_owned()),
                 ..HouseInput::default()

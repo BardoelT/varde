@@ -77,7 +77,7 @@ impl Category {
 pub struct Debt {
     pub id: DebtId,
     pub name: String,
-    pub statement_period: PayPeriod,
+    pub period: PayPeriod,
     /// 0 to 7, fixed when the debt is created (CSD-011 REQ-3).
     pub colour_slot: u8,
     /// Mortgage, Loan or Other (CSD-020 REQ-1).
@@ -98,12 +98,12 @@ pub struct DebtInput {
     pub name: String,
     /// `None` means Monthly when creating and "unchanged" when editing.
     #[serde(default)]
-    pub statement_period: Option<String>,
+    pub period: Option<String>,
 }
 
 pub(super) struct ValidDebt {
     pub(super) name: String,
-    pub(super) statement_period: Option<PayPeriod>,
+    pub(super) period: Option<PayPeriod>,
 }
 
 impl DebtInput {
@@ -115,8 +115,8 @@ impl DebtInput {
         if name.chars().count() > MAX_NAME_CHARS {
             return Err(DomainError::DebtNameTooLong);
         }
-        let statement_period = self
-            .statement_period
+        let period = self
+            .period
             .as_deref()
             .map(str::trim)
             .filter(|text| !text.is_empty())
@@ -124,7 +124,7 @@ impl DebtInput {
             .transpose()?;
         Ok(ValidDebt {
             name: name.to_owned(),
-            statement_period,
+            period,
         })
     }
 }

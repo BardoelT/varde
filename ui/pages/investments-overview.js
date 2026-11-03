@@ -40,7 +40,7 @@ function renderAccounts(overview) {
         'li',
         { class: 'job-row' },
         h('span', { class: 'job-name' }, account.name),
-        h('span', { class: 'job-meta' }, account.statement_period),
+        h('span', { class: 'job-meta' }, account.period),
         latestBalance(account),
         h(
           'span',
@@ -132,11 +132,11 @@ function openAccountDialog(account) {
   $('account-dialog-title').textContent = account ? t('Edit account') : t('Add account');
   // The statement period is locked once the account has statements (CSD-005 REQ-4).
   const locked = Boolean(account && account.statement_count > 0);
-  form.elements.statement_period.disabled = locked;
+  form.elements.period.disabled = locked;
   $('account-period-hint').hidden = !locked;
   if (account) {
     form.elements.name.value = account.name;
-    form.elements.statement_period.value = account.statement_period;
+    form.elements.period.value = account.period;
   }
   $('account-dialog').showModal();
   form.elements.name.focus();
@@ -146,8 +146,8 @@ async function submitAccount(event) {
   event.preventDefault();
   const form = $('account-form');
   const input = { name: form.elements.name.value };
-  if (!form.elements.statement_period.disabled) {
-    input.statement_period = form.elements.statement_period.value;
+  if (!form.elements.period.disabled) {
+    input.period = form.elements.period.value;
   }
   try {
     if (editingAccount) {
@@ -198,7 +198,7 @@ function chosenAccount() {
 /** Asks for a month or a year, following the chosen account (CSD-005 REQ-14). */
 function applyStatementPeriod({ resetPeriod }) {
   const form = $('statement-form');
-  const yearly = chosenAccount()?.statement_period === 'Yearly';
+  const yearly = chosenAccount()?.period === 'Yearly';
   $('statement-period-label').textContent = yearly ? t('Year') : t('Month');
   form.elements.period.placeholder = yearly ? String(new Date().getFullYear() - 1) : t('yyyy-mm');
   form.elements.period.maxLength = yearly ? 4 : 7;

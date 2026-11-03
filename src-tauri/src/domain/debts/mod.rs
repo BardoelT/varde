@@ -59,7 +59,7 @@ impl Debts {
         let debt = Debt {
             id: DebtId::generate(),
             name: valid.name,
-            statement_period: valid.statement_period.unwrap_or_default(),
+            period: valid.period.unwrap_or_default(),
             colour_slot: self.next_colour_slot(),
             category: Category::default(),
             house_id: None,
@@ -78,20 +78,20 @@ impl Debts {
     /// `DebtPeriodLocked`.
     pub fn update_debt(&mut self, id: DebtId, input: &DebtInput) -> Result<Debt, DomainError> {
         let valid = input.validate()?;
-        let current = self.debt(id)?.statement_period;
+        let current = self.debt(id)?.period;
         if self.name_taken(&valid.name, Some(id)) {
             return Err(DomainError::DebtNameDuplicate);
         }
-        let statement_period = valid.statement_period.unwrap_or(current);
-        if statement_period != current && self.debt(id)?.settlement.is_some() {
+        let period = valid.period.unwrap_or(current);
+        if period != current && self.debt(id)?.settlement.is_some() {
             return Err(DomainError::DebtSettledLocked);
         }
-        if statement_period != current && self.statement_count(id) > 0 {
+        if period != current && self.statement_count(id) > 0 {
             return Err(DomainError::DebtPeriodLocked);
         }
         let debt = self.debt_mut(id)?;
         debt.name = valid.name;
-        debt.statement_period = statement_period;
+        debt.period = period;
         Ok(debt.clone())
     }
 
@@ -256,7 +256,7 @@ impl Debts {
         for statement in &self.statements {
             let matches_debt = self
                 .debt(statement.debt_id)
-                .is_ok_and(|debt| debt.statement_period == statement.period.kind());
+                .is_ok_and(|debt| debt.period == statement.period.kind());
             if !matches_debt
                 || !seen.insert((statement.debt_id, statement.period, statement.settlement))
                 || DebtBalance::new(statement.balance.value()).is_err()
@@ -298,7 +298,7 @@ impl Debts {
         period: Period,
         today: YearMonth,
     ) -> Result<(), DomainError> {
-        if self.debt(debt_id)?.statement_period != period.kind() {
+        if self.debt(debt_id)?.period != period.kind() {
             return Err(DomainError::DebtPeriodMismatch);
         }
         if period.is_after(today) {

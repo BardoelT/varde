@@ -60,14 +60,14 @@ fn test_csd013_ac_16_3_the_other_sections_are_untouched() {
         .debts_mut()
         .create_debt(&crate::domain::debts::DebtInput {
             name: "Example Mortgage".to_owned(),
-            statement_period: None,
+            period: None,
         })
         .unwrap();
     project
         .bank_accounts_mut()
         .create_account(&crate::domain::bank_accounts::AccountInput {
             name: "Example Current Account".to_owned(),
-            entry_period: None,
+            period: None,
         })
         .unwrap();
     let path = dir.path().join("example-a.varde");

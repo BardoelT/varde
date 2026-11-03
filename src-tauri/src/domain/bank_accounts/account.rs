@@ -41,7 +41,7 @@ impl fmt::Display for BankAccountId {
 pub struct BankAccount {
     pub id: BankAccountId,
     pub name: String,
-    pub entry_period: PayPeriod,
+    pub period: PayPeriod,
     /// 0 to 7, fixed when the account is created (CSD-009 REQ-3).
     pub colour_slot: u8,
 }
@@ -53,12 +53,12 @@ pub struct AccountInput {
     pub name: String,
     /// `None` means Monthly when creating and "unchanged" when editing.
     #[serde(default)]
-    pub entry_period: Option<String>,
+    pub period: Option<String>,
 }
 
 pub(super) struct ValidAccount {
     pub(super) name: String,
-    pub(super) entry_period: Option<PayPeriod>,
+    pub(super) period: Option<PayPeriod>,
 }
 
 impl AccountInput {
@@ -70,8 +70,8 @@ impl AccountInput {
         if name.chars().count() > MAX_NAME_CHARS {
             return Err(DomainError::BankAccountNameTooLong);
         }
-        let entry_period = self
-            .entry_period
+        let period = self
+            .period
             .as_deref()
             .map(str::trim)
             .filter(|text| !text.is_empty())
@@ -79,7 +79,7 @@ impl AccountInput {
             .transpose()?;
         Ok(ValidAccount {
             name: name.to_owned(),
-            entry_period,
+            period,
         })
     }
 }

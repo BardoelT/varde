@@ -79,7 +79,7 @@ fn account_with_august() -> (Investments, InvestmentAccountId) {
 fn input(name: &str, period: Option<&str>) -> AccountInput {
     AccountInput {
         name: name.to_owned(),
-        statement_period: period.map(str::to_owned),
+        period: period.map(str::to_owned),
     }
 }
 
@@ -120,7 +120,7 @@ fn test_csd005_ac_1_1_an_account_is_monthly_by_default() {
         .create_account(&input("Example Brokerage", None))
         .unwrap();
     assert_eq!(account.name, "Example Brokerage");
-    assert_eq!(account.statement_period, PayPeriod::Monthly);
+    assert_eq!(account.period, PayPeriod::Monthly);
     assert_eq!(investments.statement_count(account.id), 0);
 }
 
@@ -130,7 +130,7 @@ fn test_csd005_ac_1_2_a_yearly_account() {
     let account = investments
         .create_account(&input("Example Pension", Some("Yearly")))
         .unwrap();
-    assert_eq!(account.statement_period, PayPeriod::Yearly);
+    assert_eq!(account.period, PayPeriod::Yearly);
 }
 
 #[test]
@@ -216,7 +216,7 @@ fn test_csd005_ac_3_1_renaming_keeps_the_statements() {
         .update_account(id, &input("Example Broker", None))
         .unwrap();
     assert_eq!(account.name, "Example Broker");
-    assert_eq!(account.statement_period, PayPeriod::Monthly);
+    assert_eq!(account.period, PayPeriod::Monthly);
     assert_eq!(investments.statement_count(id), 2);
 }
 
@@ -227,7 +227,7 @@ fn test_csd005_ac_3_2_the_period_of_an_account_without_statements_can_change() {
     let account = investments
         .update_account(id, &input("Example Brokerage", Some("Yearly")))
         .unwrap();
-    assert_eq!(account.statement_period, PayPeriod::Yearly);
+    assert_eq!(account.period, PayPeriod::Yearly);
 }
 
 #[test]
@@ -239,10 +239,7 @@ fn test_csd005_ac_4_1_the_period_is_locked_once_statements_exist() {
         .update_account(id, &input("Example Brokerage", Some("Yearly")))
         .unwrap_err();
     assert_eq!(error.code(), "INVESTMENT_PERIOD_LOCKED");
-    assert_eq!(
-        investments.accounts()[0].statement_period,
-        PayPeriod::Monthly
-    );
+    assert_eq!(investments.accounts()[0].period, PayPeriod::Monthly);
     // Keeping the same period is not a change.
     investments
         .update_account(id, &input("Example Brokerage", Some("Monthly")))
@@ -258,7 +255,7 @@ fn test_csd005_ac_4_2_the_period_can_change_after_deleting_the_last_statement() 
     let account = investments
         .update_account(id, &input("Example Brokerage", Some("Yearly")))
         .unwrap();
-    assert_eq!(account.statement_period, PayPeriod::Yearly);
+    assert_eq!(account.period, PayPeriod::Yearly);
 }
 
 #[test]
@@ -840,7 +837,7 @@ fn test_csd005_ac_19_3_net_deposits_round_trip() {
 fn test_csd005_ac_19_4_a_statement_without_net_deposits_gets_zero() {
     let id = Uuid::new_v4();
     let json = format!(
-        r#"{{"accounts":[{{"id":"{id}","name":"Example","statement_period":"Monthly"}}],
+        r#"{{"accounts":[{{"id":"{id}","name":"Example","period":"Monthly"}}],
             "statements":[{{"account_id":"{id}","period":"2026-09","balance":"12500.00"}}]}}"#
     );
     let investments: Investments = serde_json::from_str(&json).unwrap();
@@ -853,7 +850,7 @@ fn test_csd005_ac_19_4_a_statement_without_net_deposits_gets_zero() {
 fn validate_rejects_net_deposits_out_of_range() {
     let id = Uuid::new_v4();
     let json = format!(
-        r#"{{"accounts":[{{"id":"{id}","name":"Example","statement_period":"Monthly"}}],
+        r#"{{"accounts":[{{"id":"{id}","name":"Example","period":"Monthly"}}],
             "statements":[{{"account_id":"{id}","period":"2026-09","balance":"1.00",
             "net_deposits":"1000000000.01"}}]}}"#
     );
@@ -1893,7 +1890,7 @@ fn test_csd007_ac_7_4_a_year_with_only_new_accounts_has_no_percentage() {
 fn statements_after_the_current_year_are_not_in_the_series() {
     let id = Uuid::new_v4();
     let json = format!(
-        r#"{{"accounts":[{{"id":"{id}","name":"Example","statement_period":"Monthly"}}],
+        r#"{{"accounts":[{{"id":"{id}","name":"Example","period":"Monthly"}}],
             "statements":[
             {{"account_id":"{id}","period":"2026-03","balance":"1000.00"}},
             {{"account_id":"{id}","period":"2027-03","balance":"2000.00"}}]}}"#
@@ -1910,8 +1907,8 @@ fn validate_rejects_inconsistent_files() {
         // duplicate names, ignoring case
         format!(
             r#"{{"accounts":[
-                {{"id":"{id}","name":"Example","statement_period":"Monthly"}},
-                {{"id":"{other}","name":"EXAMPLE","statement_period":"Monthly"}}]}}"#
+                {{"id":"{id}","name":"Example","period":"Monthly"}},
+                {{"id":"{other}","name":"EXAMPLE","period":"Monthly"}}]}}"#
         ),
         // statement of an unknown account
         format!(
@@ -1919,23 +1916,23 @@ fn validate_rejects_inconsistent_files() {
         ),
         // statement period does not match the account
         format!(
-            r#"{{"accounts":[{{"id":"{id}","name":"Example","statement_period":"Yearly"}}],
+            r#"{{"accounts":[{{"id":"{id}","name":"Example","period":"Yearly"}}],
                 "statements":[{{"account_id":"{id}","period":"2026-09","balance":"1.00"}}]}}"#
         ),
         // duplicate period
         format!(
-            r#"{{"accounts":[{{"id":"{id}","name":"Example","statement_period":"Monthly"}}],
+            r#"{{"accounts":[{{"id":"{id}","name":"Example","period":"Monthly"}}],
                 "statements":[
                 {{"account_id":"{id}","period":"2026-09","balance":"1.00"}},
                 {{"account_id":"{id}","period":"2026-09","balance":"2.00"}}]}}"#
         ),
         // negative balance
         format!(
-            r#"{{"accounts":[{{"id":"{id}","name":"Example","statement_period":"Monthly"}}],
+            r#"{{"accounts":[{{"id":"{id}","name":"Example","period":"Monthly"}}],
                 "statements":[{{"account_id":"{id}","period":"2026-09","balance":"-1.00"}}]}}"#
         ),
         // blank name
-        format!(r#"{{"accounts":[{{"id":"{id}","name":"  ","statement_period":"Monthly"}}]}}"#),
+        format!(r#"{{"accounts":[{{"id":"{id}","name":"  ","period":"Monthly"}}]}}"#),
     ];
     for json in cases {
         let investments: Investments = serde_json::from_str(&json).unwrap();

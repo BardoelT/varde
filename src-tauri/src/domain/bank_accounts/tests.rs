@@ -17,7 +17,7 @@ fn balance(text: &str) -> BankBalance {
 fn input(name: &str, period: &str) -> AccountInput {
     AccountInput {
         name: name.to_owned(),
-        entry_period: Some(period.to_owned()),
+        period: Some(period.to_owned()),
     }
 }
 
@@ -53,10 +53,10 @@ fn test_csd009_ac_1_1_an_account_is_monthly_by_default() {
     let created = banks
         .create_account(&AccountInput {
             name: "Example Current Account".to_owned(),
-            entry_period: None,
+            period: None,
         })
         .unwrap();
-    assert_eq!(created.entry_period, PayPeriod::Monthly);
+    assert_eq!(created.period, PayPeriod::Monthly);
     assert_eq!(banks.entry_count(created.id), 0);
 }
 
@@ -65,7 +65,7 @@ fn test_csd009_ac_1_2_a_yearly_account() {
     let mut banks = BankAccounts::default();
     let id = account(&mut banks, "Example Savings", "Yearly");
     assert_eq!(banks.accounts()[0].id, id);
-    assert_eq!(banks.accounts()[0].entry_period, PayPeriod::Yearly);
+    assert_eq!(banks.accounts()[0].period, PayPeriod::Yearly);
 }
 
 #[test]
@@ -212,7 +212,7 @@ fn test_csd009_ac_4_2_the_period_of_an_account_without_entries_can_change() {
     let changed = banks
         .update_account(id, &input("Example Current Account", "Yearly"))
         .unwrap();
-    assert_eq!(changed.entry_period, PayPeriod::Yearly);
+    assert_eq!(changed.period, PayPeriod::Yearly);
 }
 
 #[test]
@@ -222,7 +222,7 @@ fn test_csd009_ac_5_1_the_period_is_locked_once_entries_exist() {
     add(&mut banks, id, "2026-09", "100.00");
     let result = banks.update_account(id, &input("Example Current Account", "Yearly"));
     assert_eq!(codes(result), "BANK_ACCOUNT_PERIOD_LOCKED");
-    assert_eq!(banks.accounts()[0].entry_period, PayPeriod::Monthly);
+    assert_eq!(banks.accounts()[0].period, PayPeriod::Monthly);
 }
 
 #[test]

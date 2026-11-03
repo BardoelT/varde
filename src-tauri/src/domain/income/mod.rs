@@ -48,7 +48,7 @@ impl Income {
             title: valid.title,
             start_date: valid.start_date,
             end_date: valid.end_date,
-            pay_period: valid.pay_period.unwrap_or_default(),
+            period: valid.period.unwrap_or_default(),
         };
         self.jobs.push(job.clone());
         Ok(job)
@@ -63,11 +63,11 @@ impl Income {
         let valid = input.validate()?;
         let has_entries = self.entry_count(id) > 0;
         let job = self.job_mut(id)?;
-        let pay_period = valid.pay_period.unwrap_or(job.pay_period);
-        if pay_period != job.pay_period && has_entries {
+        let period = valid.period.unwrap_or(job.period);
+        if period != job.period && has_entries {
             return Err(DomainError::JobPeriodLocked);
         }
-        job.pay_period = pay_period;
+        job.period = period;
         job.employer = valid.employer;
         job.title = valid.title;
         job.start_date = valid.start_date;
@@ -120,7 +120,7 @@ impl Income {
         amounts: Amounts,
         today: YearMonth,
     ) -> Result<Paycheck, DomainError> {
-        if self.job(job_id)?.pay_period != PayPeriod::Monthly {
+        if self.job(job_id)?.period != PayPeriod::Monthly {
             return Err(DomainError::JobPeriodMismatch);
         }
         if month > today {
@@ -206,7 +206,7 @@ impl Income {
         amounts: Amounts,
         today: YearMonth,
     ) -> Result<AnnualStatement, DomainError> {
-        if self.job(job_id)?.pay_period != PayPeriod::Yearly {
+        if self.job(job_id)?.period != PayPeriod::Yearly {
             return Err(DomainError::JobPeriodMismatch);
         }
         if year.value() > today.year() {
@@ -356,7 +356,7 @@ impl Income {
         for job in &self.jobs {
             let employer_ok = !job.employer.trim().is_empty();
             let dates_ok = job.end_date.is_none_or(|end| end >= job.start_date);
-            if !employer_ok || !dates_ok || jobs.insert(job.id, job.pay_period).is_some() {
+            if !employer_ok || !dates_ok || jobs.insert(job.id, job.period).is_some() {
                 return Err(DomainError::DataInvalid);
             }
         }

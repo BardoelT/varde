@@ -10,7 +10,7 @@ fn account(project: &mut Project, name: &str, period: &str) -> crate::domain::In
         .investments_mut()
         .create_account(&AccountInput {
             name: name.to_owned(),
-            statement_period: Some(period.to_owned()),
+            period: Some(period.to_owned()),
         })
         .unwrap()
         .id

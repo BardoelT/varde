@@ -67,7 +67,7 @@ impl Houses {
         let house = House {
             id: HouseId::generate(),
             name: valid.name,
-            valuation_period: valid.valuation_period.unwrap_or_default(),
+            period: valid.period.unwrap_or_default(),
             colour_slot: self.next_colour_slot(),
             purchase_date: Some(valid.purchase_date),
             purchase_amount: Some(valid.purchase_amount),
@@ -93,17 +93,17 @@ impl Houses {
         today: Date,
     ) -> Result<House, DomainError> {
         let valid = input.validate(today)?;
-        let current = self.house(id)?.valuation_period;
+        let current = self.house(id)?.period;
         if self.name_taken(&valid.name, Some(id)) {
             return Err(DomainError::HouseNameDuplicate);
         }
-        let valuation_period = valid.valuation_period.unwrap_or(current);
-        if valuation_period != current && self.valuation_count(id) > 0 {
+        let period = valid.period.unwrap_or(current);
+        if period != current && self.valuation_count(id) > 0 {
             return Err(DomainError::HousePeriodLocked);
         }
         let mut updated = self.house(id)?.clone();
         updated.name = valid.name;
-        updated.valuation_period = valuation_period;
+        updated.period = period;
         updated.purchase_date = Some(valid.purchase_date);
         updated.purchase_amount = Some(valid.purchase_amount);
         updated.sell_date = valid.sale.map(|(date, _)| date);
@@ -283,7 +283,7 @@ impl Houses {
         for valuation in &self.valuations {
             let matches_house = self
                 .house(valuation.house_id)
-                .is_ok_and(|house| house.valuation_period == valuation.period.kind());
+                .is_ok_and(|house| house.period == valuation.period.kind());
             let in_window = self
                 .house(valuation.house_id)
                 .is_ok_and(|house| house.window_contains(valuation.period));
@@ -335,7 +335,7 @@ impl Houses {
         today: YearMonth,
     ) -> Result<(), DomainError> {
         let house = self.house(house_id)?;
-        if house.valuation_period != period.kind() {
+        if house.period != period.kind() {
             return Err(DomainError::HousePeriodMismatch);
         }
         if period.is_after(today) {

@@ -57,7 +57,7 @@ impl BankAccounts {
         let account = BankAccount {
             id: BankAccountId::generate(),
             name: valid.name,
-            entry_period: valid.entry_period.unwrap_or_default(),
+            period: valid.period.unwrap_or_default(),
             colour_slot: self.next_colour_slot(),
         };
         self.accounts.push(account.clone());
@@ -77,17 +77,17 @@ impl BankAccounts {
         input: &AccountInput,
     ) -> Result<BankAccount, DomainError> {
         let valid = input.validate()?;
-        let current = self.account(id)?.entry_period;
+        let current = self.account(id)?.period;
         if self.name_taken(&valid.name, Some(id)) {
             return Err(DomainError::BankAccountNameDuplicate);
         }
-        let entry_period = valid.entry_period.unwrap_or(current);
-        if entry_period != current && self.entry_count(id) > 0 {
+        let period = valid.period.unwrap_or(current);
+        if period != current && self.entry_count(id) > 0 {
             return Err(DomainError::BankAccountPeriodLocked);
         }
         let account = self.account_mut(id)?;
         account.name = valid.name;
-        account.entry_period = entry_period;
+        account.period = period;
         Ok(account.clone())
     }
 
@@ -254,7 +254,7 @@ impl BankAccounts {
         for entry in &self.entries {
             let matches_account = self
                 .account(entry.account_id)
-                .is_ok_and(|account| account.entry_period == entry.period.kind());
+                .is_ok_and(|account| account.period == entry.period.kind());
             if !matches_account
                 || !seen.insert((entry.account_id, entry.period))
                 || BankBalance::new(entry.balance.value()).is_err()
@@ -294,7 +294,7 @@ impl BankAccounts {
         period: Period,
         today: YearMonth,
     ) -> Result<(), DomainError> {
-        if self.account(account_id)?.entry_period != period.kind() {
+        if self.account(account_id)?.period != period.kind() {
             return Err(DomainError::BankEntryPeriodMismatch);
         }
         if period.is_after(today) {

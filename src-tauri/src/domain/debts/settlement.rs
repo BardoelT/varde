@@ -148,7 +148,7 @@ impl Debts {
         id: DebtId,
         date: HouseDate,
     ) -> Result<Option<Decimal>, DomainError> {
-        let period = sale_period(self.debt(id)?.statement_period, date)?;
+        let period = sale_period(self.debt(id)?.period, date)?;
         Ok(self
             .statements
             .iter()
@@ -200,7 +200,7 @@ impl Debts {
         house_name: &str,
         date: HouseDate,
     ) -> Result<(), DomainError> {
-        let period = sale_period(self.debt(id)?.statement_period, date)?;
+        let period = sale_period(self.debt(id)?.period, date)?;
         let amount = self
             .open_balance(id, date)?
             .ok_or(DomainError::HouseSettlementInvalid)?;
@@ -241,7 +241,7 @@ impl Debts {
         let Some(settlement) = debt.settlement.clone() else {
             return Ok(());
         };
-        let period = sale_period(debt.statement_period, settlement.date)?;
+        let period = sale_period(debt.period, settlement.date)?;
         self.statements
             .retain(|s| !(s.debt_id == id && s.period == period && s.settlement));
         self.debt_mut(id)?.settlement = None;
@@ -272,7 +272,7 @@ impl Debts {
         let Some(settlement) = &debt.settlement else {
             return Ok(());
         };
-        let settled_period = sale_period(debt.statement_period, settlement.date)?;
+        let settled_period = sale_period(debt.period, settlement.date)?;
         if period == settled_period && self.statement(id, period).is_none() {
             return Err(DomainError::DebtSettledLocked);
         }
@@ -284,7 +284,7 @@ impl Debts {
         let Some(settlement) = &debt.settlement else {
             return Ok(false);
         };
-        let settled_period = sale_period(debt.statement_period, settlement.date)?;
+        let settled_period = sale_period(debt.period, settlement.date)?;
         Ok(period.sort_key() > settled_period.sort_key())
     }
 
@@ -303,10 +303,7 @@ impl Debts {
             let Some(settlement) = debt.settlement.clone() else {
                 continue;
             };
-            let (id, period) = (
-                debt.id,
-                sale_period(debt.statement_period, settlement.date)?,
-            );
+            let (id, period) = (debt.id, sale_period(debt.period, settlement.date)?);
             let has_flagged = self
                 .statements
                 .iter()
@@ -366,9 +363,7 @@ impl Debts {
         for statement in self.statements.iter().filter(|s| s.settlement) {
             let debt = self.debt(statement.debt_id)?;
             let belongs = match &debt.settlement {
-                Some(settlement) => {
-                    sale_period(debt.statement_period, settlement.date)? == statement.period
-                }
+                Some(settlement) => sale_period(debt.period, settlement.date)? == statement.period,
                 None => false,
             };
             if !belongs {
@@ -386,7 +381,7 @@ impl Debts {
             let Some(settlement) = &debt.settlement else {
                 continue;
             };
-            let period = sale_period(debt.statement_period, settlement.date)?;
+            let period = sale_period(debt.period, settlement.date)?;
             let zero_statement = self.statements.iter().any(|s| {
                 s.debt_id == debt.id
                     && s.settlement

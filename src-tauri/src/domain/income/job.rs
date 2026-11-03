@@ -74,7 +74,7 @@ pub struct Job {
     pub end_date: Option<Date>,
     /// A job without a pay period (an older file) is monthly.
     #[serde(default)]
-    pub pay_period: PayPeriod,
+    pub period: PayPeriod,
 }
 
 /// Job fields as typed by the user, before validation.
@@ -90,7 +90,7 @@ pub struct JobInput {
     pub end_date: Option<String>,
     /// `None` means Monthly when creating and "unchanged" when editing.
     #[serde(default)]
-    pub pay_period: Option<String>,
+    pub period: Option<String>,
 }
 
 pub(super) struct ValidJob {
@@ -98,7 +98,7 @@ pub(super) struct ValidJob {
     pub(super) title: Option<String>,
     pub(super) start_date: Date,
     pub(super) end_date: Option<Date>,
-    pub(super) pay_period: Option<PayPeriod>,
+    pub(super) period: Option<PayPeriod>,
 }
 
 impl JobInput {
@@ -119,7 +119,7 @@ impl JobInput {
         let end_date = non_blank(self.end_date.as_deref())
             .map(parse_date)
             .transpose()?;
-        let pay_period = non_blank(self.pay_period.as_deref())
+        let period = non_blank(self.period.as_deref())
             .map(|text| PayPeriod::parse(text).ok_or(DomainError::JobPeriodUnsupported))
             .transpose()?;
         if end_date.is_some_and(|end| end < start_date) {
@@ -130,7 +130,7 @@ impl JobInput {
             title: title.map(str::to_owned),
             start_date,
             end_date,
-            pay_period,
+            period,
         })
     }
 }

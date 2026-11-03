@@ -4,7 +4,7 @@ use super::*;
 const LEGACY_FILE: &str = r#"{
   "houses": [
     {"id": "11111111-1111-4111-8111-111111111111", "name": "Example House",
-     "valuation_period": "Monthly", "colour_slot": 0}
+     "period": "Monthly", "colour_slot": 0}
   ],
   "valuations": []
 }"#;
@@ -27,7 +27,7 @@ fn input(name: &str, kind: &str, bought: (&str, &str), sold: (&str, &str)) -> Ho
     let text = |value: &str| Some(value.to_owned());
     HouseInput {
         name: name.to_owned(),
-        valuation_period: text(kind),
+        period: text(kind),
         purchase_date: text(bought.0),
         purchase_amount: text(bought.1),
         sell_date: text(sold.0),

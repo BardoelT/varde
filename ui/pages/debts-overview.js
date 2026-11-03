@@ -49,7 +49,7 @@ function renderDebts(overview) {
         h(
           'span',
           { class: 'job-meta' },
-          `${t(debt.category)} · ${t(debt.statement_period)}${debt.house_name ? ` · ${debt.house_name}` : ''} `,
+          `${t(debt.category)} · ${t(debt.period)}${debt.house_name ? ` · ${debt.house_name}` : ''} `,
           debtBadge(debt),
         ),
         latestBalance(debt),
@@ -166,11 +166,11 @@ function openDebtDialog(debt) {
   $('debt-dialog-title').textContent = debt ? t('Edit debt') : t('Add debt');
   // The statement period is locked once the debt has statements (CSD-011 REQ-5).
   const locked = Boolean(debt && debt.statement_count > 0);
-  form.elements.statement_period.disabled = locked;
+  form.elements.period.disabled = locked;
   $('debt-period-hint').hidden = !locked;
   if (debt) {
     form.elements.name.value = debt.name;
-    form.elements.statement_period.value = debt.statement_period;
+    form.elements.period.value = debt.period;
     form.elements.category.value = debt.category;
   }
   fillHouseChoices(debt);
@@ -187,8 +187,8 @@ async function submitDebt(event) {
     category,
     house_id: ['Mortgage', 'Loan'].includes(category) ? form.elements.house_id.value : '',
   };
-  if (!form.elements.statement_period.disabled) {
-    input.statement_period = form.elements.statement_period.value;
+  if (!form.elements.period.disabled) {
+    input.period = form.elements.period.value;
   }
   try {
     // Linking to a house that is already sold settles the debt: Repaid or Cancelled (CSD-020 REQ-17).
@@ -249,7 +249,7 @@ function chosenDebt() {
 /** Asks for a month or a year, following the chosen debt (CSD-011 REQ-16). */
 function applyStatementPeriod({ resetPeriod }) {
   const form = $('debt-statement-form');
-  const yearly = chosenDebt()?.statement_period === 'Yearly';
+  const yearly = chosenDebt()?.period === 'Yearly';
   $('debt-statement-period-label').textContent = yearly ? t('Year') : t('Month');
   form.elements.period.placeholder = yearly ? String(new Date().getFullYear() - 1) : t('yyyy-mm');
   form.elements.period.maxLength = yearly ? 4 : 7;

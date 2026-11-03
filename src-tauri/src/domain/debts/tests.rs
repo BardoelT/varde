@@ -17,7 +17,7 @@ fn balance(text: &str) -> DebtBalance {
 fn input(name: &str, period: &str) -> DebtInput {
     DebtInput {
         name: name.to_owned(),
-        statement_period: Some(period.to_owned()),
+        period: Some(period.to_owned()),
     }
 }
 
@@ -82,10 +82,10 @@ fn test_csd011_ac_1_1_a_debt_is_monthly_by_default() {
     let created = debts
         .create_debt(&DebtInput {
             name: "Example Mortgage".to_owned(),
-            statement_period: None,
+            period: None,
         })
         .unwrap();
-    assert_eq!(created.statement_period, PayPeriod::Monthly);
+    assert_eq!(created.period, PayPeriod::Monthly);
     assert_eq!(debts.statement_count(created.id), 0);
 }
 
@@ -93,7 +93,7 @@ fn test_csd011_ac_1_1_a_debt_is_monthly_by_default() {
 fn test_csd011_ac_1_2_a_yearly_debt() {
     let mut debts = Debts::default();
     debt(&mut debts, "Example Student Loan", "Yearly");
-    assert_eq!(debts.debts()[0].statement_period, PayPeriod::Yearly);
+    assert_eq!(debts.debts()[0].period, PayPeriod::Yearly);
 }
 
 #[test]
@@ -253,7 +253,7 @@ fn test_csd011_ac_4_2_the_period_of_a_debt_without_statements_can_change() {
     let changed = debts
         .update_debt(id, &input("Example Mortgage", "Yearly"))
         .unwrap();
-    assert_eq!(changed.statement_period, PayPeriod::Yearly);
+    assert_eq!(changed.period, PayPeriod::Yearly);
 }
 
 #[test]
@@ -278,7 +278,7 @@ fn test_csd011_ac_5_1_the_period_is_locked_once_statements_exist() {
     add(&mut debts, id, "2026-09", "100.00");
     let result = debts.update_debt(id, &input("Example Mortgage", "Yearly"));
     assert_eq!(code(result), "DEBT_PERIOD_LOCKED");
-    assert_eq!(debts.debts()[0].statement_period, PayPeriod::Monthly);
+    assert_eq!(debts.debts()[0].period, PayPeriod::Monthly);
 }
 
 #[test]

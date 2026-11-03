@@ -57,7 +57,7 @@ impl Investments {
         value: &str,
         ignore: Option<Period>,
     ) -> Result<StatementCalculation, DomainError> {
-        if self.account(account_id)?.statement_period != period.kind() {
+        if self.account(account_id)?.period != period.kind() {
             return Err(DomainError::InvestmentPeriodMismatch);
         }
         let net_deposits = NetDeposits::parse(net_deposits)?.value();

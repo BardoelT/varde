@@ -19,7 +19,7 @@ function payPeriodName(payPeriod) {
 }
 
 function jobMeta(job) {
-  return [job.title, jobDates(job), payPeriodName(job.pay_period)].filter(Boolean).join(' · ');
+  return [job.title, jobDates(job), payPeriodName(job.period)].filter(Boolean).join(' · ');
 }
 
 function amountCell(value) {
@@ -121,10 +121,10 @@ function openJobDialog(job) {
   $('job-dialog-title').textContent = job ? t('Edit job') : t('Add job');
   // The pay period is locked once the job has entries (CSD-001 REQ-24).
   const locked = Boolean(job && job.entry_count > 0);
-  form.elements.pay_period.disabled = locked;
+  form.elements.period.disabled = locked;
   $('job-period-hint').hidden = !locked;
   if (job) {
-    form.elements.pay_period.value = job.pay_period;
+    form.elements.period.value = job.period;
     form.elements.employer.value = job.employer;
     form.elements.title.value = job.title ?? '';
     form.elements.start_date.value = formatDate(job.start_date);
@@ -143,7 +143,7 @@ async function submitJob(event) {
     start_date: form.elements.start_date.value,
     end_date: form.elements.end_date.value,
   };
-  if (!form.elements.pay_period.disabled) input.pay_period = form.elements.pay_period.value;
+  if (!form.elements.period.disabled) input.period = form.elements.period.value;
   try {
     if (editingJob) {
       await invoke('update_job', { jobId: editingJob.id, input });
@@ -195,7 +195,7 @@ function chosenJob() {
 /** Titles and asks for a month or a year, following the chosen job (CSD-001 REQ-28). */
 function applyPayPeriod({ resetPeriod }) {
   const form = $('paycheck-form');
-  const yearly = chosenJob()?.pay_period === 'Yearly';
+  const yearly = chosenJob()?.period === 'Yearly';
   $('paycheck-dialog-title').textContent = yearly ? t('Add annual statement') : t('Add paycheck');
   $('paycheck-period-label').textContent = yearly ? t('Year') : t('Month');
   form.elements.period.placeholder = yearly ? String(new Date().getFullYear() - 1) : 'yyyy-mm';
@@ -257,7 +257,7 @@ async function submitEntry(event) {
     } else {
       const jobId = form.elements.job_id.value;
       const period = form.elements.period.value;
-      if (chosenJob()?.pay_period === 'Yearly') {
+      if (chosenJob()?.period === 'Yearly') {
         await invoke('add_statement', { jobId, year: period, amounts });
       } else {
         await invoke('add_paycheck', { jobId, month: period, amounts });

@@ -14,7 +14,7 @@ fn input(employer: &str, start: &str, end: &str) -> JobInput {
         title: None,
         start_date: Some(start.to_owned()),
         end_date: Some(end.to_owned()),
-        pay_period: None,
+        period: None,
     }
 }
 
@@ -1036,7 +1036,7 @@ fn year(text: &str) -> Year {
 fn yearly_job(income: &mut Income) -> JobId {
     income
         .create_job(&JobInput {
-            pay_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
             ..input("Example Employer", "01/03/2024", "")
         })
         .unwrap()
@@ -1053,22 +1053,22 @@ fn statement(income: &mut Income, job: JobId, y: &str, gross: &str) -> AnnualSta
 fn test_csd001_ac_1_5_a_job_can_be_yearly() {
     let mut income = Income::default();
     let id = yearly_job(&mut income);
-    assert_eq!(income.job(id).unwrap().pay_period, PayPeriod::Yearly);
+    assert_eq!(income.job(id).unwrap().period, PayPeriod::Yearly);
 }
 
 #[test]
 fn test_csd001_ac_1_1_a_job_is_monthly_by_default() {
     let mut income = Income::default();
     let id = job_with(&mut income, "01/03/2024", "");
-    assert_eq!(income.job(id).unwrap().pay_period, PayPeriod::Monthly);
+    assert_eq!(income.job(id).unwrap().period, PayPeriod::Monthly);
     // Blank text means the default as well.
     let blank = income
         .create_job(&JobInput {
-            pay_period: Some("  ".to_owned()),
+            period: Some("  ".to_owned()),
             ..input("Example Employer", "01/03/2024", "")
         })
         .unwrap();
-    assert_eq!(blank.pay_period, PayPeriod::Monthly);
+    assert_eq!(blank.period, PayPeriod::Monthly);
 }
 
 #[test]
@@ -1077,7 +1077,7 @@ fn test_csd001_ac_1_6_unsupported_pay_periods_are_rejected() {
         let mut income = Income::default();
         let error = income
             .create_job(&JobInput {
-                pay_period: Some(text.to_owned()),
+                period: Some(text.to_owned()),
                 ..input("Example Employer", "01/03/2024", "")
             })
             .unwrap_err();
@@ -1102,13 +1102,13 @@ fn test_csd001_ac_24_1_the_pay_period_is_locked_once_entries_exist() {
         .update_job(
             monthly,
             &JobInput {
-                pay_period: Some("Yearly".to_owned()),
+                period: Some("Yearly".to_owned()),
                 ..input("Example Employer", "01/03/2024", "")
             },
         )
         .unwrap_err();
     assert_eq!(error.code(), "JOB_PERIOD_LOCKED");
-    assert_eq!(income.job(monthly).unwrap().pay_period, PayPeriod::Monthly);
+    assert_eq!(income.job(monthly).unwrap().period, PayPeriod::Monthly);
 
     let yearly = yearly_job(&mut income);
     statement(&mut income, yearly, "2025", "40000.00");
@@ -1116,7 +1116,7 @@ fn test_csd001_ac_24_1_the_pay_period_is_locked_once_entries_exist() {
         .update_job(
             yearly,
             &JobInput {
-                pay_period: Some("Monthly".to_owned()),
+                period: Some("Monthly".to_owned()),
                 ..input("Example Employer", "01/03/2024", "")
             },
         )
@@ -1132,12 +1132,12 @@ fn test_csd001_ac_24_2_the_pay_period_can_change_without_entries() {
         .update_job(
             id,
             &JobInput {
-                pay_period: Some("Yearly".to_owned()),
+                period: Some("Yearly".to_owned()),
                 ..input("Example Employer", "01/03/2024", "")
             },
         )
         .unwrap();
-    assert_eq!(updated.pay_period, PayPeriod::Yearly);
+    assert_eq!(updated.period, PayPeriod::Yearly);
 }
 
 #[test]
@@ -1151,13 +1151,13 @@ fn test_csd001_ac_24_3_keeping_or_omitting_the_pay_period_is_allowed_with_entrie
             .update_job(
                 id,
                 &JobInput {
-                    pay_period: period,
+                    period,
                     ..input("Renamed Employer", "01/03/2024", "")
                 },
             )
             .unwrap();
         assert_eq!(updated.employer, "Renamed Employer");
-        assert_eq!(updated.pay_period, PayPeriod::Yearly);
+        assert_eq!(updated.period, PayPeriod::Yearly);
     }
 }
 
@@ -1421,7 +1421,7 @@ fn test_csd001_ac_12_5_the_same_period_is_ordered_by_job() {
     let monthly = job_with(&mut income, "01/03/2024", "");
     let yearly = income
         .create_job(&JobInput {
-            pay_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
             ..input("Older Example Employer", "01/01/2020", "")
         })
         .unwrap()
@@ -1456,7 +1456,7 @@ fn test_csd001_ac_23_3_entries_of_both_kinds_come_with_job_and_period() {
     let monthly = job_with(&mut income, "01/03/2024", "");
     let yearly = income
         .create_job(&JobInput {
-            pay_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
             ..input("Older Example Employer", "01/01/2020", "")
         })
         .unwrap()
@@ -1630,7 +1630,7 @@ fn validate_rejects_inconsistent_data() {
 fn yearly_job_named(income: &mut Income, employer: &str) -> JobId {
     income
         .create_job(&JobInput {
-            pay_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
             ..input(employer, "01/01/2020", "")
         })
         .unwrap()

@@ -31,7 +31,7 @@ function latestValue(house) {
 
 /** Only the valuation period and Held or Sold; the purchase and sale are in the edit form (CSD-019 REQ-9). */
 function holdingText(house) {
-  return `${t(house.valuation_period)} · ${house.held ? t('Held') : t('Sold')}`;
+  return `${t(house.period)} · ${house.held ? t('Held') : t('Sold')}`;
 }
 
 function renderHouses(overview) {
@@ -146,11 +146,11 @@ function openHouseDialog(house) {
   $('house-dialog-title').textContent = house ? t('Edit house') : t('Add house');
   // The valuation period is locked once the house has valuations (CSD-015 REQ-5).
   const locked = Boolean(house && house.valuation_count > 0);
-  form.elements.valuation_period.disabled = locked;
+  form.elements.period.disabled = locked;
   $('house-period-hint').hidden = !locked;
   if (house) {
     form.elements.name.value = house.name;
-    form.elements.valuation_period.value = house.valuation_period;
+    form.elements.period.value = house.period;
     // A legacy house has no purchase yet, so those fields stay empty (CSD-019 REQ-6).
     form.elements.purchase_date.value = house.purchase_date === null ? '' : formatDate(house.purchase_date);
     form.elements.purchase_amount.value = house.purchase_amount ?? '';
@@ -172,8 +172,8 @@ async function submitHouse(event) {
     sell_date: form.elements.sell_date.value,
     sell_amount: form.elements.sell_amount.value,
   };
-  if (!form.elements.valuation_period.disabled) {
-    input.valuation_period = form.elements.valuation_period.value;
+  if (!form.elements.period.disabled) {
+    input.period = form.elements.period.value;
   }
   const links = { settlements: [], confirm_undo: false };
   try {
@@ -246,7 +246,7 @@ function chosenHouse() {
 /** Asks for a month or a year, following the chosen house (CSD-015 REQ-16). */
 function applyValuationPeriod({ resetPeriod }) {
   const form = $('house-valuation-form');
-  const yearly = chosenHouse()?.valuation_period === 'Yearly';
+  const yearly = chosenHouse()?.period === 'Yearly';
   $('house-valuation-period-label').textContent = yearly ? t('Year') : t('Month');
   form.elements.period.placeholder = yearly ? String(new Date().getFullYear() - 1) : t('yyyy-mm');
   form.elements.period.maxLength = yearly ? 4 : 7;

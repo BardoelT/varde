@@ -357,7 +357,7 @@ fn test_csd005_ac_28_8_a_move_is_an_unsaved_change() {
         .investments_mut()
         .create_account(&AccountInput {
             name: "Example Brokerage".to_owned(),
-            statement_period: Some("Monthly".to_owned()),
+            period: Some("Monthly".to_owned()),
         })
         .unwrap()
         .id;
@@ -885,7 +885,7 @@ fn add_yearly_job(project: &mut Project, employer: &str) -> JobId {
         .create_job(&JobInput {
             employer: employer.to_owned(),
             start_date: Some("01/03/2024".to_owned()),
-            pay_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
             ..JobInput::default()
         })
         .unwrap()
@@ -951,7 +951,7 @@ fn test_csd001_the_file_keeps_pay_periods_and_statements_in_their_own_list() {
         .as_array()
         .unwrap()
         .iter()
-        .map(|j| j["pay_period"].as_str().unwrap())
+        .map(|j| j["period"].as_str().unwrap())
         .collect();
     assert_eq!(periods.len(), 2);
     assert!(periods.contains(&"Monthly") && periods.contains(&"Yearly"));

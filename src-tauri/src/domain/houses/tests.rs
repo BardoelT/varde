@@ -17,7 +17,7 @@ fn value(text: &str) -> HouseValue {
 fn input(name: &str, period: &str) -> HouseInput {
     HouseInput {
         name: name.to_owned(),
-        valuation_period: Some(period.to_owned()),
+        period: Some(period.to_owned()),
         purchase_date: Some("01/01/1900".to_owned()),
         purchase_amount: Some("0.00".to_owned()),
         ..HouseInput::default()
@@ -93,7 +93,7 @@ fn test_csd015_ac_1_1_a_house_is_monthly_by_default() {
         .create_house(
             &HouseInput {
                 name: "Example House".to_owned(),
-                valuation_period: None,
+                period: None,
                 purchase_date: Some("01/01/1900".to_owned()),
                 purchase_amount: Some("0.00".to_owned()),
                 ..HouseInput::default()
@@ -101,7 +101,7 @@ fn test_csd015_ac_1_1_a_house_is_monthly_by_default() {
             today_date(),
         )
         .unwrap();
-    assert_eq!(created.valuation_period, PayPeriod::Monthly);
+    assert_eq!(created.period, PayPeriod::Monthly);
     assert_eq!(houses.valuation_count(created.id), 0);
 }
 
@@ -109,7 +109,7 @@ fn test_csd015_ac_1_1_a_house_is_monthly_by_default() {
 fn test_csd015_ac_1_2_a_yearly_house() {
     let mut houses = Houses::default();
     new_house(&mut houses, "Example Lodge", "Yearly");
-    assert_eq!(houses.houses()[0].valuation_period, PayPeriod::Yearly);
+    assert_eq!(houses.houses()[0].period, PayPeriod::Yearly);
 }
 
 #[test]
@@ -269,7 +269,7 @@ fn test_csd015_ac_4_2_the_period_of_a_house_without_valuations_can_change() {
     let changed = houses
         .update_house(id, &input("Example House", "Yearly"), today_date())
         .unwrap();
-    assert_eq!(changed.valuation_period, PayPeriod::Yearly);
+    assert_eq!(changed.period, PayPeriod::Yearly);
 }
 
 #[test]
@@ -291,7 +291,7 @@ fn test_csd015_ac_5_1_the_period_is_locked_once_valuations_exist() {
     add(&mut houses, id, "2026-09", "100.00");
     let result = houses.update_house(id, &input("Example House", "Yearly"), today_date());
     assert_eq!(code(result), "HOUSE_PERIOD_LOCKED");
-    assert_eq!(houses.houses()[0].valuation_period, PayPeriod::Monthly);
+    assert_eq!(houses.houses()[0].period, PayPeriod::Monthly);
 }
 
 #[test]

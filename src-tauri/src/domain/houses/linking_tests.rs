@@ -30,7 +30,7 @@ fn debt(data: &mut ProjectData, name: &str, kind: &str) -> DebtId {
     data.debts
         .create_debt(&DebtInput {
             name: name.to_owned(),
-            statement_period: Some(kind.to_owned()),
+            period: Some(kind.to_owned()),
         })
         .unwrap()
         .id
@@ -110,10 +110,7 @@ fn link_with(
         &mut data.debts,
         id,
         &DebtFormInput {
-            debt: DebtInput {
-                name,
-                statement_period: None,
-            },
+            debt: DebtInput { name, period: None },
             category: Some(category.to_owned()),
             house_id: house.map(|house| house.to_string()),
             settlement: outcome.map(str::to_owned),
@@ -125,7 +122,7 @@ fn link_with(
 fn input(name: &str, sold: (&str, &str)) -> HouseInput {
     HouseInput {
         name: name.to_owned(),
-        valuation_period: Some("Monthly".to_owned()),
+        period: Some("Monthly".to_owned()),
         purchase_date: Some("15/03/2024".to_owned()),
         purchase_amount: Some("250000.00".to_owned()),
         sell_date: Some(sold.0.to_owned()),
@@ -235,7 +232,7 @@ fn test_csd020_ac_1_4_link_while_adding_a_debt() {
         &DebtFormInput {
             debt: DebtInput {
                 name: "Example Mortgage".to_owned(),
-                statement_period: None,
+                period: None,
             },
             category: Some("Mortgage".to_owned()),
             house_id: Some(house.to_string()),
@@ -256,7 +253,7 @@ fn test_csd020_ac_1_5_the_category_defaults_to_other() {
         &DebtFormInput {
             debt: DebtInput {
                 name: "Example Card".to_owned(),
-                statement_period: None,
+                period: None,
             },
             ..DebtFormInput::default()
         },

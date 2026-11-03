@@ -62,7 +62,7 @@ impl Investments {
         let account = InvestmentAccount {
             id: InvestmentAccountId::generate(),
             name: valid.name,
-            statement_period: valid.statement_period.unwrap_or_default(),
+            period: valid.period.unwrap_or_default(),
         };
         self.accounts.push(account.clone());
         Ok(account)
@@ -80,17 +80,17 @@ impl Investments {
         input: &AccountInput,
     ) -> Result<InvestmentAccount, DomainError> {
         let valid = input.validate()?;
-        let current = self.account(id)?.statement_period;
+        let current = self.account(id)?.period;
         if self.name_taken(&valid.name, Some(id)) {
             return Err(DomainError::InvestmentAccountNameDuplicate);
         }
-        let statement_period = valid.statement_period.unwrap_or(current);
-        if statement_period != current && self.statement_count(id) > 0 {
+        let period = valid.period.unwrap_or(current);
+        if period != current && self.statement_count(id) > 0 {
             return Err(DomainError::InvestmentPeriodLocked);
         }
         let account = self.account_mut(id)?;
         account.name = valid.name;
-        account.statement_period = statement_period;
+        account.period = period;
         Ok(account.clone())
     }
 
@@ -144,7 +144,7 @@ impl Investments {
         note: Note,
         today: YearMonth,
     ) -> Result<InvestmentStatement, DomainError> {
-        if self.account(account_id)?.statement_period != period.kind() {
+        if self.account(account_id)?.period != period.kind() {
             return Err(DomainError::InvestmentPeriodMismatch);
         }
         if period.is_after(today) {
@@ -188,7 +188,7 @@ impl Investments {
         note: Note,
         today: YearMonth,
     ) -> Result<InvestmentStatement, DomainError> {
-        let kind = self.account(account_id)?.statement_period;
+        let kind = self.account(account_id)?.period;
         if self.statement(account_id, period).is_none() {
             return Err(DomainError::InvestmentStatementNotFound);
         }
@@ -282,7 +282,7 @@ impl Investments {
         for statement in &self.statements {
             let matches_account = self
                 .account(statement.account_id)
-                .is_ok_and(|account| account.statement_period == statement.period.kind());
+                .is_ok_and(|account| account.period == statement.period.kind());
             if !matches_account
                 || !seen.insert((statement.account_id, statement.period))
                 || Balance::new(statement.balance.value()).is_err()

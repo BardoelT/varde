@@ -41,7 +41,7 @@ impl fmt::Display for InvestmentAccountId {
 pub struct InvestmentAccount {
     pub id: InvestmentAccountId,
     pub name: String,
-    pub statement_period: PayPeriod,
+    pub period: PayPeriod,
 }
 
 /// Account fields as typed by the user, before validation.
@@ -51,12 +51,12 @@ pub struct AccountInput {
     pub name: String,
     /// `None` means Monthly when creating and "unchanged" when editing.
     #[serde(default)]
-    pub statement_period: Option<String>,
+    pub period: Option<String>,
 }
 
 pub(super) struct ValidAccount {
     pub(super) name: String,
-    pub(super) statement_period: Option<PayPeriod>,
+    pub(super) period: Option<PayPeriod>,
 }
 
 impl AccountInput {
@@ -68,8 +68,8 @@ impl AccountInput {
         if name.chars().count() > MAX_NAME_CHARS {
             return Err(DomainError::InvestmentAccountNameTooLong);
         }
-        let statement_period = self
-            .statement_period
+        let period = self
+            .period
             .as_deref()
             .map(str::trim)
             .filter(|text| !text.is_empty())
@@ -77,7 +77,7 @@ impl AccountInput {
             .transpose()?;
         Ok(ValidAccount {
             name: name.to_owned(),
-            statement_period,
+            period,
         })
     }
 }

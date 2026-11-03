@@ -13,7 +13,7 @@ fn house(project: &mut Project, name: &str, period: &str) -> HouseId {
         .create_house(
             &HouseInput {
                 name: name.to_owned(),
-                valuation_period: Some(period.to_owned()),
+                period: Some(period.to_owned()),
                 purchase_date: Some("01/01/1900".to_owned()),
                 purchase_amount: Some("0.00".to_owned()),
                 ..HouseInput::default()
@@ -92,14 +92,14 @@ fn test_csd015_ac_24_4_the_other_sections_are_untouched() {
         .bank_accounts_mut()
         .create_account(&crate::domain::bank_accounts::AccountInput {
             name: "Example Current Account".to_owned(),
-            entry_period: None,
+            period: None,
         })
         .unwrap();
     project
         .investments_mut()
         .create_account(&crate::domain::AccountInput {
             name: "Example Brokerage".to_owned(),
-            statement_period: None,
+            period: None,
         })
         .unwrap();
     let path = dir.path().join("example-a.varde");
@@ -138,7 +138,7 @@ fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
         .debts_mut()
         .create_debt(&crate::domain::debts::DebtInput {
             name: "Example Loan".to_owned(),
-            statement_period: None,
+            period: None,
         })
         .unwrap()
         .id;
@@ -170,7 +170,7 @@ fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
         &DebtFormInput {
             debt: crate::domain::debts::DebtInput {
                 name: "Example Loan".to_owned(),
-                statement_period: None,
+                period: None,
             },
             category: Some("Loan".to_owned()),
             house_id: Some(house.to_string()),
@@ -209,7 +209,7 @@ fn test_csd020_ac_16_3_a_damaged_link_is_an_invalid_file() {
         &path,
         r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
             "debts":{"debts":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
-            "name":"Example Loan","statement_period":"Monthly","colour_slot":0,
+            "name":"Example Loan","period":"Monthly","colour_slot":0,
             "house_id":"11111111-1111-4111-8111-111111111111"}],
             "statements":[]}}"#,
     )
@@ -227,10 +227,10 @@ fn test_csd020_ac_16_4_a_link_on_a_debt_of_category_other_is_an_invalid_file() {
         &path,
         r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
             "houses":{"houses":[{"id":"11111111-1111-4111-8111-111111111111",
-            "name":"Example House","valuation_period":"Monthly","colour_slot":0}],
+            "name":"Example House","period":"Monthly","colour_slot":0}],
             "valuations":[]},
             "debts":{"debts":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
-            "name":"Example Loan","statement_period":"Monthly","colour_slot":0,
+            "name":"Example Loan","period":"Monthly","colour_slot":0,
             "category":"Other","house_id":"11111111-1111-4111-8111-111111111111"}],
             "statements":[]}}"#,
     )
@@ -258,7 +258,7 @@ fn test_csd020_ac_16_5_a_settlement_statement_without_a_settlement_is_an_invalid
         &path,
         r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
             "debts":{"debts":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
-            "name":"Example Loan","statement_period":"Monthly","colour_slot":0}],
+            "name":"Example Loan","period":"Monthly","colour_slot":0}],
             "statements":[{"debt_id":"671166f4-5827-4794-bcdc-54d7824fb650",
             "period":"2026-06","balance":"0.00","note":"","settlement":true}]}}"#,
     )

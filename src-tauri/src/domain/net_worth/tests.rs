@@ -21,7 +21,7 @@ fn add_house(data: &mut ProjectData, at: &str, amount: &str) {
         .create_house(
             &HouseInput {
                 name: "Example House".to_owned(),
-                valuation_period: Some("Yearly".to_owned()),
+                period: Some("Yearly".to_owned()),
                 purchase_date: Some("01/01/1900".to_owned()),
                 purchase_amount: Some("0.00".to_owned()),
                 ..HouseInput::default()
@@ -48,7 +48,7 @@ fn add_investment(data: &mut ProjectData, at: &str, amount: &str) {
             data.investments
                 .create_account(&InvestmentInput {
                     name: "Example Brokerage".to_owned(),
-                    statement_period: Some("Yearly".to_owned()),
+                    period: Some("Yearly".to_owned()),
                 })
                 .unwrap()
                 .id
@@ -71,7 +71,7 @@ fn add_cash(data: &mut ProjectData, at: &str, amount: &str) {
         .bank_accounts
         .create_account(&BankInput {
             name: "Example Bank".to_owned(),
-            entry_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
         })
         .unwrap()
         .id;
@@ -91,7 +91,7 @@ fn add_debt(data: &mut ProjectData, at: &str, amount: &str) {
         .debts
         .create_debt(&DebtInput {
             name: "Example Loan".to_owned(),
-            statement_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
         })
         .unwrap()
         .id;
@@ -157,7 +157,7 @@ fn test_csd017_ac_2_2_accounts_without_records_give_no_years() {
     data.bank_accounts
         .create_account(&BankInput {
             name: "Example Bank".to_owned(),
-            entry_period: None,
+            period: None,
         })
         .unwrap();
     assert_eq!(series(&data).len(), 0);
@@ -294,7 +294,7 @@ fn test_csd019_ac_11_6_net_worth_drops_a_sold_house() {
         .create_house(
             &HouseInput {
                 name: "Example House".to_owned(),
-                valuation_period: Some("Yearly".to_owned()),
+                period: Some("Yearly".to_owned()),
                 purchase_date: Some("15/03/2024".to_owned()),
                 purchase_amount: Some("250000.00".to_owned()),
                 sell_date: Some("10/06/2026".to_owned()),
