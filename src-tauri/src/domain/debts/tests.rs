@@ -433,7 +433,7 @@ fn test_csd011_ac_8_2_the_same_period_on_another_debt_is_allowed() {
 }
 
 #[test]
-fn test_csd011_ac_9_a_statement_must_match_the_statement_period() {
+fn test_csd011_ac_9_1_a_statement_must_match_the_statement_period() {
     let mut debts = Debts::default();
     let yearly = debt(&mut debts, "Yearly", "Yearly");
     let monthly = debt(&mut debts, "Monthly", "Monthly");
@@ -487,7 +487,7 @@ fn test_csd011_ac_10_3_an_invalid_balance_in_an_edit_changes_nothing() {
 }
 
 #[test]
-fn test_csd011_ac_11_note_length_and_line_breaks() {
+fn test_csd011_ac_11_1_note_length_and_line_breaks() {
     assert!(debt_note(&"a".repeat(2000)).is_ok());
     assert_eq!(
         code(debt_note(&"a".repeat(2001))),
@@ -680,7 +680,7 @@ fn test_csd011_ac_14_1_deleting_a_statement_removes_only_that_statement() {
 }
 
 #[test]
-fn test_csd011_ac_15_copy_previous() {
+fn test_csd011_ac_15_1_copy_previous() {
     let mut debts = Debts::default();
     let id = debt(&mut debts, "Example Mortgage", "Monthly");
     // AC-15.2: nothing to copy yet.
@@ -1077,7 +1077,7 @@ fn test_csd011_a_damaged_section_is_not_consistent() {
 // CSD-012 REQ-2 to REQ-5
 
 #[test]
-fn test_csd012_ac_2_the_series_runs_from_the_first_statement_to_the_current_year() {
+fn test_csd012_ac_2_1_the_series_runs_from_the_first_statement_to_the_current_year() {
     let mut debts = Debts::default();
     let id = debt(&mut debts, "Example Mortgage", "Monthly");
     add(&mut debts, id, "2024-03", "100.00");
@@ -1116,7 +1116,7 @@ fn test_csd012_ac_3_1_a_gap_year_is_zero_without_segments() {
 }
 
 #[test]
-fn test_csd012_ac_4_the_current_year_is_partial_even_without_statements() {
+fn test_csd012_ac_4_2_the_current_year_is_partial_even_without_statements() {
     let mut debts = Debts::default();
     let id = debt(&mut debts, "Example Student Loan", "Yearly");
     add(&mut debts, id, "2025", "100.00");

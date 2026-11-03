@@ -417,7 +417,7 @@ fn test_csd015_ac_8_2_the_same_period_on_another_house_is_allowed() {
 }
 
 #[test]
-fn test_csd015_ac_9_a_valuation_must_match_the_valuation_period() {
+fn test_csd015_ac_9_1_a_valuation_must_match_the_valuation_period() {
     let mut houses = Houses::default();
     let yearly = new_house(&mut houses, "Yearly", "Yearly");
     let monthly = new_house(&mut houses, "Monthly", "Monthly");
@@ -471,7 +471,7 @@ fn test_csd015_ac_10_3_an_invalid_value_in_an_edit_changes_nothing() {
 }
 
 #[test]
-fn test_csd015_ac_11_note_length_and_line_breaks() {
+fn test_csd015_ac_11_1_note_length_and_line_breaks() {
     assert!(house_note(&"a".repeat(2000)).is_ok());
     assert_eq!(
         code(house_note(&"a".repeat(2001))),
@@ -651,7 +651,7 @@ fn test_csd015_ac_14_1_deleting_a_valuation_removes_only_that_valuation() {
 }
 
 #[test]
-fn test_csd015_ac_15_copy_previous() {
+fn test_csd015_ac_15_1_copy_previous() {
     let mut houses = Houses::default();
     let id = new_house(&mut houses, "Example House", "Monthly");
     // AC-15.2: nothing to copy yet.
@@ -1050,7 +1050,7 @@ fn test_csd015_a_damaged_section_is_not_consistent() {
 // CSD-016 REQ-2 to REQ-5
 
 #[test]
-fn test_csd016_ac_2_the_series_runs_from_the_first_valuation_to_the_current_year() {
+fn test_csd016_ac_2_1_the_series_runs_from_the_first_valuation_to_the_current_year() {
     let mut houses = Houses::default();
     let id = new_house(&mut houses, "Example House", "Monthly");
     add(&mut houses, id, "2024-03", "100.00");
@@ -1089,7 +1089,7 @@ fn test_csd016_ac_3_1_a_gap_year_is_zero_without_segments() {
 }
 
 #[test]
-fn test_csd016_ac_4_the_current_year_is_partial_even_without_valuations() {
+fn test_csd016_ac_4_2_the_current_year_is_partial_even_without_valuations() {
     let mut houses = Houses::default();
     let id = new_house(&mut houses, "Example Lodge", "Yearly");
     add(&mut houses, id, "2025", "100.00");

@@ -911,7 +911,7 @@ fn test_csd005_ac_17_8_net_deposits_and_capital_growth_over_ipc() {
 }
 
 #[test]
-fn test_csd005_ac_24_the_form_calculation_over_ipc() {
+fn test_csd005_ac_24_1_the_form_calculation_over_ipc() {
     let app = harness();
     let account = app.ok(
         "create_investment_account",
@@ -1024,7 +1024,7 @@ fn test_csd006_income_insights_over_ipc() {
 }
 
 #[test]
-fn test_csd005_ac_26_yearly_totals_over_ipc() {
+fn test_csd005_ac_26_1_yearly_totals_over_ipc() {
     let app = harness();
     // AC-26.2: nothing yet.
     assert_eq!(app.ok("yearly_investment_totals", json!({})), json!([]));
@@ -1244,7 +1244,7 @@ fn test_csd022_ac_9_1_a_failed_save_keeps_the_language_over_ipc() {
 }
 
 #[test]
-fn test_csd001_ac_29_the_month_of_a_paycheck_changes_over_ipc() {
+fn test_csd001_ac_29_1_the_month_of_a_paycheck_changes_over_ipc() {
     let app = harness();
     let job = app.ok("create_job", json!({ "input": job_input() }));
     let job_id = job["id"].as_str().unwrap().to_owned();
@@ -1278,7 +1278,7 @@ fn test_csd001_ac_29_the_month_of_a_paycheck_changes_over_ipc() {
 }
 
 #[test]
-fn test_csd001_ac_30_a_rejected_edit_changes_nothing_over_ipc() {
+fn test_csd001_ac_30_4_a_rejected_edit_changes_nothing_over_ipc() {
     let app = harness();
     let job = app.ok("create_job", json!({ "input": job_input() }));
     let job_id = job["id"].as_str().unwrap().to_owned();
@@ -1329,7 +1329,7 @@ fn test_csd001_ac_29_3_the_year_of_an_annual_statement_changes_over_ipc() {
 }
 
 #[test]
-fn test_csd005_ac_28_the_period_of_a_statement_changes_over_ipc() {
+fn test_csd005_ac_28_1_the_period_of_a_statement_changes_over_ipc() {
     let app = harness();
     let account = app.ok(
         "create_investment_account",

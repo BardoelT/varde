@@ -560,7 +560,7 @@ test('test_csd025_net_worth_shows_a_debt_with_a_minus_sign_when_it_has_a_piece',
 
 // ---- the frontend computes nothing ----
 
-test('test_csd025_ac_5_x_nothing_is_computed_from_the_received_values', async () => {
+test('test_csd025_ac_5_1_nothing_is_computed_from_the_received_values', async () => {
   // Every number Rust sends is replaced by a different one, and every label by a text that no
   // computation could give. The chart shows the received texts and places the pieces by the
   // received values; it never recomputes a label, a tick, a stack or a total from the amounts.

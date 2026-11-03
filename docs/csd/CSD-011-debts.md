@@ -1134,7 +1134,7 @@ Domain and command ACs are proven by `cargo test`, with domain logic tested in `
 | Display ACs (REQ-20 to REQ-22, REQ-27, REQ-28, form labels, section order and contents, no counts anywhere, delete confirmation text, titles without a currency, button placement, left-pane item, empty states, note cut-off, plain-text note, dashes for none, the settle dialog) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. There are no `test_csd011_ac_20_` tests |
 | The currency confirmation for debt statements | Governed by CSD-003 REQ-5 (AC-5.9, AC-5.10), verified there |
 
-Not covered by a named test yet (45 of 120 ACs; no test carries the AC id): AC-6.2, AC-6.4, AC-8.3, AC-9.1, AC-9.2, AC-11.1, AC-11.2, AC-12.2, AC-12.7, AC-12.9, AC-13.4, AC-14.2, AC-15.1 to AC-15.3, AC-16.1 to AC-16.3, AC-17.6, AC-18.3, AC-19.12, AC-19.13, AC-20.1 to AC-20.8, AC-21.1 to AC-21.3, AC-22.1, AC-23.2, AC-24.1, AC-24.2, AC-26.4, AC-27.1 to AC-27.4, AC-28.1 to AC-28.3.
+Not covered by a named test yet (42 of 120 ACs; no test carries the AC id): AC-6.2, AC-6.4, AC-8.3, AC-9.2, AC-11.2, AC-12.2, AC-12.7, AC-12.9, AC-13.4, AC-14.2, AC-15.2, AC-15.3, AC-16.1 to AC-16.3, AC-17.6, AC-18.3, AC-19.12, AC-19.13, AC-20.1 to AC-20.8, AC-21.1 to AC-21.3, AC-22.1, AC-23.2, AC-24.1, AC-24.2, AC-26.4, AC-27.1 to AC-27.4, AC-28.1 to AC-28.3.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

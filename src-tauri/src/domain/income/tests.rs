@@ -305,7 +305,7 @@ fn test_csd001_ac_8_2_invalid_edit_rejected() {
 }
 
 #[test]
-fn test_csd001_ac_8_3_delete_paycheck() {
+fn test_csd001_ac_31_1_delete_paycheck() {
     let mut income = Income::default();
     let id = job_with(&mut income, "01/03/2024", "");
     add(&mut income, id, "2026-04", "3000.00");

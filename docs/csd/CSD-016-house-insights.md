@@ -579,7 +579,7 @@ The series is computed in Rust, so the data ACs are proven by `cargo test`. Test
 | REQ-2 and REQ-4 (the test names carry the requirement but no AC number) | `cargo test test_csd016_ac_2_` and `cargo test test_csd016_ac_4_` |
 | Display ACs (REQ-1, REQ-6 to REQ-12, REQ-14 and the others in the list below) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. |
 
-Not covered by a named test yet (44 of 57 ACs; no test carries the AC id): AC-1.1 to AC-1.3, AC-2.1 to AC-2.3, AC-4.1, AC-4.2, AC-5.6, AC-6.1 to AC-6.5, AC-7.2, AC-7.3, AC-8.1 to AC-8.4, AC-9.1, AC-9.3 to AC-9.5, AC-10.1 to AC-10.9, AC-11.1 to AC-11.6, AC-12.1, AC-13.4, AC-14.1, AC-15.1, AC-15.2.
+Not covered by a named test yet (42 of 57 ACs; no test carries the AC id): AC-1.1 to AC-1.3, AC-2.2, AC-2.3, AC-4.1, AC-5.6, AC-6.1 to AC-6.5, AC-7.2, AC-7.3, AC-8.1 to AC-8.4, AC-9.1, AC-9.3 to AC-9.5, AC-10.1 to AC-10.9, AC-11.1 to AC-11.6, AC-12.1, AC-13.4, AC-14.1, AC-15.1, AC-15.2.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

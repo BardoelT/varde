@@ -543,7 +543,7 @@ fn test_csd005_ac_11_2_a_note_can_be_cleared() {
 }
 
 #[test]
-fn test_csd005_ac_11_4_editing_a_missing_statement_is_an_error() {
+fn test_csd005_editing_a_missing_statement_is_an_error() {
     let mut investments = Investments::default();
     let id = add_account(&mut investments, "Example Brokerage", "Monthly");
     let error = investments
@@ -1271,7 +1271,7 @@ fn test_csd005_ac_25_4_invalid_net_deposits_in_the_form_are_rejected() {
 }
 
 #[test]
-fn test_csd005_ac_25_5_an_invalid_balance_in_the_form_is_rejected() {
+fn test_csd005_an_invalid_balance_in_the_form_is_rejected() {
     let (investments, id) = account_with_august();
     let error = calculate(
         &investments,
@@ -1811,7 +1811,7 @@ fn test_csd007_ac_7_3_the_current_year_has_a_percentage() {
 }
 
 #[test]
-fn test_csd007_ac_7_4_a_year_with_only_new_accounts_has_no_percentage() {
+fn test_csd007_a_year_with_only_new_accounts_has_no_percentage() {
     let mut investments = Investments::default();
     let brokerage = add_account(&mut investments, "Example Brokerage", "Monthly");
     let crypto = add_account(&mut investments, "Example Crypto", "Monthly");

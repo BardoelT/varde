@@ -107,7 +107,7 @@ fn test_csd015_ac_24_4_the_other_sections_are_untouched() {
 }
 
 #[test]
-fn test_csd015_ac_24_5_a_damaged_section_is_an_invalid_file() {
+fn test_csd015_ac_27_3_a_damaged_section_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
     let path = dir.path().join("example-a.varde");
     // A valuation of a house that does not exist.
