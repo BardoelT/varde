@@ -56,21 +56,6 @@ fn test_csd005_ac_19_1_investments_survive_save_and_open_including_notes() {
 }
 
 #[test]
-fn test_csd005_ac_19_2_a_file_without_the_section_opens_without_accounts() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.varde");
-    fs::write(
-        &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]}}"#,
-    )
-    .unwrap();
-    let mut project = Project::new();
-    project.open(&path).unwrap();
-    assert_eq!(project.investments().accounts().len(), 0);
-    assert!(!project.status().unsaved_changes);
-}
-
-#[test]
 fn test_csd005_an_inconsistent_investments_section_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
     let path = dir.path().join("example-a.varde");

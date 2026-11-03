@@ -28,27 +28,20 @@ struct FileRef<'a> {
     settings: &'a Settings,
 }
 
-/// A file without a `settings` section gets the default settings (CSD-003 NG-5),
-/// and one without an `investments` section has no investment accounts
-/// (CSD-005 REQ-19), or without a `bank_accounts` section no bank accounts
-/// (CSD-009 REQ-23), and one without a `debts` section no debts (CSD-011
-/// REQ-23), and one without an `expenses` section no expenses (CSD-013
-/// REQ-16), and one without a `houses` section no houses (CSD-015 REQ-24); the former
-/// `assets` section is read as the houses.
+/// Every section is required and unknown fields are rejected, so a misspelled
+/// section name can never load as an empty section and be saved over the data
+/// (CSD-002 REQ-17).
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct FileOwned {
+    #[serde(rename = "format_version")]
+    _format_version: u32,
     income: Income,
-    #[serde(default)]
     investments: Investments,
-    #[serde(default)]
     bank_accounts: BankAccounts,
-    #[serde(default)]
     debts: Debts,
-    #[serde(default)]
     expenses: Expenses,
-    #[serde(default, alias = "assets")]
     houses: Houses,
-    #[serde(default)]
     settings: Settings,
 }
 
@@ -77,8 +70,11 @@ pub(super) fn from_json(text: &str) -> Result<ProjectData, StorageError> {
         .get("format_version")
         .and_then(serde_json::Value::as_u64)
         .ok_or(StorageError::InvalidFile)?;
-    if version == 0 || version > u64::from(FORMAT_VERSION) {
+    if version == 0 {
         return Err(StorageError::InvalidFile);
+    }
+    if version > u64::from(FORMAT_VERSION) {
+        return Err(StorageError::FileNewer);
     }
     let file: FileOwned = serde_json::from_value(value).map_err(|_| StorageError::InvalidFile)?;
     let mut file = file;

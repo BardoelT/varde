@@ -52,21 +52,6 @@ fn test_csd013_ac_16_1_expenses_survive_save_and_open_including_notes() {
 }
 
 #[test]
-fn test_csd013_ac_16_2_a_file_without_the_section_opens_without_expenses() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.varde");
-    fs::write(
-        &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]}}"#,
-    )
-    .unwrap();
-    let mut project = Project::new();
-    project.open(&path).unwrap();
-    assert_eq!(project.expenses().total_count(), 0);
-    assert!(!project.status().unsaved_changes);
-}
-
-#[test]
 fn test_csd013_ac_16_3_the_other_sections_are_untouched() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();

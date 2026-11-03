@@ -61,45 +61,6 @@ fn test_csd015_ac_24_1_houses_survive_save_and_open_including_notes_and_slots() 
 }
 
 #[test]
-fn test_csd015_ac_24_2_a_file_without_the_section_opens_without_houses() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.varde");
-    fs::write(
-        &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]}}"#,
-    )
-    .unwrap();
-    let mut project = Project::new();
-    project.open(&path).unwrap();
-    assert_eq!(project.houses().houses().len(), 0);
-    assert!(!project.status().unsaved_changes);
-}
-
-#[test]
-fn test_csd015_ac_24_6_a_file_with_the_former_section_opens_as_houses() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.varde");
-    fs::write(
-        &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
-            "assets":{"assets":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
-            "name":"Example House","valuation_period":"Monthly","colour_slot":0}],
-            "valuations":[{"asset_id":"671166f4-5827-4794-bcdc-54d7824fb650",
-            "period":"2026-09","value":"300000.00"}]}}"#,
-    )
-    .unwrap();
-    let mut project = Project::new();
-    project.open(&path).unwrap();
-    assert_eq!(project.houses().houses().len(), 1);
-    project.save_as(dir.path().join("example-b.varde")).unwrap();
-    let text = fs::read_to_string(dir.path().join("example-b.varde")).unwrap();
-    let value: serde_json::Value = serde_json::from_str(&text).unwrap();
-    assert!(value.get("assets").is_none());
-    assert_eq!(value["houses"]["houses"][0]["name"], "Example House");
-    assert_eq!(value["houses"]["valuations"][0]["value"], "300000.00");
-}
-
-#[test]
 fn test_csd015_ac_24_3_a_zero_value_survives_the_round_trip() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
@@ -241,25 +202,6 @@ fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
 }
 
 #[test]
-fn test_csd020_ac_16_2_a_file_without_links_opens_without_links() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.varde");
-    fs::write(
-        &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
-            "debts":{"debts":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
-            "name":"Example Loan","statement_period":"Monthly","colour_slot":0}],
-            "statements":[]}}"#,
-    )
-    .unwrap();
-    let mut project = Project::new();
-    project.open(&path).unwrap();
-    let debt_id = project.debts().debts()[0].id;
-    assert_eq!(project.debts().house_of(debt_id), None);
-    assert!(!project.debts().is_settled(debt_id));
-}
-
-#[test]
 fn test_csd020_ac_16_3_a_damaged_link_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
     let path = dir.path().join("example-a.varde");
@@ -324,57 +266,4 @@ fn test_csd020_ac_16_5_a_settlement_statement_without_a_settlement_is_an_invalid
     let mut project = Project::new();
     let error = project.open(&path).unwrap_err();
     assert_eq!(error.code(), "PROJECT_INVALID_FILE");
-}
-
-#[test]
-fn test_csd020_ac_16_6_a_debt_settled_by_an_earlier_version_opens_in_the_current_form() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.varde");
-    fs::write(
-        &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
-            "houses":{"houses":[{"id":"11111111-1111-4111-8111-111111111111",
-            "name":"Example House","valuation_period":"Yearly","colour_slot":0,
-            "purchase_date":"2020-01-01","purchase_amount":"100000.00",
-            "sell_date":"2026-08-01","sell_amount":"200000.00"}],"valuations":[]},
-            "debts":{"debts":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
-            "name":"Example Mortgage","statement_period":"Yearly","colour_slot":0,
-            "category":"Mortgage","house_id":"11111111-1111-4111-8111-111111111111",
-            "settlement":{"outcome":"Cancelled","date":"2026-08-01","amount":"5000.00",
-            "replaced":{"balance":"5000.00","note":"Year end"}}}],
-            "statements":[
-            {"debt_id":"671166f4-5827-4794-bcdc-54d7824fb650","period":"2025","balance":"6000.00"},
-            {"debt_id":"671166f4-5827-4794-bcdc-54d7824fb650","period":"2026","balance":"0.00",
-            "note":"Cancelled on sale of Example House"}]}}"#,
-    )
-    .unwrap();
-    let mut project = Project::new();
-    project.open(&path).unwrap();
-    let rows: Vec<_> = project
-        .debts()
-        .all_statements()
-        .into_iter()
-        .map(|(_, s)| {
-            (
-                s.period.to_string(),
-                s.balance.value().to_string(),
-                s.settlement,
-            )
-        })
-        .collect();
-    assert_eq!(
-        rows,
-        vec![
-            ("2026".to_owned(), "0.00".to_owned(), true),
-            ("2026".to_owned(), "5000.00".to_owned(), false),
-            ("2025".to_owned(), "6000.00".to_owned(), false),
-        ]
-    );
-    let saved = dir.path().join("example-b.varde");
-    project.save_as(saved.clone()).unwrap();
-    let text = fs::read_to_string(saved).unwrap();
-    assert!(!text.contains("replaced"));
-    let mut reopened = Project::new();
-    reopened.open(&dir.path().join("example-b.varde")).unwrap();
-    assert_eq!(reopened.debts(), project.debts());
 }

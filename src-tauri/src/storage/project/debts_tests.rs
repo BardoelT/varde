@@ -54,21 +54,6 @@ fn test_csd011_ac_23_1_debts_survive_save_and_open_including_notes_and_slots() {
 }
 
 #[test]
-fn test_csd011_ac_23_2_a_file_without_the_section_opens_without_debts() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.varde");
-    fs::write(
-        &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]}}"#,
-    )
-    .unwrap();
-    let mut project = Project::new();
-    project.open(&path).unwrap();
-    assert_eq!(project.debts().debts().len(), 0);
-    assert!(!project.status().unsaved_changes);
-}
-
-#[test]
 fn test_csd011_ac_23_3_a_zero_balance_survives_the_round_trip() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
