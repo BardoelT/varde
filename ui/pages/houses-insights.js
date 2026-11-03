@@ -35,7 +35,7 @@ function tooltipContent(row) {
     row.valuation_count === 0
       ? []
       : [
-          ...topToBottom(row.segments, (segment) => segment.value).flatMap((segment) =>
+          ...topToBottom(row.segments, (segment) => keyOf(segment.house_id), row.pieces).flatMap((segment) =>
             tooltipRow(keyOf(segment.house_id), swatch(`slot-${slotOf(segment.house_id)}`), nameOf(segment), formatAmount(segment.value)),
           ),
           ...tooltipRow('marker', swatch('marker'), t('Total value'), formatAmount(row.closing_value)),
@@ -49,31 +49,13 @@ function tooltipContent(row) {
   ].filter(Boolean);
 }
 
-/**
- * The segments of a year, stacked upwards from the zero line in the order
- * received (CSD-016 REQ-6). A value is never negative, so nothing hangs down;
- * a house at 0.00 adds no height. The top corners of the highest segment are rounded.
- */
-function piecesOf(row) {
-  let level = 0;
-  const pieces = [];
-  for (const segment of row.segments) {
-    const value = Number(segment.value);
-    if (value === 0) continue;
-    pieces.push({
-      key: keyOf(segment.house_id),
-      cssClass: `bar-slot-${slotOf(segment.house_id)}`,
-      label: `${nameOf(segment)}, ${row.year}, ${formatAmount(segment.value)}`,
-      low: level,
-      high: level + value,
-      hangs: false,
-      rounding: false,
-    });
-    level += value;
-  }
-  const highest = pieces.at(-1);
-  if (highest) highest.rounding = 'top';
-  return pieces;
+/** How a received piece looks: the colour slot and the name of its house, and its accessible name. */
+function pieceStyle(row, piece) {
+  const segment = row.segments.find((candidate) => keyOf(candidate.house_id) === piece.series);
+  return {
+    cssClass: `bar-slot-${slotOf(segment.house_id)}`,
+    label: `${nameOf(segment)}, ${row.year}, ${formatAmount(segment.value)}`,
+  };
 }
 
 /** The legend: a swatch and the name of every house in the series, and the total value marker (CSD-016 REQ-9). */
@@ -94,12 +76,11 @@ const chart = createYearlyChart({
     return t('Houses per year');
   },
   onLoaded: buildLegend,
-  piecesOf,
-  extraLevels: (row) => [Number(row.closing_value)],
+  pieceStyle,
   describe,
   tooltipContent,
-  /** The total value marker, drawn for each year that has valuations. */
-  decorate: (row, geometry) => (row.valuation_count === 0 ? [] : levelMarker(Number(row.closing_value), geometry)),
+  /** The total value marker, as Rust delivers it. */
+  decorate: (row, geometry) => (row.marker ? levelMarker(row.marker, geometry) : []),
   labelLines: (row) => [{ text: yearLabel(row), className: 'chart-year' }],
 });
 

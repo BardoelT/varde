@@ -35,7 +35,7 @@ function tooltipContent(row) {
     row.statement_count === 0
       ? []
       : [
-          ...topToBottom(row.segments, (segment) => segment.balance).flatMap((segment) =>
+          ...topToBottom(row.segments, (segment) => keyOf(segment.debt_id), row.pieces).flatMap((segment) =>
             tooltipRow(keyOf(segment.debt_id), swatch(`slot-${slotOf(segment.debt_id)}`), nameOf(segment), formatAmount(segment.balance)),
           ),
           ...tooltipRow('marker', swatch('marker'), t('Total debt'), formatAmount(row.closing_balance)),
@@ -49,31 +49,13 @@ function tooltipContent(row) {
   ].filter(Boolean);
 }
 
-/**
- * The segments of a year, stacked upwards from the zero line in the order
- * received (CSD-012 REQ-6). A balance is never negative, so nothing hangs down;
- * a debt at 0.00 adds no height. The top corners of the highest segment are rounded.
- */
-function piecesOf(row) {
-  let level = 0;
-  const pieces = [];
-  for (const segment of row.segments) {
-    const value = Number(segment.balance);
-    if (value === 0) continue;
-    pieces.push({
-      key: keyOf(segment.debt_id),
-      cssClass: `bar-slot-${slotOf(segment.debt_id)}`,
-      label: `${nameOf(segment)}, ${row.year}, ${formatAmount(segment.balance)}`,
-      low: level,
-      high: level + value,
-      hangs: false,
-      rounding: false,
-    });
-    level += value;
-  }
-  const highest = pieces.at(-1);
-  if (highest) highest.rounding = 'top';
-  return pieces;
+/** How a received piece looks: the colour slot and the name of its debt, and its accessible name. */
+function pieceStyle(row, piece) {
+  const segment = row.segments.find((candidate) => keyOf(candidate.debt_id) === piece.series);
+  return {
+    cssClass: `bar-slot-${slotOf(segment.debt_id)}`,
+    label: `${nameOf(segment)}, ${row.year}, ${formatAmount(segment.balance)}`,
+  };
 }
 
 /** The legend: a swatch and the name of every debt in the series, and the total debt marker (CSD-012 REQ-9). */
@@ -94,12 +76,11 @@ const chart = createYearlyChart({
     return t('Debts per year');
   },
   onLoaded: buildLegend,
-  piecesOf,
-  extraLevels: (row) => [Number(row.closing_balance)],
+  pieceStyle,
   describe,
   tooltipContent,
-  /** The total debt marker, drawn for each year that has statements. */
-  decorate: (row, geometry) => (row.statement_count === 0 ? [] : levelMarker(Number(row.closing_balance), geometry)),
+  /** The total debt marker, as Rust delivers it. */
+  decorate: (row, geometry) => (row.marker ? levelMarker(row.marker, geometry) : []),
   labelLines: (row) => [{ text: yearLabel(row), className: 'chart-year' }],
 });
 

@@ -66,7 +66,7 @@ test('test_csd025_ac_15_3_figures_follow_changes_when_the_insights_tab_opens_aga
 
   // The user changes the figures on the Overview tab: Rust answers differently from now on.
   await app.click(app.$('income-tab-overview'));
-  app.bridge.table.get_income_insights = { years: app.bridge.table.get_income_insights.years.slice(1) };
+  app.bridge.table.get_income_insights = { ...app.bridge.table.get_income_insights, years: app.bridge.table.get_income_insights.years.slice(1) };
   assert.equal(groups(), first, 'nothing is requested while the Overview tab is shown');
 
   await app.click(app.$('income-tab-insights'));

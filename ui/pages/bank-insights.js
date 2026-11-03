@@ -32,13 +32,13 @@ function describe(row) {
   });
 }
 
-/** The rows read like the bar: the highest segment first, those below the zero line last. */
+/** The rows read like the bar: the highest segment first, those that hang below the zero line last. */
 function tooltipContent(row) {
   const rows =
     row.entry_count === 0
       ? []
       : [
-          ...topToBottom(row.segments, (segment) => segment.balance).flatMap((segment) =>
+          ...topToBottom(row.segments, (segment) => keyOf(segment.account_id), row.pieces).flatMap((segment) =>
             tooltipRow(
               keyOf(segment.account_id),
               swatch(`slot-${slotOf(segment.account_id)}`),
@@ -56,37 +56,13 @@ function tooltipContent(row) {
     h('dl', {}, ...rows),
   ].filter(Boolean);
 }
-/**
- * The segments of a year: positive balances rise from the zero line in the
- * order received and negative ones hang down from it (CSD-010 REQ-6). The
- * outer corners of the highest and the lowest segment are rounded (REQ-13).
- */
-function piecesOf(row) {
-  let up = 0;
-  let down = 0;
-  const pieces = [];
-  for (const segment of row.segments) {
-    const value = Number(segment.balance);
-    if (value === 0) continue;
-    const piece = {
-      key: keyOf(segment.account_id),
-      cssClass: `bar-slot-${slotOf(segment.account_id)}`,
-      label: `${nameOf(segment)}, ${row.year}, ${formatAmount(segment.balance)}`,
-      rounding: false,
-    };
-    if (value > 0) {
-      pieces.push({ ...piece, low: up, high: up + value, hangs: false });
-      up += value;
-    } else {
-      pieces.push({ ...piece, low: down + value, high: down, hangs: true });
-      down += value;
-    }
-  }
-  const highest = pieces.filter((piece) => !piece.hangs).at(-1);
-  const lowest = pieces.filter((piece) => piece.hangs).at(-1);
-  if (highest) highest.rounding = 'top';
-  if (lowest) lowest.rounding = 'bottom';
-  return pieces;
+/** How a received piece looks: the colour slot and the name of its bank, and its accessible name. */
+function pieceStyle(row, piece) {
+  const segment = row.segments.find((candidate) => keyOf(candidate.account_id) === piece.series);
+  return {
+    cssClass: `bar-slot-${slotOf(segment.account_id)}`,
+    label: `${nameOf(segment)}, ${row.year}, ${formatAmount(segment.balance)}`,
+  };
 }
 
 /** The legend: a swatch and the name of every bank in the series, and the closing-balance marker (CSD-010 REQ-9). */
@@ -108,12 +84,11 @@ const chart = createYearlyChart({
     return t('Bank accounts per year');
   },
   onLoaded: buildLegend,
-  piecesOf,
-  extraLevels: (row) => [Number(row.closing_balance)],
+  pieceStyle,
   describe,
   tooltipContent,
-  /** The closing-balance marker, drawn for each year that has entries. */
-  decorate: (row, geometry) => (row.entry_count === 0 ? [] : levelMarker(Number(row.closing_balance), geometry)),
+  /** The closing-balance marker, as Rust delivers it. */
+  decorate: (row, geometry) => (row.marker ? levelMarker(row.marker, geometry) : []),
   labelLines: (row) => [{ text: yearLabel(row), className: 'chart-year' }],
 });
 
