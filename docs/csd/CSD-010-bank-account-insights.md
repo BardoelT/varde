@@ -1,9 +1,9 @@
 ---
 id: CSD-010
 title: Bank account insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.1
+version: 1.2
 last_updated: 03/11/2026
 related: [CSD-007, CSD-009, CSD-025]
 ---
@@ -133,7 +133,7 @@ Scenario: Pieces, marker and labels are delivered
   When the insights are requested
   Then 2025 has the pieces 0.00 to 2000.00 and 2000.00 to 10000.00, in the creation order of the banks
   And the marker of 2025 has value 10000.00 and label "10.00k"
-  And the axis ticks include 0.00 and 10000.00 with the labels "0.00" and "10.00k"
+  And the axis ticks include 0.00 and 10000.00 with the labels "0" and "10k"
 ```
 
 **REQ-3: Years without entries** *(unwanted behaviour)*
@@ -225,7 +225,7 @@ Scenario: Closing balance and entries equal the yearly totals
 ```
 
 **REQ-6: Chart** *(ubiquitous)*
-The Insights tab shall draw one bar per year in the order received, stacked from one segment per bank in which positive segments rise from the zero line in the order received and negative segments hang down from it in that order, on a y-axis that includes 0, ends at a rounded-up value of at least the highest positive sum and starts at a rounded-down value of at most the lowest negative sum, with gridlines, short axis labels delivered by Rust (CSD-025 REQ-3 and REQ-4, such as "10.00k"), a gap year as a labelled slot without a bar, and no currency.
+The Insights tab shall draw one bar per year in the order received, stacked from one segment per bank in which positive segments rise from the zero line in the order received and negative segments hang down from it in that order, on a y-axis that includes 0, ends at a rounded-up value of at least the highest positive sum and starts at a rounded-down value of at most the lowest negative sum, with gridlines, short axis labels delivered by Rust (CSD-025 REQ-3, REQ-4 and REQ-17, such as "10k" on the axis and "10.00k" on a marker), a gap year as a labelled slot without a bar, and no currency.
 
 ```gherkin
 @AC-6.1
@@ -473,7 +473,7 @@ Command: `get_bank_insights()` returns the banks that have at least one entry, i
     { "id": "…", "name": "Example Current Account", "colour_slot": 0 },
     { "id": "…", "name": "Example Savings", "colour_slot": 1 }
   ],
-  "axis": { "ticks": [ { "value": "0.00", "label": "0.00" }, { "value": "5000.00", "label": "5.00k" }, { "value": "10000.00", "label": "10.00k" }, { "value": "15000.00", "label": "15.00k" } ] },
+  "axis": { "ticks": [ { "value": "0.00", "label": "0" }, { "value": "5000.00", "label": "5k" }, { "value": "10000.00", "label": "10k" }, { "value": "15000.00", "label": "15k" } ] },
   "years": [
     { "year": 2025, "closing_balance": "10000.00", "entry_count": 2, "is_partial": false,
       "segments": [ { "account_id": "…", "balance": "2000.00" }, { "account_id": "…", "balance": "8000.00" } ],
@@ -518,6 +518,7 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass, and
 - OQ-2: (resolved 03/11/2026) An entry after the current year extends the series to the latest year with an entry, so the closing balances equal the yearly totals of CSD-009 REQ-19 (REQ-2, AC-2.5, AC-5.5). The series spans at most 50 years back from its last year; an older entry gets no slot but still counts (AC-2.6). A future year is not marked partial (REQ-4, AC-4.3).
 
 ## 9. Changelog
+- 1.2 (03/11/2026): The axis tick labels in AC-2.4 and the section 5 example are whole numbers ("0", "10k"), as CSD-025 REQ-17 says; markers keep 2 decimals. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Resolved OQ-2: the series runs to the later of the current year and the latest year with an entry (REQ-2, new AC-2.5), spans at most 50 years back from its last year, older entries still count (new AC-2.6), a future year is not partial (REQ-4, new AC-4.3), AC-5.5 covers future years. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): The shared chart text moved to CSD-025: REQ-11 (highlight) and REQ-12 (motion) removed in favour of CSD-025 REQ-9 and REQ-10, REQ-13 reduced to the size and look reference and the accessible segment label (AC-13.1 to AC-13.3, AC-13.5 to AC-13.7 removed), AC-8.3, AC-9.3, AC-9.4 and AC-10.5 removed, CON-6 removed. REQ-7 uses the marker of CSD-025 and the short label "10.00k" (was "10k"). Rust delivers the axis, the pieces, the marker and the short labels (REQ-2, new AC-2.4, section 5, CON-2). Rounding follows CSD-000 CON-8 (new CON-7). Verification: display ACs are covered by DOM tests, ACs without a test are marked not covered. New OQ-2 (entries in the future). Back to draft for re-approval.
 - 0.6 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.

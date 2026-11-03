@@ -1,9 +1,9 @@
 ---
 id: CSD-025
 title: Shared charts
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.2
+version: 0.3
 last_updated: 03/11/2026
 related: [CSD-000, CSD-006, CSD-007, CSD-010, CSD-012, CSD-014, CSD-016, CSD-017]
 ---
@@ -87,7 +87,7 @@ The yearly chart shall draw one gridline with its short label for every tick rec
 ```gherkin
 @AC-2.1
 Scenario: Gridlines follow the ticks
-  Given the ticks 0.00, 5000.00, 10000.00 and 15000.00 with the labels "0.00", "5k", "10.00k" and "15.00k"
+  Given the ticks 0.00, 5000.00, 10000.00 and 15000.00 with the labels "0", "5k", "10k" and "15k"
   When the chart is drawn
   Then four gridlines are drawn at those values with those labels
   And the zero line is at 0.00
@@ -504,7 +504,7 @@ Every `get_<area>_insights()` command returns the common part below next to its 
     "ticks": [
       { "value": "-1000.00", "label": "-1k" },
       { "value": "0.00", "label": "0" },
-      { "value": "5000.00", "label": "5.00k" },
+      { "value": "5000.00", "label": "5k" },
       { "value": "10000.00", "label": "10k" }
     ]
   },
@@ -557,5 +557,6 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass, and
 - OQ-4: CSD-006, CSD-007 and CSD-010 still hold copies of the look, size and motion text of this CSD. They shall point here when they are re-approved. Owner: Thijs. Blocks: none.
 
 ## 9. Changelog
+- 0.3 (03/11/2026): The section 5 example shows the whole-number axis label "5k" (REQ-17). Back to `draft` until re-approved.
 - 0.2 (03/11/2026): axis ticks use a whole round step and axis labels never show decimals (REQ-3: AC-3.4 added; new REQ-17, AC-17.1, AC-17.2); REQ-4 applies to markers and growth figures; the minus sign is "-" everywhere; OQ-1 to OQ-3 resolved.
 - 0.1 (03/11/2026): initial draft. The yearly chart and named-series framework that the Insights CSDs repeated (bars, axis, tooltip, highlight, motion, size, look, legend, colours, tabs, empty state), the short label format and the label payload built by Rust (decision D2: the frontend computes and rounds nothing; 999,996 shows as "1.00M").

@@ -223,7 +223,7 @@ Scenario: Repaid is Cancelled-adjusted
 ```
 
 **REQ-6: Chart** *(ubiquitous)*
-The Insights tab shall draw one bar per year in the order received, stacked upwards from the zero line from one segment per debt in the order received, on a y-axis that starts at 0 and ends at a rounded-up value of at least the highest total debt, with gridlines, short axis labels in the format of CSD-025 (such as "10.00k", built in Rust), a gap year as a labelled slot without a bar, and no currency.
+The Insights tab shall draw one bar per year in the order received, stacked upwards from the zero line from one segment per debt in the order received, on a y-axis that starts at 0 and ends at a rounded-up value of at least the highest total debt, with gridlines, short axis labels in the format of CSD-025 REQ-17 (such as "10k", built in Rust), a gap year as a labelled slot without a bar, and no currency.
 
 ```gherkin
 @AC-6.1

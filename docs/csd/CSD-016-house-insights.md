@@ -1,9 +1,9 @@
 ---
 id: CSD-016
 title: House insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.1
+version: 1.2
 last_updated: 03/11/2026
 related: [CSD-000, CSD-010, CSD-012, CSD-015, CSD-020, CSD-025]
 ---
@@ -263,9 +263,9 @@ Scenario: Current year is marked
 
 @AC-6.6
 Scenario: Axis labels come from the backend
-  Given the backend provides the axis label "50.00k" for the value 50000.00
+  Given the backend provides the axis label "50k" for the value 50000.00
   When the user opens the Insights tab
-  Then the y-axis shows the text "50.00k" at that value
+  Then the y-axis shows the text "50k" at that value
   And the frontend has not computed or reformatted it
 ```
 
@@ -587,6 +587,7 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 - OQ-1: (resolved 03/11/2026) A year after the current year (a valuation in the future, CSD-015 REQ-7) is not marked and looks like any other year (REQ-4, AC-4.3). The series runs to the latest year with a valuation, at most 50 years back from its last year (REQ-2, AC-2.4, AC-2.5).
 
 ## 9. Changelog
+- 1.2 (03/11/2026): AC-6.6 uses the whole-number axis label "50k", as CSD-025 REQ-17 says. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Resolved OQ-1: a future year is not marked. The series spans at most 50 years back from its last year; older valuations get no slot but still count (REQ-2, new AC-2.5). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Future periods are allowed (CSD-015 v1.0), so the series runs up to the later of the current year and the year of the latest valuation (REQ-2, AC-2.4), a future year is not partial (REQ-4, AC-4.3, OQ-1). Segments cite CSD-020 REQ-10, new AC-5.6 (a sold house drops out in its sale year). The short axis labels and marker labels are built by the backend (CSD-025; REQ-6, REQ-7, AC-7.1 now "10.00k", new AC-6.6, section 5). Motion (REQ-12), look and size (REQ-13) and tooltip placement refer to CSD-025: AC-12.2, AC-12.3, AC-13.1 to AC-13.3 and AC-13.5 removed. Money rounding references CSD-000 CON-8 (new CON-7). Verification table rewritten to what is covered; display ACs are covered by DOM tests. Back to `draft` for re-approval.
 - 0.7 (30/10/2026): Assets are renamed to houses (labels, the Houses page and chart, error codes, commands, JSON keys such as `houses`). No other requirement changes. Back to `draft` until re-approved (GitHub issue 31).
