@@ -6,9 +6,9 @@
 import { h } from '../shared/dom.js';
 import { t } from '../shared/i18n.js';
 import { formatAmount } from '../shared/format.js';
-import { swatch, noSwatch, legendLabel, legendItem, tooltipRow } from '../shared/chart.js';
-import { createYearlyChart, levelMarker, isNegative, yearLabel } from '../shared/yearly-chart.js';
-import { initTabs } from '../shared/tabs.js';
+import { swatch, noSwatch, legendLabel, tooltipRow } from '../shared/chart.js';
+import { createYearlyChart, isNegative, yearLabel } from '../shared/yearly-chart.js';
+import { fillLegend, initInsightsTabs, markerDecorator } from '../shared/insights-page.js';
 
 /** The legend items in the order of the bar from the bottom: key and label. A loss and a gain are two items. */
 const legendItems = () => [
@@ -59,12 +59,10 @@ const pieceStyle = (row, piece) => ({
 
 /** The legend: one item per kind of piece, and the closing-balance marker; hovering one highlights it in every year. */
 function buildLegend() {
-  const legendList = document.getElementById('investments-insights-legend');
-  const scopes = () => [legendList, document.getElementById('investments-insights-chart')];
-  legendList.replaceChildren(
-    ...legendItems().map(([key, label]) => legendItem(key, swatch(key), legendLabel(label), scopes)),
-    legendItem('marker', swatch('marker'), legendLabel(t('Closing balance')), scopes),
-  );
+  fillLegend('investments-insights', [
+    ...legendItems().map(([key, label]) => [key, swatch(key), legendLabel(label)]),
+    ['marker', swatch('marker'), legendLabel(t('Closing balance'))],
+  ]);
 }
 
 const chart = createYearlyChart({
@@ -79,7 +77,7 @@ const chart = createYearlyChart({
   describe,
   tooltipContent,
   /** The closing-balance marker, as Rust delivers it. */
-  decorate: (row, geometry) => (row.marker ? levelMarker(row.marker, geometry) : []),
+  decorate: markerDecorator,
   /** The year, and the growth percentage on a second line. */
   labelLines: (row) => [
     { text: yearLabel(row), className: 'chart-year' },
@@ -95,9 +93,5 @@ export const reloadInvestmentsInsightsIfOpen = chart.reloadIfOpen;
 
 export function initInvestmentsInsights() {
   chart.init();
-  initTabs([
-    { tab: 'investments-tab-overview', panel: 'investments-overview' },
-    // Opening Insights recomputes it, so it never shows stale figures (REQ-13).
-    { tab: 'investments-tab-insights', panel: 'investments-insights', onOpen: chart.reload },
-  ]);
+  initInsightsTabs('investments', chart); // opening Insights recomputes it (CSD-007 REQ-13)
 }

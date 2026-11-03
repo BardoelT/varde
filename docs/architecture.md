@@ -72,14 +72,18 @@ tests/              DOM tests and their harness (not part of the app)
 | File | Job |
 |---|---|
 | `ipc.js` | `invoke`, `listen`, `errorText`: the only place that talks to Tauri |
-| `dom.js` | `h` (element builder), icons, toast, the confirm dialog, `showError`, `submitOnce` (one submit at a time per form) and `reloadAfterSave` (a failing reload after a save goes to the toast) |
-| `format.js` | Display formatting and today's year or month. No figures are computed |
+| `dom.js` | `$` (element by id, defined once), `h` (element builder), icons, toast, the confirm dialog, `showError`, `submitOnce` (one submit at a time per form) and `reloadAfterSave` (a failing reload after a save goes to the toast) |
+| `crud.js` | The three steps of every overview dialog: `openDialog` (reset, title, fill, show, focus), `saveDialog` (run the save, close, reload, show an error in the dialog's error box) and `deleteWithConfirm` (confirm, invoke, reload, show an error in the toast) |
+| `list-rows.js` | Overview building blocks: `accountRow`, `latestAmount`, `recordActions` (edit and delete buttons), `renderTable` (rows plus the empty note), `toggleEmpty`, `showTotal`, `numCell`, `rowHeader` |
+| `record-form.js` | `createRecordForm`: the record dialog of the series areas (parent dropdown, month or year that follows it, open and fill), with hooks for what one area adds |
+| `insights-page.js` | What the Insights pages share: `fillLegend`, `tooltipFrame`, `initInsightsTabs`, `yearLabelLines`, `markerDecorator`, and `createSeriesInsights` (the whole page of bank accounts, debts and houses) |
+| `format.js` | Display formatting, `noteSummary` and today's year or month. No figures are computed |
 | `chart.js` | Chart building blocks: SVG helper, `toPosition` (the one place a received decimal string becomes a number, for a position only), bar segments, tooltip rows (listed top to bottom like the bar, using the `hangs` of the received pieces), legend items, the highlight |
 | `yearly-chart.js` | The frame every insights chart shares: one size rule (`CHART_SIZE` and a plot height that follows the window), the axis, bars and marker drawn from the received `axis`, `pieces` and `marker`, tooltip, loading, resize |
 | `date-mask.js` | Types the `/` or `-` of a date or month field while the user types (fields marked `data-mask`). Display only; Rust validates |
 | `tabs.js` | Tabs such as Overview and Insights |
 
-**Composition, not inheritance.** The insights charts differ only in their data, so `createYearlyChart(strategy)` takes a small object (how a received piece looks, tooltip rows, extra marks, labels under the axis) and draws the rest. The CRUD dialogs of the two overview pages stay separate on purpose: their forms differ (the statement form calculates balance and growth), and one generic dialog would be harder to read than two plain files.
+**Composition, not inheritance.** The insights charts differ only in their data, so `createYearlyChart(strategy)` takes a small object (how a received piece looks, tooltip rows, extra marks, labels under the axis) and draws the rest. The overview pages use small shared functions with option objects, not a generic dialog class: `openDialog`, `saveDialog` and `deleteWithConfirm` (`crud.js`) hold the steps that are identical, `createRecordForm` holds the record dialog of the four series areas, and a page keeps what is its own (its fields, commands, texts, the locks and the settle flows of debts and houses, the balance and growth calculation of investments). Income and expenses use only `crud.js` and `list-rows.js`: their forms do not follow the parent-and-period shape. `createSeriesInsights` builds the Insights page of bank accounts, debts and houses from a config of field names and texts; the pages of income, investments, expenses and net worth call `createYearlyChart` themselves and use the shared legend, tooltip frame and tabs.
 
 **Styles** are loaded in order by `<link>` tags: `base` (tokens, light and dark), `layout`, `components`, `pages`, `charts`. Colours come from CSS variables so both modes work. Motion uses CSS transitions of 140 ms and is switched off under `prefers-reduced-motion`.
 
@@ -93,7 +97,7 @@ tests/              DOM tests and their harness (not part of the app)
 
 **A yearly chart for a new area.** Add a Rust command that returns `{ years }`, add the panel markup with ids `<page>-insights-{legend,empty,scroll,chart}`, have the command deliver `axis`, `pieces` and `marker` from `domain/charts`, write `pages/<page>-insights.js` with a strategy for `createYearlyChart`, and register its init and reload in `main.js`.
 
-**A new page.** Add a `<section>` in `index.html` and a nav item, a `pages/<page>-overview.js` with `init…` and `reload…`, and wire both in `main.js`.
+**A new page.** Add a `<section>` in `index.html` and a nav item, a `pages/<page>-overview.js` with `init…` and `reload…`, and wire both in `main.js`. Build the page from the shared parts: `renderTable`, `accountRow` and `toggleEmpty` for the lists, `openDialog`, `saveDialog` and `deleteWithConfirm` for the dialogs, and for a series area `createRecordForm` for the record dialog and `createSeriesInsights` for the Insights page (a config with the command, the field names and the texts, as in `pages/debts-insights.js`).
 
 **A new series area** (named accounts with a record per month or year). Give the data struct two lists and implement `SeriesData` (the accessors, the `SeriesError` mapping and, only when the area differs, a hook), `SeriesAccount` for the account and `SeriesRecord` for the record; then write the public methods of the area as one-line calls to `add_record`, `update_record`, `delete_record`, `all_records`, `remove_account` and the others of `domain/series/store.rs`, and build the overview, totals and insights from `latest`, `yearly_closings` and `year_figures`. Keep what differs in the area, not in the core.
 

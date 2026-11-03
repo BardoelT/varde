@@ -3,9 +3,9 @@
 // shared/yearly-chart.js; this file supplies what is specific to income.
 import { h } from '../shared/dom.js';
 import { formatAmount } from '../shared/format.js';
-import { svg, swatch, noSwatch, legendLabel, legendItem, tooltipRow } from '../shared/chart.js';
+import { svg, swatch, noSwatch, legendLabel, tooltipRow } from '../shared/chart.js';
 import { createYearlyChart, isNegative, yearLabel } from '../shared/yearly-chart.js';
-import { initTabs } from '../shared/tabs.js';
+import { fillLegend, initInsightsTabs, yearLabelLines } from '../shared/insights-page.js';
 import { t } from '../shared/i18n.js';
 
 /** The stacked series, bottom to top: the Rust field, the legend key (the series of its pieces) and the label (in the chosen language). */
@@ -48,9 +48,7 @@ function tooltipContent(row) {
 
 /** The legend: one item per stacked series; hovering one highlights it in every year. */
 function buildLegend() {
-  const legendList = document.getElementById('income-insights-legend');
-  const scopes = () => [legendList, document.getElementById('income-insights-chart')];
-  legendList.replaceChildren(...segments().map(([, key, label]) => legendItem(key, swatch(key), legendLabel(label), scopes)));
+  fillLegend('income-insights', segments().map(([, key, label]) => [key, swatch(key), legendLabel(label)]));
 }
 
 const chart = createYearlyChart({
@@ -68,7 +66,7 @@ const chart = createYearlyChart({
     const negative = isNegative(row.growth_label);
     return [svg('text', { class: `chart-growth${negative ? ' negative' : ''}`, x: centre, y: barTop - 6 }, row.growth_label)];
   },
-  labelLines: (row) => [{ text: yearLabel(row), className: 'chart-year' }],
+  labelLines: yearLabelLines,
 });
 
 /** Reloads the chart only while the Insights tab is showing (after a project is opened). */
@@ -76,9 +74,5 @@ export const reloadIncomeInsightsIfOpen = chart.reloadIfOpen;
 
 export function initIncomeInsights() {
   chart.init();
-  initTabs([
-    { tab: 'income-tab-overview', panel: 'income-overview' },
-    // Opening Insights recomputes it, so it never shows stale figures (REQ-11).
-    { tab: 'income-tab-insights', panel: 'income-insights', onOpen: chart.reload },
-  ]);
+  initInsightsTabs('income', chart); // opening Insights recomputes it (CSD-006 REQ-11)
 }

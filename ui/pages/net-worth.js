@@ -3,12 +3,13 @@
 // shared/yearly-chart.js; this file supplies what is specific to it: the four
 // series (houses, investments and cash above the zero line, debts below it) and
 // the net worth marker.
-import { h, showToast } from '../shared/dom.js';
+import { showToast } from '../shared/dom.js';
 import { errorText } from '../shared/ipc.js';
 import { formatAmount } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
-import { swatch, legendLabel, legendItem, tooltipRow, topToBottom } from '../shared/chart.js';
-import { createYearlyChart, levelMarker, isNegative, yearLabel } from '../shared/yearly-chart.js';
+import { swatch, legendLabel, tooltipRow, topToBottom } from '../shared/chart.js';
+import { createYearlyChart, isNegative, yearLabel } from '../shared/yearly-chart.js';
+import { fillLegend, markerDecorator, tooltipFrame, yearLabelLines } from '../shared/insights-page.js';
 
 /** The series from the bottom of the bar up: the Rust field, the legend key, the colour class and the label (English; shown through `t`). */
 const SERIES = [
@@ -50,12 +51,7 @@ function tooltipContent(row) {
         ...tooltipRow('marker', swatch('marker'), t('Net worth'), formatAmount(row.net_worth), isNegative(row.net_worth) ? 'negative' : ''),
       ]
     : [];
-  return [
-    h('div', { class: 'tip-title' }, yearLabel(row)),
-    row.is_partial ? h('div', { class: 'tip-note' }, t('Partial year: figures so far')) : null,
-    row.has_records ? null : h('div', { class: 'tip-note' }, t('No records')),
-    h('dl', {}, ...rows),
-  ].filter(Boolean);
+  return tooltipFrame({ row, partialNote: t('Partial year: figures so far'), emptyNote: t('No records'), isEmpty: !row.has_records, rows });
 }
 
 /** How a received piece looks: the colour class of its series, and its accessible name. */
@@ -66,12 +62,10 @@ function pieceStyle(row, piece) {
 
 /** The legend: the four series and the net worth marker; hovering one highlights it in every year. */
 function buildLegend() {
-  const legendList = document.getElementById('net-worth-insights-legend');
-  const scopes = () => [legendList, document.getElementById('net-worth-insights-chart')];
-  legendList.replaceChildren(
-    ...SERIES.map(([, key, cssClass, label]) => legendItem(key, swatch(cssClass), legendLabel(t(label)), scopes)),
-    legendItem('marker', swatch('marker'), legendLabel(t('Net worth')), scopes),
-  );
+  fillLegend('net-worth-insights', [
+    ...SERIES.map(([, key, cssClass, label]) => [key, swatch(cssClass), legendLabel(t(label))]),
+    ['marker', swatch('marker'), legendLabel(t('Net worth'))],
+  ]);
 }
 
 const chart = createYearlyChart({
@@ -83,8 +77,8 @@ const chart = createYearlyChart({
   describe,
   tooltipContent,
   /** The net worth marker, as Rust delivers it. */
-  decorate: (row, geometry) => (row.marker ? levelMarker(row.marker, geometry) : []),
-  labelLines: (row) => [{ text: yearLabel(row), className: 'chart-year' }],
+  decorate: markerDecorator,
+  labelLines: yearLabelLines,
 });
 
 

@@ -2,11 +2,10 @@
 // segment per category. Its frame (axis, bars, tooltip, loading) is shared with the other
 // charts in shared/yearly-chart.js; this file supplies what is specific to expenses: the
 // segments and the legend of the eight categories.
-import { h } from '../shared/dom.js';
 import { formatAmount } from '../shared/format.js';
-import { swatch, noSwatch, legendLabel, legendItem, tooltipRow, topToBottom } from '../shared/chart.js';
+import { swatch, noSwatch, legendLabel, tooltipRow, topToBottom } from '../shared/chart.js';
 import { createYearlyChart, yearLabel } from '../shared/yearly-chart.js';
-import { initTabs } from '../shared/tabs.js';
+import { fillLegend, initInsightsTabs, tooltipFrame, yearLabelLines } from '../shared/insights-page.js';
 import { t } from '../shared/i18n.js';
 
 /** The categories as Rust returned them, in the fixed order, by name. */
@@ -38,19 +37,18 @@ function describe(row) {
 
 /** The rows read like the bar: the highest segment first. */
 function tooltipContent(row) {
-  return [
-    h('div', { class: 'tip-title' }, yearLabel(row)),
-    row.is_partial ? h('div', { class: 'tip-note' }, t('Partial year: expenses so far')) : null,
-    row.expense_count === 0 ? h('div', { class: 'tip-note' }, t('No expenses')) : null,
-    h(
-      'dl',
-      {},
+  return tooltipFrame({
+    row,
+    partialNote: t('Partial year: expenses so far'),
+    emptyNote: t('No expenses'),
+    isEmpty: row.expense_count === 0,
+    rows: [
       ...topToBottom(row.segments, (segment) => keyOf(segment.category), row.pieces).flatMap((segment) =>
         tooltipRow(keyOf(segment.category), swatch(`slot-${slotOf(segment.category)}`), categoryName(segment.category), formatAmount(segment.amount)),
       ),
       ...(row.expense_count === 0 ? [] : tooltipRow(null, noSwatch(), t('Total'), formatAmount(row.total))),
-    ),
-  ].filter(Boolean);
+    ],
+  });
 }
 
 /** How a received piece looks: the colour slot and the name of its category, and its accessible name. */
@@ -65,10 +63,9 @@ function pieceStyle(row, piece) {
 /** The legend: a swatch and the name of every category, also those without an expense (CSD-014 REQ-7). */
 function buildLegend({ categories: list }) {
   categories = new Map(list.map((category) => [category.name, category]));
-  const legendList = document.getElementById('expenses-insights-legend');
-  const scopes = () => [legendList, document.getElementById('expenses-insights-chart')];
-  legendList.replaceChildren(
-    ...list.map((category) => legendItem(keyOf(category.name), swatch(`slot-${category.colour_slot}`), legendLabel(categoryName(category.name)), scopes)),
+  fillLegend(
+    'expenses-insights',
+    list.map((category) => [keyOf(category.name), swatch(`slot-${category.colour_slot}`), legendLabel(categoryName(category.name))]),
   );
 }
 
@@ -83,7 +80,7 @@ const chart = createYearlyChart({
   describe,
   tooltipContent,
   decorate: () => [],
-  labelLines: (row) => [{ text: yearLabel(row), className: 'chart-year' }],
+  labelLines: yearLabelLines,
 });
 
 /** Reloads the chart only while the Insights tab is showing (after a project is opened). */
@@ -91,9 +88,5 @@ export const reloadExpensesInsightsIfOpen = chart.reloadIfOpen;
 
 export function initExpensesInsights() {
   chart.init();
-  initTabs([
-    { tab: 'expenses-tab-overview', panel: 'expenses-overview' },
-    // Opening Insights recomputes it, so it never shows stale figures (CSD-014 REQ-13).
-    { tab: 'expenses-tab-insights', panel: 'expenses-insights', onOpen: chart.reload },
-  ]);
+  initInsightsTabs('expenses', chart); // opening Insights recomputes it (CSD-014 REQ-13)
 }
