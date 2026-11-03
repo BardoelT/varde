@@ -53,7 +53,7 @@ pub fn list_houses(state: State<'_, AppState>) -> Result<HousesView, AppError> {
 }
 
 /// The linked debts with an open balance at a sale on `sell_date`, for the
-/// settlement prompt (CSD-020 REQ-15).
+/// settlement prompt (CSD-020 REQ-31).
 #[tauri::command]
 pub fn list_open_debts(
     state: State<'_, AppState>,

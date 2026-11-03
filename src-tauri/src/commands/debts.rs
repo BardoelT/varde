@@ -31,11 +31,11 @@ pub struct StatementView {
     /// statement (REQ-25).
     change: Option<Decimal>,
     note: String,
-    /// The settlement statement a sale added (CSD-020 REQ-5).
+    /// The settlement statement a sale added (CSD-020 REQ-20).
     settlement: bool,
     /// `Repaid` or `Cancelled` on the settlement statement.
     outcome: Option<Outcome>,
-    /// Whether the statement can no longer change (CSD-020 REQ-18).
+    /// Whether the statement can no longer change (CSD-020 REQ-32).
     locked: bool,
 }
 
@@ -96,7 +96,7 @@ pub fn delete_debt(state: State<'_, AppState>, debt_id: String) -> Result<(), Ap
 }
 
 /// The open balance of a debt at the sale of the house it would be linked to,
-/// for the settlement prompt (CSD-020 REQ-15, REQ-17).
+/// for the settlement prompt (CSD-020 REQ-31, REQ-17).
 #[tauri::command]
 pub fn debt_open_balance(
     state: State<'_, AppState>,

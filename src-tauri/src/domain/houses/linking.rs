@@ -2,7 +2,7 @@
 //! house is sold (CSD-020).
 //!
 //! A house and its debts live in two places of the project, so the operations
-//! work on both and change them together or not at all (CSD-020 CON-2).
+//! work on both and change them together or not at all (CSD-020 CON-6).
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ use crate::domain::error::DomainError;
 
 use super::{House, HouseDate, HouseId, HouseInput, HouseSummary, Houses};
 
-/// The debt side of the Add and Edit house forms (CSD-020 REQ-3, REQ-6).
+/// The debt side of the Add and Edit house forms (CSD-020 REQ-18, REQ-21).
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct DebtLinksInput {
     /// The Repaid or Cancelled choice per debt with an open balance.
@@ -55,7 +55,7 @@ impl DebtLinksInput {
 }
 
 /// Creates a house (CSD-015 REQ-1). It has no linked debts yet, so a sale
-/// given at creation settles nothing (CSD-020 REQ-3).
+/// given at creation settles nothing (CSD-020 REQ-18).
 ///
 /// # Errors
 /// Returns the errors of `Houses::create_house` and of the link and
@@ -77,7 +77,7 @@ pub fn create_house(
 }
 
 /// Changes a house and its linked debts together: the settlement of a new
-/// sale, and the undo of a sale (CSD-020 REQ-3 to REQ-7).
+/// sale, and the undo of a sale (CSD-020 REQ-18 to REQ-22).
 ///
 /// # Errors
 /// Returns the errors of `Houses::update_house` and of the link and settlement
@@ -100,7 +100,7 @@ pub fn update_house(
     Ok(house)
 }
 
-/// Deletes a house unless debts are linked to it (CSD-020 REQ-9).
+/// Deletes a house unless debts are linked to it (CSD-020 REQ-24).
 ///
 /// # Errors
 /// Returns `HouseNotFound` or `HouseHasLinkedDebts`.
@@ -113,10 +113,10 @@ pub fn delete_house(houses: &mut Houses, debts: &Debts, id: HouseId) -> Result<(
 }
 
 /// The debts linked to `house_id` with an open balance at a sale on
-/// `sell_date`, for the settlement prompt (CSD-020 REQ-15).
+/// `sell_date`, for the settlement prompt (CSD-020 REQ-31).
 ///
 /// # Errors
-/// Returns a date error of CSD-019.
+/// Returns a date error of CSD-020.
 pub fn open_debts(
     debts: &Debts,
     house_id: HouseId,
@@ -144,8 +144,8 @@ pub struct DebtFormInput {
     pub settlement: Option<String>,
 }
 
-/// Creates a debt with its category and optional house (CSD-020 REQ-1,
-/// REQ-2).
+/// Creates a debt with its category and optional house (CSD-020 REQ-15,
+/// REQ-16).
 ///
 /// # Errors
 /// Returns the errors of `Debts::create_debt` and the category and link rules;
@@ -162,8 +162,8 @@ pub fn create_debt(
     debts.get(id).cloned().ok_or(DomainError::DebtNotFound)
 }
 
-/// Changes a debt with its category and optional house (CSD-020 REQ-1,
-/// REQ-2, REQ-8).
+/// Changes a debt with its category and optional house (CSD-020 REQ-15,
+/// REQ-16, REQ-23).
 ///
 /// # Errors
 /// Returns the errors of `Debts::update_debt` and the category and link rules;
@@ -253,7 +253,7 @@ fn settle_on_link(
 
 /// The open balance of a debt at the sell date of the sold house it would be
 /// linked to, `None` for a held house or without an open balance, for the
-/// settlement prompt (CSD-020 REQ-15, REQ-17).
+/// settlement prompt (CSD-020 REQ-31, REQ-17).
 ///
 /// # Errors
 /// Returns `DebtNotFound` or `HouseNotFound`.
@@ -337,7 +337,7 @@ fn settle_all(
     Ok(())
 }
 
-/// A debt linked to a house, as the Houses view shows it (CSD-020 REQ-13).
+/// A debt linked to a house, as the Houses view shows it (CSD-020 REQ-29).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct LinkedDebt {
     pub debt_id: DebtId,
@@ -363,7 +363,7 @@ pub struct HousesView {
 }
 
 /// A debt row with the name of its house, as the Debts view shows it
-/// (CSD-020 REQ-14).
+/// (CSD-020 REQ-30).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtRow {
     #[serde(flatten)]

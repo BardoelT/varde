@@ -51,11 +51,11 @@ pub struct Houses {
 impl Houses {
     /// Creates a house, monthly unless the input says Yearly, with the colour
     /// slot of REQ-3 (REQ-1, REQ-2). Any purchase and sell date
-    /// is accepted (CSD-019).
+    /// is accepted (CSD-020 REQ-3).
     ///
     /// # Errors
     /// Returns the name errors of REQ-2, `HousePeriodUnsupported` or the
-    /// purchase and sale errors of CSD-019 REQ-1 to REQ-5.
+    /// purchase and sale errors of CSD-020 REQ-1 to REQ-5.
     pub fn create_house(&mut self, input: &HouseInput) -> Result<House, DomainError> {
         let valid = input.validate()?;
         if self.name_taken(&valid.name, None) {
@@ -78,7 +78,7 @@ impl Houses {
     /// Changes the name, valuation period, purchase and sale of a house. The
     /// valuations and the colour slot stay; the period is locked once the house
     /// has any valuation, and the dates may not leave a valuation outside the
-    /// holding window (REQ-4, REQ-5, CSD-019 REQ-6, REQ-8).
+    /// holding window (REQ-4, REQ-5, CSD-020 REQ-6, REQ-7).
     ///
     /// # Errors
     /// Returns a validation error, `HouseNotFound`, `HouseNameDuplicate`,
@@ -317,7 +317,7 @@ impl Houses {
 
     /// The rules a period must follow for a house to hold a valuation for it:
     /// the kind of the house, inside the holding window
-    /// (CSD-019 REQ-7), not taken (REQ-7 to REQ-9).
+    /// (CSD-020 REQ-6), not taken (REQ-7 to REQ-9).
     fn check_new_period(&self, house_id: HouseId, period: Period) -> Result<(), DomainError> {
         let house = self.house(house_id)?;
         if house.period != period.kind() {

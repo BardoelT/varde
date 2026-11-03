@@ -68,7 +68,7 @@ async function start() {
   });
   initDebtsInsights();
   // Debt statements count for the currency confirmation of the settings page (CSD-011 REQ-24).
-  // A debt's category and house show in the Houses overview and its Edit form (CSD-020 REQ-13).
+  // A debt's category and house show in the Houses overview and its Edit form (CSD-020 REQ-29).
   initDebtsOverview({
     onChanged: async () => {
       await refreshStatusAndSettings();
@@ -77,7 +77,7 @@ async function start() {
   });
   initHousesInsights();
   // House valuations count for the currency confirmation of the settings page (CSD-015 REQ-25).
-  // A sale or its undo settles or unsettles the linked debts, so the Debts overview follows (CSD-020 REQ-5, REQ-6).
+  // A sale or its undo settles or unsettles the linked debts, so the Debts overview follows (CSD-020 REQ-20, REQ-21).
   initHousesOverview({
     onChanged: async () => {
       await refreshStatusAndSettings();

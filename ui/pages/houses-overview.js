@@ -1,5 +1,5 @@
 // Houses: things the user owns with a monthly or yearly valuation, each a value and a note (CSD-015),
-// bought once and possibly sold (CSD-019).
+// bought once and possibly sold (CSD-020 REQ-1, REQ-2).
 import { invoke, errorText } from '../shared/ipc.js';
 import { h, iconButton, confirmAction, showToast, showError } from '../shared/dom.js';
 import { formatAmount, formatDate, currentYear, currentMonth } from '../shared/format.js';
@@ -29,7 +29,7 @@ function latestValue(house) {
   return h('span', { class: 'account-amount' }, formatAmount(house.latest_value), h('small', {}, house.latest_period));
 }
 
-/** Only the valuation period and Held or Sold; the purchase and sale are in the edit form (CSD-019 REQ-9). */
+/** Only the valuation period and Held or Sold; the purchase and sale are in the edit form (CSD-020 REQ-8). */
 function holdingText(house) {
   return `${t(house.period)} · ${house.held ? t('Held') : t('Sold')}`;
 }
@@ -120,7 +120,7 @@ async function changed() {
 
 let editingHouse = null;
 
-/** The debts linked to the house as a read-only table: they are linked in the debt form (CSD-020 REQ-13). */
+/** The debts linked to the house as a read-only table: they are linked in the debt form (CSD-020 REQ-29). */
 function fillLinkedDebts(house) {
   const linked = house ? house.linked_debts : [];
   $('house-debts').hidden = linked.length === 0;
@@ -151,7 +151,6 @@ function openHouseDialog(house) {
   if (house) {
     form.elements.name.value = house.name;
     form.elements.period.value = house.period;
-    // A legacy house has no purchase yet, so those fields stay empty (CSD-019 REQ-6).
     form.elements.purchase_date.value = house.purchase_date === null ? '' : formatDate(house.purchase_date);
     form.elements.purchase_amount.value = house.purchase_amount ?? '';
     form.elements.sell_date.value = house.sell_date === null ? '' : formatDate(house.sell_date);
@@ -180,7 +179,7 @@ async function submitHouse(event) {
     const sellDate = input.sell_date.trim();
     const sold = editingHouse !== null && !editingHouse.held;
     if (sellDate && !sold) {
-      // A new sale: linked debts with an open balance need Repaid or Cancelled (CSD-020 REQ-3).
+      // A new sale: linked debts with an open balance need Repaid or Cancelled (CSD-020 REQ-18).
       const open = editingHouse ? await invoke('list_open_debts', { houseId: editingHouse.id, sellDate }) : [];
       if (open.length > 0) {
         const choices = await askSettlements(open);
@@ -188,7 +187,7 @@ async function submitHouse(event) {
         links.settlements = choices;
       }
     } else if (!sellDate && sold && editingHouse.linked_debts.some((debt) => debt.settlement)) {
-      // Undoing the sale also undoes the settled debts (CSD-020 REQ-6).
+      // Undoing the sale also undoes the settled debts (CSD-020 REQ-21).
       const confirmed = await confirmAction({
         title: t('Undo the sale?'),
         message: t('The debts settled on this sale go back to their earlier balances.'),

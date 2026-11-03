@@ -2128,7 +2128,7 @@ fn test_csd018_the_ratios_reach_the_frontend_and_follow_the_project() {
 }
 
 #[test]
-fn test_csd019_ac_14_1_the_purchase_and_sale_need_no_currency_confirmation() {
+fn test_csd020_ac_14_1_the_purchase_and_sale_need_no_currency_confirmation() {
     let app = harness();
     app.ok(
         "create_house",
@@ -2145,7 +2145,7 @@ fn test_csd019_ac_14_1_the_purchase_and_sale_need_no_currency_confirmation() {
 }
 
 #[test]
-fn test_csd019_ac_9_2_the_sale_and_its_result_reach_the_frontend() {
+fn test_csd020_ac_8_2_the_sale_and_its_result_reach_the_frontend() {
     let app = harness();
     let house = app.ok(
         "create_house",

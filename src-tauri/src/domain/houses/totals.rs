@@ -1,4 +1,4 @@
-//! Yearly values over all houses (CSD-015 REQ-20, CSD-019 REQ-11).
+//! Yearly values over all houses (CSD-015 REQ-20, CSD-020 REQ-10).
 
 use std::collections::BTreeMap;
 
@@ -44,7 +44,7 @@ impl Houses {
     }
 
     /// How many valuations count in each calendar year: those of houses held at
-    /// the end of that year (CSD-019 REQ-11).
+    /// the end of that year (CSD-020 REQ-10).
     pub(super) fn counted_valuations_per_year(&self) -> BTreeMap<i32, usize> {
         let mut counts: BTreeMap<i32, usize> = BTreeMap::new();
         for valuation in &self.valuations {

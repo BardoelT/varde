@@ -81,12 +81,12 @@ pub struct Debt {
     pub period: PayPeriod,
     /// 0 to 7, fixed when the debt is created (CSD-011 REQ-3).
     pub colour_slot: u8,
-    /// Mortgage, Loan or Other (CSD-020 REQ-1).
+    /// Mortgage, Loan or Other (CSD-020 REQ-15).
     pub category: Category,
-    /// The house this debt is linked to (CSD-020 REQ-1).
+    /// The house this debt is linked to (CSD-020 REQ-15).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub house_id: Option<HouseId>,
-    /// How the debt was settled on the sale of its house (CSD-020 REQ-5).
+    /// How the debt was settled on the sale of its house (CSD-020 REQ-20).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub settlement: Option<Settlement>,
 }

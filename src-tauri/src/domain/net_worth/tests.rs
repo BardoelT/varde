@@ -280,7 +280,7 @@ fn test_csd017_section_5_amounts_cross_ipc_as_decimal_strings() {
 }
 
 #[test]
-fn test_csd019_ac_11_6_net_worth_drops_a_sold_house() {
+fn test_csd020_ac_11_1_net_worth_drops_a_sold_house() {
     let mut data = ProjectData::default();
     let id = data
         .houses

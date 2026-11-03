@@ -1,4 +1,4 @@
-//! Tests for CSD-019: the purchase and sale of a house.
+//! Tests for CSD-020: the purchase and sale of a house.
 use crate::domain::YearMonth;
 
 use super::*;
@@ -89,7 +89,7 @@ fn pair(closing: &str, change: &str) -> (String, String) {
 // REQ-1
 
 #[test]
-fn test_csd019_ac_1_1_a_house_with_a_purchase() {
+fn test_csd020_ac_1_1_a_house_with_a_purchase() {
     let mut houses = Houses::default();
     let id = create(&mut houses, ("15/03/2024", "250000.00"), ("", ""));
     let created = house(&houses, id);
@@ -103,7 +103,7 @@ fn test_csd019_ac_1_1_a_house_with_a_purchase() {
 }
 
 #[test]
-fn test_csd019_ac_1_2_a_missing_purchase_field_is_rejected() {
+fn test_csd020_ac_1_2_a_missing_purchase_field_is_rejected() {
     for (date, amount, expected) in [
         ("", "250000.00", "HOUSE_PURCHASE_DATE_REQUIRED"),
         ("15/03/2024", "", "HOUSE_PURCHASE_AMOUNT_REQUIRED"),
@@ -119,7 +119,7 @@ fn test_csd019_ac_1_2_a_missing_purchase_field_is_rejected() {
 // REQ-2
 
 #[test]
-fn test_csd019_ac_2_1_sell_a_house() {
+fn test_csd020_ac_2_1_sell_a_house() {
     let mut houses = Houses::default();
     let id = create(&mut houses, ("15/03/2024", "250000.00"), ("", ""));
     houses
@@ -140,7 +140,7 @@ fn test_csd019_ac_2_1_sell_a_house() {
 }
 
 #[test]
-fn test_csd019_ac_2_2_undo_a_sale() {
+fn test_csd020_ac_2_2_undo_a_sale() {
     let mut houses = Houses::default();
     let id = create(
         &mut houses,
@@ -164,7 +164,7 @@ fn test_csd019_ac_2_2_undo_a_sale() {
 }
 
 #[test]
-fn test_csd019_ac_2_3_a_sale_on_the_day_of_purchase_is_allowed() {
+fn test_csd020_ac_2_3_a_sale_on_the_day_of_purchase_is_allowed() {
     let mut houses = Houses::default();
     let result = houses.create_house(&input(
         "Example Cabin",
@@ -178,7 +178,7 @@ fn test_csd019_ac_2_3_a_sale_on_the_day_of_purchase_is_allowed() {
 // REQ-3
 
 #[test]
-fn test_csd019_ac_3_1_invalid_dates_are_rejected() {
+fn test_csd020_ac_3_1_invalid_dates_are_rejected() {
     for (purchase, sell, sell_amount, expected) in [
         ("31/02/2024", "", "", "HOUSE_DATE_INVALID"),
         ("2024-03-15", "", "", "HOUSE_DATE_INVALID"),
@@ -219,7 +219,7 @@ fn test_csd020_ac_3_3_a_date_has_no_lower_bound() {
 // REQ-4
 
 #[test]
-fn test_csd019_ac_4_1_invalid_amounts_are_rejected() {
+fn test_csd020_ac_4_1_invalid_amounts_are_rejected() {
     for (amount, expected) in [
         ("abc", "HOUSE_AMOUNT_INVALID"),
         ("1e3", "HOUSE_AMOUNT_INVALID"),
@@ -244,7 +244,7 @@ fn test_csd019_ac_4_1_invalid_amounts_are_rejected() {
 }
 
 #[test]
-fn test_csd019_ac_4_2_a_worthless_sale_and_a_free_purchase_are_valid() {
+fn test_csd020_ac_4_2_a_worthless_sale_and_a_free_purchase_are_valid() {
     let mut houses = Houses::default();
     let id = create(&mut houses, ("15/03/2024", "0.00"), ("10/06/2026", "0.00"));
     assert_eq!(house(&houses, id).result().unwrap().to_string(), "0.00");
@@ -253,7 +253,7 @@ fn test_csd019_ac_4_2_a_worthless_sale_and_a_free_purchase_are_valid() {
 // REQ-5
 
 #[test]
-fn test_csd019_ac_5_1_half_a_sale_is_rejected() {
+fn test_csd020_ac_5_1_half_a_sale_is_rejected() {
     for (date, amount) in [("10/06/2026", ""), ("", "300000.00")] {
         let mut houses = Houses::default();
         let id = create(&mut houses, ("15/03/2024", "250000.00"), ("", ""));
@@ -274,7 +274,7 @@ fn test_csd019_ac_5_1_half_a_sale_is_rejected() {
 // REQ-7
 
 #[test]
-fn test_csd019_ac_7_1_a_period_outside_the_window_is_rejected() {
+fn test_csd020_ac_6_1_a_period_outside_the_window_is_rejected() {
     for (at, expected) in [
         ("2024-02", "HOUSE_VALUATION_OUTSIDE_HOLDING"),
         ("2024-03", "OK"),
@@ -292,7 +292,7 @@ fn test_csd019_ac_7_1_a_period_outside_the_window_is_rejected() {
 }
 
 #[test]
-fn test_csd019_ac_7_2_a_yearly_house_is_compared_by_year() {
+fn test_csd020_ac_6_2_a_yearly_house_is_compared_by_year() {
     let mut houses = Houses::default();
     let id = held(&mut houses, "Yearly", "15/03/2024");
     assert_eq!(
@@ -303,7 +303,7 @@ fn test_csd019_ac_7_2_a_yearly_house_is_compared_by_year() {
 }
 
 #[test]
-fn test_csd019_ac_7_2_a_yearly_house_may_have_its_sale_year() {
+fn test_csd020_ac_6_2_a_yearly_house_may_have_its_sale_year() {
     let mut houses = Houses::default();
     let id = houses
         .create_house(&input(
@@ -318,7 +318,7 @@ fn test_csd019_ac_7_2_a_yearly_house_may_have_its_sale_year() {
 }
 
 #[test]
-fn test_csd019_ac_7_3_moving_a_valuation_out_of_the_window_is_rejected() {
+fn test_csd020_ac_6_3_moving_a_valuation_out_of_the_window_is_rejected() {
     let mut houses = Houses::default();
     let id = held(&mut houses, "Monthly", "15/03/2024");
     add(&mut houses, id, "2024-05", "1000.00").unwrap();
@@ -340,7 +340,7 @@ fn test_csd019_ac_7_3_moving_a_valuation_out_of_the_window_is_rejected() {
 // REQ-8
 
 #[test]
-fn test_csd019_ac_8_1_narrowing_the_window_is_rejected() {
+fn test_csd020_ac_7_1_narrowing_the_window_is_rejected() {
     for (bought, sold) in [
         (("01/06/2024", "250000.00"), ("", "")),
         (("15/03/2024", "250000.00"), ("10/06/2026", "1.00")),
@@ -357,7 +357,7 @@ fn test_csd019_ac_8_1_narrowing_the_window_is_rejected() {
 }
 
 #[test]
-fn test_csd019_ac_8_2_widening_the_window_is_accepted() {
+fn test_csd020_ac_7_2_widening_the_window_is_accepted() {
     let mut houses = Houses::default();
     let id = held(&mut houses, "Monthly", "15/03/2024");
     add(&mut houses, id, "2024-05", "1000.00").unwrap();
@@ -381,7 +381,7 @@ fn test_csd019_ac_8_2_widening_the_window_is_accepted() {
 // REQ-9
 
 #[test]
-fn test_csd019_ac_9_1_a_held_house() {
+fn test_csd020_ac_8_1_a_held_house() {
     let mut houses = Houses::default();
     let id = held(&mut houses, "Monthly", "15/03/2024");
     let overview = houses.overview();
@@ -392,7 +392,7 @@ fn test_csd019_ac_9_1_a_held_house() {
 }
 
 #[test]
-fn test_csd019_ac_9_2_a_sold_house_with_its_result() {
+fn test_csd020_ac_8_2_a_sold_house_with_its_result() {
     for (sell, result) in [
         ("300000.00", "50000.00"),
         ("240000.00", "-10000.00"),
@@ -411,7 +411,7 @@ fn test_csd019_ac_9_2_a_sold_house_with_its_result() {
 }
 
 #[test]
-fn test_csd019_ac_9_3_a_sold_house_stays_in_the_list() {
+fn test_csd020_ac_8_3_a_sold_house_stays_in_the_list() {
     let mut houses = Houses::default();
     create(
         &mut houses,
@@ -438,7 +438,7 @@ fn test_csd019_ac_9_3_a_sold_house_stays_in_the_list() {
 // REQ-10
 
 #[test]
-fn test_csd019_ac_10_1_a_sold_house_is_not_in_the_total() {
+fn test_csd020_ac_9_1_a_sold_house_is_not_in_the_total() {
     let mut houses = Houses::default();
     let sold = create(
         &mut houses,
@@ -468,7 +468,7 @@ fn test_csd019_ac_10_1_a_sold_house_is_not_in_the_total() {
 }
 
 #[test]
-fn test_csd019_ac_10_2_selling_a_house_lowers_the_total() {
+fn test_csd020_ac_9_2_selling_a_house_lowers_the_total() {
     let mut houses = Houses::default();
     let house = held(&mut houses, "Monthly", "15/03/2024");
     add(&mut houses, house, "2026-09", "300000.00").unwrap();
@@ -513,7 +513,7 @@ fn sold_house_with_valuations() -> (Houses, HouseId) {
 }
 
 #[test]
-fn test_csd019_ac_11_1_a_sold_house_stops_counting_in_its_sale_year() {
+fn test_csd020_ac_10_1_a_sold_house_stops_counting_in_its_sale_year() {
     let (houses, _) = sold_house_with_valuations();
     assert_eq!(yearly(&houses, 2025), Some(pair("210000.00", "10000.00")));
     assert_eq!(yearly(&houses, 2024), Some(pair("200000.00", "none")));
@@ -521,7 +521,7 @@ fn test_csd019_ac_11_1_a_sold_house_stops_counting_in_its_sale_year() {
 }
 
 #[test]
-fn test_csd019_ac_11_2_the_insights_show_zero_from_the_sale_year() {
+fn test_csd020_ac_10_2_the_insights_show_zero_from_the_sale_year() {
     let (houses, _) = sold_house_with_valuations();
     let insights = houses.insights(today());
     let year = |y: i32| insights.years.iter().find(|row| row.year == y).unwrap();
@@ -531,7 +531,7 @@ fn test_csd019_ac_11_2_the_insights_show_zero_from_the_sale_year() {
 }
 
 #[test]
-fn test_csd019_ac_11_3_year_end_boundary() {
+fn test_csd020_ac_10_3_year_end_boundary() {
     for (sell, expected) in [
         (("31/12/2025", "1.00"), None),
         (("", ""), Some(pair("1000.00", "none"))),
@@ -544,7 +544,7 @@ fn test_csd019_ac_11_3_year_end_boundary() {
 }
 
 #[test]
-fn test_csd019_ac_11_4_other_houses_are_unaffected() {
+fn test_csd020_ac_10_4_other_houses_are_unaffected() {
     let (mut houses, _) = sold_house_with_valuations();
     let land = houses
         .create_house(&input(
@@ -560,7 +560,7 @@ fn test_csd019_ac_11_4_other_houses_are_unaffected() {
 }
 
 #[test]
-fn test_csd019_ac_11_5_a_purchase_after_year_end_is_not_counted_in_that_year() {
+fn test_csd020_ac_10_5_a_purchase_after_year_end_is_not_counted_in_that_year() {
     let mut houses = Houses::default();
     let id = held(&mut houses, "Monthly", "15/01/2026");
     add(&mut houses, id, "2026-03", "1000.00").unwrap();
@@ -571,7 +571,7 @@ fn test_csd019_ac_11_5_a_purchase_after_year_end_is_not_counted_in_that_year() {
 // REQ-13
 
 #[test]
-fn test_csd019_ac_13_1_the_purchase_and_sale_survive_a_round_trip() {
+fn test_csd020_ac_13_1_the_purchase_and_sale_survive_a_round_trip() {
     let mut houses = Houses::default();
     let id = create(
         &mut houses,
@@ -589,7 +589,7 @@ fn test_csd019_ac_13_1_the_purchase_and_sale_survive_a_round_trip() {
 }
 
 #[test]
-fn test_csd019_ac_13_2_a_damaged_sale_is_invalid() {
+fn test_csd020_ac_13_2_a_damaged_sale_is_invalid() {
     let mut houses = Houses::default();
     held(&mut houses, "Monthly", "15/03/2024");
     let mut json = serde_json::to_value(&houses).unwrap();
@@ -599,7 +599,7 @@ fn test_csd019_ac_13_2_a_damaged_sale_is_invalid() {
 }
 
 #[test]
-fn test_csd019_ac_13_3_a_valuation_outside_the_window_is_invalid() {
+fn test_csd020_ac_13_3_a_valuation_outside_the_window_is_invalid() {
     let mut houses = Houses::default();
     let id = held(&mut houses, "Monthly", "15/03/2024");
     add(&mut houses, id, "2024-05", "1000.00").unwrap();

@@ -16,7 +16,7 @@ pub struct DebtStatement {
     pub period: Period,
     pub balance: DebtBalance,
     pub note: Note,
-    /// The final statement a settlement adds (CSD-020 REQ-5); it may share its
+    /// The final statement a settlement adds (CSD-020 REQ-20); it may share its
     /// period with a regular statement and comes after it.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub settlement: bool,

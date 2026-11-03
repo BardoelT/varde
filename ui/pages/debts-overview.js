@@ -101,7 +101,7 @@ function renderStatements(statements) {
           noteSummary(s.note),
           s.settlement && s.outcome ? h('span', { class: 'badge' }, t(s.outcome)) : '',
         ),
-        // A statement of a settled debt, from its settlement period on, cannot change (CSD-020 REQ-18).
+        // A statement of a settled debt, from its settlement period on, cannot change (CSD-020 REQ-32).
         h(
           'td',
           { class: 'row-actions' },
@@ -133,7 +133,7 @@ async function changed() {
 
 let editingDebt = null;
 
-/** The House dropdown: no house and all houses, a sold one marked (CSD-020 REQ-14). */
+/** The House dropdown: no house and all houses, a sold one marked (CSD-020 REQ-30). */
 function fillHouseChoices(debt) {
   const form = $('debt-form');
   const select = form.elements.house_id;
@@ -142,7 +142,7 @@ function fillHouseChoices(debt) {
     ...houses.map((house) => h('option', { value: house.id }, house.held ? house.name : t('{name} (sold)', { name: house.name }))),
   );
   select.value = debt?.house_id ?? '';
-  // The link of a settled debt, or of a debt whose house is sold, cannot change (CSD-020 REQ-2, REQ-8).
+  // The link of a settled debt, or of a debt whose house is sold, cannot change (CSD-020 REQ-16, REQ-23).
   const locked = Boolean(debt && (debt.settlement || (debt.house_id && !houses.find((house) => house.id === debt.house_id)?.held)));
   select.disabled = locked;
   form.elements.category.disabled = locked && Boolean(debt.house_id);
@@ -150,7 +150,7 @@ function fillHouseChoices(debt) {
   applyCategory();
 }
 
-/** The House dropdown shows only for a Mortgage or a Loan (CSD-020 REQ-14). */
+/** The House dropdown shows only for a Mortgage or a Loan (CSD-020 REQ-30). */
 function applyCategory() {
   const form = $('debt-form');
   const linkable = ['Mortgage', 'Loan'].includes(form.elements.category.value);

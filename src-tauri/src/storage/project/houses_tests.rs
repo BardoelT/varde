@@ -124,7 +124,7 @@ fn test_csd015_ac_24_5_a_damaged_section_is_an_invalid_file() {
 }
 
 #[test]
-fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
+fn test_csd020_ac_33_1_links_and_settlements_survive_the_round_trip() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
     let loan = project
@@ -194,7 +194,7 @@ fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
 }
 
 #[test]
-fn test_csd020_ac_16_3_a_damaged_link_is_an_invalid_file() {
+fn test_csd020_ac_33_2_a_damaged_link_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
     let path = dir.path().join("example-a.varde");
     fs::write(
@@ -212,7 +212,7 @@ fn test_csd020_ac_16_3_a_damaged_link_is_an_invalid_file() {
 }
 
 #[test]
-fn test_csd020_ac_16_4_a_link_on_a_debt_of_category_other_is_an_invalid_file() {
+fn test_csd020_ac_33_2_a_link_on_a_debt_of_category_other_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
     let path = dir.path().join("example-a.varde");
     fs::write(
@@ -243,7 +243,7 @@ fn test_csd015_a_house_change_is_an_unsaved_change() {
 }
 
 #[test]
-fn test_csd020_ac_16_5_a_settlement_statement_without_a_settlement_is_an_invalid_file() {
+fn test_csd020_ac_33_2_a_settlement_statement_without_a_settlement_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
     let path = dir.path().join("example-a.varde");
     fs::write(
