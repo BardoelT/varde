@@ -3,7 +3,7 @@ id: CSD-005
 title: Investments
 status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-000, CSD-001, CSD-002, CSD-003, CSD-007, CSD-025]
 ---
@@ -1201,9 +1201,10 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass, and
 - OQ-1: (resolved in v0.2) Investment statements count as entries for the currency confirmation: CSD-003 0.3 (REQ-5, AC-5.5, AC-5.6).
 - OQ-2: (resolved in v0.2) The Investments section titles show the project currency, "Accounts · EUR" and "Statements · EUR": REQ-20.
 - OQ-3: (resolved in v0.2) Deleting a statement asks for a confirmation, unlike CSD-001 REQ-8, on purpose: the note of a statement cannot be recreated by copying the previous period (REQ-13). CSD-001 is unchanged.
-- OQ-4: Now that there is no date bound, the Insights series of CSD-007 runs from the earliest statement to the current year, so a statement in a very early year (for example 0001-01) would give thousands of empty slots, and a statement after the current year has no slot. What shall the series do? Owner: Thijs. Blocks: the year series of CSD-007.
+- OQ-4: (resolved 03/11/2026) The Insights series of CSD-007 runs from the earliest year with a statement to the later of the current year and the latest year with a statement, so a statement after the current year gets a slot, and spans at most 50 years back from its last year. A statement older than that gets no slot but still counts in the yearly totals of REQ-26 and in every total and ratio (CSD-007 REQ-2).
 
 ## 9. Changelog
+- 1.1 (03/11/2026): Resolved OQ-4: the year series of CSD-007 runs to the latest year with a statement, at most 50 years back (CSD-007 v1.1). No requirement of this CSD changes. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): No date bounds (decision D11): REQ-6 accepts any valid period including future periods and the year 1899 and earlier (AC-6.3 rewritten, AC-6.4 removed, the 1899 row of AC-6.5 removed), REQ-29 no longer rejects a future period (AC-29.1 removed), error code `INVESTMENT_STATEMENT_IN_FUTURE` removed. No legacy handling (D12): REQ-19 loses the rules for a missing section and for a missing net deposits (AC-19.2, AC-19.4 removed), the schema is strict (CSD-002). The period field in the project file and IPC is called `period` for both account and statement (D13). Rounding follows CSD-000 CON-8 (new CON-12). Verification: display ACs are covered by DOM tests, and ACs without a test are marked not covered (AC-29.4). New OQ-4. Back to draft for re-approval.
 - 0.11 (29/10/2026): The position in the left pane is stated in CSD-004 REQ-1 and no longer repeated here (GitHub issue 21).
 - 0.10 (29/10/2026): Statement counts are no longer displayed. REQ-17 drops the count from the account rows and the Statements column from the yearly totals (AC-17.2, AC-17.9 amended) and says no count is shown anywhere, REQ-5 gets a fixed delete confirmation text without a number (AC-5.3 added), AC-18.2 amended, REQ-26 and the definitions say the count is still returned over IPC (used for the period lock and empty-year detection) but not shown. Verification marks AC-5.3 and the amended ACs as manual checklist items.

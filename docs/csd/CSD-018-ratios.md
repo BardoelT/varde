@@ -3,7 +3,7 @@ id: CSD-018
 title: Ratios
 status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-000, CSD-001, CSD-005, CSD-007, CSD-009, CSD-011, CSD-013, CSD-017, CSD-020, CSD-024]
 ---
@@ -72,7 +72,7 @@ Scenario: One panel, no tabs
 ```
 
 **REQ-2: Year series** *(ubiquitous)*
-The app shall return, oldest first, one figure set for every calendar year from the earliest year in which any of income, expenses, houses, investments, bank accounts or debts has a record up to and including the current year, computed in Rust, and shall show the years as columns from the oldest on the left to the newest on the right, with the current year labelled with "YTD" (as "2026 YTD").
+The app shall return, oldest first, one figure set for every calendar year from the earliest year in which any of income, expenses, houses, investments, bank accounts or debts has a record up to and including the later of the current year and the latest year in which any of them has a record, but for at most 50 years back from that last year, computed in Rust, and shall show the years as columns from the oldest on the left to the newest on the right, with the current year labelled with "YTD" (as "2026 YTD") and a year after the current year labelled like any other year. A record older than the 50 years gets no column, but still counts in every figure that spans all years.
 
 ```gherkin
 @AC-2.1
@@ -82,6 +82,24 @@ Scenario: Range over all areas
   And the first bank account entry is for 2025-01
   When the series is computed
   Then it holds the years 2024, 2025 and 2026
+
+@AC-2.4
+Scenario: A record after the current year extends the series
+  Given today is 29/10/2026
+  And the first expense is dated 05/03/2024
+  And the last record is a bank account entry for 2027-02
+  When the series is computed
+  Then it holds the years 2024, 2025, 2026 and 2027
+  And the columns end with "2026 YTD" and "2027"
+
+@AC-2.5
+Scenario: A very old record gets no column
+  Given today is 29/10/2026
+  And the first record is an expense dated 01/01/1950
+  And the last record is an expense dated 15/09/2026
+  When the series is computed
+  Then it holds the years 1977 to 2026, which is 50 years
+  And 1950 to 1976 have no column
 
 @AC-2.2
 Scenario: Column order and label
@@ -309,7 +327,7 @@ Scenario: No wealth accumulation from cash
 ```
 
 **REQ-10: Display** *(ubiquitous)*
-The app shall show amounts in the project currency as the other tables do, percentages with two decimals and a sign as CSD-007 REQ-10 labels them (+6.09%, −2.50%, 0.00%, the last also for a decrease that rounds to 0.00), negative figures in the negative colour, a figure that is none as "–", and no count of records. While the table is wider than the page, the app shall scroll it sideways and keep the row labels in view.
+The app shall show amounts in the project currency as the other tables do, percentages with two decimals and a sign as CSD-007 REQ-10 labels them (+6.09%, -2.50%, 0.00%, the last also for a decrease that rounds to 0.00), negative figures in the negative colour, a figure that is none as "–", and no count of records. While the table is wider than the page, the app shall scroll it sideways and keep the row labels in view.
 
 ```gherkin
 @AC-10.1
@@ -416,6 +434,7 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 None.
 
 ## 9. Changelog
+- 1.1 (03/11/2026): The series runs to the later of the current year and the latest year with a record, so future years get a column labelled like any other year, and spans at most 50 years back from its last year, older records still count in the figures that span all years (REQ-2, new AC-2.4, AC-2.5; owner decision). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Ratios and growth percentages are rounded to two decimals half-up (CSD-000 CON-8) instead of one decimal with banker's rounding: REQ-6, REQ-8, REQ-9, REQ-10 and CON-3 rewritten. AC values changed: AC-6.1 "12.5" to "12.50", AC-6.2 "-3.5" to "-3.54" (the exact value was -3.5417), AC-7.1 "4.2" to "4.17", AC-8.1 "10.0" to "10.00", AC-8.2 "-5.0" to "-5.00", AC-9.2 "20.8" to "20.83", AC-10.1 "+12.5%" to "+12.50%", and the JSON example; new AC-6.4 (half-up and no sign) and AC-8.5. One term, "wealth accumulation from cash", everywhere. Only a Cancelled debt nets to zero, a Repaid debt counts in full; references point to the merged CSD-020 (REQ-26, REQ-27, formerly CSD-020 REQ-11 and REQ-12), and the repaid amount equals the Cancelled-adjusted yearly total of the Debts overview (CSD-020 REQ-28, new AC-5.9). Navigation moved to CSD-024. The display ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.4 (02/11/2026): Each row gets an info icon with a tooltip that explains its calculation (REQ-13, GitHub issue 33).
 - 0.3 (30/10/2026): Houses replace assets in the wording. The definition of Repaid and REQ-5 gain the treatment of a Cancelled debt (CSD-020): its settled amount is subtracted from the repaid amount of the sale year (AC-5.6 to AC-5.8). NG-7 is unchanged. Back to `draft` until re-approved (GitHub issue 31).

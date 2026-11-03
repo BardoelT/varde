@@ -3,7 +3,7 @@ id: CSD-025
 title: Shared charts
 status: draft
 owner: Thijs Bardoel
-version: 0.1
+version: 0.2
 last_updated: 03/11/2026
 related: [CSD-000, CSD-006, CSD-007, CSD-010, CSD-012, CSD-014, CSD-016, CSD-017]
 ---
@@ -87,7 +87,7 @@ The yearly chart shall draw one gridline with its short label for every tick rec
 ```gherkin
 @AC-2.1
 Scenario: Gridlines follow the ticks
-  Given the ticks 0.00, 5000.00, 10000.00 and 15000.00 with the labels "0.00", "5.00k", "10.00k" and "15.00k"
+  Given the ticks 0.00, 5000.00, 10000.00 and 15000.00 with the labels "0.00", "5k", "10.00k" and "15.00k"
   When the chart is drawn
   Then four gridlines are drawn at those values with those labels
   And the zero line is at 0.00
@@ -106,7 +106,7 @@ Scenario: Only positive values
 ```
 
 **REQ-3: Rust delivers ticks, pieces and labels** *(ubiquitous)*
-The app shall build in Rust, and deliver with the series, the axis ticks (equally spaced at a round step, from a value at or below the lowest value to a value at or above the highest value of any year, marker included, and always including 0.00), the pieces of every year with their `low`, `high`, `hangs` and `rounding`, the marker of every year that has one, and the short label of every tick and marker.
+The app shall build in Rust, and deliver with the series, the axis ticks (equally spaced at a step of 1, 2 or 5 times a power of ten of at least 1.00, from a value at or below the lowest value to a value at or above the highest value of any year, marker included, and always including 0.00), the pieces of every year with their `low`, `high`, `hangs` and `rounding`, the marker of every year that has one, the axis label of every tick (REQ-17), and the short label of every marker (REQ-4).
 
 ```gherkin
 @AC-3.1
@@ -115,6 +115,13 @@ Scenario: Axis covers the highest and the lowest value
   When the series is requested
   Then the first tick is at or below -1000.00 and the last tick at or above 13100.00
   And the ticks include 0.00 and are equally spaced
+
+@AC-3.4
+Scenario: The step is a whole round amount
+  Given the highest value of any year is 13100.00 and the lowest is 0.00
+  When the series is requested
+  Then the step is 2000.00 or 5000.00
+  And no step has decimals
 
 @AC-3.2
 Scenario: Ready-made pieces and marker
@@ -131,7 +138,7 @@ Scenario: Year without a bar
 ```
 
 **REQ-4: Short label format** *(ubiquitous)*
-The app shall write a short label as the amount rounded to 2 decimals half-up (CSD-000 CON-8) followed by `k` for thousands or `M` for millions, with `M` when the rounded amount in thousands reaches 1000.00, `k` when the rounded amount reaches 1,000.00, no unit and the full amount below 1,000.00, always 2 decimals, and the sign of a negative amount kept as a minus sign (a negative amount that rounds to 0.00 has no sign).
+The app shall write the short label of a marker or a growth figure as the amount rounded to 2 decimals half-up (CSD-000 CON-8) followed by `k` for thousands or `M` for millions, with `M` when the rounded amount in thousands reaches 1000.00, `k` when the rounded amount reaches 1,000.00, no unit and the full amount below 1,000.00, always 2 decimals, and the sign of a negative amount kept as a minus sign (a negative amount that rounds to 0.00 has no sign).
 
 ```gherkin
 @AC-4.1
@@ -148,7 +155,7 @@ Scenario Outline: Short labels
     | 10000.00       | 10.00k    |
     | 999994.00      | 999.99k   |
     | 1500000.00     | 1.50M     |
-    | -2549.99       | −2.55k    |
+    | -2549.99       | -2.55k    |
     | -0.004         | 0.00      |
 
 @AC-4.2
@@ -160,7 +167,7 @@ Scenario Outline: The boundary rounds up into the next unit
     | amount       | label | never    |
     | 999996.00    | 1.00M | 1000.00k |
     | 999.995      | 1.00k | 1000.00  |
-    | -999996.00   | −1.00M | −1000.00k |
+    | -999996.00   | -1.00M | -1000.00k |
 
 @AC-4.3
 Scenario: Above the millions
@@ -460,6 +467,33 @@ Scenario: The last figure is deleted
   Then the note is shown and no chart is drawn
 ```
 
+**REQ-17: Axis label format** *(ubiquitous)*
+The app shall write the label of an axis tick as a whole number without decimals, in thousands with `k` when the step is at least 1,000.00 and below 1,000,000.00, in millions with `M` when the step is at least 1,000,000.00, and in full otherwise, the same unit for every tick of the axis.
+
+```gherkin
+@AC-17.1
+Scenario Outline: Axis labels have no decimals
+  Given the axis step is <step>
+  When the label of the tick <tick> is built
+  Then it reads "<label>"
+
+  Examples:
+    | step       | tick       | label |
+    | 500.00     | 1500.00    | 1500  |
+    | 2000.00    | 10000.00   | 10k   |
+    | 2000.00    | -2000.00   | -2k   |
+    | 500000.00  | 1500000.00 | 1500k |
+    | 1000000.00 | 3000000.00 | 3M    |
+    | 5000.00    | 0.00       | 0     |
+
+@AC-17.2
+Scenario: Markers keep their short label
+  Given the axis labels are "0", "5k" and "10k"
+  And the marker of 2025 has value 2549.99
+  When the series is requested
+  Then the marker label is "2.55k"
+```
+
 ## 5. Interfaces and contracts
 
 Every `get_<area>_insights()` command returns the common part below next to its own fields (the legend entries, the amounts for the tooltip, growth figures). Amounts are decimal strings with two decimals (CSD-000 CON-8), labels are text. Field names:
@@ -468,10 +502,10 @@ Every `get_<area>_insights()` command returns the common part below next to its 
 {
   "axis": {
     "ticks": [
-      { "value": "-1000.00", "label": "−1.00k" },
-      { "value": "0.00", "label": "0.00" },
+      { "value": "-1000.00", "label": "-1k" },
+      { "value": "0.00", "label": "0" },
       { "value": "5000.00", "label": "5.00k" },
-      { "value": "10000.00", "label": "10.00k" }
+      { "value": "10000.00", "label": "10k" }
     ]
   },
   "years": [
@@ -493,7 +527,7 @@ Every `get_<area>_insights()` command returns the common part below next to its 
 - `pieces` are in drawing order. `series` is the legend key of the piece (the area decides it). `rounding` is `top`, `bottom` or `none`: `top` for the highest piece that rises, `bottom` for the lowest piece that hangs. A piece of 0.00 is not delivered.
 - `marker` is `null` for a year without one.
 - Labels of an area that carry a figure, such as the growth label of CSD-006 and CSD-007, are delivered the same way as strings named `<what>_label`, built by Rust. The year label ("2026 YTD") is text, translated by the frontend from `year` and `is_partial`.
-- The minus sign in a label is the true minus sign "−" (U+2212), the same as in the axis labels today.
+- The minus sign in a label is the hyphen-minus "-", the same as in tables.
 - Amounts for tooltips and screen readers are delivered as decimal strings; the frontend only adds the digit grouping of CSD-022.
 
 ## 6. Constraints
@@ -517,10 +551,11 @@ The ticks, pieces, markers and short labels are built in Rust, so REQ-3 and REQ-
 Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass, and the DOM tests pass.
 
 ## 8. Open questions
-- OQ-1: Until now the frontend chose the axis ticks itself (a round step over the highest value). D2 needs a label for every tick built by Rust, so REQ-3 moves the tick choice to Rust too. Confirm that this is intended (it is a code change). Owner: Thijs. Blocks: REQ-3.
-- OQ-2: Short labels always have 2 decimals ("10.00k", "0.00" on the axis), as the boundary example "1.00M" requires. Today the axis shows "10k" and "0". Confirm that the axis ticks should also show 2 decimals. Owner: Thijs. Blocks: REQ-4.
-- OQ-3: The minus sign in labels is the true minus "−" (as today) while amounts in tables use "-". Confirm. Owner: Thijs. Blocks: REQ-4.
+- OQ-1: (resolved 03/11/2026) Rust chooses the axis ticks (REQ-3).
+- OQ-2: (resolved 03/11/2026) Axis labels never show decimals (REQ-17); the short labels of markers and growth figures keep 2 decimals (REQ-4).
+- OQ-3: (resolved 03/11/2026) The sign is "-" everywhere, in labels and in tables.
 - OQ-4: CSD-006, CSD-007 and CSD-010 still hold copies of the look, size and motion text of this CSD. They shall point here when they are re-approved. Owner: Thijs. Blocks: none.
 
 ## 9. Changelog
+- 0.2 (03/11/2026): axis ticks use a whole round step and axis labels never show decimals (REQ-3: AC-3.4 added; new REQ-17, AC-17.1, AC-17.2); REQ-4 applies to markers and growth figures; the minus sign is "-" everywhere; OQ-1 to OQ-3 resolved.
 - 0.1 (03/11/2026): initial draft. The yearly chart and named-series framework that the Insights CSDs repeated (bars, axis, tooltip, highlight, motion, size, look, legend, colours, tabs, empty state), the short label format and the label payload built by Rust (decision D2: the frontend computes and rounds nothing; 999,996 shows as "1.00M").

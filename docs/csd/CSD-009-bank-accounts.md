@@ -3,7 +3,7 @@ id: CSD-009
 title: Bank accounts
 status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-005, CSD-010, CSD-025]
 ---
@@ -680,6 +680,14 @@ Scenario: Closing balance is the latest balance of the year, not a sum over mont
   When the user views the yearly totals
   Then 2026 shows closing balance 2000.00
 
+@AC-19.10
+Scenario: A year after the current year has a row like any other
+  Given today is 03/11/2026
+  And a monthly account "Example Current Account" with entries 2026-05 (balance 3000.00) and 2027-02 (balance 3500.00)
+  When the user views the yearly totals
+  Then 2027 shows closing balance 3500.00 and entries 1, listed above 2026
+  And the Insights of CSD-010 hold the same closing balances for 2026 and 2027
+
 @AC-19.5
 Scenario: Monthly and yearly accounts add up together
   Given a monthly account "Example Current Account" with an entry 2025-12 (balance 2000.00)
@@ -921,6 +929,7 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass, and
 - OQ-2: Whether `docs/architecture.md` and the layout line of `CLAUDE.md` ("money, income, investments") get a bank accounts mention when this CSD is implemented. Owner: Thijs. Blocks: none.
 
 ## 9. Changelog
+- 1.1 (03/11/2026): New AC-19.10: a year after the current year has a yearly totals row and equals the Insights series of CSD-010, which now runs to the latest year with an entry (CSD-010 v1.1). No other change. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): No date bounds (decision D11): REQ-7 accepts any valid period including future periods and the year 1899 and earlier (AC-7.3 rewritten, AC-7.4 removed, the 1899 row of AC-7.5 removed), REQ-13 no longer rejects a future period (AC-13.1 removed), error code `BANK_ENTRY_IN_FUTURE` and the year-1900 rule removed. No legacy handling (D12): REQ-23 loses the rule for a missing section (AC-23.2 removed), the schema is strict (CSD-002). The period field in the project file and IPC is called `period` for both account and entry (D13). Rounding follows CSD-000 CON-8 (new CON-11). Verification: display ACs are covered by DOM tests, and ACs without a test are marked not covered. Back to draft for re-approval.
 - 0.4 (29/10/2026): The position in the left pane is stated in CSD-004 REQ-1 and no longer repeated here (GitHub issue 21).
 - 0.3 (29/10/2026): Entry counts are no longer displayed. REQ-20 drops the count from the account rows and the Entries column from the yearly totals (AC-20.2, AC-20.8 amended) and says no count is shown anywhere, REQ-6 gets a fixed delete confirmation text without a number (AC-6.3 added), AC-21.2 amended, REQ-19 and the definitions say the count is still returned over IPC (used for the period lock and empty-year detection) but not shown. Verification marks AC-6.3 and the amended ACs as manual checklist items.

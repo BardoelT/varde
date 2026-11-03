@@ -3,7 +3,7 @@ id: CSD-014
 title: Expense insights
 status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-000, CSD-010, CSD-012, CSD-013, CSD-025]
 ---
@@ -58,7 +58,7 @@ sequenceDiagram
 ```
 
 **REQ-1: Year series** *(ubiquitous)*
-The app shall return one set of figures for every calendar year from the year of the earliest expense up to and including the later of the current year and the year of the latest expense, oldest year first, holding the total, the number of expenses (data only: the Insights tab does not display it) and, per category with an expense in that year, its segment.
+The app shall return one set of figures for every calendar year from the year of the earliest expense up to and including the later of the current year and the year of the latest expense, but for at most 50 years back from that last year, oldest year first, holding the total, the number of expenses (data only: the Insights tab does not display it) and, per category with an expense in that year, its segment. An expense older than the 50 years gets no slot, but still counts in every total that spans all years (CSD-013 REQ-12).
 
 ```gherkin
 @AC-1.1
@@ -97,6 +97,15 @@ Scenario: An expense dated in the future extends the series
   When the insights are requested
   Then the series holds the years 2024, 2025, 2026, 2027 and 2028
   And 2026 and 2027 have total 0.00 and no segments
+
+@AC-1.6
+Scenario: A very old expense gets no slot but still counts
+  Given today is 29/10/2026
+  And expenses dated 01/01/1950 for 100.00 and 15/09/2026 for 50.00
+  When the insights are requested
+  Then the series holds the years 1977 to 2026, which is 50 years
+  And 1950 to 1976 have no slot
+  And the 100.00 of 1950 still counts in the yearly totals of CSD-013 REQ-12
 ```
 
 **REQ-2: Years without expenses** *(unwanted behaviour)*
@@ -113,7 +122,7 @@ Scenario: Gap year
 ```
 
 **REQ-3: Current year is partial** *(state-driven)*
-While a year is the current year, the app shall mark it as partial. A year after the current year is not marked partial (see OQ-1).
+While a year is the current year, the app shall mark it as partial. A year after the current year is not marked partial and looks like any other year.
 
 ```gherkin
 @AC-3.1
@@ -526,15 +535,16 @@ The series is computed in Rust, so the data ACs are proven by `cargo test`. Test
 | Requirement | Command / coverage |
 |---|---|
 | AC-1.1 to AC-1.4, AC-2.1, AC-3.1, AC-4.1 to AC-4.7, AC-6.2 | `cargo test test_csd014_` (one requirement, e.g. REQ-4: `cargo test test_csd014_ac_4_`) |
-| AC-1.5, AC-3.2, AC-3.3, AC-13.3 | Not covered by a named test yet (AC-1.5 and AC-3.3 are new in v1.0) |
+| AC-1.5, AC-1.6, AC-3.2, AC-3.3, AC-13.3 | Not covered by a named test yet (AC-1.5 and AC-3.3 are new in v1.0, AC-1.6 in v1.1) |
 | Display ACs: REQ-5 (AC-5.1 to AC-5.7), AC-6.1, AC-6.3, REQ-7, REQ-8, REQ-9, AC-10.1, AC-11.4, REQ-12, AC-13.1, AC-13.2, AC-14.1 | Covered by DOM tests (the dev-only DOM test harness, a tests-only exception to the no-npm rule). Not covered until those tests are written. The shared behaviour itself (motion, look, size, label format) is verified in CSD-025 |
 
 Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 
 ## 8. Open questions
-- OQ-1: Should a year after the current year (only possible with an expense dated in the future, CSD-013 REQ-4) be marked in the chart, for example as planned, instead of looking like a complete year? Owner: Thijs. Blocks: REQ-3, AC-3.3.
+- OQ-1: (resolved 03/11/2026) A year after the current year (an expense dated in the future, CSD-013 REQ-4) is not marked and looks like any other year (REQ-3, AC-3.3). The series runs to the latest year with an expense, at most 50 years back from its last year (REQ-1, AC-1.5, AC-1.6).
 
 ## 9. Changelog
+- 1.1 (03/11/2026): Resolved OQ-1: a future year is not marked. The series spans at most 50 years back from its last year; older expenses get no slot but still count in the totals (REQ-1, new AC-1.6). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Future dates are allowed (CSD-013 v1.0), so the series runs up to the later of the current year and the year of the latest expense (REQ-1, AC-1.5), a future year is not partial (REQ-3, AC-3.3, OQ-1). The short axis labels are built by the backend (CSD-025; REQ-5, new AC-5.7, section 5). Motion (REQ-10), look (REQ-11) and size (REQ-14) now refer to CSD-025: AC-10.2, AC-10.3, AC-11.1 to AC-11.3 and AC-14.2 removed, the tooltip placement refers to CSD-025. Money rounding references CSD-000 CON-8 (new CON-8). Verification table rewritten to what is covered (the claimed coverage of AC-13.3 by `cargo test` is corrected; display ACs are covered by DOM tests). Back to `draft` for re-approval.
 - 0.6 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.
 - 0.5 (29/10/2026): The Reports page is replaced by the Net worth page of CSD-017 (NG-5; GitHub issue 24). No other change.

@@ -3,7 +3,7 @@ id: CSD-017
 title: Net worth insights
 status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-000, CSD-007, CSD-010, CSD-012, CSD-016, CSD-020, CSD-024, CSD-025]
 ---
@@ -71,7 +71,7 @@ Scenario: One panel, no tabs
 ```
 
 **REQ-2: Year series** *(ubiquitous)*
-The app shall return, oldest first, one figure set for every calendar year from the earliest year in which any of houses, investments, bank accounts or debts has a record up to and including the current year, each with Houses, Investments, Cash, Debts and Net worth, computed in Rust.
+The app shall return, oldest first, one figure set for every calendar year from the earliest year in which any of houses, investments, bank accounts or debts has a record up to and including the later of the current year and the latest year in which any of them has a record (so a year after the current year gets a slot), but for at most 50 years back from that last year, each with Houses, Investments, Cash, Debts and Net worth, computed in Rust. A record older than the 50 years gets no slot, but still counts in the totals of its own area, which this page does not change (for example the yearly totals of CSD-009 REQ-19).
 
 ```gherkin
 @AC-2.1
@@ -81,6 +81,25 @@ Scenario: Range over all four areas
   And the first house valuation is for 2025-03
   When the series is computed
   Then it holds the years 2024, 2025 and 2026
+
+@AC-2.3
+Scenario: Records after the current year extend the series
+  Given today is 29/10/2026
+  And the only records are a bank account entry for 2024-12 and one for 2027-02
+  When the series is computed
+  Then it holds the years 2024, 2025, 2026 and 2027
+  And 2025 and 2026 count as 0.00 in the gap, as REQ-4 says
+
+@AC-2.4
+Scenario: A very old record gets no slot but still counts
+  Given today is 29/10/2026
+  And "Example Bank" has an entry for 1950-01 with balance 1000.00 and no other entry
+  And "Other Bank" has an entry for 2026-03 with balance 500.00
+  When the series is computed
+  Then it holds the years 1977 to 2026, which is 50 years
+  And 1950 to 1976 have no slot
+  And Cash of 2026 is 500.00
+  And the yearly totals of CSD-009 REQ-19 still hold a row for 1950 with closing balance 1000.00
 
 @AC-2.2
 Scenario: No records at all
@@ -304,7 +323,7 @@ Scenario: The dip in the sale year
 ```
 
 **REQ-15: Future-dated records** *(ubiquitous)*
-The app shall count a record dated later than today in the current year like any other record of that year, and shall not show a year after the current year.
+The app shall count a record dated later than today in the year of its date, like any other record of that year, and shall not mark a year after the current year as partial.
 
 ```gherkin
 @AC-15.1
@@ -319,7 +338,16 @@ Scenario: A year after the current year
   Given today is 29/10/2026
   And "Example Bank" has an entry for 2027-02 with balance 7000.00
   When the series is computed
-  Then the series ends with 2026
+  Then the series ends with 2027
+  And Cash of 2027 is 7000.00
+
+@AC-15.3
+Scenario: A year after the current year is not partial
+  Given today is 29/10/2026
+  And "Example Bank" has an entry for 2027-02 with balance 7000.00
+  When the series is computed
+  Then 2026 is marked partial
+  And 2027 is not marked partial
 ```
 
 ## 5. Interfaces and contracts
@@ -360,9 +388,10 @@ The series is computed in Rust, so REQ-2 to REQ-5, REQ-13 to REQ-15 (the data) a
 Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 
 ## 8. Open questions
-- OQ-1: A record dated in a year after the current year (allowed, since the app has no date bounds) is accepted but the series ends at the current year, so such a year is not shown (REQ-15). Should the series extend to the latest year with a record? Owner: Thijs. Blocks: REQ-2, REQ-15.
+- OQ-1: (resolved 03/11/2026) A record dated in a year after the current year is accepted and the series extends to the latest year with a record, at most 50 years back from that year (REQ-2, REQ-15). A year after the current year is not marked partial.
 
 ## 9. Changelog
+- 1.1 (03/11/2026): Resolved OQ-1: the series runs from the earliest year with a record to the later of the current year and the latest year with a record, so future years get a slot (REQ-2, AC-2.3, REQ-15, AC-15.2 changed, AC-15.3 new), and spans at most 50 years back from its last year, older records still count (AC-2.4). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Money follows CSD-000 CON-8 (CON-7). The net worth of a sale year drops by the sold house, and a year without a record counts as 0.00, both stated as intended (REQ-14 with CSD-020 REQ-10 and REQ-11; REQ-4, AC-4.3). Future-dated records: the current year counts them, a later year is not shown (REQ-15, OQ-1). The look, size, motion and short labels of the chart now refer to CSD-025 instead of repeating them (REQ-6, REQ-7: marker labels read "316.00k" and "-8.00k"). Navigation moved to CSD-024; CSD-019 and CSD-020 references follow the merged CSD-020. The display ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.5 (30/10/2026): The segment Assets is renamed Houses (legend, tooltip, note and the `houses` field of the figures). A settled debt (CSD-020) counts like any debt: its 0.00 statement takes it out of Debts. No other requirement changes. Back to `draft` until re-approved (GitHub issue 31).
 - 0.4 (29/10/2026): The Houses figure counts houses held at the end of the year, so a sold house drops out from its sale year (definition of Houses, CSD-019 REQ-11; GitHub issue 27). No other change.

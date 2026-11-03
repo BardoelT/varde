@@ -3,7 +3,7 @@ id: CSD-010
 title: Bank account insights
 status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-007, CSD-009, CSD-025]
 ---
@@ -82,7 +82,7 @@ Scenario: No accounts yet
 ```
 
 **REQ-2: Year series** *(ubiquitous)*
-The app shall return one set of figures for every calendar year from the year of the earliest entry up to and including the current year, oldest year first, holding the closing balance, the number of entries (returned, not displayed) and, per bank with an entry in that year, its segment, together with the axis, the bar pieces, the marker and the short labels of CSD-025 REQ-3. Entries after the current year are not part of the series until OQ-2 is answered.
+The app shall return one set of figures for every calendar year from the year of the earliest entry up to and including the later of the current year and the year of the latest entry, but for at most 50 years back from that last year, oldest year first, holding the closing balance, the number of entries (returned, not displayed) and, per bank with an entry in that year, its segment, together with the axis, the bar pieces, the marker and the short labels of CSD-025 REQ-3. An entry older than the 50 years gets no slot, but still counts in the yearly totals of CSD-009 REQ-19 (a year counts only the entries of its own period).
 
 ```gherkin
 @AC-2.1
@@ -106,6 +106,24 @@ Scenario: No entries
   And an account without entries
   When the insights are requested
   Then the series is empty
+
+@AC-2.5
+Scenario: An entry after the current year extends the series
+  Given today is 26/10/2026
+  And entries for 2024-03 and 2027-05
+  When the insights are requested
+  Then the series holds the years 2024, 2025, 2026 and 2027
+
+@AC-2.6
+Scenario: A very old entry gets no slot but still counts
+  Given today is 26/10/2026
+  And "Example Bank" has an entry for 1950-01 with balance 1000.00
+  And "Other Bank" has an entry for 2026-03 with balance 500.00
+  When the insights are requested
+  Then the series holds the years 1977 to 2026, which is 50 years
+  And 1950 to 1976 have no slot
+  And the closing balance of 2026 is 500.00
+  And the yearly totals of CSD-009 REQ-19 still hold a row for 1950 with closing balance 1000.00
 
 @AC-2.4
 Scenario: Pieces, marker and labels are delivered
@@ -132,7 +150,7 @@ Scenario: Gap year
 ```
 
 **REQ-4: Current year is partial** *(state-driven)*
-While a year is the current year, the app shall mark it as partial.
+While a year is the current year, the app shall mark it as partial. A year after the current year is not marked partial and looks like any other year.
 
 ```gherkin
 @AC-4.1
@@ -150,6 +168,13 @@ Scenario: Current year without entries is still in the series and marked
   When the insights are requested
   Then the series holds 2025 and 2026
   And 2026 is marked partial and has 0 entries
+
+@AC-4.3
+Scenario: A future year is not marked partial
+  Given today is 26/10/2026
+  And an entry for 2027-05
+  When the insights are requested
+  Then the year 2027 is not marked partial
 ```
 
 **REQ-5: Segments are the latest balances per bank** *(ubiquitous)*
@@ -196,6 +221,7 @@ Scenario: Closing balance and entries equal the yearly totals
   And the entries of AC-5.1 and AC-5.2
   When the insights and the yearly totals are requested
   Then for every year the closing balance and the number of entries of the insights equal those of the yearly totals
+  And this includes a year after the current year that has an entry
 ```
 
 **REQ-6: Chart** *(ubiquitous)*
@@ -482,15 +508,17 @@ The series, the axis, the pieces, the markers and the short labels are computed 
 | AC-15.3 | `cargo test test_csd010_ac_15_` |
 | REQ-1, AC-6.1, AC-6.2, AC-6.5, AC-6.6, AC-7.3, REQ-8 (AC-8.1, AC-8.2, AC-8.4), REQ-9 (AC-9.1, AC-9.2, AC-9.5), REQ-10, AC-13.4, REQ-14, AC-15.1, AC-15.2 (the screen) | DOM tests of the Bank accounts page with a received series as input. Not covered yet: no DOM test exists |
 | AC-2.4, AC-4.2 | Not covered by a test today (AC-4.2 has no Rust test, AC-2.4 is new) |
+| AC-2.5, AC-2.6, AC-4.3 | Not covered by a named test yet (new in v1.1) |
 | One requirement, e.g. REQ-5 | `cargo test test_csd010_ac_5_` |
 
 Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass, and the DOM tests pass.
 
 ## 8. Open questions
 - OQ-1: (resolved in v0.2) The legend lists only banks that have at least one entry (REQ-9), because a bank without entries has no segment to identify.
-- OQ-2: Now that dates in the future are allowed (CSD-009 v1.0), what does the series do with an entry after the current year (today it is left out, so the closing balance of the insights can differ from the yearly totals of CSD-009 REQ-19, which count it), and with an entry in a very early year such as 0001-01 (thousands of empty slots)? Owner: Thijs. Blocks: REQ-2, AC-5.5.
+- OQ-2: (resolved 03/11/2026) An entry after the current year extends the series to the latest year with an entry, so the closing balances equal the yearly totals of CSD-009 REQ-19 (REQ-2, AC-2.5, AC-5.5). The series spans at most 50 years back from its last year; an older entry gets no slot but still counts (AC-2.6). A future year is not marked partial (REQ-4, AC-4.3).
 
 ## 9. Changelog
+- 1.1 (03/11/2026): Resolved OQ-2: the series runs to the later of the current year and the latest year with an entry (REQ-2, new AC-2.5), spans at most 50 years back from its last year, older entries still count (new AC-2.6), a future year is not partial (REQ-4, new AC-4.3), AC-5.5 covers future years. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): The shared chart text moved to CSD-025: REQ-11 (highlight) and REQ-12 (motion) removed in favour of CSD-025 REQ-9 and REQ-10, REQ-13 reduced to the size and look reference and the accessible segment label (AC-13.1 to AC-13.3, AC-13.5 to AC-13.7 removed), AC-8.3, AC-9.3, AC-9.4 and AC-10.5 removed, CON-6 removed. REQ-7 uses the marker of CSD-025 and the short label "10.00k" (was "10k"). Rust delivers the axis, the pieces, the marker and the short labels (REQ-2, new AC-2.4, section 5, CON-2). Rounding follows CSD-000 CON-8 (new CON-7). Verification: display ACs are covered by DOM tests, ACs without a test are marked not covered. New OQ-2 (entries in the future). Back to draft for re-approval.
 - 0.6 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.
 - 0.5 (29/10/2026): The Reports page is replaced by the Net worth page of CSD-017 (NG-5; GitHub issue 24). No other change.

@@ -3,7 +3,7 @@ id: CSD-016
 title: House insights
 status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-000, CSD-010, CSD-012, CSD-015, CSD-020, CSD-025]
 ---
@@ -84,7 +84,7 @@ Scenario: No houses yet
 ```
 
 **REQ-2: Year series** *(ubiquitous)*
-The app shall return one set of figures for every calendar year from the year of the earliest valuation up to and including the later of the current year and the year of the latest valuation, oldest year first, holding the total value, the change, the number of valuations (used to detect an empty year, not displayed) and, per house with a valuation in that year, its segment.
+The app shall return one set of figures for every calendar year from the year of the earliest valuation up to and including the later of the current year and the year of the latest valuation, but for at most 50 years back from that last year, oldest year first, holding the total value, the change, the number of valuations (used to detect an empty year, not displayed) and, per house with a valuation in that year, its segment. A valuation older than the 50 years gets no slot, but still counts in the total value of the years that have one (the closing value of CSD-015 REQ-20).
 
 ```gherkin
 @AC-2.1
@@ -115,6 +115,15 @@ Scenario: A valuation in the future extends the series
   And valuations for 2024-03 and 2028-05
   When the insights are requested
   Then the series holds the years 2024, 2025, 2026, 2027 and 2028
+
+@AC-2.5
+Scenario: A very old valuation gets no slot but still counts
+  Given today is 29/10/2026
+  And "Example House" has valuations for 1950-01 with value 100000.00 and for 2026-03 with value 250000.00
+  When the insights are requested
+  Then the series holds the years 1977 to 2026, which is 50 years
+  And 1950 to 1976 have no slot
+  And the year 2026 has total value 250000.00
 ```
 
 **REQ-3: Years without valuations** *(unwanted behaviour)*
@@ -131,7 +140,7 @@ Scenario: Gap year
 ```
 
 **REQ-4: Current year is partial** *(state-driven)*
-While a year is the current year, the app shall mark it as partial. A year after the current year is not marked partial (see OQ-1).
+While a year is the current year, the app shall mark it as partial. A year after the current year is not marked partial and looks like any other year.
 
 ```gherkin
 @AC-4.1
@@ -569,14 +578,16 @@ The series is computed in Rust, so the data ACs are proven by `cargo test`. Test
 | AC-3.1, AC-5.1 to AC-5.5, AC-9.2 (data), AC-15.3 | `cargo test test_csd016_` (one requirement, e.g. REQ-5: `cargo test test_csd016_ac_5_`) |
 | REQ-2 and REQ-4 | Covered by tests whose names carry the requirement but no AC number (`test_csd016_ac_2_`, `_ac_4_`) |
 | AC-2.4, AC-4.3, AC-5.6 | Not covered by a named test yet (new in v1.0) |
+| AC-2.5 | Not covered by a named test yet (new in v1.1) |
 | Display ACs: REQ-1, REQ-6 (AC-6.1 to AC-6.6), REQ-7 to REQ-12, AC-13.4, REQ-14, AC-15.1, AC-15.2 | Covered by DOM tests (the dev-only DOM test harness, a tests-only exception to the no-npm rule). Not covered until those tests are written. The shared behaviour itself (motion, look, size, label format) is verified in CSD-025 |
 
 Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 
 ## 8. Open questions
-- OQ-1: Should a year after the current year (only possible with a valuation in the future, CSD-015 REQ-7) be marked in the chart, for example as planned, instead of looking like a complete year? Owner: Thijs. Blocks: REQ-4, AC-4.3.
+- OQ-1: (resolved 03/11/2026) A year after the current year (a valuation in the future, CSD-015 REQ-7) is not marked and looks like any other year (REQ-4, AC-4.3). The series runs to the latest year with a valuation, at most 50 years back from its last year (REQ-2, AC-2.4, AC-2.5).
 
 ## 9. Changelog
+- 1.1 (03/11/2026): Resolved OQ-1: a future year is not marked. The series spans at most 50 years back from its last year; older valuations get no slot but still count (REQ-2, new AC-2.5). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Future periods are allowed (CSD-015 v1.0), so the series runs up to the later of the current year and the year of the latest valuation (REQ-2, AC-2.4), a future year is not partial (REQ-4, AC-4.3, OQ-1). Segments cite CSD-020 REQ-10 (CSD-019 is merged into CSD-020), new AC-5.6 (a sold house drops out in its sale year). The short axis labels and marker labels are built by the backend (CSD-025; REQ-6, REQ-7, AC-7.1 now "10.00k", new AC-6.6, section 5). Motion (REQ-12), look and size (REQ-13) and tooltip placement refer to CSD-025: AC-12.2, AC-12.3, AC-13.1 to AC-13.3 and AC-13.5 removed. Money rounding references CSD-000 CON-8 (new CON-7). Verification table rewritten to what is covered; display ACs are covered by DOM tests. Back to `draft` for re-approval.
 - 0.7 (30/10/2026): Assets are renamed to houses (labels, the Houses page and chart, error codes, commands, JSON keys such as `houses`). No other requirement changes. Back to `draft` until re-approved (GitHub issue 31).
 - 0.6 (29/10/2026): Segments only count houses held at the end of the year, so a sold house drops out from its sale year (REQ-2, CSD-019 REQ-11; GitHub issue 27).

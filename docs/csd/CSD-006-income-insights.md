@@ -3,7 +3,7 @@ id: CSD-006
 title: Income insights
 status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-000, CSD-001, CSD-003, CSD-004, CSD-007, CSD-025]
 ---
@@ -80,7 +80,7 @@ Scenario: No jobs yet
 ```
 
 **REQ-2: Year series** *(ubiquitous)*
-The app shall return one set of figures for every calendar year from the year of the earliest entry up to and including the current year, oldest year first, holding the sums over all jobs of gross salary, holiday pay, bonus and total gross, and the number of entries. The number of entries is part of the data only: the Insights tab does not display it.
+The app shall return one set of figures for every calendar year from the year of the earliest entry up to and including the later of the current year and the year of the latest entry, but for at most 50 years back from that last year, oldest year first, holding the sums over all jobs of gross salary, holiday pay, bonus and total gross, and the number of entries. The number of entries is part of the data only: the Insights tab does not display it. An entry older than the 50 years gets no slot, but still counts in every total of CSD-001 and CSD-004 that spans all years.
 
 ```gherkin
 @AC-2.1
@@ -105,6 +105,24 @@ Scenario: A single year
   And the only entry is a paycheck for 2026-09
   When the insights are requested
   Then the series holds only the year 2026
+
+@AC-2.4
+Scenario: An entry after the current year extends the series
+  Given today is 26/10/2026
+  And the earliest entry is a paycheck for 2024-03
+  And the latest entry is an annual statement for 2027
+  When the insights are requested
+  Then the series holds the years 2024, 2025, 2026 and 2027
+
+@AC-2.5
+Scenario: A very old entry gets no slot but still counts
+  Given today is 26/10/2026
+  And "Example Employer" has an annual statement for 1950 of salary 1000.00, holiday pay 0.00 and bonus 0.00
+  And the only other entry is an annual statement for 2026
+  When the insights are requested
+  Then the series holds the years 1977 to 2026, which is 50 years
+  And 1950 to 1976 have no slot
+  And the 1950 statement still counts in the totals of CSD-001
 ```
 
 **REQ-3: Years without entries** *(unwanted behaviour)*
@@ -121,7 +139,7 @@ Scenario: Gap year
 ```
 
 **REQ-4: Current year is partial** *(state-driven)*
-While a year is the current year, the app shall mark it as partial.
+While a year is the current year, the app shall mark it as partial. A year after the current year is not marked partial and looks like any other year.
 
 ```gherkin
 @AC-4.1
@@ -131,6 +149,13 @@ Scenario: Current year is marked
   When the insights are requested
   Then the year 2026 is marked partial
   And the year 2025 is not
+
+@AC-4.2
+Scenario: A future year is not marked partial
+  Given today is 26/10/2026
+  And an annual statement for 2027
+  When the insights are requested
+  Then the year 2027 is not marked partial
 ```
 
 **REQ-5: Growth** *(ubiquitous)*
@@ -215,7 +240,7 @@ Scenario: Current year is marked
 ```
 
 **REQ-8: Growth labels** *(ubiquitous)*
-The Insights tab shall show the growth of each year with a growth value next to its bar as "+x.xx%" or "−x.xx%", "0.00%" for no change (also for a decrease that rounds to 0.00, without a sign) and "–" for no growth, using the negative colour only for decreases.
+The Insights tab shall show the growth of each year with a growth value next to its bar as "+x.xx%" or "-x.xx%", "0.00%" for no change (also for a decrease that rounds to 0.00, without a sign) and "–" for no growth, using the negative colour only for decreases.
 
 ```gherkin
 @AC-8.1
@@ -227,7 +252,7 @@ Scenario Outline: Growth label
   Examples:
     | growth | label  |
     | 6.42   | +6.42% |
-    | -2.50  | −2.50% |
+    | -2.50  | -2.50% |
     | 0.00   | 0.00%  |
     | none   | –      |
 
@@ -542,6 +567,7 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 None.
 
 ## 9. Changelog
+- 1.1 (03/11/2026): The series runs to the later of the current year and the latest year with an entry, so future years get a slot, and spans at most 50 years back from its last year, older entries still count in the totals (REQ-2, new AC-2.4, AC-2.5; owner decision). A future year is not partial (REQ-4, new AC-4.2). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Growth is rounded to two decimals half-up instead of one decimal with banker's rounding (CSD-000 CON-8): REQ-5 (AC-5.1 values and two new rows), REQ-8 (label "+x.xx%", AC-8.1, AC-8.2), AC-9.3, the JSON example and CON-2; a decrease that rounds to 0.00 shows no sign. The text of the short axis labels is provided by the backend, the format is in CSD-025 (REQ-7, section 5). Back to draft for re-approval.
 - 0.6 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.
 - 0.5 (29/10/2026): The plot of every yearly chart is 390 px high (was 260 px), 50% taller. No other behaviour change.

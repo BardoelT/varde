@@ -3,7 +3,7 @@ id: CSD-007
 title: Investment insights
 status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-000, CSD-003, CSD-005, CSD-006, CSD-025]
 ---
@@ -81,7 +81,7 @@ Scenario: No accounts yet
 ```
 
 **REQ-2: Year series** *(ubiquitous)*
-The app shall return one set of figures for every calendar year from the year of the earliest statement up to and including the current year, oldest year first, holding the opening balance, the net deposits, the capital growth, the closing balance and the number of statements (returned, never displayed).
+The app shall return one set of figures for every calendar year from the year of the earliest statement up to and including the later of the current year and the year of the latest statement, but for at most 50 years back from that last year, oldest year first, holding the opening balance, the net deposits, the capital growth, the closing balance and the number of statements (returned, never displayed). A statement older than the 50 years gets no slot, but still counts in the opening balance of the years that follow it (section 3) and in the yearly totals of CSD-005 REQ-26.
 
 ```gherkin
 @AC-2.1
@@ -105,6 +105,23 @@ Scenario: No statements
   And an account without statements
   When the insights are requested
   Then the series is empty
+
+@AC-2.4
+Scenario: A statement after the current year extends the series
+  Given today is 26/10/2026
+  And statements for 2024-03 and 2027-05
+  When the insights are requested
+  Then the series holds the years 2024, 2025, 2026 and 2027
+
+@AC-2.5
+Scenario: A very old statement gets no slot but still counts
+  Given today is 26/10/2026
+  And an account with a statement for 1950-12 (balance 1000.00, net deposits 1000.00) and one for 2026-06 (balance 1500.00, net deposits 200.00)
+  When the insights are requested
+  Then the series holds the years 1977 to 2026, which is 50 years
+  And 1950 to 1976 have no slot
+  And the year 2026 has opening balance 1000.00, net deposits 200.00, capital growth 300.00 and closing balance 1500.00
+  And the yearly totals of CSD-005 REQ-26 still hold a row for 1950
 ```
 
 **REQ-3: Years without statements** *(unwanted behaviour)*
@@ -129,7 +146,7 @@ Scenario: The year after a gap still opens with the balance from before the gap
 ```
 
 **REQ-4: Current year is partial** *(state-driven)*
-While a year is the current year, the app shall mark it as partial.
+While a year is the current year, the app shall mark it as partial. A year after the current year is not marked partial and looks like any other year.
 
 ```gherkin
 @AC-4.1
@@ -147,6 +164,13 @@ Scenario: Current year without statements is still in the series and marked
   When the insights are requested
   Then the series holds 2025 and 2026
   And 2026 is marked partial and has 0 statements
+
+@AC-4.3
+Scenario: A future year is not marked partial
+  Given today is 26/10/2026
+  And a statement for 2027-05
+  When the insights are requested
+  Then the year 2027 is not marked partial
 ```
 
 **REQ-5: The parts add up to the closing balance** *(ubiquitous)*
@@ -333,7 +357,7 @@ Scenario: Markers are not connected and the current year is dashed
 ```
 
 **REQ-10: Growth percentage labels** *(ubiquitous)*
-The Insights tab shall show the growth percentage of each year as a second line under its year label as "+x.xx%" or "−x.xx%", "0.00%" for no change (also for a decrease that rounds to 0.00, without a sign) and "–" for no growth percentage, using the negative colour only for decreases.
+The Insights tab shall show the growth percentage of each year as a second line under its year label as "+x.xx%" or "-x.xx%", "0.00%" for no change (also for a decrease that rounds to 0.00, without a sign) and "–" for no growth percentage, using the negative colour only for decreases.
 
 ```gherkin
 @AC-10.1
@@ -345,7 +369,7 @@ Scenario Outline: Growth percentage label
   Examples:
     | percent | label  |
     | 6.09    | +6.09% |
-    | -2.50   | −2.50% |
+    | -2.50   | -2.50% |
     | 0.00    | 0.00%  |
     | none    | –      |
 
@@ -689,6 +713,7 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 None.
 
 ## 9. Changelog
+- 1.1 (03/11/2026): The series runs to the later of the current year and the latest year with a statement, so future years get a slot, and spans at most 50 years back from its last year, older statements still count in the opening balance and the yearly totals (REQ-2, new AC-2.4, AC-2.5; owner decision, CSD-005 OQ-4 resolved). A future year is not partial (REQ-4, new AC-4.3). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): The growth percentage is rounded to two decimals half-up instead of one decimal with banker's rounding (CSD-000 CON-8): REQ-6 (AC-6.1 values and two new rows, AC-6.2), AC-7.3, REQ-10 (label "+x.xx%", AC-10.1, AC-10.2), AC-11.1, AC-14.9, the JSON example and CON-2; a decrease that rounds to 0.00 shows no sign. The text of the short axis labels and the marker value labels is provided by the backend, the format is in CSD-025 (REQ-8, REQ-9, AC-9.1, section 5). Back to draft for re-approval.
 - 0.8 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.
 - 0.7 (29/10/2026): The Reports page is replaced by the Net worth page of CSD-017 (NG-5; GitHub issue 24). No other change.
