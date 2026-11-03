@@ -1,9 +1,9 @@
 ---
 id: CSD-001
 title: Employment income tracking
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-006]
 ---
@@ -256,8 +256,8 @@ Scenario: Boundary amount accepted
   Then the paycheck for 2026-09 exists
 ```
 
-**REQ-8: Edit and delete an entry** *(event-driven)*
-When the user edits the amounts of an existing paycheck or annual statement or deletes it, the app shall apply the change without asking for confirmation, validating edited amounts under REQ-7. Changing the month of a paycheck or the year of an annual statement is specified in REQ-29.
+**REQ-8: Edit an entry** *(event-driven)*
+When the user edits the amounts of an existing paycheck or annual statement, the app shall apply the change without asking for confirmation, validating edited amounts under REQ-7. Deleting an entry is specified in REQ-31. Changing the month of a paycheck or the year of an annual statement is specified in REQ-29.
 
 ```gherkin
 @AC-8.1
@@ -273,22 +273,15 @@ Scenario: Invalid edit rejected
   Then the edit is rejected with error code "PAYCHECK_AMOUNT_NEGATIVE"
   And the paycheck still has gross 3000.00
 
-@AC-8.3
-Scenario: Delete paycheck
-  Given a job with paychecks for 2026-04 and 2026-05
-  When the user deletes the paycheck for 2026-05
-  Then only the paycheck for 2026-04 exists
-  And no confirmation was asked
+# @AC-8.3 (removed in v1.1): deleting a paycheck asks for confirmation now, see AC-31.1 and AC-31.3.
 
 # @AC-8.4 (removed in v0.12): the month of a paycheck is editable now, see AC-29.1 to AC-29.6.
 
 @AC-8.5
-Scenario: Edit and delete an annual statement
+Scenario: Edit an annual statement
   Given a yearly job with an annual statement for 2025 with gross 40000.00
   When the user sets bonus to 3000.00
   Then the statement has bonus 3000.00 and total gross 43000.00
-  When the user deletes the statement
-  Then the job has no annual statements
   And no confirmation was asked
 
 # @AC-8.6 (removed in v0.12): the year of an annual statement is editable now, see AC-29.3 and AC-29.6.
@@ -771,6 +764,34 @@ Scenario: Clicking a job changes nothing
 ### 4.4 Saving and loading
 REQ-14 to REQ-21 (removed in v0.4): moved to CSD-002 (Project file). Income data is saved and loaded as one section of that project file.
 
+**REQ-31: Confirm deleting an entry** *(event-driven)*
+When the user deletes a paycheck or an annual statement, the app shall ask for confirmation first, and shall remove that entry and no other data only after the user confirms.
+
+```gherkin
+@AC-31.1
+Scenario: Confirmed deletion of a paycheck
+  Given a job with paychecks for 2026-04 and 2026-05
+  When the user deletes the paycheck for 2026-05 and confirms
+  Then only the paycheck for 2026-04 exists
+
+@AC-31.2
+Scenario: Cancelled deletion changes nothing
+  Given a job with paychecks for 2026-04 and 2026-05
+  When the user starts deleting the paycheck for 2026-05 and cancels
+  Then both paychecks still exist
+
+@AC-31.3
+Scenario: Confirmed deletion of an annual statement
+  Given a yearly job with an annual statement for 2025
+  When the user deletes the statement and confirms
+  Then the job has no annual statements
+
+@AC-31.4
+Scenario: The confirmation names the entry
+  Given a job "Example Employer" with a paycheck for 2026-05
+  When the user starts deleting the paycheck for 2026-05
+  Then the confirmation names "Example Employer" and the period 2026-05
+
 ## 5. Interfaces and contracts
 
 Dates: the job start and end dates are shown and typed as dd/mm/yyyy (REQ-22). Rust validates the dates as typed. Dates returned by the commands and stored in the project file are ISO 8601 (`YYYY-MM-DD`), and the frontend formats them as dd/mm/yyyy for display. Months are `YYYY-MM` everywhere.
@@ -839,9 +860,10 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 - OQ-3: (moved to CSD-002 OQ-2 in v0.4) The `CLAUDE.md` update at approval.
 - OQ-5: (moved to CSD-002 in v0.4) Testing the unsaved state, resolved there.
 - OQ-6: (resolved in v0.2, reversed in v0.12) The month of an existing paycheck was not editable. It is editable now, and so is the year of an annual statement: REQ-29, REQ-30.
-- OQ-7: (resolved in v0.2) Deleting a single paycheck needs no confirmation.
+- OQ-7: (reversed in v1.1) Deleting a paycheck or an annual statement asks for confirmation, see REQ-31.
 
 ## 9. Changelog
+- 1.1 (03/11/2026): Deleting a paycheck or an annual statement asks for confirmation, like every other delete in the app (new REQ-31, AC-31.1 to AC-31.4; REQ-8 now covers editing only, AC-8.3 removed, AC-8.5 without the delete step; OQ-7 reversed). Decided by the owner. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): First release, no legacy and no date bounds. A paycheck month or annual statement year in the future is accepted (REQ-5, REQ-25, REQ-30; AC-5.4, AC-25.3 and AC-30.1 removed; new AC-5.7, AC-25.6, AC-29.8), the year 1900 lower bound is gone (AC-25.5, new AC-25.7), error codes `PAYCHECK_MONTH_IN_FUTURE` and `STATEMENT_YEAR_IN_FUTURE` removed. The per-job currency tombstones (AC-11.4, OQ-4, OQ-8) and the "job without pay period" compatibility text are removed: the project file is strict (CSD-002). The job field `pay_period` is now `period` in the file and IPC. Rounding refers to CSD-000 CON-8. Display ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.13 (29/10/2026): The page is titled "Income" (REQ-23, AC-23.1). Entry counts are no longer shown: removed from the yearly totals (REQ-11, AC-11.1, AC-11.3, AC-11.5), from the job rows (AC-23.2) and from the job delete confirmation, which now has fixed text (REQ-4, AC-4.1, new AC-4.3). The count stays in the IPC payload but is not displayed.
 - 0.12 (28/10/2026): The month of a paycheck and the year of an annual statement can be changed when editing (GitHub issue 12). REQ-8 no longer forbids it, AC-8.4 and AC-8.6 are removed, new REQ-29 (AC-29.1 to AC-29.7) and REQ-30 (AC-30.1 to AC-30.6) reuse the add rules and error codes, NG-9 and NG-10 added, OQ-6 reversed, the commands `update_paycheck` and `update_statement` take a new month or year. Back to `draft` until the owner approves.
