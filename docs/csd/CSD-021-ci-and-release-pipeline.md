@@ -1,21 +1,21 @@
 ---
 id: CSD-021
 title: CI and release pipeline
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.3
-last_updated: 02/11/2026
+version: 0.4
+last_updated: 03/11/2026
 related: [CSD-000]
 ---
 
 # CSD-021: CI and release pipeline
 
 ## 1. Intent
-The repository has no automated checks and no way to produce an installable app. Format, lint and test failures are only caught if the owner runs them by hand, and a release means building a `.dmg` on one Mac. This capability adds one GitHub Actions pipeline that runs only when a version tag is pushed: it runs the checks, builds the app and leaves a draft GitHub Release for the owner to publish. Nothing runs on pull requests or merges. It is for the owner, who is the only publisher. GitHub issue 29 asked for it.
+The repository has no automated checks and no way to produce an installable app. Format, lint and test failures (Rust and frontend) are only caught if the owner runs them by hand, and a release means building a `.dmg` on one Mac. This capability adds one GitHub Actions pipeline that runs only when a version tag is pushed: it runs the checks, builds the app and leaves a draft GitHub Release for the owner to publish. Nothing runs on pull requests or merges. It is for the owner, who is the only publisher. GitHub issue 29 asked for it.
 
 ## 2. Scope
 ### 2.1 In scope
-- A release run triggered by a stable version tag, with guards on the tag. It starts with the checks: format, lint, tests and the `cargo deny` licence and advisory check.
+- A release run triggered by a stable version tag, with guards on the tag. It starts with the checks: format, lint, the Rust tests, the frontend DOM tests and the `cargo deny` licence and advisory check.
 - A universal macOS `.dmg` (Apple Silicon and Intel) attached to a draft GitHub Release.
 - The bundle settings in `tauri.conf.json` that the `.dmg` needs.
 
@@ -31,7 +31,7 @@ The repository has no automated checks and no way to produce an installable app.
 ## 3. Definitions
 | Term | Meaning |
 |---|---|
-| **Checks** | Four steps: `cargo fmt --all --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo test --all-features` and `cargo deny check`. |
+| **Checks** | Five steps: `cargo fmt --all --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo test --all-features`, the frontend DOM tests (`npm test`, CSD-000 REQ-6) and `cargo deny check`. |
 | **Release tag** | A tag of the form `vMAJOR.MINOR.PATCH`, for example `v0.1.0`. |
 | **App version** | The `version` in `src-tauri/Cargo.toml` and in `src-tauri/tauri.conf.json`. |
 
@@ -61,7 +61,7 @@ When a release tag is pushed, the pipeline shall run the checks as the first par
 Scenario: A release tag runs the checks
   Given a release tag is pushed
   When the release run starts
-  Then it runs fmt, clippy, tests and cargo deny
+  Then it runs fmt, clippy, the Rust tests, the DOM tests and cargo deny
 
 @AC-1.2
 Scenario: A push to main starts no run
@@ -92,6 +92,13 @@ Scenario: A disallowed licence fails the run
   Given the tag "v0.1.0" on a commit with a dependency licensed "GPL-3.0-only"
   When the release run starts
   Then the cargo deny step fails
+
+@AC-2.3
+Scenario: A failing DOM test fails the run
+  Given the tag "v0.1.0" on a commit where one DOM test fails
+  When the release run starts
+  Then the DOM test step fails
+  And the run is marked as failed
 ```
 
 **REQ-3: Release tags start a release** *(event-driven)*
@@ -217,6 +224,7 @@ Scenario: A run needs no configured secrets
 
 ## 5. Interfaces and contracts
 - `.github/workflows/release.yml`: the only workflow. It runs on tags matching `v[0-9]+.[0-9]+.[0-9]+` and holds the check jobs and the release job. There is no workflow for pull requests or pushes.
+- `package.json` and `package-lock.json` at the repository root: they hold the dev-only dependencies of the DOM tests and the `npm test` script. The workflow installs them from the lock file (`npm ci`) in the check job.
 - `deny.toml`: the allowed licences for `cargo deny`, checked for the two macOS targets only.
 - `src-tauri/tauri.conf.json`: `bundle.active` is `true` and the target is `dmg`.
 
@@ -225,13 +233,14 @@ Scenario: A run needs no configured secrets
 - CON-2: Workflows request read-only repository permission, and only the release job gets write access. Rationale: least privilege; the repository is public.
 - CON-3: Workflow files and bundle settings change only with the owner's approval. Rationale: `CLAUDE.md` asks first for `.github/workflows/` and `tauri.conf.json`.
 - CON-4: Dependency licences stay MIT, Apache-2.0, BSD or compatible. Rationale: `CLAUDE.md` Dependencies rule.
+- CON-5: JavaScript dependencies exist only for the frontend tests, are dev-only, are installed from the lock file and never enter the app bundle; the app itself needs no Node and no build step. Rationale: `CLAUDE.md` says no npm build step, and the owner approved this tests-only exception.
 
 ## 7. Verification
 Workflow behaviour cannot be proven with `cargo test`, so ACs are checked in GitHub Actions. The Rust code is unchanged, so no `test_csd021_` tests exist.
 
 | ACs | How |
 |---|---|
-| AC-1.1, AC-2.1, AC-2.2 | Push a throwaway tag on a scratch branch or fork, then one on a commit with a deliberate clippy warning, and read the run. |
+| AC-1.1, AC-2.1, AC-2.2, AC-2.3 | Push a throwaway tag on a scratch branch or fork, then one on a commit with a deliberate clippy warning and one with a deliberately failing DOM test, and read the run. |
 | AC-1.2, AC-1.3 | Merge a pull request, open one, and push to `development`. Confirm in the Actions tab that no run starts. |
 | AC-3.1, AC-3.2, AC-5.1, AC-5.2, AC-6.1, AC-6.2 | Push throwaway tags on a scratch branch or fork and read the run. |
 | AC-4.1, AC-7.1, AC-8.1, AC-9.1 | Push the first real tag. Open the draft release, check the file name, run `lipo -archs` on the app binary, push the tag again. |
@@ -243,6 +252,7 @@ Workflow behaviour cannot be proven with `cargo test`, so ACs are checked in Git
 - OQ-3: Who bumps the app version, and in which commit, so the tag matches (REQ-5)? Owner: Thijs.
 
 ## 9. Changelog
+- 0.4 (03/11/2026): The frontend DOM tests are a fifth check (definition Checks, section 1, section 2.1, AC-1.1, new AC-2.3, section 5 with `package.json` and the lock file, new CON-5 for the tests-only JavaScript dependencies, section 7). Back to `draft` until re-approved.
 - 0.3 (02/11/2026): The pipeline runs only on a release tag, nothing on pull requests or merges: REQ-1 and its ACs rewritten, new NG-7, ACs 2.1, 2.2 reworded, no separate `ci.yml`, sections 1, 2.1, 5 and 7, OQ-4 removed. NG-2 now names the current macOS way to open an unsigned app.
 - 0.2 (02/11/2026): Checks no longer run on pushes to `development`, only on pull requests and pushes to `main` (REQ-1, AC-1.2, new AC-1.3, sections 2.1, 5, 7).
 - 0.1 (02/11/2026): initial draft.
