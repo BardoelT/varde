@@ -1,11 +1,11 @@
 ---
 id: CSD-012
 title: Debt insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.5
-last_updated: 29/10/2026
-related: [CSD-010, CSD-011]
+version: 1.0
+last_updated: 03/11/2026
+related: [CSD-000, CSD-010, CSD-011, CSD-020, CSD-025]
 ---
 
 # CSD-012: Debt insights
@@ -16,7 +16,7 @@ The Debts page lists debts, statements and a table of yearly totals, but a table
 ## 2. Scope
 ### 2.1 In scope
 - An "Insights" tab on the Debts page, next to the existing content ("Overview").
-- A yearly stacked bar chart over all debts with one segment per debt, a total-debt marker, a legend of the debts, a tooltip and the highlight of one debt.
+- A yearly stacked bar chart over all debts with one segment per debt, a total-debt marker, a legend of the debts, a tooltip and the highlight of one debt, built on the shared charts of CSD-025.
 - Its empty state.
 
 ### 2.2 Non-goals
@@ -36,7 +36,7 @@ The Debts page lists debts, statements and a table of yearly totals, but a table
 | **Current year** | The calendar year of today, in local time. Its figures run up to the latest statement so far, and are therefore partial. |
 | **Segment** | The part of a year's bar that belongs to one debt: the balance of that debt's latest statement in that year. A debt without a statement in that year has no segment in it. |
 | **Total debt (of a year)** | The sum of the segments of a year, which is the closing balance of the yearly totals of CSD-011 REQ-19. |
-| **Repaid** | As in CSD-011 section 3. |
+| **Repaid** | As in CSD-011 section 3: Cancelled-adjusted, with the settled amount of a debt Cancelled in that year taken out (CSD-020 REQ-27, REQ-28). |
 | **Colour slot** | The number from 0 to 7 stored with a debt (CSD-011 REQ-3), which decides its colour. |
 
 ## 4. Requirements
@@ -188,10 +188,17 @@ Scenario: The insights equal the yearly totals
   And a yearly debt with statements 2024 (balance 7000.00) and 2025 (balance 6000.00)
   When the insights and the yearly totals are requested
   Then for every year the total debt and the amount repaid of the insights equal those of the yearly totals
+
+@AC-5.6
+Scenario: Repaid is Cancelled-adjusted
+  Given today is 26/10/2026
+  And "Example Mortgage" with a statement for 2025-12 with balance 200000.00 and Cancelled on 10/06/2026 on the sale of its house (settled amount 190000.00, CSD-020 REQ-27)
+  When the insights are requested
+  Then 2026 has repaid 10000.00, as the yearly totals of CSD-011 REQ-19 show
 ```
 
 **REQ-6: Chart** *(ubiquitous)*
-The Insights tab shall draw one bar per year in the order received, stacked upwards from the zero line from one segment per debt in the order received, on a y-axis that starts at 0 and ends at a rounded-up value of at least the highest total debt, with gridlines, compact axis labels (such as "10k"), a gap year as a labelled slot without a bar, and no currency.
+The Insights tab shall draw one bar per year in the order received, stacked upwards from the zero line from one segment per debt in the order received, on a y-axis that starts at 0 and ends at a rounded-up value of at least the highest total debt, with gridlines, short axis labels in the format of CSD-025 (such as "10.00k", built in Rust), a gap year as a labelled slot without a bar, and no currency.
 
 ```gherkin
 @AC-6.1
@@ -230,7 +237,7 @@ Scenario: Current year is marked
 ```
 
 **REQ-7: Total-debt marker** *(ubiquitous)*
-The Insights tab shall draw for each year with statements a horizontal marker line of 2 px with round ends in the muted text colour, wider than the bar, at the total debt, with its compact value next to it (above the line), not connected to the markers of other years, and dashed for the current year.
+The Insights tab shall draw for each year with statements a horizontal marker line of 2 px with round ends in the muted text colour, wider than the bar, at the total debt, with its short value (CSD-025 format, built in Rust) next to it (above the line), not connected to the markers of other years, and dashed for the current year.
 
 ```gherkin
 @AC-7.1
@@ -238,7 +245,7 @@ Scenario: Marker at the total debt
   Given 2025 has the segments 2000.00 and 8000.00 and total debt 10000.00
   When the user opens the Insights tab
   Then a marker line is drawn across the 2025 bar at 10000.00
-  And its label reads "10k"
+  And its label reads "10.00k"
 
 @AC-7.2
 Scenario: Marker sits at the top of the stack
@@ -325,7 +332,7 @@ Scenario: A deleted debt leaves the legend
 ```
 
 **REQ-10: Details of a year** *(event-driven)*
-When the user hovers over or moves keyboard focus to a year, the Insights tab shall show a tooltip with the year, its rows in the order the bar shows them, top to bottom (one row per segment with the debt's swatch, full name and balance, the highest segment first, which is the last in stacking order, then the Total debt row, then the Repaid row, a dash for none), no number of statements, for the current year that it is partial and for a year without statements the note "No statements", beside the year's bar as CSD-007 REQ-14 places a tooltip, and shall give the same values to screen readers, also without a number of statements.
+When the user hovers over or moves keyboard focus to a year, the Insights tab shall show a tooltip with the year, its rows in the order the bar shows them, top to bottom (one row per segment with the debt's swatch, full name and balance, the highest segment first, which is the last in stacking order, then the Total debt row, then the Repaid row, a dash for none), no number of statements, for the current year that it is partial and for a year without statements the note "No statements", beside the year's bar as CSD-025 places a tooltip, and shall give the same values to screen readers, also without a number of statements.
 
 ```gherkin
 @AC-10.1
@@ -437,55 +444,24 @@ Scenario: Keyboard focus on a year highlights nothing
   Then no legend item is highlighted and no segment is dimmed
 ```
 
-**REQ-12: Motion and reduced motion** *(event-driven)*
-When a tooltip appears or moves to another year, or the highlight of REQ-11 changes, the Insights tab shall animate the change over 120 to 150 ms with an ease-out curve, and while the user prefers reduced motion it shall show tooltips and highlight changes at once.
+**REQ-12: Motion and reduced motion** *(removed in v1.0)*
+Tooltip and highlight motion, and reduced motion, are defined once for all yearly charts in CSD-025. AC-12.1 to AC-12.3 are removed here and covered there.
 
-```gherkin
-@AC-12.1
-Scenario: Tooltip fades in and glides
-  Given the Insights tab shows the chart
-  When the user hovers over the 2025 bar and then over the 2026 bar
-  Then the tooltip fades in over 120 to 150 ms while it slides 4 px towards its place
-  And it glides to its new place over 120 to 150 ms instead of jumping
-
-@AC-12.2
-Scenario: Dimming eases
-  Given the user hovers over a segment of "Example Student Loan"
-  When the user moves the mouse away from the segment
-  Then the other segments and the legend items ease back to full opacity over 120 to 150 ms
-
-@AC-12.3
-Scenario: Reduced motion
-  Given the user prefers reduced motion
-  When the user hovers over the 2025 bar and then over the 2026 bar
-  Then each tooltip appears at once at its place without sliding or gliding
-  And the dimming of segments and legend items changes at once
-```
-
-**REQ-13: Refined look and accessible segments** *(ubiquitous)*
-The Insights tab shall draw the chart as CSD-010 REQ-13 describes the look of the bank chart: bars at most 50% of the width of their slot and at most 44 px wide, the top corners of the highest segment rounded by 3 px and a 1 px gap between stacked segments in place of an outline, 1 px gridlines at 55% opacity of the border colour, a 1 px zero line in the muted text colour at 70% opacity, axis and year labels in the muted text colour at regular font weight, marker values in 10 px medium weight, and a plot height that scales with the height of the window and a minimum slot width of 64 px per year, the same as the bank accounts chart (CSD-010) so that all yearly charts have one size, and tooltips of 10 px corner radius, 12 px by 14 px padding, a shadow of at least 16 px blur and at most 12% opacity, a 12 px title in semibold and row labels in the muted text colour, in light and in dark mode. Every segment shall carry an accessible label with the debt, the year and the balance.
+**REQ-13: Shared look and accessible segments** *(ubiquitous)*
+The Insights tab shall draw the chart in the look and the size of the shared charts (CSD-025), the same as the bank accounts chart (CSD-010), and shall give every segment an accessible label with the debt, the year and the balance.
 
 ```gherkin
 @AC-13.1
-Scenario: Bars
-  Given the series holds the years 2024, 2025 and 2026
-  When the user opens the Insights tab
-  Then no bar is wider than 50% of its slot or 44 px
-  And the top corners of each bar are rounded by 3 px
-  And stacked segments are separated by a 1 px gap and have no outline
+Scenario: Look and size of the shared charts
+  Given the Insights tab shows the chart
+  Then the bars, gridlines, zero line, labels, tooltip and plot size are those of CSD-025
+  And the plot and the slot width are the same as on the Bank accounts page
 
 @AC-13.2
-Scenario: Gridlines, zero line and labels
-  Given the Insights tab shows the chart
-  Then the gridlines are 1 px lines at 55% opacity of the border colour
-  And the zero line is 1 px in the muted text colour at 70% opacity
-  And the axis labels and the year labels are in the muted text colour at regular font weight
+Scenario: (removed in v1.0, see CSD-025)
 
 @AC-13.3
-Scenario: Tooltip
-  Given the user hovers over a year
-  Then the tooltip has a 10 px corner radius, 12 px by 14 px padding and a soft shadow
-  And its title is semibold and its row labels are in the muted text colour
+Scenario: (removed in v1.0, see CSD-025)
 
 @AC-13.4
 Scenario: Segment labels
@@ -494,10 +470,7 @@ Scenario: Segment labels
   Then it announces "Example Student Loan", 2026 and 8000.00
 
 @AC-13.5
-Scenario: Same size as the bank accounts chart
-  Given the Insights tab of the Debts page and that of the Bank accounts page
-  Then both plots scale with the height of the window
-  And both give every year a slot of at least 64 px
+Scenario: (removed in v1.0, merged into AC-13.1)
 ```
 
 **REQ-14: No statements yet** *(state-driven)*
@@ -556,7 +529,7 @@ Command: `get_debt_insights()` returns the debts that have at least one statemen
 }
 ```
 
-`statement_count` is used to detect a year without statements and is not displayed. `debts` and `years` are empty when there are no statements. `segments` follow the creation order of the debts and are empty for a gap year, where `closing_balance` is "0.00" and `repaid` is null. Amounts are decimal strings. Rust decides "today" (local time), the years, the partial flag, the segments and the repaid amounts, and the frontend only displays what it receives. Error codes are those of CSD-011.
+`statement_count` is used to detect a year without statements and is not displayed. `debts` and `years` are empty when there are no statements. `segments` follow the creation order of the debts and are empty for a gap year, where `closing_balance` is "0.00" and `repaid` is null. Amounts are decimal strings. Rust decides "today" (local time), the years, the partial flag, the segments and the repaid amounts, and the frontend only displays what it receives. The short labels of the axis and of the markers (CSD-025) are built by Rust and returned with the figures, and the frontend only displays them (CON-2). Error codes are those of CSD-011.
 
 ## 6. Constraints
 - CON-1: The chart reuses the shared chart code of the frontend (`ui/shared/yearly-chart.js`) and adds no chart library or other dependency. Rationale: NG-6, and `CLAUDE.md` asks before adding dependencies.
@@ -565,22 +538,24 @@ Command: `get_debt_insights()` returns the debts that have at least one statemen
 - CON-4: Debt names are drawn as plain text, never as HTML. Rationale: a name is typed by the user and must not run as markup.
 - CON-5: Tests and fixtures use synthetic data only. Rationale: the repo is public.
 - CON-6: The palette is the one of the bank accounts chart (CSD-010 CON-6), defined once as colour tokens per mode, and no colour of a debt is written inline in the page code. Rationale: one place to adjust, and both modes stay in step.
+- CON-7: Money rounding follows CSD-000 CON-8: balances, totals and repaid amounts have two decimals, and the short labels follow CSD-025 (rounded to 2 decimals, never "1000.00k"). Rationale: one rounding rule for the whole application.
 
 ## 7. Verification
-The series is computed in Rust, so REQ-2 to REQ-5 are proven by `cargo test`. Tests are named `test_csd012_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
+The series is computed in Rust, so REQ-2 to REQ-5 are proven by `cargo test`. Tests are named `test_csd012_ac_<n>_<m>_<description>` (CSD-000 REQ-6). Display ACs are covered by DOM tests (the dev-only DOM test harness, a tests-only exception to the no-npm rule).
 
 | Requirement | Command |
 |---|---|
 | REQ-2 to REQ-5, AC-15.3 (the data) | `cargo test test_csd012_` |
-| REQ-1, REQ-6 to REQ-14 (all ACs), AC-15.1 to AC-15.3 (the screen) | Manual checklist: tabs, stacking, axis range, markers, colours of both modes and of the ninth debt, legend order, wrapping and ellipsis, tooltip placement, the order of its rows from top to bottom (AC-10.8, AC-10.9), no counts, its repaid row, the plot height and slot width, highlight from a segment and from the legend including keyboard, motion and reduced motion, the look, accessible labels and the empty note. There is no frontend test setup |
+| REQ-1, REQ-6 to REQ-11, REQ-13 to REQ-14 (all ACs), AC-15.1 to AC-15.3 (the screen) | DOM tests: tabs, stacking, axis range, markers, colours of both modes and of the ninth debt, legend order, wrapping and ellipsis, tooltip placement, the order of its rows from top to bottom (AC-10.8, AC-10.9), no counts, its repaid row, highlight from a segment and from the legend including keyboard, accessible labels and the empty note. Look, size and motion are verified in CSD-025 |
 | One requirement, e.g. REQ-5 | `cargo test test_csd012_ac_5_` |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and the DOM tests pass.
 
 ## 8. Open questions
 None.
 
 ## 9. Changelog
+- 1.0 (03/11/2026): Back to `draft` until re-approved. The repaid amount is Cancelled-adjusted, as in the Debts overview (definition of Repaid, new AC-5.6; CSD-020 REQ-28). The look, size and motion shared by all yearly charts moved to CSD-025: REQ-12 and AC-13.1 to AC-13.3 and AC-13.5 are removed or merged into the reference in REQ-13 (AC-13.4 stays), tooltip placement (REQ-10) refers to CSD-025. Short chart labels are built in Rust, format "10.00k" (REQ-6, REQ-7, AC-7.1, section 5). New CON-7 (CSD-000 CON-8). Display ACs are covered by DOM tests (section 7).
 - 0.5 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.
 - 0.4 (29/10/2026): The Reports page is replaced by the Net worth page of CSD-017 (NG-5; GitHub issue 24). No other change.
 - 0.3 (29/10/2026): The plot of every yearly chart is 390 px high (was 260 px), 50% taller. No other behaviour change.
