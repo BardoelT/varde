@@ -1,9 +1,9 @@
 ---
 id: CSD-012
 title: Debt insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-000, CSD-010, CSD-011, CSD-020, CSD-025]
 ---
@@ -83,7 +83,7 @@ Scenario: No debts yet
 ```
 
 **REQ-2: Year series** *(ubiquitous)*
-The app shall return one set of figures for every calendar year from the year of the earliest statement up to and including the current year, oldest year first, holding the total debt, the amount repaid, the number of statements (used to detect an empty year, not displayed) and, per debt with a statement in that year, its segment.
+The app shall return one set of figures for every calendar year from the year of the earliest statement up to and including the later of the current year and the year of the latest statement, but for at most 50 years back from that last year, oldest year first, holding the total debt, the amount repaid, the number of statements (used to detect an empty year, not displayed) and, per debt with a statement in that year, its segment. A statement older than the 50 years gets no slot, but still counts in the yearly totals of CSD-011 REQ-19 (a year counts only the statements of its own period).
 
 ```gherkin
 @AC-2.1
@@ -107,6 +107,23 @@ Scenario: No statements
   And a debt without statements
   When the insights are requested
   Then the series is empty
+
+@AC-2.4
+Scenario: A statement after the current year extends the series
+  Given today is 26/10/2026
+  And statements for 2024-03 and 2027-05
+  When the insights are requested
+  Then the series holds the years 2024, 2025, 2026 and 2027
+
+@AC-2.5
+Scenario: A very old statement gets no slot but still counts
+  Given today is 26/10/2026
+  And "Example Mortgage" has a statement for 1950-01 with balance 1000.00
+  And "Example Loan" has a statement for 2026-03 with balance 500.00
+  When the insights are requested
+  Then the series holds the 50 years from 1977 to 2026
+  And no year of the series has a segment for the 1950 statement
+  And the yearly totals of CSD-011 still list 1950
 ```
 
 **REQ-3: Years without statements** *(unwanted behaviour)*
@@ -123,7 +140,7 @@ Scenario: Gap year
 ```
 
 **REQ-4: Current year is partial** *(state-driven)*
-While a year is the current year, the app shall mark it as partial.
+While a year is the current year, the app shall mark it as partial, and no other year, so a year after the current year is not partial and has no "YTD" label.
 
 ```gherkin
 @AC-4.1
@@ -133,6 +150,14 @@ Scenario: Current year is marked
   When the insights are requested
   Then the year 2026 is marked partial
   And the year 2025 is not
+
+@AC-4.3
+Scenario: A future year is not partial
+  Given today is 26/10/2026
+  And statements in 2025 and 2027
+  When the insights are requested
+  Then the year 2027 is not marked partial
+  And the year 2026 is marked partial
 
 @AC-4.2
 Scenario: Current year without statements is still in the series and marked
@@ -555,6 +580,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and the DOM 
 None.
 
 ## 9. Changelog
+- 1.1 (03/11/2026): The series follows the series-range rule of CSD-010 (REQ-2: AC-2.4, AC-2.5 added; AC-4.3 added): it runs to the later of the current year and the latest statement, at most 50 years back, and a future year is not partial. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Back to `draft` until re-approved. The repaid amount is Cancelled-adjusted, as in the Debts overview (definition of Repaid, new AC-5.6; CSD-020 REQ-28). The look, size and motion shared by all yearly charts moved to CSD-025: REQ-12 and AC-13.1 to AC-13.3 and AC-13.5 are removed or merged into the reference in REQ-13 (AC-13.4 stays), tooltip placement (REQ-10) refers to CSD-025. Short chart labels are built in Rust, format "10.00k" (REQ-6, REQ-7, AC-7.1, section 5). New CON-7 (CSD-000 CON-8). Display ACs are covered by DOM tests (section 7).
 - 0.5 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.
 - 0.4 (29/10/2026): The Reports page is replaced by the Net worth page of CSD-017 (NG-5; GitHub issue 24). No other change.
