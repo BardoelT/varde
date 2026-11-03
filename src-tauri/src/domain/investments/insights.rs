@@ -19,7 +19,7 @@ pub struct InvestmentInsightsYear {
     pub net_deposits: Decimal,
     pub capital_growth: Decimal,
     /// Capital growth of the accounts with an opening balance, in percent of
-    /// the opening balance, one decimal; `None` when the opening balance is zero.
+    /// the opening balance, two decimals; `None` when the opening balance is zero.
     pub growth_percent: Option<Decimal>,
     pub closing_balance: Decimal,
     pub statement_count: usize,

@@ -2,27 +2,12 @@
 
 use std::collections::BTreeMap;
 
-use rust_decimal::{Decimal, RoundingStrategy};
+use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::money::zero;
+use crate::domain::money::{percent_of, zero};
 
 use super::{Income, IncomeYearlyTotal, YearMonth};
-
-/// Growth in percent from `previous` to `current`, to one decimal with
-/// banker's rounding (CSD-006 REQ-5). `None` when `previous` is zero.
-fn growth(previous: Decimal, current: Decimal) -> Option<Decimal> {
-    let percent = (current - previous)
-        .checked_mul(Decimal::ONE_HUNDRED)?
-        .checked_div(previous)?;
-    let mut rounded = percent.round_dp_with_strategy(1, RoundingStrategy::MidpointNearestEven);
-    if rounded.is_zero() {
-        // A decrease that rounds to zero shows no sign.
-        rounded = Decimal::ZERO;
-    }
-    rounded.rescale(1);
-    Some(rounded)
-}
 
 /// One year of the insights chart: sums over all jobs, whether the year is
 /// still running, and its growth against the year before (CSD-006).
@@ -35,7 +20,7 @@ pub struct IncomeInsightsYear {
     pub total_gross: Decimal,
     pub entry_count: usize,
     pub is_partial: bool,
-    /// Percent with one decimal, `None` when there is nothing to compare.
+    /// Percent with two decimals, `None` when there is nothing to compare.
     pub growth_percent: Option<Decimal>,
 }
 
@@ -72,9 +57,9 @@ impl Income {
                 );
             let is_partial = year == today.year();
             let growth_percent = match series.last() {
-                Some(previous) if !is_partial && entry_count > 0 => {
-                    growth(previous.total_gross, total_gross)
-                }
+                Some(previous) if !is_partial && entry_count > 0 => total_gross
+                    .checked_sub(previous.total_gross)
+                    .and_then(|change| percent_of(change, previous.total_gross)),
                 _ => None,
             };
             series.push(IncomeInsightsYear {

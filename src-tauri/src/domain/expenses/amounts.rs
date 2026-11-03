@@ -4,14 +4,14 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::error::DomainError;
-use crate::domain::investments::{Note, MAX_BALANCE};
-use crate::domain::money::{parse_plain_decimal, with_two_decimals};
+use crate::domain::investments::Note;
+use crate::domain::money::{bounded, plain_decimal, Money};
 
 /// What an expense cost, in the project currency: above 0.00, with exactly two
 /// decimals (CSD-013 REQ-5).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct ExpenseAmount(Decimal);
+pub struct ExpenseAmount(Money);
 
 impl ExpenseAmount {
     /// Builds an amount from a decimal.
@@ -23,13 +23,13 @@ impl ExpenseAmount {
         if value <= Decimal::ZERO {
             return Err(DomainError::ExpenseAmountNotPositive);
         }
-        if value.normalize().scale() > 2 {
-            return Err(DomainError::ExpenseAmountPrecision);
-        }
-        if value > MAX_BALANCE {
-            return Err(DomainError::ExpenseAmountTooLarge);
-        }
-        Ok(Self(with_two_decimals(value)))
+        bounded(
+            value,
+            Money::MAX_BALANCE,
+            DomainError::ExpenseAmountPrecision,
+            DomainError::ExpenseAmountTooLarge,
+        )
+        .map(Self)
     }
 
     /// Parses an amount typed by the user.
@@ -38,15 +38,13 @@ impl ExpenseAmount {
     /// Returns `ExpenseAmountInvalid` for text that is not a plain decimal
     /// number, and otherwise the rules of [`ExpenseAmount::new`].
     pub fn parse(text: &str) -> Result<Self, DomainError> {
-        parse_plain_decimal(text)
-            .ok_or(DomainError::ExpenseAmountInvalid)
-            .and_then(Self::new)
+        plain_decimal(text, DomainError::ExpenseAmountInvalid).and_then(Self::new)
     }
 
     /// The amount as a decimal.
     #[must_use]
     pub fn value(self) -> Decimal {
-        self.0
+        self.0.value()
     }
 }
 

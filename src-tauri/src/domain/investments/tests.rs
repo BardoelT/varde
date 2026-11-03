@@ -1,8 +1,8 @@
 use uuid::Uuid;
 
-use super::amounts::MAX_BALANCE;
 use super::*;
 use crate::domain::income::{PayPeriod, YearMonth};
+use crate::domain::money::Money;
 
 fn month(text: &str) -> Period {
     Period::parse(text).unwrap()
@@ -431,7 +431,7 @@ fn test_csd005_ac_9_2_boundary_balances_are_accepted() {
         "1000000000.00"
     );
     assert_eq!(balance("12500.5").value().to_string(), "12500.50");
-    assert_eq!(MAX_BALANCE.to_string(), "1000000000.00");
+    assert_eq!(Money::MAX_BALANCE.to_string(), "1000000000.00");
 }
 
 #[test]
@@ -1741,10 +1741,13 @@ fn test_csd007_ac_5_6_a_first_statement_has_growth_and_net_deposits() {
 #[test]
 fn test_csd007_ac_6_1_the_growth_percentage_per_year() {
     for (opening, closing, percent) in [
-        ("11500.00", "12200.00", "6.1"),
-        ("40000.00", "39000.00", "-2.5"),
-        ("20000.00", "20090.00", "0.4"),
-        ("20000.00", "20000.00", "0.0"),
+        ("11500.00", "12200.00", "6.09"),
+        ("40000.00", "39000.00", "-2.50"),
+        ("20000.00", "20090.00", "0.45"),
+        ("20000.00", "20000.00", "0.00"),
+        ("40000.00", "40002.00", "0.01"),
+        // A decrease that rounds to zero shows no sign.
+        ("100000.00", "99999.00", "0.00"),
     ] {
         let mut investments = Investments::default();
         let id = add_account(&mut investments, "Example Brokerage", "Monthly");
@@ -1776,7 +1779,7 @@ fn test_csd007_ac_6_2_growth_of_an_account_without_an_opening_balance_is_left_ou
         insight(&investments, 2026).capital_growth.to_string(),
         "600.00"
     );
-    assert_eq!(percent_of(&investments, 2026).as_deref(), Some("4.2"));
+    assert_eq!(percent_of(&investments, 2026).as_deref(), Some("4.17"));
 }
 
 #[test]
@@ -1803,7 +1806,7 @@ fn test_csd007_ac_7_3_the_current_year_has_a_percentage() {
     let id = add_account(&mut investments, "Example Brokerage", "Monthly");
     add_with_deposits(&mut investments, id, "2025-12", "12500.00", "12500.00");
     add(&mut investments, id, "2026-05", "12750.00");
-    assert_eq!(percent_of(&investments, 2026).as_deref(), Some("2.0"));
+    assert_eq!(percent_of(&investments, 2026).as_deref(), Some("2.00"));
     assert!(insight(&investments, 2026).is_partial);
 }
 

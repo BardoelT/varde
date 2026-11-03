@@ -302,7 +302,7 @@ fn test_csd018_ac_6_1_a_share_of_the_income() {
     add_income(&mut data, "2025", "48000.00");
     assert_eq!(
         year(&data, 2025).wealth_percent.unwrap().to_string(),
-        "12.5"
+        "12.50"
     );
 }
 
@@ -319,7 +319,7 @@ fn test_csd018_ac_6_2_a_negative_share() {
     add_income(&mut data, "2025", "48000.00");
     assert_eq!(
         year(&data, 2025).wealth_percent.unwrap().to_string(),
-        "-3.5"
+        "-3.54"
     );
 }
 
@@ -383,7 +383,7 @@ fn test_csd018_ac_8_1_growth_of_the_net_worth() {
     let data = net_worth_of("100000.00", "110000.00");
     assert_eq!(
         year(&data, 2026).wealth_growth_percent.unwrap().to_string(),
-        "10.0"
+        "10.00"
     );
 }
 
@@ -392,7 +392,7 @@ fn test_csd018_ac_8_2_a_shrinking_net_worth() {
     let data = net_worth_of("100000.00", "95000.00");
     assert_eq!(
         year(&data, 2026).wealth_growth_percent.unwrap().to_string(),
-        "-5.0"
+        "-5.00"
     );
 }
 
@@ -438,7 +438,7 @@ fn test_csd018_ac_9_2_the_percentage_of_the_income() {
     add_income(&mut data, "2025", "48000.00");
     assert_eq!(
         year(&data, 2025).disposable_percent.unwrap().to_string(),
-        "20.8"
+        "20.83"
     );
 }
 
@@ -468,6 +468,6 @@ fn test_csd018_section_5_figures_cross_ipc_as_strings_and_none_as_null() {
         .find(|row| row["year"] == 2025)
         .unwrap();
     assert_eq!(row["total_income"], "48000.00");
-    assert_eq!(row["wealth_percent"], "12.5");
+    assert_eq!(row["wealth_percent"], "12.50");
     assert_eq!(row["wealth_growth_percent"], serde_json::Value::Null);
 }

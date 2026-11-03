@@ -4,18 +4,15 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::error::DomainError;
-use crate::domain::money::{parse_plain_decimal, with_two_decimals, zero};
+use crate::domain::money::{bounded, plain_decimal, Money};
 
 const MAX_NOTE_CHARS: usize = 2000;
-
-/// Largest balance accepted (1,000,000,000.00), a guard against typos.
-pub const MAX_BALANCE: Decimal = Decimal::from_parts(1_215_752_192, 23, 0, false, 2);
 
 /// The closing balance of a statement, in the project currency, with exactly
 /// two decimals (CSD-005 REQ-9).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct Balance(Decimal);
+pub struct Balance(Money);
 
 impl Balance {
     /// Builds a balance from a decimal.
@@ -27,13 +24,13 @@ impl Balance {
         if value < Decimal::ZERO {
             return Err(DomainError::InvestmentBalanceNegative);
         }
-        if value.normalize().scale() > 2 {
-            return Err(DomainError::InvestmentBalancePrecision);
-        }
-        if value > MAX_BALANCE {
-            return Err(DomainError::InvestmentBalanceTooLarge);
-        }
-        Ok(Self(with_two_decimals(value)))
+        bounded(
+            value,
+            Money::MAX_BALANCE,
+            DomainError::InvestmentBalancePrecision,
+            DomainError::InvestmentBalanceTooLarge,
+        )
+        .map(Self)
     }
 
     /// Parses a balance typed by the user.
@@ -42,15 +39,13 @@ impl Balance {
     /// Returns `InvestmentBalanceInvalid` for text that is not a plain decimal
     /// number, and otherwise the rules of [`Balance::new`].
     pub fn parse(text: &str) -> Result<Self, DomainError> {
-        parse_plain_decimal(text)
-            .ok_or(DomainError::InvestmentBalanceInvalid)
-            .and_then(Self::new)
+        plain_decimal(text, DomainError::InvestmentBalanceInvalid).and_then(Self::new)
     }
 
     /// The balance as a decimal.
     #[must_use]
     pub fn value(self) -> Decimal {
-        self.0
+        self.0.value()
     }
 }
 
@@ -60,25 +55,19 @@ fn signed_amount(
     value: Decimal,
     precision: DomainError,
     too_large: DomainError,
-) -> Result<Decimal, DomainError> {
-    if value.normalize().scale() > 2 {
-        return Err(precision);
-    }
-    if value.abs() > MAX_BALANCE {
-        return Err(too_large);
-    }
-    Ok(with_two_decimals(value))
+) -> Result<Money, DomainError> {
+    bounded(value, Money::MAX_BALANCE, precision, too_large)
 }
 
 /// The net deposits of a statement: what the user put in minus what was taken
 /// out during the period, signed, with exactly two decimals (CSD-005 REQ-22).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct NetDeposits(Decimal);
+pub struct NetDeposits(Money);
 
 impl Default for NetDeposits {
     fn default() -> Self {
-        Self(zero())
+        Self(Money::ZERO)
     }
 }
 
@@ -106,21 +95,19 @@ impl NetDeposits {
         if text.trim().is_empty() {
             return Ok(Self::default());
         }
-        parse_plain_decimal(text)
-            .ok_or(DomainError::InvestmentNetDepositsInvalid)
-            .and_then(Self::new)
+        plain_decimal(text, DomainError::InvestmentNetDepositsInvalid).and_then(Self::new)
     }
 
     /// The net deposits as a decimal.
     #[must_use]
     pub fn value(self) -> Decimal {
-        self.0
+        self.0.value()
     }
 }
 
 /// Parses a capital growth typed by the user (CSD-005 REQ-25).
-pub(super) fn parse_growth(text: &str) -> Result<Decimal, DomainError> {
-    let value = parse_plain_decimal(text).ok_or(DomainError::InvestmentGrowthInvalid)?;
+pub(super) fn parse_growth(text: &str) -> Result<Money, DomainError> {
+    let value = plain_decimal(text, DomainError::InvestmentGrowthInvalid)?;
     signed_amount(
         value,
         DomainError::InvestmentGrowthPrecision,

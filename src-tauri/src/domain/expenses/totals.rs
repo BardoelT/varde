@@ -5,6 +5,8 @@ use std::collections::BTreeMap;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
+use crate::domain::money::zero;
+
 use super::Expenses;
 
 /// The totals of one calendar year (CSD-013 REQ-12).
@@ -29,7 +31,7 @@ impl Expenses {
                 .entry(expense.date.year())
                 .or_insert_with(|| ExpenseYearlyTotal {
                     year: expense.date.year(),
-                    total: Decimal::new(0, 2),
+                    total: zero(),
                     expense_count: 0,
                     largest: amount,
                 });

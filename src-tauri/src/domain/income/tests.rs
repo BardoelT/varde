@@ -1617,14 +1617,13 @@ fn test_csd006_ac_4_1_only_the_current_year_is_partial() {
 #[test]
 fn test_csd006_ac_5_1_growth_per_year() {
     for (previous, current, growth) in [
-        ("32400.00", "34480.00", "6.4"),
-        ("40000.00", "39000.00", "-2.5"),
-        // Banker's rounding: 0.45 goes to the even 0.4, 0.55 to 0.6.
-        ("20000.00", "20090.00", "0.4"),
-        ("20000.00", "20110.00", "0.6"),
-        ("20000.00", "20000.00", "0.0"),
+        ("32400.00", "34480.00", "6.42"),
+        ("40000.00", "39000.00", "-2.50"),
+        ("20000.00", "20090.00", "0.45"),
+        ("20000.00", "20000.00", "0.00"),
+        ("40000.00", "40002.00", "0.01"),
         // A decrease that rounds to zero shows no sign.
-        ("100000.00", "99960.00", "0.0"),
+        ("100000.00", "99999.00", "0.00"),
     ] {
         let mut income = Income::default();
         let id = yearly_job_named(&mut income, "Example Employer");

@@ -13,11 +13,11 @@ const MARGIN = { top: 28, right: 16, left: 48 };
 const MIN_PLOT_WIDTH = 560;
 const MAX_BAR_WIDTH = 44;
 
-/** "6.4" -> "+6.4%", "-2.5" -> "−2.5%", "0.0" -> "0.0%", null -> "–". */
+/** "6.42" -> "+6.42%", "-2.50" -> "−2.50%", "0.00" -> "0.00%", null -> "–". */
 export function percentLabel(percent) {
   if (percent === null) return '–';
   if (percent.startsWith('-')) return `−${percent.slice(1)}%`;
-  return percent === '0.0' ? '0.0%' : `+${percent}%`;
+  return percent === '0.00' ? '0.00%' : `+${percent}%`;
 }
 
 /** Whether a decimal string is below zero. */

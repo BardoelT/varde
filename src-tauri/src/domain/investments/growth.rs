@@ -4,7 +4,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::error::DomainError;
-use crate::domain::money::{with_two_decimals, zero};
+use crate::domain::money::{zero, Money, MoneyError};
 
 use super::amounts::parse_growth;
 use super::{Balance, InvestmentAccountId, InvestmentStatement, Investments, NetDeposits, Period};
@@ -36,7 +36,11 @@ impl Investments {
         let previous = self
             .previous_balance(statement.account_id, statement.period, None)
             .unwrap_or_else(zero);
-        with_two_decimals(statement.balance.value() - previous - statement.net_deposits.value())
+        growth_of(
+            statement.balance.value(),
+            previous,
+            statement.net_deposits.value(),
+        )
     }
 
     /// Calculates the other one of balance and capital growth for the
@@ -69,17 +73,38 @@ impl Investments {
                 let balance = Balance::parse(value)?.value();
                 Ok(StatementCalculation {
                     balance,
-                    capital_growth: with_two_decimals(balance - previous - net_deposits),
+                    capital_growth: growth_of(balance, previous, net_deposits),
                 })
             }
             CalculationInput::Growth => {
                 let growth = parse_growth(value)?;
-                let balance = Balance::new(previous + net_deposits + growth)?;
+                let total = Money::from_decimal(previous)
+                    .and_then(|previous| {
+                        let net_deposits = Money::from_decimal(net_deposits)?;
+                        previous
+                            .checked_add(net_deposits)
+                            .and_then(|sum| sum.checked_add(growth))
+                            .ok_or(MoneyError::TooLarge)
+                    })
+                    .map_err(|_| DomainError::InvestmentBalanceTooLarge)?;
+                let balance = Balance::new(total.value())?;
                 Ok(StatementCalculation {
                     balance: balance.value(),
-                    capital_growth: growth,
+                    capital_growth: growth.value(),
                 })
             }
         }
     }
+}
+
+/// Balance minus the previous balance minus the net deposits, as one amount.
+/// Every operand is a stored amount of at most 1,000,000,000.00, so the
+/// checked arithmetic cannot overflow; the zero fallback is unreachable.
+fn growth_of(balance: Decimal, previous: Decimal, net_deposits: Decimal) -> Decimal {
+    let grown = Money::from_decimal(balance).ok().and_then(|balance| {
+        let previous = Money::from_decimal(previous).ok()?;
+        let net_deposits = Money::from_decimal(net_deposits).ok()?;
+        balance.checked_sub(previous)?.checked_sub(net_deposits)
+    });
+    grown.map_or_else(zero, Money::value)
 }

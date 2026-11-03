@@ -4,14 +4,14 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::error::DomainError;
-use crate::domain::investments::{Note, MAX_BALANCE};
-use crate::domain::money::{parse_plain_decimal, with_two_decimals};
+use crate::domain::investments::Note;
+use crate::domain::money::{bounded, plain_decimal, Money};
 
 /// What is still owed at the end of a period, in the project currency, from
 /// 0.00 up, with exactly two decimals (CSD-011 REQ-10).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct DebtBalance(Decimal);
+pub struct DebtBalance(Money);
 
 impl DebtBalance {
     /// Builds a balance from a decimal.
@@ -23,13 +23,13 @@ impl DebtBalance {
         if value < Decimal::ZERO {
             return Err(DomainError::DebtStatementBalanceNegative);
         }
-        if value.normalize().scale() > 2 {
-            return Err(DomainError::DebtStatementBalancePrecision);
-        }
-        if value > MAX_BALANCE {
-            return Err(DomainError::DebtStatementBalanceTooLarge);
-        }
-        Ok(Self(with_two_decimals(value)))
+        bounded(
+            value,
+            Money::MAX_BALANCE,
+            DomainError::DebtStatementBalancePrecision,
+            DomainError::DebtStatementBalanceTooLarge,
+        )
+        .map(Self)
     }
 
     /// Parses a balance typed by the user.
@@ -38,15 +38,13 @@ impl DebtBalance {
     /// Returns `DebtStatementBalanceInvalid` for text that is not a plain
     /// decimal number, and otherwise the rules of [`DebtBalance::new`].
     pub fn parse(text: &str) -> Result<Self, DomainError> {
-        parse_plain_decimal(text)
-            .ok_or(DomainError::DebtStatementBalanceInvalid)
-            .and_then(Self::new)
+        plain_decimal(text, DomainError::DebtStatementBalanceInvalid).and_then(Self::new)
     }
 
     /// The balance as a decimal.
     #[must_use]
     pub fn value(self) -> Decimal {
-        self.0
+        self.0.value()
     }
 }
 

@@ -4,14 +4,14 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::error::DomainError;
-use crate::domain::investments::{Note, MAX_BALANCE};
-use crate::domain::money::{parse_plain_decimal, with_two_decimals};
+use crate::domain::investments::Note;
+use crate::domain::money::{bounded, plain_decimal, Money};
 
 /// What the house is worth at the end of a period, in the project currency, from
 /// 0.00 up, with exactly two decimals (CSD-015 REQ-10).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct HouseValue(Decimal);
+pub struct HouseValue(Money);
 
 impl HouseValue {
     /// Builds a value from a decimal.
@@ -23,13 +23,13 @@ impl HouseValue {
         if value < Decimal::ZERO {
             return Err(DomainError::HouseValuationValueNegative);
         }
-        if value.normalize().scale() > 2 {
-            return Err(DomainError::HouseValuationValuePrecision);
-        }
-        if value > MAX_BALANCE {
-            return Err(DomainError::HouseValuationValueTooLarge);
-        }
-        Ok(Self(with_two_decimals(value)))
+        bounded(
+            value,
+            Money::MAX_BALANCE,
+            DomainError::HouseValuationValuePrecision,
+            DomainError::HouseValuationValueTooLarge,
+        )
+        .map(Self)
     }
 
     /// Parses a value typed by the user.
@@ -38,9 +38,7 @@ impl HouseValue {
     /// Returns `HouseValuationValueInvalid` for text that is not a plain
     /// decimal number, and otherwise the rules of [`HouseValue::new`].
     pub fn parse(text: &str) -> Result<Self, DomainError> {
-        parse_plain_decimal(text)
-            .ok_or(DomainError::HouseValuationValueInvalid)
-            .and_then(Self::new)
+        plain_decimal(text, DomainError::HouseValuationValueInvalid).and_then(Self::new)
     }
 
     /// Parses a purchase or sell amount typed by the user. The rules are those
@@ -61,7 +59,7 @@ impl HouseValue {
     /// The value as a decimal.
     #[must_use]
     pub fn value(self) -> Decimal {
-        self.0
+        self.0.value()
     }
 }
 
