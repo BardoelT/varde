@@ -1,9 +1,9 @@
 ---
 id: CSD-005
 title: Investments
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.1
+version: 1.2
 last_updated: 03/11/2026
 related: [CSD-000, CSD-001, CSD-002, CSD-003, CSD-007, CSD-025]
 ---
@@ -11,7 +11,7 @@ related: [CSD-000, CSD-001, CSD-002, CSD-003, CSD-007, CSD-025]
 # CSD-005: Investments
 
 ## 1. Intent
-The app tracks wealth but has no view of what the user has invested. This capability lets the user record investment accounts (a brokerage, a pension, a crypto exchange) and, per account, one closing balance per month or per year, with the net deposits of that period and a note. From these the app derives the capital growth of the period and, per calendar year, the yearly totals. It is for a single person keeping a private, local history of their investments. It records balances as the user reads them off a statement. It does not track individual stocks, prices or trades. The result is a balance history per account, the growth per period and a total of the latest balances, which later features (net-worth linkage, returns percentages, charts) can build on.
+The app tracks wealth but has no view of what the user has invested. This capability lets the user record investment accounts (a brokerage, a pension, a crypto exchange) and, per account, one closing balance per month or per year, with the net deposits of that period and a note. From these the app derives the capital growth of the period and, per calendar year, the yearly totals. It is for a single person keeping a private, local history of their investments. It records balances as the user reads them off a statement. It does not track individual stocks, prices or trades. The result is a balance history per account, the growth per period and a total of the latest balances, which the Insights chart of CSD-007 and the Net worth page of CSD-017 build on.
 
 ## 2. Scope
 ### 2.1 In scope
@@ -28,7 +28,7 @@ The app tracks wealth but has no view of what the user has invested. This capabi
 - NG-1: Individual positions: tickers, share counts, buy and sell trades, dividends.
 - NG-2: Live or historical market prices, and any other data fetched from the network.
 - NG-3: Individual deposits and withdrawals (only their net sum per statement is recorded, see REQ-21), returns percentages, annualised returns, an all-time total of net deposits or capital growth (only per-year totals are in scope, REQ-26), and any other performance figure. The one exception is the growth percentage of the Insights chart of CSD-007.
-- NG-4: Integration with net worth, and a chart or other balance-over-time visualisation (candidates for a later CSD together with CSD-004). The yearly Insights chart of CSD-007 is the one exception.
+- NG-4: A chart or other balance-over-time visualisation on the Investments page itself. The yearly Insights chart of CSD-007 is the one exception. The integration with net worth is specified in CSD-017, not here.
 - NG-5: Negative balances, such as margin debt.
 - NG-6: A currency per account. All amounts are in the project currency (CSD-003).
 - NG-7: Aligning the latest balances of different accounts to one date, or estimating a balance for a period without a statement.
@@ -1183,19 +1183,20 @@ Error codes (returned as code plus safe message): `INVESTMENT_ACCOUNT_NAME_REQUI
 - CON-11: The yearly totals are computed in Rust each time they are needed and are never stored in the project file. Rationale: CON-2, and stored totals would go stale when a statement changes.
 
 ## 7. Verification
-Rust-side behaviour is proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd005_ac_<n>_<m>_<description>` (CSD-000 REQ-6). Display ACs are covered by DOM tests of the Investments page, one per AC, with the AC ID in the test title.
+Rust-side behaviour is proven by `cargo test`, with domain logic tested in `domain/` and the commands over IPC. Tests are named `test_csd005_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-1 to REQ-4, REQ-6 to REQ-11 (except AC-11.3, removed), REQ-13, REQ-15, REQ-16, REQ-19, REQ-21 to REQ-23, REQ-26, REQ-28 (except AC-28.6) and REQ-29 (except AC-29.4) | `cargo test test_csd005_` |
-| AC-24.1 to AC-24.5, AC-24.7 to AC-24.9, AC-24.11 to AC-24.14, AC-25.1 to AC-25.4 (the calculation itself) | `cargo test test_csd005_ac_24_` and `cargo test test_csd005_ac_25_` cover the `calculate_investment_statement` command and the domain logic behind it |
-| AC-17.2, AC-17.3, AC-17.8 (data) | `cargo test test_csd005_ac_17_` covers the data of the accounts and statements tables |
-| AC-5.2, AC-5.3, AC-12.2, AC-14.1 to AC-14.3, AC-17.1, AC-17.4 to AC-17.7, AC-17.9, AC-18.1 to AC-18.3, AC-20.1, AC-20.2, AC-24.6, AC-27.1 to AC-27.4, AC-28.6 (the screen: forms, section order and contents, titles without a currency, button placement, empty states, note cut-off, plain-text note, no counts, delete confirmations, the calculated marking, the note when there is no earlier statement) | DOM tests of the Investments page. Not covered yet: no DOM test exists |
-| AC-29.4 (the whole edit is rejected, no unsaved indicator) | Not covered: no test exists for it yet; the Rust part gets a `cargo test` and the indicator a DOM test |
+| Rust tests | `cargo test test_csd005_`. One requirement, e.g. REQ-6: `cargo test test_csd005_ac_6_` |
+| REQ-24, REQ-26 and REQ-28 over IPC (the test names carry the requirement but no AC number) | `cargo test test_csd005_ac_24_`, `test_csd005_ac_26_` and `test_csd005_ac_28_` |
+| Calculation (AC-24.x, AC-25.x) | `cargo test test_csd005_ac_24_` and `cargo test test_csd005_ac_25_` cover the `calculate_investment_statement` command and the domain logic behind it |
+| Data of the accounts and statements tables (AC-17.2, AC-17.3, AC-17.8) | `cargo test test_csd005_ac_17_` |
+| Display ACs (forms, section order and contents, titles without a currency, button placement, empty states, note cut-off, plain-text note, no counts, delete confirmations, the calculated marking) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. |
 | The currency confirmation for investment statements | Governed by CSD-003 REQ-5 (AC-5.5, AC-5.6), verified there |
-| One requirement, e.g. REQ-6 | `cargo test test_csd005_ac_6_` |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass, and the DOM tests pass.
+Not covered by a named test yet (24 of 126 ACs; no test carries the AC id): AC-5.2, AC-5.3, AC-12.2, AC-14.1 to AC-14.3, AC-17.1, AC-17.4 to AC-17.7, AC-17.9, AC-18.1 to AC-18.3, AC-20.1, AC-20.2, AC-24.6, AC-27.1 to AC-27.4, AC-28.6, AC-29.4.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 - OQ-1: (resolved in v0.2) Investment statements count as entries for the currency confirmation: CSD-003 0.3 (REQ-5, AC-5.5, AC-5.6).
@@ -1204,6 +1205,7 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass, and
 - OQ-4: (resolved 03/11/2026) The Insights series of CSD-007 runs from the earliest year with a statement to the later of the current year and the latest year with a statement, so a statement after the current year gets a slot, and spans at most 50 years back from its last year. A statement older than that gets no slot but still counts in the yearly totals of REQ-26 and in every total and ratio (CSD-007 REQ-2).
 
 ## 9. Changelog
+- 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. AC-5.2 and AC-12.2 are listed as not covered (the old table said all of REQ-1 to REQ-13 except AC-5.3). NG-4 and the intro no longer call the net-worth integration future work: it is specified in CSD-017. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Resolved OQ-4: the year series of CSD-007 runs to the latest year with a statement, at most 50 years back (CSD-007 v1.1). No requirement of this CSD changes. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): No date bounds (decision D11): REQ-6 accepts any valid period including future periods and the year 1899 and earlier (AC-6.3 rewritten, AC-6.4 removed, the 1899 row of AC-6.5 removed), REQ-29 no longer rejects a future period (AC-29.1 removed), error code `INVESTMENT_STATEMENT_IN_FUTURE` removed. No legacy handling (D12): REQ-19 loses the rules for a missing section and for a missing net deposits (AC-19.2, AC-19.4 removed), the schema is strict (CSD-002). The period field in the project file and IPC is called `period` for both account and statement (D13). Rounding follows CSD-000 CON-8 (new CON-12). Verification: display ACs are covered by DOM tests, and ACs without a test are marked not covered (AC-29.4). New OQ-4. Back to draft for re-approval.
 - 0.11 (29/10/2026): The position in the left pane is stated in CSD-004 REQ-1 and no longer repeated here (GitHub issue 21).

@@ -3,7 +3,7 @@ id: CSD-014
 title: Expense insights
 status: approved
 owner: Thijs Bardoel
-version: 1.1
+version: 1.2
 last_updated: 03/11/2026
 related: [CSD-000, CSD-010, CSD-012, CSD-013, CSD-025]
 ---
@@ -530,20 +530,22 @@ Command: `get_expense_insights()` returns the fixed list of categories with thei
 - CON-8: Money amounts follow the rounding rule of CSD-000 CON-8 (two decimals, half-up). Rationale: one rounding rule project-wide.
 
 ## 7. Verification
-The series is computed in Rust, so the data ACs are proven by `cargo test`. Tests are named `test_csd014_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
+The series is computed in Rust, so the data ACs are proven by `cargo test`. Tests are named `test_csd014_ac_<n>_<m>_<description>` (CSD-000 REQ-6). The shared chart behaviour (look, size, motion, label format) is verified in CSD-025.
 
-| Requirement | Command / coverage |
+| What | How |
 |---|---|
-| AC-1.1 to AC-1.4, AC-2.1, AC-3.1, AC-4.1 to AC-4.7, AC-6.2 | `cargo test test_csd014_` (one requirement, e.g. REQ-4: `cargo test test_csd014_ac_4_`) |
-| AC-1.5, AC-1.6, AC-3.2, AC-3.3, AC-13.3 | Not covered by a named test yet (AC-1.5 and AC-3.3 are new in v1.0, AC-1.6 in v1.1) |
-| Display ACs: REQ-5 (AC-5.1 to AC-5.7), AC-6.1, AC-6.3, REQ-7, REQ-8, REQ-9, AC-10.1, AC-11.4, REQ-12, AC-13.1, AC-13.2, AC-14.1 | Covered by DOM tests (the dev-only DOM test harness, a tests-only exception to the no-npm rule). Not covered until those tests are written. The shared behaviour itself (motion, look, size, label format) is verified in CSD-025 |
+| Rust tests (the data) | `cargo test test_csd014_`. One requirement, e.g. REQ-4: `cargo test test_csd014_ac_4_` |
+| Display ACs (REQ-5, REQ-7 to REQ-9, REQ-12, REQ-13 and the others in the list below) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (33 of 51 ACs; no test carries the AC id): AC-3.2, AC-5.1 to AC-5.6, AC-6.1, AC-6.3, AC-7.1, AC-7.2, AC-8.1 to AC-8.8, AC-9.1 to AC-9.7, AC-10.1, AC-11.4, AC-12.1, AC-13.1 to AC-13.3, AC-14.1.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 - OQ-1: (resolved 03/11/2026) A year after the current year (an expense dated in the future, CSD-013 REQ-4) is not marked and looks like any other year (REQ-3, AC-3.3). The series runs to the latest year with an expense, at most 50 years back from its last year (REQ-1, AC-1.5, AC-1.6).
 
 ## 9. Changelog
+- 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 1.1 (03/11/2026): Resolved OQ-1: a future year is not marked. The series spans at most 50 years back from its last year; older expenses get no slot but still count in the totals (REQ-1, new AC-1.6). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Future dates are allowed (CSD-013 v1.0), so the series runs up to the later of the current year and the year of the latest expense (REQ-1, AC-1.5), a future year is not partial (REQ-3, AC-3.3, OQ-1). The short axis labels are built by the backend (CSD-025; REQ-5, new AC-5.7, section 5). Motion (REQ-10), look (REQ-11) and size (REQ-14) now refer to CSD-025: AC-10.2, AC-10.3, AC-11.1 to AC-11.3 and AC-14.2 removed, the tooltip placement refers to CSD-025. Money rounding references CSD-000 CON-8 (new CON-8). Verification table rewritten to what is covered (the claimed coverage of AC-13.3 by `cargo test` is corrected; display ACs are covered by DOM tests). Back to `draft` for re-approval.
 - 0.6 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.

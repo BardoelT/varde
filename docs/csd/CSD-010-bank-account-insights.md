@@ -3,7 +3,7 @@ id: CSD-010
 title: Bank account insights
 status: draft
 owner: Thijs Bardoel
-version: 1.2
+version: 1.3
 last_updated: 03/11/2026
 related: [CSD-007, CSD-009, CSD-025]
 ---
@@ -500,24 +500,23 @@ Command: `get_bank_insights()` returns the banks that have at least one entry, i
 - CON-7: Money rounding, also for the short labels, follows CSD-000 CON-8. Rationale: one rounding rule for the whole application.
 
 ## 7. Verification
-The series, the axis, the pieces, the markers and the short labels are computed in Rust, so REQ-2 to REQ-5 are proven by `cargo test`. Tests are named `test_csd010_ac_<n>_<m>_<description>` (CSD-000 REQ-6). The display ACs are covered by DOM tests of the Bank accounts page, one per AC, with the AC ID in the test title. The shared chart behaviour is verified in CSD-025.
+The series, the axis, the pieces, the markers and the short labels are computed in Rust, so REQ-2 to REQ-5 are proven by `cargo test`. Tests are named `test_csd010_ac_<n>_<m>_<description>` (CSD-000 REQ-6). The shared chart behaviour (look, size, motion, label format) is verified in CSD-025.
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-2 to REQ-5 (the data), AC-6.3, AC-6.4 (the axis ticks), AC-7.1, AC-7.2 (the marker value and label) | `cargo test test_csd010_` |
-| AC-15.3 | `cargo test test_csd010_ac_15_` |
-| REQ-1, AC-6.1, AC-6.2, AC-6.5, AC-6.6, AC-7.3, REQ-8 (AC-8.1, AC-8.2, AC-8.4), REQ-9 (AC-9.1, AC-9.2, AC-9.5), REQ-10, AC-13.4, REQ-14, AC-15.1, AC-15.2 (the screen) | DOM tests of the Bank accounts page with a received series as input. Not covered yet: no DOM test exists |
-| AC-2.4, AC-4.2 | Not covered by a test today (AC-4.2 has no Rust test, AC-2.4 is new) |
-| AC-2.5, AC-2.6, AC-4.3 | Not covered by a named test yet (new in v1.1) |
-| One requirement, e.g. REQ-5 | `cargo test test_csd010_ac_5_` |
+| Rust tests (the data, the axis ticks, the marker value and label) | `cargo test test_csd010_`. One requirement, e.g. REQ-5: `cargo test test_csd010_ac_5_` |
+| Display ACs (the screen) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass, and the DOM tests pass.
+Not covered by a named test yet (27 of 45 ACs; no test carries the AC id): AC-1.1 to AC-1.3, AC-4.2, AC-6.1, AC-6.2, AC-6.4, AC-6.6, AC-7.1 to AC-7.3, AC-8.1, AC-8.2, AC-8.4, AC-9.1, AC-9.5, AC-10.1 to AC-10.4, AC-10.6 to AC-10.8, AC-13.4, AC-14.1, AC-15.1, AC-15.2.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 - OQ-1: (resolved in v0.2) The legend lists only banks that have at least one entry (REQ-9), because a bank without entries has no segment to identify.
 - OQ-2: (resolved 03/11/2026) An entry after the current year extends the series to the latest year with an entry, so the closing balances equal the yearly totals of CSD-009 REQ-19 (REQ-2, AC-2.5, AC-5.5). The series spans at most 50 years back from its last year; an older entry gets no slot but still counts (AC-2.6). A future year is not marked partial (REQ-4, AC-4.3).
 
 ## 9. Changelog
+- 1.3 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claim that display ACs have DOM tests is removed.
 - 1.2 (03/11/2026): The axis tick labels in AC-2.4 and the section 5 example are whole numbers ("0", "10k"), as CSD-025 REQ-17 says; markers keep 2 decimals. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Resolved OQ-2: the series runs to the later of the current year and the latest year with an entry (REQ-2, new AC-2.5), spans at most 50 years back from its last year, older entries still count (new AC-2.6), a future year is not partial (REQ-4, new AC-4.3), AC-5.5 covers future years. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): The shared chart text moved to CSD-025: REQ-11 (highlight) and REQ-12 (motion) removed in favour of CSD-025 REQ-9 and REQ-10, REQ-13 reduced to the size and look reference and the accessible segment label (AC-13.1 to AC-13.3, AC-13.5 to AC-13.7 removed), AC-8.3, AC-9.3, AC-9.4 and AC-10.5 removed, CON-6 removed. REQ-7 uses the marker of CSD-025 and the short label "10.00k" (was "10k"). Rust delivers the axis, the pieces, the marker and the short labels (REQ-2, new AC-2.4, section 5, CON-2). Rounding follows CSD-000 CON-8 (new CON-7). Verification: display ACs are covered by DOM tests, ACs without a test are marked not covered. New OQ-2 (entries in the future). Back to draft for re-approval.

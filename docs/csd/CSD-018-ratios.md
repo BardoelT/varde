@@ -3,7 +3,7 @@ id: CSD-018
 title: Ratios
 status: approved
 owner: Thijs Bardoel
-version: 1.1
+version: 1.2
 last_updated: 03/11/2026
 related: [CSD-000, CSD-001, CSD-005, CSD-007, CSD-009, CSD-011, CSD-013, CSD-017, CSD-020, CSD-024]
 ---
@@ -420,20 +420,23 @@ Amounts are decimal strings in the project currency (CSD-003) and percentages de
 - CON-5: Tests and fixtures use synthetic data only. Rationale: the repo is public.
 
 ## 7. Verification
-The figures are computed in Rust, so REQ-2 and REQ-4 to REQ-9 are proven by `cargo test`; the display ACs are covered by DOM tests. Tests are named `test_csd018_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
+Tests are named `test_csd018_ac_<n>_<m>_<description>` (CSD-000 REQ-6) and run with `cargo test test_csd018_`; display ACs are checked by DOM tests (`npm test`, dev-only test harness in `ui/tests/`, a tests-only exception to the no-npm rule) whose titles carry the AC id.
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-2 (AC-2.1, AC-2.3), REQ-4 to REQ-9, AC-12.1 (the data) | `cargo test test_csd018_` |
-| REQ-1, AC-2.2, REQ-3, REQ-10, REQ-11, REQ-13, AC-12.1 (the screen) | DOM tests: page without tabs, column order and "YTD", rows and sub-headings, signs and "–", negative colour, sideways scrolling with the labels in view, info tooltips (open, close, one at a time), empty state |
-| One requirement, e.g. REQ-5 | `cargo test test_csd018_ac_5_` |
+| Rust tests (the figures) | `cargo test test_csd018_` |
+| Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-11.1, empty project) |
+| Display ACs without a DOM test (page without tabs, column order and "YTD", rows and sub-headings, signs and "–", negative colour, sideways scrolling, info tooltips) | Checked by hand |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (16 of 41 ACs; no test carries the AC id): AC-1.1, AC-3.1, AC-5.6 to AC-5.9, AC-6.4, AC-8.5, AC-9.4, AC-10.1 to AC-10.3, AC-12.1, AC-13.1 to AC-13.3.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 None.
 
 ## 9. Changelog
+- 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 1.1 (03/11/2026): The series runs to the later of the current year and the latest year with a record, so future years get a column labelled like any other year, and spans at most 50 years back from its last year, older records still count in the figures that span all years (REQ-2, new AC-2.4, AC-2.5; owner decision). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Ratios and growth percentages are rounded to two decimals half-up (CSD-000 CON-8) instead of one decimal with banker's rounding: REQ-6, REQ-8, REQ-9, REQ-10 and CON-3 rewritten. AC values changed: AC-6.1 "12.5" to "12.50", AC-6.2 "-3.5" to "-3.54" (the exact value was -3.5417), AC-7.1 "4.2" to "4.17", AC-8.1 "10.0" to "10.00", AC-8.2 "-5.0" to "-5.00", AC-9.2 "20.8" to "20.83", AC-10.1 "+12.5%" to "+12.50%", and the JSON example; new AC-6.4 (half-up and no sign) and AC-8.5. One term, "wealth accumulation from cash", everywhere. Only a Cancelled debt nets to zero, a Repaid debt counts in full; references point to the merged CSD-020 (REQ-26, REQ-27, formerly CSD-020 REQ-11 and REQ-12), and the repaid amount equals the Cancelled-adjusted yearly total of the Debts overview (CSD-020 REQ-28, new AC-5.9). Navigation moved to CSD-024. The display ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.4 (02/11/2026): Each row gets an info icon with a tooltip that explains its calculation (REQ-13, GitHub issue 33).

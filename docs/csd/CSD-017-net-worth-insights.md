@@ -3,7 +3,7 @@ id: CSD-017
 title: Net worth insights
 status: approved
 owner: Thijs Bardoel
-version: 1.1
+version: 1.2
 last_updated: 03/11/2026
 related: [CSD-000, CSD-007, CSD-010, CSD-012, CSD-016, CSD-020, CSD-024, CSD-025]
 ---
@@ -377,20 +377,23 @@ Command: `get_net_worth_insights()` returns the series, oldest year first, and a
 - CON-7: Every money amount of this page follows CSD-000 CON-8 (2 decimals, half-up). Rationale: one rounding rule for the whole application.
 
 ## 7. Verification
-The series is computed in Rust, so REQ-2 to REQ-5, REQ-13 to REQ-15 (the data) are proven by `cargo test`; the display ACs are covered by DOM tests. Tests are named `test_csd017_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
+Tests are named `test_csd017_ac_<n>_<m>_<description>` (CSD-000 REQ-6) and run with `cargo test test_csd017_`; display ACs are checked by DOM tests (`npm test`, dev-only test harness in `ui/tests/`, a tests-only exception to the no-npm rule) whose titles carry the AC id. The shared chart behaviour (look, size, motion, label format) is verified in CSD-025.
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-2 to REQ-5 (the data), REQ-14, REQ-15, AC-12.2, AC-13.1 (the data) | `cargo test test_csd017_` |
-| REQ-1, REQ-5 (display), REQ-6 to REQ-12 (all ACs), AC-13.1 (the screen) | DOM tests: the page without tabs, stacking and the order of the segments, Debts below the zero line, axis range with a negative net worth, markers and their labels, colours of both modes, legend, highlight in every year, tooltip order and the "No records" note, accessible labels, empty states |
-| One requirement, e.g. REQ-3 | `cargo test test_csd017_ac_3_` |
+| Rust tests (the data) | `cargo test test_csd017_` |
+| Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-12.1, empty project) |
+| Display ACs without a DOM test (the page without tabs, stacking and the order of the segments, Debts below the zero line, axis range, markers and their labels, colours of both modes, legend, highlight, tooltip order and the "No records" note, accessible labels) | Checked by hand |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (17 of 34 ACs; no test carries the AC id): AC-1.1, AC-4.3, AC-5.2, AC-6.1, AC-6.2, AC-6.4, AC-8.1, AC-8.2, AC-9.1, AC-9.2, AC-10.1 to AC-10.3, AC-11.1, AC-13.1, AC-14.1, AC-15.1.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 - OQ-1: (resolved 03/11/2026) A record dated in a year after the current year is accepted and the series extends to the latest year with a record, at most 50 years back from that year (REQ-2, REQ-15). A year after the current year is not marked partial.
 
 ## 9. Changelog
+- 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 1.1 (03/11/2026): Resolved OQ-1: the series runs from the earliest year with a record to the later of the current year and the latest year with a record, so future years get a slot (REQ-2, AC-2.3, REQ-15, AC-15.2 changed, AC-15.3 new), and spans at most 50 years back from its last year, older records still count (AC-2.4). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Money follows CSD-000 CON-8 (CON-7). The net worth of a sale year drops by the sold house, and a year without a record counts as 0.00, both stated as intended (REQ-14 with CSD-020 REQ-10 and REQ-11; REQ-4, AC-4.3). Future-dated records: the current year counts them, a later year is not shown (REQ-15, OQ-1). The look, size, motion and short labels of the chart now refer to CSD-025 instead of repeating them (REQ-6, REQ-7: marker labels read "316.00k" and "-8.00k"). Navigation moved to CSD-024; references to house purchase and sale point to CSD-020. The display ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.5 (30/10/2026): The segment Assets is renamed Houses (legend, tooltip, note and the `houses` field of the figures). A settled debt (CSD-020) counts like any debt: its 0.00 statement takes it out of Debts. No other requirement changes. Back to `draft` until re-approved (GitHub issue 31).

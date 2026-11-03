@@ -1,9 +1,9 @@
 ---
 id: CSD-013
 title: Expenses
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-014]
 ---
@@ -25,7 +25,7 @@ The app tracks what the user owns and owes, but has no view of what the user spe
 ### 2.2 Non-goals
 - NG-1: Budgets, spending limits, and a comparison with income or any other figure.
 - NG-2: Recurring expenses, instalments and spreading one expense over several months or years.
-- NG-3: A link to bank accounts, so recording an expense never changes a balance, and integration with net worth and the dashboard (CSD-004).
+- NG-3: A link to bank accounts, so recording an expense never changes a balance, and integration with the dashboard (CSD-004). Expenses are not part of the net worth (CSD-017 NG-6).
 - NG-4: A threshold or any other rule that limits which expenses can be recorded, such as a minimum amount. The user decides what to record.
 - NG-5: Categories that the user can add, rename or remove. The categories are fixed (REQ-3).
 - NG-6: More than one category per expense, tags, and sub-categories.
@@ -642,21 +642,22 @@ Error codes (returned as code plus safe message): `EXPENSE_NAME_REQUIRED`, `EXPE
 ## 7. Verification
 The data and the domain logic are proven by `cargo test`, with the domain tested in `domain/`. Tests are named `test_csd013_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-| Requirement | Command / coverage |
+| What | How |
 |---|---|
-| AC-1.1, AC-1.2, AC-1.4, REQ-2 (AC-2.1 to AC-2.3), AC-3.1, AC-3.2, REQ-4, REQ-5, REQ-6, AC-7.1 to AC-7.5, AC-7.7, AC-8.1, REQ-9, REQ-10 | `cargo test test_csd013_` (one requirement, e.g. REQ-4: `cargo test test_csd013_ac_4_`) |
-| AC-11.1, AC-11.2 (list and total), AC-12.1, AC-12.2, AC-12.4 to AC-12.7 (yearly totals) | `cargo test test_csd013_ac_11_` and `cargo test test_csd013_ac_12_` |
-| AC-16.1 to AC-16.5 (project file) | `cargo test test_csd013_ac_16_` |
-| AC-3.3, AC-8.2, AC-8.3 | Not covered by a named test yet |
-| Display ACs: AC-1.3, AC-1.5, AC-7.6, REQ-13 (all ACs), REQ-14, REQ-15 | Covered by DOM tests (the dev-only DOM test harness, a tests-only exception to the no-npm rule). Not covered until those tests are written |
-| AC-17.1, AC-17.2 (currency confirmation) | Governed by CSD-003 REQ-5 and verified there. There are no `test_csd013_ac_17_` tests; the confirmation dialog is a display check for the DOM tests |
+| Rust tests | `cargo test test_csd013_`. One requirement, e.g. REQ-4: `cargo test test_csd013_ac_4_` |
+| Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-14.1, no expenses) |
+| Display ACs without a DOM test (REQ-13, REQ-15, AC-1.3, AC-1.5, AC-7.6) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. |
+| AC-17.1, AC-17.2 (currency confirmation) | Governed by CSD-003 REQ-5 and verified there. There are no `test_csd013_ac_17_` tests |
 
-AC-4.1, AC-7.5, AC-12.7 and AC-16.2 changed in v1.0 (no date bounds, strict file): their tests must follow. Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (19 of 61 ACs; no test carries the AC id): AC-1.3, AC-1.5, AC-3.3, AC-7.6, AC-8.2, AC-8.3, AC-13.1 to AC-13.9, AC-15.1, AC-16.2, AC-17.1, AC-17.2.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 None.
 
 ## 9. Changelog
+- 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed REQ-17 coverage is removed (there are no `ac_17_` tests); NG-3 refers to CSD-017 NG-6 for net worth. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): No date bounds: the year-1900 lower bound and the rejection of dates in the future are removed (REQ-4, AC-4.1, AC-7.5, AC-12.7, REQ-16, section 5, NG-8, CON-11 removed; error code `EXPENSE_DATE_IN_FUTURE` removed; the "Today" definition removed). First release, no legacy: a file without the `expenses` section or with an unknown field is invalid (REQ-16, AC-16.2, AC-16.4). Money amounts reference CSD-000 CON-8 (CON-1). Verification table rewritten to what is actually covered (the claim of REQ-17 coverage and of REQ-1 to REQ-12 coverage is corrected; display ACs are covered by DOM tests). Back to `draft` for re-approval.
 - 0.4 (29/10/2026): The position in the left pane is stated in CSD-004 REQ-1 and no longer repeated here (GitHub issue 21).
 - 0.3 (29/10/2026): The year and month filter is removed. The overview always lists all expenses, newest first, with their total. REQ-11 is now "List and total" (AC-11.1 and AC-11.2 rewritten, AC-11.3 to AC-11.9 removed), AC-12.3 and AC-14.2 removed, the Filter definition, the filter wording in NG-11, REQ-7, REQ-12, REQ-13, REQ-14, the flow, CON-2 and CON-9 removed or reworded. `list_expenses()` takes no arguments and returns `{ expenses, total }` (no `years`). The number of expenses is no longer displayed (the Expenses column of the yearly totals is gone, REQ-12, REQ-13, AC-12.1, AC-12.6, AC-7.3); `expense_count` stays in the IPC data.

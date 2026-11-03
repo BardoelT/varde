@@ -1,9 +1,9 @@
 ---
 id: CSD-008
 title: Application preferences (theme)
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.3
+version: 0.4
 last_updated: 03/11/2026
 related: [CSD-002, CSD-003, CSD-022]
 ---
@@ -262,7 +262,7 @@ Scenario: The preference file cannot be written
 
 ## 5. Interfaces and contracts
 
-The application preferences are the theme (this CSD) and the language (CSD-022), and no others. Commands: `get_preferences()` returns `{ theme, language }`, and `set_theme(theme)` takes the lowercase name and returns `{ theme }`. `set_theme` saves first, and only when the save succeeded sets the native window theme (`Some(Light)`, `Some(Dark)` or `None` for System) and returns, so a failed save changes nothing (REQ-10). The frontend applies the theme it is given.
+The application preferences are the theme (this CSD) and the language (CSD-022), and no others. Commands: `get_preferences()` returns `{ theme, language }`, and `set_theme(theme)` takes the lowercase name and returns the preferences `{ theme, language }`. `set_theme` saves first, and only when the save succeeded sets the native window theme (`Some(Light)`, `Some(Dark)` or `None` for System) and returns, so a failed save changes nothing (REQ-10). The frontend applies the theme it is given.
 
 Frontend: the theme is shown by the `data-theme` attribute on the root element: `"light"` or `"dark"`, and no attribute for System, so the existing `prefers-color-scheme` rule decides. The attribute is the whole interface to the existing palettes (NG-4).
 
@@ -281,17 +281,20 @@ Error codes: `PREFERENCES_THEME_UNSUPPORTED`, `PREFERENCES_SAVE_FAILED`.
 ## 7. Verification
 All behaviour except the screens is proven by `cargo test`. Tests are named `test_csd008_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-2, REQ-5 (AC-5.1, AC-5.2, AC-5.3), REQ-8, REQ-9, REQ-10, and the data of REQ-1 and REQ-3 | `cargo test test_csd008_`. Storage tests (save, load, missing, empty, invalid, oversized, read-only folder) run in a temporary directory, and the commands are exercised through the IPC test setup. One requirement, e.g. REQ-8: `cargo test test_csd008_ac_8_` |
-| AC-1.1, AC-1.2 (display), AC-3.1, AC-3.2 (indicator), AC-3.3, AC-4.1 to AC-4.3, AC-6.1, AC-7.1, AC-10.1 (message and dropdown) | DOM tests: the Appearance panel, choosing each theme, switching the macOS appearance while System is chosen, restarting with Dark on a light Mac, the title bar and native dialogs, and the message when saving fails. The display ACs are covered by DOM tests (dev-only test harness), and the native window parts (AC-7.1, AC-4.2 with a real macOS switch) stay on a short manual checklist |
+| Rust tests | `cargo test test_csd008_`. Storage tests (save, load, missing, empty, invalid, oversized, read-only folder) run in a temporary directory, and the commands are exercised through the IPC test setup. One requirement, e.g. REQ-8: `cargo test test_csd008_ac_8_` |
+| Display ACs (the Appearance panel, choosing each theme, switching the macOS appearance while System is chosen, restarting with Dark on a light Mac, the title bar and native dialogs, the message when saving fails) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. The native window parts (AC-7.1, AC-4.2 with a real macOS switch) stay on a short manual checklist |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (10 of 17 ACs; no test carries the AC id): AC-1.1, AC-1.2, AC-3.1 to AC-3.3, AC-4.1 to AC-4.3, AC-6.1, AC-7.1.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 None.
 
 ## 9. Changelog
+- 0.4 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. Section 5 says `set_theme` returns both preferences, as `get_preferences` does. Back to `draft` until re-approved.
 - 0.3 (03/11/2026): Section 5 shows the preferences as they are, theme and language (`get_preferences` returns both, the file holds both, each read on its own). New NG-6: dates and amounts keep dd/mm/yyyy and 1,234.50 in every language. Project file extension in examples is `.varde`. Display ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.2 (02/11/2026): The language preference (CSD-022) is kept in the same preference file, and `get_preferences` returns it next to the theme. No requirement of this CSD changes (GitHub issue 22).
 - 0.1 (28/10/2026): initial draft, from GitHub issue 11.

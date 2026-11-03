@@ -1,9 +1,9 @@
 ---
 id: CSD-006
 title: Income insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.1
+version: 1.2
 last_updated: 03/11/2026
 related: [CSD-000, CSD-001, CSD-003, CSD-004, CSD-007, CSD-025]
 ---
@@ -25,7 +25,7 @@ The Income page lists jobs, paychecks and a table of yearly totals, but a table 
 - NG-3: Summary growth figures such as the compound annual growth rate, and forecasts (CSD-001 NG-4).
 - NG-4: Like-for-like comparison of the current year to date with the same months of last year.
 - NG-5: Click-through, zooming, or exporting the chart.
-- NG-6: Charts on the Dashboard (CSD-004 NG-2 stays) or on the Reports page.
+- NG-6: Charts on the Dashboard (CSD-004 NG-2 stays) or on the Net worth page, which has its own chart (CSD-017).
 - NG-7: A chart library or any other new dependency.
 
 ## 3. Definitions
@@ -556,17 +556,20 @@ Command: `get_income_insights()` returns the series, oldest year first:
 ## 7. Verification
 The figures are proven by `cargo test`. Tests are named `test_csd006_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-2 to REQ-6 (data) | `cargo test test_csd006_` |
-| AC-1.1 to AC-1.3, REQ-7, REQ-8, REQ-9, REQ-10, REQ-11, REQ-12, REQ-13, REQ-14, REQ-15, REQ-16, REQ-17, REQ-18 (display) | Manual checklist: motion of the tooltip and the dimming, reduced motion, bar shape, gridlines, labels, tooltip look and colours in both modes, tabs, bars and legend, axis, gap and YTD years, growth labels and colours, tooltip by mouse and keyboard, swatches and placement of the tooltip, chart size (plot height scaling with the window, 64 px slots) and legend, tooltip row order and "No entries" note without counts, legend and segment highlight on hover and legend-item focus across all years, no highlight on keyboard focus, empty note, refresh after a change, light and dark mode. There is no frontend test setup |
+| Rust tests (data) | `cargo test test_csd006_` |
+| Display ACs (REQ-7 to REQ-18 and AC-1.1 to AC-1.3) | No DOM test carries an AC id of this CSD yet. Manual checklist: motion of the tooltip and the dimming, reduced motion, bar shape, gridlines, labels, tooltip look and colours in both modes, tabs, bars and legend, axis, gap and YTD years, growth labels and colours, tooltip by mouse and keyboard, swatches and placement of the tooltip, chart size (plot height scaling with the window, 64 px slots) and legend, tooltip row order and "No entries" note without counts, legend and segment highlight on hover and legend-item focus across all years, no highlight on keyboard focus, empty note, refresh after a change, light and dark mode. The shared chart behaviour has DOM tests under CSD-025 |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (39 of 53 ACs; no test carries the AC id): AC-1.1 to AC-1.3, AC-7.1 to AC-7.4, AC-8.2, AC-9.1 to AC-9.4, AC-11.1, AC-11.2, AC-12.1 to AC-12.6, AC-13.1 to AC-13.7, AC-14.1 to AC-14.3, AC-15.1, AC-16.1 to AC-16.4, AC-17.1 to AC-17.3, AC-18.1.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 None.
 
 ## 9. Changelog
+- 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. NG-6 names the Net worth page (CSD-017) instead of the Reports page, which no longer exists. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): The series runs to the later of the current year and the latest year with an entry, so future years get a slot, and spans at most 50 years back from its last year, older entries still count in the totals (REQ-2, new AC-2.4, AC-2.5; owner decision). A future year is not partial (REQ-4, new AC-4.2). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Growth is rounded to two decimals half-up instead of one decimal with banker's rounding (CSD-000 CON-8): REQ-5 (AC-5.1 values and two new rows), REQ-8 (label "+x.xx%", AC-8.1, AC-8.2), AC-9.3, the JSON example and CON-2; a decrease that rounds to 0.00 shows no sign. The text of the short axis labels is provided by the backend, the format is in CSD-025 (REQ-7, section 5). Back to draft for re-approval.
 - 0.6 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.

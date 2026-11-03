@@ -3,7 +3,7 @@ id: CSD-007
 title: Investment insights
 status: approved
 owner: Thijs Bardoel
-version: 1.1
+version: 1.2
 last_updated: 03/11/2026
 related: [CSD-000, CSD-003, CSD-005, CSD-006, CSD-025]
 ---
@@ -702,17 +702,20 @@ Command: `get_investment_insights()` returns the series, oldest year first:
 ## 7. Verification
 The figures are proven by `cargo test`. Tests are named `test_csd007_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-2 to REQ-7 (data) | `cargo test test_csd007_` |
-| AC-1.1 to AC-1.3, REQ-8 to REQ-18 (display, including AC-14.9, AC-15.8 to AC-15.10, AC-18.6 and AC-18.7) | Manual checklist: tooltip row order and no statement count, legend items and legend hover and focus highlight in every year, colour roles of the series in both modes, plot height scaling with the window, slot width of at least 64 px, zero line always drawn, motion of the tooltip and the dimming, reduced motion, bar shape, gridlines, labels, tooltip look and colours in both modes, tabs, stacked and hanging segments, dashed withdrawal tint, growth colours, axis, gap and YTD years, closing markers, growth percentage labels and colours, tooltip by mouse and keyboard, swatches and placement of the tooltip, legend, segment and marker highlight on hover, no highlight on keyboard focus, empty note, refresh after a change, light and dark mode, and the income chart unchanged. There is no frontend test setup |
+| Rust tests (data) | `cargo test test_csd007_` |
+| Display ACs (REQ-8 to REQ-18 and AC-1.1 to AC-1.3) | No DOM test carries an AC id of this CSD yet. Manual checklist: tooltip row order and no statement count, legend items and legend hover and focus highlight in every year, colour roles of the series in both modes, plot height scaling with the window, slot width of at least 64 px, zero line always drawn, motion of the tooltip and the dimming, reduced motion, bar shape, gridlines, labels, tooltip look and colours in both modes, tabs, stacked and hanging segments, dashed withdrawal tint, growth colours, axis, gap and YTD years, closing markers, growth percentage labels and colours, tooltip by mouse and keyboard, swatches and placement of the tooltip, legend, segment and marker highlight on hover, no highlight on keyboard focus, empty note, refresh after a change, light and dark mode, and the income chart unchanged. The shared chart behaviour has DOM tests under CSD-025 |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (47 of 71 ACs; no test carries the AC id): AC-1.1 to AC-1.3, AC-8.2 to AC-8.6, AC-9.2, AC-9.3, AC-10.2, AC-11.1 to AC-11.3, AC-12.1, AC-13.1, AC-13.2, AC-14.1 to AC-14.9, AC-15.1 to AC-15.10, AC-16.1 to AC-16.3, AC-17.1, AC-18.1 to AC-18.7.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 None.
 
 ## 9. Changelog
+- 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 1.1 (03/11/2026): The series runs to the later of the current year and the latest year with a statement, so future years get a slot, and spans at most 50 years back from its last year, older statements still count in the opening balance and the yearly totals (REQ-2, new AC-2.4, AC-2.5; owner decision, CSD-005 OQ-4 resolved). A future year is not partial (REQ-4, new AC-4.3). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): The growth percentage is rounded to two decimals half-up instead of one decimal with banker's rounding (CSD-000 CON-8): REQ-6 (AC-6.1 values and two new rows, AC-6.2), AC-7.3, REQ-10 (label "+x.xx%", AC-10.1, AC-10.2), AC-11.1, AC-14.9, the JSON example and CON-2; a decrease that rounds to 0.00 shows no sign. The text of the short axis labels and the marker value labels is provided by the backend, the format is in CSD-025 (REQ-8, REQ-9, AC-9.1, section 5). Back to draft for re-approval.
 - 0.8 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.

@@ -1,9 +1,9 @@
 ---
 id: CSD-015
 title: Houses
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.1
+version: 1.2
 last_updated: 03/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-016, CSD-020]
 ---
@@ -11,7 +11,7 @@ related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-016, CSD-020]
 # CSD-015: Houses
 
 ## 1. Intent
-The app tracks bank accounts, investments and debts, but has no view of the houses the user owns. This capability, which replaces the former Assets capability (the app tracks houses only), lets the user record houses, each with its purchase, and, per house, one value per month or per year, with an optional note. From these the app derives, per valuation, how much the value changed since the previous one and, per calendar year, the yearly values with the closing value and the change. It is for a single person keeping a private, local history of what their houses are worth. It records values as the user estimates or reads them, such as a valuation report. It does not model the house: no depreciation, no address. The purchase and the sale of a house are specified in CSD-020. The result is a value history per house, which the Insights chart of CSD-016 and later features (net-worth linkage) can build on. It follows the structure of Debts (CSD-011), with a value that cannot be negative and with the change counted as growth.
+The app tracks bank accounts, investments and debts, but has no view of the houses the user owns. This capability, which replaces the former Assets capability (the app tracks houses only), lets the user record houses, each with its purchase, and, per house, one value per month or per year, with an optional note. From these the app derives, per valuation, how much the value changed since the previous one and, per calendar year, the yearly values with the closing value and the change. It is for a single person keeping a private, local history of what their houses are worth. It records values as the user estimates or reads them, such as a valuation report. It does not model the house: no depreciation, no address. The purchase and the sale of a house are specified in CSD-020. The result is a value history per house, which the Insights chart of CSD-016 and the Net worth page of CSD-017 build on. It follows the structure of Debts (CSD-011), with a value that cannot be negative and with the change counted as growth.
 
 ## 2. Scope
 ### 2.1 In scope
@@ -28,7 +28,7 @@ The app tracks bank accounts, investments and debts, but has no view of the hous
 - NG-1: Depreciation, appreciation rates and any forecast of a value. (The purchase price is part of the purchase of CSD-020.)
 - NG-2: Any kind of property other than a house (a car, land, a business), a house type, an address and other details of the house: a name is the only identifier. Every record of this capability is a house.
 - NG-3: (removed in v0.5) A debt linked to a house is now CSD-020.
-- NG-4: Netting the houses against debts, bank accounts and investments, and integration with net worth and the dashboard (CSD-004).
+- NG-4: Netting the houses against debts, bank accounts and investments on the Houses page, and integration with the dashboard (CSD-004). The integration with net worth is specified in CSD-017.
 - NG-5: Data fetched from a valuation service, and import of valuations (CSV, PDF).
 - NG-6: Archiving a house. A house at 0.00 stays a normal row, and a sold house stays listed (CSD-020).
 - NG-7: A currency per house. All amounts are in the project currency (CSD-003).
@@ -1026,22 +1026,24 @@ Error codes (returned as code plus safe message): `HOUSE_NAME_REQUIRED`, `HOUSE_
 ## 7. Verification
 The data and the domain logic are proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd015_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-| Requirement | Command / coverage |
+| What | How |
 |---|---|
-| AC-1.1 to AC-1.3, REQ-2 to REQ-5, AC-6.1, AC-6.3, REQ-7, AC-8.1, AC-8.2, REQ-10, AC-12.1, AC-12.3 to AC-12.6, AC-12.8, AC-13.2, AC-13.3, AC-13.5, AC-13.6, AC-14.1, REQ-17 (AC-17.1 to AC-17.5), AC-18.1, AC-18.2, AC-18.4, REQ-19, REQ-20, AC-24.1, AC-24.3, AC-24.4 | `cargo test test_csd015_` (one requirement, e.g. REQ-7: `cargo test test_csd015_ac_7_`) |
-| REQ-9, REQ-11, REQ-15 | Covered by tests whose names carry the requirement but no AC number (`test_csd015_ac_9_`, `_ac_11_`, `_ac_15_`) |
-| AC-1.4, AC-6.2, AC-12.2, AC-14.2, AC-17.6, AC-18.3, REQ-27 (AC-27.1 to AC-27.4) | Not covered by a named test yet. AC-1.4 and REQ-27 are new in v1.0 |
-| AC-7.4, AC-7.5, AC-24.1 | Existing tests must follow the v1.0 changes (no date bounds, purchase on every house) |
-| Display ACs: AC-6.4, AC-12.7, AC-12.9, AC-16.1 to AC-16.3, REQ-21 (all ACs, including the rows of the tables), REQ-22, REQ-23, REQ-26, AC-25.1 (the dialog) | Covered by DOM tests (the dev-only DOM test harness, a tests-only exception to the no-npm rule). Not covered until those tests are written. There are no `test_csd015_ac_21_` tests |
+| Rust tests | `cargo test test_csd015_`. One requirement, e.g. REQ-7: `cargo test test_csd015_ac_7_` |
+| REQ-9, REQ-11 and REQ-15 (the test names carry the requirement but no AC number) | `cargo test test_csd015_ac_9_`, `test_csd015_ac_11_` and `test_csd015_ac_15_` |
+| Yearly values (AC-20.1 to AC-20.11) | `cargo test test_csd015_ac_20_` |
+| Display ACs (REQ-21 to REQ-23, REQ-26, the rows of the tables, the dialogs) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. There are no `test_csd015_ac_21_` tests |
 | AC-25.1, AC-25.2 (currency confirmation) | Governed by CSD-003 REQ-5 and verified there. There are no `test_csd015_ac_25_` tests |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (39 of 108 ACs; no test carries the AC id): AC-1.4, AC-6.2, AC-6.4, AC-9.1, AC-9.2, AC-11.1, AC-11.2, AC-12.2, AC-12.7, AC-12.9, AC-13.4, AC-14.2, AC-15.1 to AC-15.3, AC-16.1 to AC-16.3, AC-17.6, AC-18.3, AC-21.1 to AC-21.8, AC-22.1 to AC-22.3, AC-23.1, AC-25.1, AC-25.2, AC-26.1, AC-27.1 to AC-27.4.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 None open. (OQ-1, the position in the left pane, is settled by REQ-26 and CSD-024 REQ-1.)
 - OQ-2: (resolved 03/11/2026) The sale fields keep the names `sell_date` and `sell_amount` in the data model, IPC and the project file (section 5, CSD-002, CSD-020).
 
 ## 9. Changelog
+- 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed `ac_21_` and `ac_25_` coverage is removed; the intro and NG-4 point to CSD-017 for net worth. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Owner decision: the sale fields keep the names `sell_date` and `sell_amount` (OQ-2 resolved, section 5 names them for IPC and the project file, matching CSD-002 and CSD-020). The house field `period` is confirmed as the valuation period name in the data model, replacing any `pay_period` or `valuation_period`. No behaviour change. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): A house always has a purchase: `purchase_date` and `purchase_amount` are mandatory (REQ-1, new AC-1.4, REQ-4, section 5 data model, the section 4 note); house purchase and sale are specified in CSD-020. No date bounds: the future-period rejection and the year-1900 bound are removed (REQ-7, AC-7.4, AC-7.5, REQ-13, AC-13.1 removed, error code `HOUSE_VALUATION_IN_FUTURE` removed). First release, no legacy: the former `assets` section is not read (REQ-24, AC-24.6 removed), a file without the section, with an unknown field or with a house without purchase is invalid (new REQ-27, AC-24.2 and AC-24.5 moved to AC-27.1 and AC-27.3). The valuation period of a house is the field `period` in the file and IPC (section 5). Money rounding references CSD-000 CON-8 (new CON-11). Verification table rewritten to what is covered (the claimed ac_21_ coverage and the CSD-003 currency tests are corrected; display ACs are covered by DOM tests). Back to `draft` for re-approval.
 - 0.5 (30/10/2026): Assets are renamed to houses everywhere (labels, error codes `HOUSE_*`, commands, the `houses` section of the project file, which also reads the old `assets` key; CSD-002). The app tracks houses only: every existing asset becomes a house, and NG-2 excludes any other kind of property. NG-3 is removed: CSD-020 links existing debts to a house. Back to `draft` until re-approved (GitHub issue 31).

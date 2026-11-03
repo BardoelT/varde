@@ -1,9 +1,9 @@
 ---
 id: CSD-011
 title: Debts
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-004, CSD-005, CSD-009, CSD-012, CSD-018, CSD-020, CSD-024]
 ---
@@ -11,7 +11,7 @@ related: [CSD-000, CSD-002, CSD-003, CSD-004, CSD-005, CSD-009, CSD-012, CSD-018
 # CSD-011: Debts
 
 ## 1. Intent
-The app tracks wealth, but has no view of what the user owes: a mortgage, a student loan, a credit card. This capability lets the user record debts and, per debt, one remaining balance per month or per year, with an optional note. From these the app derives, per statement, how much was repaid since the previous one and, per calendar year, the yearly totals with the closing balance and the amount repaid. It is for a single person keeping a private, local history of their debts. It records balances as the user reads them off a statement. It does not model loans: no interest, terms or payments. The result is a balance history per debt that shows how the debts shrink, which the Insights chart of CSD-012 and later features (net-worth linkage) can build on. It follows the structure of Bank accounts (CSD-009), with a balance that cannot be negative and with the progress derived.
+The app tracks wealth, but has no view of what the user owes: a mortgage, a student loan, a credit card. This capability lets the user record debts and, per debt, one remaining balance per month or per year, with an optional note. From these the app derives, per statement, how much was repaid since the previous one and, per calendar year, the yearly totals with the closing balance and the amount repaid. It is for a single person keeping a private, local history of their debts. It records balances as the user reads them off a statement. It does not model loans: no interest, terms or payments. The result is a balance history per debt that shows how the debts shrink, which the Insights chart of CSD-012 and the Net worth page of CSD-017 build on. It follows the structure of Bank accounts (CSD-009), with a balance that cannot be negative and with the progress derived.
 
 ## 2. Scope
 ### 2.1 In scope
@@ -29,7 +29,7 @@ The app tracks wealth, but has no view of what the user owes: a mortgage, a stud
 - NG-1: Interest rates, terms, monthly payments and repayment schedules.
 - NG-2: A forecast of when a debt is paid off, and any percentage of the debt repaid.
 - NG-3: (removed in v0.4) A house linked to a debt is now CSD-020. A collateral or a lien stays out of scope.
-- NG-4: Netting the debts against bank accounts and investments, and integration with net worth and the dashboard (CSD-004).
+- NG-4: Netting the debts against bank accounts and investments on the Debts page, and integration with the dashboard (CSD-004). The integration with net worth is specified in CSD-017.
 - NG-5: Money owed to the user.
 - NG-6: Data fetched from a lender, and import of statements (CSV, PDF, lender export).
 - NG-7: Archiving a debt. A debt at 0.00 stays a normal row, marked Repaid (REQ-26). (Marking it Repaid or Cancelled on the sale of its house is CSD-020.)
@@ -1124,22 +1124,25 @@ Error codes (returned as code plus safe message): `DEBT_NAME_REQUIRED`, `DEBT_NA
 - CON-11: Money rounding follows CSD-000 CON-8. A balance has at most two decimals, so the rule never changes a stored balance, and derived figures (change, closing balance, repaid, total debt) are rounded under CON-8 where they are computed. Rationale: one rounding rule for the whole application.
 
 ## 7. Verification
-Domain and command ACs are proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd011_ac_<n>_<m>_<description>` (CSD-000 REQ-6). Display ACs are covered by DOM tests (the dev-only DOM test harness, a tests-only exception to the no-npm rule).
+Domain and command ACs are proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd011_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-1 to REQ-19, REQ-23, REQ-24 (data) and REQ-25 | `cargo test test_csd011_` |
-| AC-17.1 to AC-17.4, AC-20.2, AC-20.3 (data of the debts and statements tables) | `cargo test test_csd011_ac_17_` and `cargo test test_csd011_ac_20_` |
-| AC-6.4, AC-12.7, AC-16.1 to AC-16.3, REQ-20 (all ACs), REQ-21, REQ-22, REQ-27, REQ-28, AC-24.1 (the dialog) | DOM tests: form labels, period field in the edit form, section order and contents, no counts anywhere, delete confirmation text, titles without a currency, button placement, left-pane item, empty states, note cut-off, plain-text note, dashes for none, the settle dialog (rows, disabled button, Back and Escape), the currency confirmation dialog |
+| Rust tests | `cargo test test_csd011_`. One requirement, e.g. REQ-7: `cargo test test_csd011_ac_7_` |
+| REQ-9, REQ-11 and REQ-15 (the test names carry the requirement but no AC number) | `cargo test test_csd011_ac_9_`, `test_csd011_ac_11_` and `test_csd011_ac_15_` |
+| Data of the debts and statements tables (AC-17.1 to AC-17.4) | `cargo test test_csd011_ac_17_` |
+| Display ACs (REQ-20 to REQ-22, REQ-27, REQ-28, form labels, section order and contents, no counts anywhere, delete confirmation text, titles without a currency, button placement, left-pane item, empty states, note cut-off, plain-text note, dashes for none, the settle dialog) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. There are no `test_csd011_ac_20_` tests |
 | The currency confirmation for debt statements | Governed by CSD-003 REQ-5 (AC-5.9, AC-5.10), verified there |
-| One requirement, e.g. REQ-7 | `cargo test test_csd011_ac_7_` |
 
-Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and the DOM tests pass.
+Not covered by a named test yet (45 of 120 ACs; no test carries the AC id): AC-6.2, AC-6.4, AC-8.3, AC-9.1, AC-9.2, AC-11.1, AC-11.2, AC-12.2, AC-12.7, AC-12.9, AC-13.4, AC-14.2, AC-15.1 to AC-15.3, AC-16.1 to AC-16.3, AC-17.6, AC-18.3, AC-19.12, AC-19.13, AC-20.1 to AC-20.8, AC-21.1 to AC-21.3, AC-22.1, AC-23.2, AC-24.1, AC-24.2, AC-26.4, AC-27.1 to AC-27.4, AC-28.1 to AC-28.3.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 None.
 
 ## 9. Changelog
+- 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed `test_csd011_ac_20_` and `ac_21_` coverage and the REQ-24 and REQ-25 coverage (they belong to CSD-003) are removed. NG-4 and the intro point to CSD-017 for net worth. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): The left-pane item is specified in CSD-024 (was CSD-004 REQ-1; REQ-20, AC-20.1). Back to `draft` until re-approved. Yearly totals show the Cancelled-adjusted repaid amount, as CSD-018 and CSD-020 REQ-28 (REQ-19, definition of Repaid, new AC-19.12, AC-19.13; CSD-020 OQ-1 closed). A period may hold two statements, the second a non-editable settlement statement (REQ-8, new AC-8.3, REQ-12; CSD-020 REQ-20). The settle dialog is folded in (new REQ-27, REQ-28). No date bounds: the year-1900 rule and the future-date rejection are gone (REQ-7, AC-7.4, AC-7.5, new AC-7.6, REQ-13, AC-13.1; `DEBT_STATEMENT_IN_FUTURE` removed). Legacy removed: a project file without `debts` is invalid (REQ-23, AC-23.2). The debt's `statement_period` field becomes `period` and the extension is `.varde` (section 5). New CON-11 (CSD-000 CON-8). Display ACs are covered by DOM tests (section 7). References to the merged CSD-020 updated (the settlement statement is CSD-020 REQ-20, was REQ-5).
 - 0.7 (30/10/2026): The one statement per period rule has one exception, the settlement statement of CSD-020 (REQ-8, definition of Previous statement). Amended without a draft phase at the owner's request.
 - 0.6 (30/10/2026): A debt whose latest statement is 0.00 is marked Repaid in the Debts overview (new REQ-26; NG-7 reworded). Back to `draft` until re-approved.

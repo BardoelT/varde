@@ -3,7 +3,7 @@ id: CSD-012
 title: Debt insights
 status: draft
 owner: Thijs Bardoel
-version: 1.1
+version: 1.2
 last_updated: 03/11/2026
 related: [CSD-000, CSD-010, CSD-011, CSD-020, CSD-025]
 ---
@@ -566,20 +566,23 @@ Command: `get_debt_insights()` returns the debts that have at least one statemen
 - CON-7: Money rounding follows CSD-000 CON-8: balances, totals and repaid amounts have two decimals, and the short labels follow CSD-025 (rounded to 2 decimals, never "1000.00k"). Rationale: one rounding rule for the whole application.
 
 ## 7. Verification
-The series is computed in Rust, so REQ-2 to REQ-5 are proven by `cargo test`. Tests are named `test_csd012_ac_<n>_<m>_<description>` (CSD-000 REQ-6). Display ACs are covered by DOM tests (the dev-only DOM test harness, a tests-only exception to the no-npm rule).
+The series is computed in Rust, so REQ-2 to REQ-5 are proven by `cargo test`. Tests are named `test_csd012_ac_<n>_<m>_<description>` (CSD-000 REQ-6). The shared chart behaviour (look, size, motion, label format) is verified in CSD-025.
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-2 to REQ-5, AC-15.3 (the data) | `cargo test test_csd012_` |
-| REQ-1, REQ-6 to REQ-11, REQ-13 to REQ-14 (all ACs), AC-15.1 to AC-15.3 (the screen) | DOM tests: tabs, stacking, axis range, markers, colours of both modes and of the ninth debt, legend order, wrapping and ellipsis, tooltip placement, the order of its rows from top to bottom (AC-10.8, AC-10.9), no counts, its repaid row, highlight from a segment and from the legend including keyboard, accessible labels and the empty note. Look, size and motion are verified in CSD-025 |
-| One requirement, e.g. REQ-5 | `cargo test test_csd012_ac_5_` |
+| Rust tests (the data) | `cargo test test_csd012_` |
+| REQ-2 and REQ-4 (the test names carry the requirement but no AC number) | `cargo test test_csd012_ac_2_` and `cargo test test_csd012_ac_4_` |
+| Display ACs (tabs, stacking, axis range, markers, colours of both modes and of the ninth debt, legend order, wrapping and ellipsis, tooltip placement and row order, no counts, the repaid row, highlight from a segment and from the legend, accessible labels, the empty note) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. |
 
-Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and the DOM tests pass.
+Not covered by a named test yet (49 of 59 ACs; no test carries the AC id): AC-1.1 to AC-1.3, AC-2.1 to AC-2.5, AC-4.1 to AC-4.3, AC-5.6, AC-6.1, AC-6.3 to AC-6.5, AC-7.2, AC-7.3, AC-8.1 to AC-8.4, AC-9.1, AC-9.3 to AC-9.5, AC-10.1 to AC-10.9, AC-11.1 to AC-11.6, AC-13.1 to AC-13.5, AC-14.1, AC-15.1, AC-15.2.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 None.
 
 ## 9. Changelog
+- 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed REQ-1 to REQ-14 DOM coverage is removed.
 - 1.1 (03/11/2026): The series follows the series-range rule of CSD-010 (REQ-2: AC-2.4, AC-2.5 added; AC-4.3 added): it runs to the later of the current year and the latest statement, at most 50 years back, and a future year is not partial. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Back to `draft` until re-approved. The repaid amount is Cancelled-adjusted, as in the Debts overview (definition of Repaid, new AC-5.6; CSD-020 REQ-28). The look, size and motion shared by all yearly charts moved to CSD-025: REQ-12 and AC-13.1 to AC-13.3 and AC-13.5 are removed or merged into the reference in REQ-13 (AC-13.4 stays), tooltip placement (REQ-10) refers to CSD-025. Short chart labels are built in Rust, format "10.00k" (REQ-6, REQ-7, AC-7.1, section 5). New CON-7 (CSD-000 CON-8). Display ACs are covered by DOM tests (section 7).
 - 0.5 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.

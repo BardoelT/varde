@@ -1,9 +1,9 @@
 ---
 id: CSD-009
 title: Bank accounts
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.1
+version: 1.2
 last_updated: 03/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-005, CSD-010, CSD-025]
 ---
@@ -11,7 +11,7 @@ related: [CSD-000, CSD-002, CSD-003, CSD-005, CSD-010, CSD-025]
 # CSD-009: Bank accounts
 
 ## 1. Intent
-The app tracks wealth, but has no view of the money the user keeps in bank accounts (a current account, a savings account). This capability lets the user record bank accounts and, per account, one closing balance per month or per year, with an optional note. From these the app derives, per calendar year, the yearly totals, and a total of the latest balances. It is for a single person keeping a private, local history of their bank balances. It records balances as the user reads them off a statement. It does not track individual transactions. The result is a balance history per account that the Insights chart of CSD-010 and later features (net-worth linkage) can build on. It follows the structure of Investments (CSD-005), without net deposits and capital growth, because a bank balance is not an investment return.
+The app tracks wealth, but has no view of the money the user keeps in bank accounts (a current account, a savings account). This capability lets the user record bank accounts and, per account, one closing balance per month or per year, with an optional note. From these the app derives, per calendar year, the yearly totals, and a total of the latest balances. It is for a single person keeping a private, local history of their bank balances. It records balances as the user reads them off a statement. It does not track individual transactions. The result is a balance history per account that the Insights chart of CSD-010 and the Net worth page of CSD-017 build on. It follows the structure of Investments (CSD-005), without net deposits and capital growth, because a bank balance is not an investment return.
 
 ## 2. Scope
 ### 2.1 In scope
@@ -30,7 +30,7 @@ The app tracks wealth, but has no view of the money the user keeps in bank accou
 - NG-4: Bank identifiers and other account details: IBAN, account number, institution name, account type, an overdraft limit, and a note on the account itself.
 - NG-5: A currency per account. All amounts are in the project currency (CSD-003).
 - NG-6: Interest, returns, growth, year-over-year change, and any other derived figure than the latest balance, the total and the yearly totals of REQ-17 and REQ-19.
-- NG-7: Integration with net worth and the dashboard (CSD-004).
+- NG-7: Integration with the dashboard (CSD-004). The integration with net worth is specified in CSD-017.
 - NG-8: Aligning the latest balances of different accounts to one date, or estimating a balance for a period without an entry.
 - NG-9: Moving an entry to another account. Only the period of an entry can change (REQ-12).
 - NG-10: Changing the periods of several entries at once.
@@ -911,24 +911,25 @@ Error codes (returned as code plus safe message): `BANK_ACCOUNT_NAME_REQUIRED`, 
 - CON-11: Every amount and every derived figure follows the rounding rule of CSD-000 CON-8. Balances have at most two decimals (REQ-10), so no rounding changes a stored value. Rationale: one rounding rule for the whole application.
 
 ## 7. Verification
-Rust-side behaviour is proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd009_ac_<n>_<m>_<description>` (CSD-000 REQ-6). Display ACs are covered by DOM tests of the Bank accounts page, one per AC, with the AC ID in the test title.
+Rust-side behaviour is proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd009_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-1 to REQ-5, REQ-7 to REQ-11, REQ-12 (except AC-12.2, AC-12.7, AC-12.9), REQ-13 (except AC-13.4), REQ-15, REQ-17 (except AC-17.6), REQ-18 (except AC-18.3), REQ-19 and REQ-23 (data) | `cargo test test_csd009_` |
-| AC-17.1 to AC-17.5, AC-20.2 and AC-20.3 (data of the accounts and entries tables) | `cargo test test_csd009_ac_17_` and `cargo test test_csd009_ac_20_` |
-| AC-6.2, AC-6.3, AC-12.7, AC-12.9, AC-14.2, AC-16.1 to AC-16.3, REQ-20 (all ACs, including that no count is displayed), REQ-21, REQ-22 (the screen: form labels, period field in the edit form, section order and contents, titles without a currency, button placement, empty states, note cut-off, plain-text note, no entry counts anywhere, delete confirmations, negative balance display) | DOM tests of the Bank accounts page. Not covered yet: no DOM test exists |
-| AC-12.2, AC-13.4, AC-17.6, AC-18.3 | Not covered: no test exists for them yet (clearing a note, an invalid value rejecting the whole edit, an older entry not changing the latest balance, ordering of entries of one period) |
-| AC-24.1 (the dialog), AC-24.2 | Governed by CSD-003 REQ-5 (AC-5.7, AC-5.8), verified there; there is no test for AC-24.1 and AC-24.2 in this CSD |
-| One requirement, e.g. REQ-7 | `cargo test test_csd009_ac_7_` |
+| Rust tests | `cargo test test_csd009_`. One requirement, e.g. REQ-7: `cargo test test_csd009_ac_7_` |
+| Data of the accounts and entries tables (AC-17.1 to AC-17.5) | `cargo test test_csd009_ac_17_` |
+| Display ACs (REQ-20 to REQ-22, form labels, period field in the edit form, section order and contents, titles without a currency, button placement, empty states, note cut-off, plain-text note, no entry counts anywhere, delete confirmations, negative balance display) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. There are no `test_csd009_ac_20_` tests |
+| AC-24.1, AC-24.2 | Governed by CSD-003 REQ-5 (AC-5.7, AC-5.8), verified there; there is no test for them in this CSD |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass, and the DOM tests pass.
+Not covered by a named test yet (27 of 93 ACs; no test carries the AC id): AC-6.2, AC-6.3, AC-12.2, AC-12.7, AC-12.9, AC-13.4, AC-14.2, AC-16.1 to AC-16.3, AC-17.6, AC-18.3, AC-20.1 to AC-20.9, AC-21.1 to AC-21.3, AC-22.1, AC-24.1, AC-24.2.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 - OQ-1: (resolved in v0.2) CSD-003 0.6 amends REQ-5 (AC-5.7, AC-5.8) and `entry_count` so that bank entries count for the currency confirmation.
 - OQ-2: Whether `docs/architecture.md` and the layout line of `CLAUDE.md` ("money, income, investments") get a bank accounts mention when this CSD is implemented. Owner: Thijs. Blocks: none.
 
 ## 9. Changelog
+- 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed `test_csd009_ac_20_` coverage is removed (no such tests exist). NG-7 and the intro point to CSD-017 for net worth. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): New AC-19.10: a year after the current year has a yearly totals row and equals the Insights series of CSD-010, which now runs to the latest year with an entry (CSD-010 v1.1). No other change. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): No date bounds (decision D11): REQ-7 accepts any valid period including future periods and the year 1899 and earlier (AC-7.3 rewritten, AC-7.4 removed, the 1899 row of AC-7.5 removed), REQ-13 no longer rejects a future period (AC-13.1 removed), error code `BANK_ENTRY_IN_FUTURE` and the year-1900 rule removed. No legacy handling (D12): REQ-23 loses the rule for a missing section (AC-23.2 removed), the schema is strict (CSD-002). The period field in the project file and IPC is called `period` for both account and entry (D13). Rounding follows CSD-000 CON-8 (new CON-11). Verification: display ACs are covered by DOM tests, and ACs without a test are marked not covered. Back to draft for re-approval.
 - 0.4 (29/10/2026): The position in the left pane is stated in CSD-004 REQ-1 and no longer repeated here (GitHub issue 21).

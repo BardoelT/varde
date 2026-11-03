@@ -3,7 +3,7 @@ id: CSD-016
 title: House insights
 status: draft
 owner: Thijs Bardoel
-version: 1.2
+version: 1.3
 last_updated: 03/11/2026
 related: [CSD-000, CSD-010, CSD-012, CSD-015, CSD-020, CSD-025]
 ---
@@ -571,22 +571,23 @@ Command: `get_house_insights()` returns the houses that have at least one valuat
 - CON-7: Money amounts and changes follow the rounding rule of CSD-000 CON-8 (two decimals, half-up). Rationale: one rounding rule project-wide.
 
 ## 7. Verification
-The series is computed in Rust, so the data ACs are proven by `cargo test`. Tests are named `test_csd016_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
+The series is computed in Rust, so the data ACs are proven by `cargo test`. Tests are named `test_csd016_ac_<n>_<m>_<description>` (CSD-000 REQ-6). The shared chart behaviour (look, size, motion, label format) is verified in CSD-025.
 
-| Requirement | Command / coverage |
+| What | How |
 |---|---|
-| AC-3.1, AC-5.1 to AC-5.5, AC-9.2 (data), AC-15.3 | `cargo test test_csd016_` (one requirement, e.g. REQ-5: `cargo test test_csd016_ac_5_`) |
-| REQ-2 and REQ-4 | Covered by tests whose names carry the requirement but no AC number (`test_csd016_ac_2_`, `_ac_4_`) |
-| AC-2.4, AC-4.3, AC-5.6 | Not covered by a named test yet (new in v1.0) |
-| AC-2.5 | Not covered by a named test yet (new in v1.1) |
-| Display ACs: REQ-1, REQ-6 (AC-6.1 to AC-6.6), REQ-7 to REQ-12, AC-13.4, REQ-14, AC-15.1, AC-15.2 | Covered by DOM tests (the dev-only DOM test harness, a tests-only exception to the no-npm rule). Not covered until those tests are written. The shared behaviour itself (motion, look, size, label format) is verified in CSD-025 |
+| Rust tests (the data) | `cargo test test_csd016_`. One requirement, e.g. REQ-5: `cargo test test_csd016_ac_5_` |
+| REQ-2 and REQ-4 (the test names carry the requirement but no AC number) | `cargo test test_csd016_ac_2_` and `cargo test test_csd016_ac_4_` |
+| Display ACs (REQ-1, REQ-6 to REQ-12, REQ-14 and the others in the list below) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (44 of 57 ACs; no test carries the AC id): AC-1.1 to AC-1.3, AC-2.1 to AC-2.3, AC-4.1, AC-4.2, AC-5.6, AC-6.1 to AC-6.5, AC-7.2, AC-7.3, AC-8.1 to AC-8.4, AC-9.1, AC-9.3 to AC-9.5, AC-10.1 to AC-10.9, AC-11.1 to AC-11.6, AC-12.1, AC-13.4, AC-14.1, AC-15.1, AC-15.2.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 - OQ-1: (resolved 03/11/2026) A year after the current year (a valuation in the future, CSD-015 REQ-7) is not marked and looks like any other year (REQ-4, AC-4.3). The series runs to the latest year with a valuation, at most 50 years back from its last year (REQ-2, AC-2.4, AC-2.5).
 
 ## 9. Changelog
+- 1.3 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 1.2 (03/11/2026): AC-6.6 uses the whole-number axis label "50k", as CSD-025 REQ-17 says. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Resolved OQ-1: a future year is not marked. The series spans at most 50 years back from its last year; older valuations get no slot but still count (REQ-2, new AC-2.5). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Future periods are allowed (CSD-015 v1.0), so the series runs up to the later of the current year and the year of the latest valuation (REQ-2, AC-2.4), a future year is not partial (REQ-4, AC-4.3, OQ-1). Segments cite CSD-020 REQ-10, new AC-5.6 (a sold house drops out in its sale year). The short axis labels and marker labels are built by the backend (CSD-025; REQ-6, REQ-7, AC-7.1 now "10.00k", new AC-6.6, section 5). Motion (REQ-12), look and size (REQ-13) and tooltip placement refer to CSD-025: AC-12.2, AC-12.3, AC-13.1 to AC-13.3 and AC-13.5 removed. Money rounding references CSD-000 CON-8 (new CON-7). Verification table rewritten to what is covered; display ACs are covered by DOM tests. Back to `draft` for re-approval.

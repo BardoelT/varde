@@ -3,7 +3,7 @@ id: CSD-024
 title: Navigation and app shell
 status: approved
 owner: Thijs Bardoel
-version: 0.2
+version: 0.3
 last_updated: 03/11/2026
 related: [CSD-002, CSD-003, CSD-004, CSD-022]
 ---
@@ -186,12 +186,16 @@ Menu: Rust builds the menu. The items `open-settings`, `project-new`, `project-o
 - CON-3: The left pane is part of the page, not of one capability: a capability that adds a page adds its item through this CSD. Rationale: one place for the order.
 
 ## 7. Verification
-| Requirement | Command |
-|---|---|
-| REQ-5 (AC-5.1), REQ-7 | `cargo test test_csd002_ac_9_` and `cargo test test_csd003_ac_2_1` check the tables the menu is built from. Native menus can only be created on the main thread, so the built menu (AC-5.1, AC-5.2, AC-6.1 menu texts) is on the manual checklist |
-| REQ-1 to REQ-4, AC-6.1 (left pane), AC-7.1, AC-7.2 (window side) | DOM tests (dev-only test harness): groups and order, first page, mouse and keyboard, pinned items, current-page marking |
+The left pane and the page switching are checked by DOM tests (`npm test`, dev-only test harness in `ui/tests/`, `navigation.test.js`, titles carry the AC id). Tests are named `test_csd024_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+| What | How |
+|---|---|
+| Display ACs with a DOM test | `npm test`: `navigation.test.js` (AC-1.1 to AC-1.3, AC-2.1, AC-2.2, AC-3.1 to AC-3.3, AC-4.1, AC-4.2, AC-6.1, AC-7.1, AC-7.2) |
+| Menu tables (REQ-5, REQ-7) | `cargo test test_csd002_ac_9_` and `cargo test test_csd003_ac_2_1` check the tables the menu is built from. Native menus can only be created on the main thread, so the built menu (AC-5.1, AC-5.2, AC-6.1 menu texts) is on the manual checklist |
+
+Not covered by a named test yet (2 of 15 ACs; no test carries the AC id): AC-5.1, AC-5.2.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 - OQ-1: (resolved 03/11/2026) No keyboard shortcuts for pages in the first release; only ⌘, for Settings exists and NG-4 stays.
@@ -199,5 +203,6 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 - OQ-3: (resolved 03/11/2026) The native menu is specified only as the standard menus (app, File, Edit, View, Window) plus the items already named; it is not listed item by item (REQ-5).
 
 ## 9. Changelog
+- 0.3 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 0.2 (03/11/2026): Owner decisions, OQ-1 to OQ-3 resolved. No page shortcuts in the first release (NG-4 stays), the app always opens on the Dashboard (new NG-6 for remembering the last page), and REQ-5 now says the menu is the standard menus (app, File, Edit, View, Window) without a full item list (AC-5.1 names the five menus). Back to `draft` until re-approved.
 - 0.1 (03/11/2026): initial draft. The left pane requirements move here from CSD-004 REQ-1, AC-1.1, AC-1.2 and NG-5 (decision D9); the native menu, which CSD-002 REQ-9 and CSD-003 REQ-2 specify item by item, gets one overview (REQ-5 to REQ-7). Describes the behaviour of the app today.

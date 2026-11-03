@@ -3,7 +3,7 @@ id: CSD-025
 title: Shared charts
 status: draft
 owner: Thijs Bardoel
-version: 0.3
+version: 0.4
 last_updated: 03/11/2026
 related: [CSD-000, CSD-006, CSD-007, CSD-010, CSD-012, CSD-014, CSD-016, CSD-017]
 ---
@@ -540,15 +540,16 @@ Every `get_<area>_insights()` command returns the common part below next to its 
 - CON-7: Tests and fixtures use synthetic data only. Rationale: the repo is public.
 
 ## 7. Verification
-The ticks, pieces, markers and short labels are built in Rust, so REQ-3 and REQ-4 are proven by `cargo test`, named `test_csd025_ac_<n>_<m>_<description>` (CSD-000 REQ-6). Everything the screen shows (REQ-1, REQ-2 and REQ-5 to REQ-16) is covered by DOM tests with a received series as input, one test per AC, with the AC ID in the title. The area CSDs check their own data with their own `cargo test` filter.
+The ticks, pieces, markers and short labels are built in Rust, so REQ-3 and REQ-4 are proven by `cargo test`, named `test_csd025_ac_<n>_<m>_<description>` (CSD-000 REQ-6). Everything the screen shows is checked by DOM tests with a received series as input (`npm test`, `ui/tests/charts.test.js`, `tabs.test.js` and `empty-states.test.js`), with the AC id in the title. The area CSDs check their own data with their own `cargo test` filter.
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-3, REQ-4 | `cargo test test_csd025_` |
-| REQ-1, REQ-2, REQ-5 to REQ-16 | DOM tests of the shared chart code, one per AC |
-| One requirement, e.g. REQ-4 | `cargo test test_csd025_ac_4_` |
+| Rust tests (REQ-3, REQ-4) | `cargo test test_csd025_`. One requirement, e.g. REQ-4: `cargo test test_csd025_ac_4_` |
+| DOM tests | `npm test`: `charts.test.js` (AC-1.x, AC-2.x, AC-5.x to AC-14.x), `tabs.test.js` (AC-15.1 to AC-15.3), `empty-states.test.js` (AC-16.1, AC-16.2) |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass, and the DOM tests pass.
+Not covered by a named test yet (9 of 49 ACs; no test carries the AC id): AC-8.2, AC-8.3, AC-10.1, AC-11.1, AC-12.1 to AC-12.3, AC-13.1, AC-14.2.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 - OQ-1: (resolved 03/11/2026) Rust chooses the axis ticks (REQ-3).
@@ -557,6 +558,7 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass, and
 - OQ-4: CSD-006, CSD-007 and CSD-010 still hold copies of the look, size and motion text of this CSD. They shall point here when they are re-approved. Owner: Thijs. Blocks: none.
 
 ## 9. Changelog
+- 0.4 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 0.3 (03/11/2026): The section 5 example shows the whole-number axis label "5k" (REQ-17). Back to `draft` until re-approved.
 - 0.2 (03/11/2026): axis ticks use a whole round step and axis labels never show decimals (REQ-3: AC-3.4 added; new REQ-17, AC-17.1, AC-17.2); REQ-4 applies to markers and growth figures; the minus sign is "-" everywhere; OQ-1 to OQ-3 resolved.
 - 0.1 (03/11/2026): initial draft. The yearly chart and named-series framework that the Insights CSDs repeated (bars, axis, tooltip, highlight, motion, size, look, legend, colours, tabs, empty state), the short label format and the label payload built by Rust (decision D2: the frontend computes and rounds nothing; 999,996 shows as "1.00M").

@@ -3,7 +3,7 @@ id: CSD-001
 title: Employment income tracking
 status: draft
 owner: Thijs Bardoel
-version: 1.1
+version: 1.2
 last_updated: 03/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-006]
 ---
@@ -11,7 +11,7 @@ related: [CSD-000, CSD-002, CSD-003, CSD-006]
 # CSD-001: Employment income tracking
 
 ## 1. Intent
-The app tracks wealth but has no view of what comes in. This capability lets the user record employment income over time: any number of jobs, each recorded either monthly, with one paycheck per month, or yearly, with one annual statement per year. Both are made up of gross salary, holiday pay and bonus. It is for a single person keeping a private, local history of their employment earnings. Scope is employment only. The result is a record per job, by month or by year, and yearly totals, which later features (net-worth linkage, income charts) can build on.
+The app tracks wealth but has no view of what comes in. This capability lets the user record employment income over time: any number of jobs, each recorded either monthly, with one paycheck per month, or yearly, with one annual statement per year. Both are made up of gross salary, holiday pay and bonus. It is for a single person keeping a private, local history of their employment earnings. Scope is employment only. The result is a record per job, by month or by year, and yearly totals, which the dashboard (CSD-004) and the Insights chart (CSD-006) build on.
 
 ## 2. Scope
 ### 2.1 In scope
@@ -27,7 +27,7 @@ The app tracks wealth but has no view of what comes in. This capability lets the
 - NG-2: Freelance and self-employment income, and other income (rental, dividends, etc.).
 - NG-3: Automatic payslip import (PDF, bank) and bulk import of paychecks.
 - NG-4: Forecasting future income.
-- NG-5: Integration with net worth.
+- NG-5: Integration with net worth: income is not part of the net worth (CSD-017 NG-6).
 - NG-6: A chart or other income-over-time visualisation, except the yearly insights view of CSD-006. Yearly totals over all jobs are in scope (REQ-11).
 - NG-7: Automatic calculation of holiday pay or any other amount. All amounts are entered manually.
 - NG-8: (moved to CSD-002 NG-1 in v0.4)
@@ -843,26 +843,30 @@ Error codes (returned as code plus safe message): `JOB_EMPLOYER_REQUIRED`, `JOB_
 - CON-9: (moved to CSD-002 CON-3 in v0.4)
 
 ## 7. Verification
-All ACs are proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd001_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
+Tests are named `test_csd001_ac_<n>_<m>_<description>` (CSD-000 REQ-6) and run with `cargo test test_csd001_`; display ACs are checked by DOM tests (`npm test`, dev-only test harness in `ui/tests/`, a tests-only exception to the no-npm rule) whose titles carry the AC id.
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| All of REQ-1 to REQ-13, REQ-24 to REQ-27, REQ-29 (except AC-29.6) and REQ-30, and AC-22.2 and AC-22.3 | `cargo test test_csd001_` |
-| AC-1.7, AC-5.6, AC-22.1, AC-29.6, REQ-28, REQ-23 (AC-23.1, AC-23.2, AC-23.4), the display parts of AC-9.3 to AC-9.5, AC-11.1, AC-11.2, AC-13.2 and the confirmation text of AC-4.1 and AC-4.3 | DOM tests: section order and contents, page title "Income", job buttons and no counts, columns of the yearly totals, delete confirmation text, no selection, dd/mm/yyyy dates, default job in the add form, the month or year field in the edit form. These display ACs are covered by DOM tests (dev-only test harness) |
-| AC-23.3 (data) | `cargo test test_csd001_ac_23_` covers the data of the entries table (all jobs, their employer and period) |
-| One requirement, e.g. REQ-5 | `cargo test test_csd001_ac_5_` |
+| Rust tests (domain, commands over IPC, storage) | `cargo test test_csd001_`. One requirement, e.g. REQ-5: `cargo test test_csd001_ac_5_` |
+| Data of the entries table (AC-23.3) | `cargo test test_csd001_ac_23_` |
+| REQ-29 and REQ-30 over IPC (the test names carry the requirement but no AC number) | `cargo test test_csd001_ac_29_` and `cargo test test_csd001_ac_30_` |
+| Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-13.2), `dialogs.test.js` (AC-22.1), `ui-bugs.test.js` (AC-31.1 to AC-31.4) |
+| Display ACs without a DOM test (section order and contents, job buttons, delete confirmation text, default job in the add form, month or year field in the edit form) | Checked by hand |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (14 of 85 ACs; no test carries the AC id): AC-1.7, AC-4.2, AC-4.3, AC-5.6, AC-9.3, AC-23.1, AC-23.2, AC-23.4 to AC-23.6, AC-28.1 to AC-28.3, AC-29.6.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 - OQ-1: (moved to CSD-002 in v0.4) File format, resolved there.
 - OQ-2: (moved to CSD-002 in v0.4) Dialog plugin and permissions, resolved there.
-- OQ-3: (moved to CSD-002 OQ-2 in v0.4) The `CLAUDE.md` update at approval.
+- OQ-3: (moved to CSD-002 OQ-2 in v0.4, obsolete there since CSD-002 v1.0) The `CLAUDE.md` update at approval.
 - OQ-5: (moved to CSD-002 in v0.4) Testing the unsaved state, resolved there.
 - OQ-6: (resolved in v0.2, reversed in v0.12) The month of an existing paycheck was not editable. It is editable now, and so is the year of an annual statement: REQ-29, REQ-30.
 - OQ-7: (reversed in v1.1) Deleting a paycheck or an annual statement asks for confirmation, see REQ-31.
 
 ## 9. Changelog
+- 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. NG-5 now says income is not part of the net worth (CSD-017 NG-6) instead of forbidding an integration that CSD-017 specifies; the intro points to CSD-004 and CSD-006. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Deleting a paycheck or an annual statement asks for confirmation, like every other delete in the app (new REQ-31, AC-31.1 to AC-31.4; REQ-8 now covers editing only, AC-8.3 removed, AC-8.5 without the delete step; OQ-7 reversed). Decided by the owner. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): First release, no legacy and no date bounds. A paycheck month or annual statement year in the future is accepted (REQ-5, REQ-25, REQ-30; AC-5.4, AC-25.3 and AC-30.1 removed; new AC-5.7, AC-25.6, AC-29.8), the year 1900 lower bound is gone (AC-25.5, new AC-25.7), error codes `PAYCHECK_MONTH_IN_FUTURE` and `STATEMENT_YEAR_IN_FUTURE` removed. The per-job currency tombstones (AC-11.4, OQ-4, OQ-8) and the "job without pay period" compatibility text are removed: the project file is strict (CSD-002). The job field `pay_period` is now `period` in the file and IPC. Rounding refers to CSD-000 CON-8. Display ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.13 (29/10/2026): The page is titled "Income" (REQ-23, AC-23.1). Entry counts are no longer shown: removed from the yearly totals (REQ-11, AC-11.1, AC-11.3, AC-11.5), from the job rows (AC-23.2) and from the job delete confirmation, which now has fixed text (REQ-4, AC-4.1, new AC-4.3). The count stays in the IPC payload but is not displayed.

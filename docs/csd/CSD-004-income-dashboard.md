@@ -3,7 +3,7 @@ id: CSD-004
 title: Income dashboard
 status: approved
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-001, CSD-003, CSD-020, CSD-024]
 ---
@@ -217,17 +217,21 @@ Command: `get_dashboard()` returns whether jobs exist, and the two blocks:
 ## 7. Verification
 The figures are proven by `cargo test`. Tests are named `test_csd004_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-2, REQ-3, REQ-4, REQ-6 and REQ-7 (data), REQ-5 (data) | `cargo test test_csd004_` |
-| AC-4.1 and AC-4.2 (wording), AC-5.1 (button), AC-6.1 (titles), AC-7.1, AC-7.2 (display) | DOM tests (dev-only test harness): no "Entries" card or count (AC-2.1), the blocks and their titles, the empty prompts, the button to Income, refresh after changes |
+| Rust tests (figures) | `cargo test test_csd004_` |
+| Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-5.1, the dashboard without jobs prompts for the first job) |
+| Display ACs without a DOM test (blocks and their titles, button to Income, refresh after changes) | Checked by hand |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (3 of 15 ACs; no test carries the AC id): AC-6.1, AC-7.1, AC-7.2.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 None.
 
 ## 9. Changelog
+- 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 1.0 (03/11/2026): The navigation moves to the new CSD-024 "Navigation and app shell": REQ-1 (AC-1.1, AC-1.2) and NG-5 are removed here and kept as stubs (CSD-000 CON-6); other CSDs that cite "CSD-004 REQ-1" for the left pane now mean CSD-024 REQ-1. Scope and intent no longer cover the left pane, `related` adds CSD-024, and the verification no longer says there is no frontend test setup: display ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.8 (30/10/2026): The left-pane entry Assets is renamed Houses: wording only. Back to `draft` until re-approved (GitHub issue 31).
 - 0.7 (29/10/2026): The Insights group holds the Ratios page of CSD-018 after Net worth (REQ-1, AC-1.1, NG-5; GitHub issue 25).

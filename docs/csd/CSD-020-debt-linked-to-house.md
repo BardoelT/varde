@@ -3,7 +3,7 @@ id: CSD-020
 title: House purchase, sale and linked debts
 status: approved
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-011, CSD-012, CSD-015, CSD-016, CSD-017, CSD-018]
 ---
@@ -943,21 +943,24 @@ Error codes (code plus safe message): `HOUSE_PURCHASE_DATE_REQUIRED`, `HOUSE_PUR
 - CON-7: The settled amount comes from statements, not from the sale amount. Rationale: the sale amount is a record only (NG-4).
 
 ## 7. Verification
-All ACs are proven by `cargo test`, with domain logic in `domain/` (`domain/houses`, `domain/debts`, `domain/ratios`) and the file in `storage/`. Tests are named `test_csd020_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
+Domain logic is in `domain/` (`domain/houses`, `domain/debts`, `domain/ratios`) and the file in `storage/`. Tests are named `test_csd020_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
 | What | How |
 |---|---|
-| REQ-1 to REQ-7, REQ-9 to REQ-11, REQ-13 to REQ-28, REQ-33 (data) | `cargo test test_csd020_` |
-| One requirement, e.g. REQ-10 | `cargo test test_csd020_ac_10_` |
+| Rust tests | `cargo test test_csd020_`. One requirement, e.g. REQ-10: `cargo test test_csd020_ac_10_` |
 | REQ-18, REQ-21, REQ-22 through the commands | `cargo test test_csd020_ac_18_`, `test_csd020_ac_21_`, `test_csd020_ac_22_` |
-| REQ-8, REQ-12, REQ-29 to REQ-32 and the display part of REQ-28 (forms, labels, dd/mm/yyyy input, the dialog, the badges, the Statements table) | DOM tests |
+| Display ACs with a DOM test | `npm test`: `ui-bugs.test.js` (AC-31.1, the settle hint in English and in Dutch) |
+| Display ACs without a DOM test (forms, labels, dd/mm/yyyy input, the dialog, the badges, the Statements table) | Checked by hand |
 
-Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `cargo deny check` pass. CSD-015 REQ-17 and REQ-20 tests are updated where REQ-9 and REQ-10 change their figures.
+Not covered by a named test yet (13 of 88 ACs; no test carries the AC id): AC-1.3, AC-11.2, AC-12.1 to AC-12.3, AC-15.7, AC-21.3, AC-28.1, AC-28.2, AC-29.1, AC-29.3, AC-30.2, AC-33.3.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 None. The former OQ-1 (Cancelled-adjusted repaid amount in the Debts overview) is answered by REQ-28.
 
 ## 9. Changelog
+- 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed REQ-1 to REQ-33 coverage is replaced by the list of ACs that have no named test.
 - 1.0 (03/11/2026): House purchase and sale merged into this CSD, which is renumbered once and renamed. Behaviour changes: a house always has a purchase, so the legacy handling of houses without a purchase is gone; there are no date bounds, so a future date is accepted and `HOUSE_DATE_IN_FUTURE` is removed (REQ-3); the net-worth dip in the sale year is stated as intended (new REQ-11); the Debts overview shows the Cancelled-adjusted repaid amount, which closes the former OQ-1 (new REQ-28); a period may hold two statements, the settlement one not editable (definition, REQ-20, AC-20.4); a Cancelled debt nets to zero and a Repaid debt counts in full in the wealth accumulation from cash (REQ-26, REQ-27, REQ-31 wording); the legacy rules for files made before the capability are removed and the file is strict (REQ-13, REQ-33, AC-13.4, AC-33.3; former AC-16.2 and AC-16.6 removed); the data model uses the field name `period`. Back to `draft` until re-approved.
 - 0.10 (02/11/2026): Only the settlement statement is locked in the settlement period; the regular statement of that period stays editable (former REQ-8, REQ-18, AC-8.1, AC-8.3, AC-18.1). Statements after the settlement period stay locked.
 - 0.9 (30/10/2026): The Debts overview follows a sale or its undo, and the Houses overview follows the debt form, without reopening the page (former AC-6.3, AC-1.7). No requirement changes.

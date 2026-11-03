@@ -1,9 +1,9 @@
 ---
 id: CSD-021
 title: CI and release pipeline
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.4
+version: 0.5
 last_updated: 03/11/2026
 related: [CSD-000]
 ---
@@ -25,7 +25,7 @@ The repository has no automated checks and no way to produce an installable app.
 - NG-3: Windows and Linux builds (`CLAUDE.md`: macOS only).
 - NG-4: Automatic updates inside the app.
 - NG-5: Releases from pre-release tags such as `v0.1.0-rc1`.
-- NG-6: Enforcing the strict CSP. `CLAUDE.md` requires it before a release build; OQ-1 tracks it.
+- NG-6: (removed in v0.5) The strict CSP is set in `src-tauri/tauri.conf.json` (OQ-1 resolved). It is not a requirement of this pipeline.
 - NG-7: Checks on pull requests or on pushes to any branch. The owner runs them locally before tagging, and the release run repeats them.
 
 ## 3. Definitions
@@ -247,11 +247,12 @@ Workflow behaviour cannot be proven with `cargo test`, so ACs are checked in Git
 | AC-10.1 | Confirm the repository has no Actions secrets and the run completes. |
 
 ## 8. Open questions
-- OQ-1: Set a strict CSP in `tauri.conf.json` before the first release tag (`CLAUDE.md`)? Owner: Thijs. Blocks: the first tag, not a requirement.
+- OQ-1: (resolved 03/11/2026) A strict CSP is set in `src-tauri/tauri.conf.json` (default-src 'self', no remote scripts, no `unsafe-eval`).
 - OQ-2: Which follow-up CSD covers signing and notarization (NG-2)? Owner: Thijs.
 - OQ-3: Who bumps the app version, and in which commit, so the tag matches (REQ-5)? Owner: Thijs.
 
 ## 9. Changelog
+- 0.5 (03/11/2026): NG-6 removed and OQ-1 resolved: `tauri.conf.json` now holds a strict CSP. The verification table is unchanged: the ACs are checked in GitHub Actions and no `test_csd021_` tests exist by design. Back to `draft` until re-approved.
 - 0.4 (03/11/2026): The frontend DOM tests are a fifth check (definition Checks, section 1, section 2.1, AC-1.1, new AC-2.3, section 5 with `package.json` and the lock file, new CON-5 for the tests-only JavaScript dependencies, section 7). Back to `draft` until re-approved.
 - 0.3 (02/11/2026): The pipeline runs only on a release tag, nothing on pull requests or merges: REQ-1 and its ACs rewritten, new NG-7, ACs 2.1, 2.2 reworded, no separate `ci.yml`, sections 1, 2.1, 5 and 7, OQ-4 removed. NG-2 now names the current macOS way to open an unsigned app.
 - 0.2 (02/11/2026): Checks no longer run on pushes to `development`, only on pull requests and pushes to `main` (REQ-1, AC-1.2, new AC-1.3, sections 2.1, 5, 7).

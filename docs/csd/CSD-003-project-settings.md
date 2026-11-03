@@ -3,7 +3,7 @@ id: CSD-003
 title: Project settings
 status: approved
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-001, CSD-002, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-020]
 ---
@@ -324,18 +324,21 @@ Error code: `PROJECT_CURRENCY_UNSUPPORTED`.
 ## 7. Verification
 All behaviour except the screens is proven by `cargo test`. Tests are named `test_csd003_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-3, REQ-4, REQ-6, REQ-7 (AC-7.1, AC-7.3, AC-7.4), and the data of REQ-5 and REQ-8 | `cargo test test_csd003_` |
+| Rust tests | `cargo test test_csd003_` |
 | AC-2.1 | `cargo test test_csd003_ac_2_1` checks the table the menu item is built from. Native menus can only be created on the main thread, so the built menu is on the manual checklist |
-| AC-1.1, AC-1.2, AC-2.2, AC-3.2 (display), AC-4.2 (indicator), AC-5.1 to AC-5.6, AC-5.15 (dialogs), AC-8.1 | DOM tests (dev-only test harness): the left pane order, the Settings page, the confirmation, and the titles without a currency. Manual checklist for the native parts: ⌘, and the app menu item |
+| Display ACs (left pane order, Settings page, the currency confirmation dialogs, titles without a currency) | No DOM test carries an AC id of this CSD yet; checked by hand. Manual checklist for the native parts: ⌘, and the app menu item |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (17 of 29 ACs; no test carries the AC id): AC-1.1, AC-1.2, AC-2.2, AC-3.2, AC-5.1 to AC-5.4, AC-5.6, AC-5.8, AC-5.10 to AC-5.12, AC-5.14, AC-5.15, AC-7.4, AC-8.1.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 None.
 
 ## 9. Changelog
+- 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 1.0 (03/11/2026): First release, no legacy. NG-5 removed and AC-7.2 removed: a file without a `settings` section is rejected (new AC-7.4, CSD-002 REQ-17). Section 5 no longer says "next to income" and points to the sections list of CSD-002. The Settings page definition names both preferences, theme and language. CON-6 added (CSD-000 CON-8). Display ACs are covered by DOM tests. The save-overwrite and startup-restore behaviour of decision D14 lives in CSD-002 (REQ-12 to REQ-15). Back to `draft` until re-approved.
 - 0.12 (30/10/2026): House valuations (formerly asset valuations) count for the currency confirmation: wording only. Back to `draft` until re-approved (GitHub issue 31).
 - 0.11 (29/10/2026): The currency confirmation states no number of entries: it reads "Existing amounts keep their values and only the currency changes. Amounts are not converted." and is still shown only when the project has at least one entry (REQ-5, new AC-5.15, manual checklist). `entry_count` stays in IPC and is not displayed.

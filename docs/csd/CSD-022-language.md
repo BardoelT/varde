@@ -1,9 +1,9 @@
 ---
 id: CSD-022
 title: Language (English and Dutch)
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.3
+version: 0.4
 last_updated: 03/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-008]
 ---
@@ -300,18 +300,23 @@ Error codes: `PREFERENCES_LANGUAGE_UNSUPPORTED` (new), `PREFERENCES_SAVE_FAILED`
 ## 7. Verification
 The preference is proven by `cargo test`. Tests are named `test_csd022_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-2 (AC-2.1), REQ-4 (AC-4.3, AC-4.4), REQ-8, REQ-9, and the data of REQ-1 and REQ-3 | `cargo test test_csd022_`. Storage tests (save, load, missing, empty, invalid, older file, read-only folder) run in a temporary directory |
-| REQ-1 (display), AC-2.2, REQ-3, AC-4.1, AC-4.2, REQ-5, REQ-6, REQ-7, REQ-10 | DOM tests (dev-only test harness): the "Language" choice, switching with every page open in turn, a dialog, a toast, an error in each language, a deleted Dutch text, and the date and amount formats in both languages. Manual checklist for what needs a real restart or macOS: AC-2.2 and AC-4.1 |
+| Rust tests (the preference) | `cargo test test_csd022_`. Storage tests (save, load, missing, empty, invalid, older file, read-only folder) run in a temporary directory |
+| Display ACs with a DOM test | `npm test`: `language.test.js` (AC-1.1, AC-2.1, AC-3.1 to AC-3.4, AC-4.1, AC-4.2, AC-5.1, AC-5.2, AC-6.1, AC-7.1, AC-7.2, AC-9.1) and `charts.test.js` (AC-10.1, AC-10.2) |
+| Every translatable text has a Dutch version (OQ-1) | `npm test`: `ui-bugs.test.js`, `test_csd022_every_translatable_text_has_a_dutch_version` |
+| Needs a real restart or macOS | Manual checklist: AC-2.2 (and AC-4.1 across a real restart) |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (3 of 24 ACs; no test carries the AC id): AC-1.2, AC-2.2, AC-7.3.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
-- OQ-1: Should a Rust test check that the Dutch dictionary has every key of the English one? It is a cheap guard, but it makes `cargo test` read files in `ui/`. Owner: Thijs. Blocks: Section 7.
-- OQ-2: Who writes and reviews the Dutch texts? Claude can draft them, and the owner reviews the wording before approval. Owner: Thijs. Blocks: REQ-5.
+- OQ-1: (resolved 03/11/2026) A DOM test checks that every translatable text has a Dutch version (`test_csd022_every_translatable_text_has_a_dutch_version` in `ui/tests/ui-bugs.test.js`), not a Rust test, so `cargo test` reads no files in `ui/`.
+- OQ-2: Who writes and reviews the Dutch texts? Claude can draft them, and the owner reviews the wording before approval. Owner: Thijs. Blocks: none (the feature is built; the owner still reviews the wording).
 
 ## 9. Changelog
+- 0.4 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. OQ-1 resolved (a DOM test checks the Dutch dictionary) and OQ-2 no longer blocks REQ-5, since the feature is built. Back to `draft` until re-approved.
 - 0.3 (03/11/2026): Formatting does not follow the language: new REQ-10 (AC-10.1, AC-10.2), dates stay dd/mm/yyyy and amounts stay 1,234.50 in Dutch too, NG-3 and CSD-000 CON-8 referenced. The native menu stays in English, which is accepted (NG-6). Display ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.1 (02/11/2026): initial draft, from GitHub issue 22 and the interview. Beyond the interview: the macOS language is not followed (NG-4), the native menu and file dialogs stay as they are (NG-6), and a text without a translation falls back to English (REQ-6).
 - 0.2 (02/11/2026): CON-3 clarified for the implementation: English texts are the keys, so there is a Dutch dictionary only (no clarification of behaviour).
