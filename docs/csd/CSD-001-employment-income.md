@@ -1,10 +1,10 @@
 ---
 id: CSD-001
 title: Employment income tracking
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.13
-last_updated: 29/10/2026
+version: 1.0
+last_updated: 03/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-006]
 ---
 
@@ -117,7 +117,7 @@ Scenario: The job form offers the pay period
   And "Monthly" is chosen
 ```
 
-AC-1.3 and AC-1.4 (removed in v0.8): a job no longer has a currency. The project has one (CSD-003).
+AC-1.3 and AC-1.4 (removed in v1.0): a job has no currency. The project has one (CSD-003).
 
 **REQ-2: Edit a job** *(event-driven)*
 When the user edits a job's employer, title, start date or end date, the app shall apply the change regardless of existing entries.
@@ -138,7 +138,7 @@ Scenario: End date before start date is rejected on edit
   And the job has no end date
 ```
 
-**REQ-3: (removed in v0.8)** Jobs no longer have a currency, so there is nothing to lock. The project has one currency (CSD-003). AC-3.1 and AC-3.2 are removed.
+**REQ-3: (removed in v1.0)** AC-3.1 and AC-3.2 are removed with it.
 
 **REQ-4: Delete a job** *(event-driven)*
 When the user confirms deletion of a job, the app shall remove the job and all of its entries. The confirmation says "This job and all its paychecks and statements will be deleted." and states no number, also when the job has no entries.
@@ -168,13 +168,12 @@ Scenario: Cancelled deletion changes nothing
 ### 4.2 Paychecks and annual statements
 
 **REQ-5: Add a paycheck** *(event-driven)*
-When the user submits a paycheck for the job chosen in the add form and a calendar month with a gross salary, the app shall store it, with holiday pay and bonus defaulting to 0.00, and shall accept any month that is not later than the current month, including months outside the job's start and end dates.
+When the user submits a paycheck for the job chosen in the add form and a calendar month with a gross salary, the app shall store it, with holiday pay and bonus defaulting to 0.00, and shall accept any calendar month, including months in the future and months outside the job's start and end dates.
 
 ```gherkin
 @AC-5.1
 Scenario: Paycheck with defaults
-  Given the current date is 25/10/2026
-  And an EUR job "Example Employer" starting 01/03/2024
+  Given an EUR job "Example Employer" starting 01/03/2024
   When the user adds a paycheck for 2026-09 with gross salary 3000.00
   Then the paycheck has gross salary 3000.00, holiday pay 0.00, bonus 0.00 and total gross 3000.00
 
@@ -190,17 +189,19 @@ Scenario: Month after the job end date is accepted
   When the user adds a paycheck for 2025-03 with gross salary 1500.00
   Then the paycheck for 2025-03 exists
 
-@AC-5.4
-Scenario: Month later than the current month is rejected
-  Given the current date is 25/10/2026
-  When the user adds a paycheck for 2026-11 with gross salary 3000.00
-  Then the paycheck is rejected with error code "PAYCHECK_MONTH_IN_FUTURE"
+# @AC-5.4 (removed in v1.0): a month in the future is accepted now, see AC-5.7.
 
 @AC-5.5
 Scenario: Current month is accepted
   Given the current date is 25/10/2026
   When the user adds a paycheck for 2026-10 with gross salary 3000.00
   Then the paycheck for 2026-10 exists
+
+@AC-5.7
+Scenario: Month in the future is accepted
+  Given the current date is 25/10/2026
+  When the user adds a paycheck for 2026-11 with gross salary 3000.00
+  Then the paycheck for 2026-11 exists
 
 @AC-5.6
 Scenario: The add form chooses the job
@@ -351,6 +352,18 @@ Scenario Outline: The edit form offers the month or year
     | a paycheck for 2026-05                       | month | 2026-05 |
     | an annual statement for 2025                 | year  | 2025    |
 
+@AC-29.8
+Scenario Outline: A month or year in the future is accepted
+  Given the current date is 26/10/2026
+  And <entry>
+  When the user changes its <field> to "<new>"
+  Then <entry> now has <field> "<new>"
+
+  Examples:
+    | entry                                                | field | new     |
+    | a paycheck for 2026-05 with gross 3000.00            | month | 2026-11 |
+    | an annual statement for 2025 with gross 40000.00     | year  | 2027    |
+
 @AC-29.7
 Scenario: A move is an unsaved change
   Given a saved project with a paycheck for 2026-05
@@ -359,21 +372,10 @@ Scenario: A move is an unsaved change
 ```
 
 **REQ-30: Invalid new month or year** *(unwanted behaviour)*
-If the new month or year of an edited entry is later than the current month or year, or the job already has another entry for it, or the edit also has an invalid amount, then the app shall reject the whole edit with the error code of the violated rule and leave the entry, with its month or year and its amounts, as it was. The start and end dates of the job do not matter, as in REQ-5 and REQ-25, and another job may have an entry for the same month or year.
+If the job already has another entry for the new month or year of an edited entry, or the edit also has an invalid amount, then the app shall reject the whole edit with the error code of the violated rule and leave the entry, with its month or year and its amounts, as it was. The start and end dates of the job and the current date do not matter, as in REQ-5 and REQ-25, and another job may have an entry for the same month or year.
 
 ```gherkin
-@AC-30.1
-Scenario Outline: A month or year in the future is rejected
-  Given the current date is 26/10/2026
-  And <entry>
-  When the user changes its <field> to "<new>"
-  Then the edit is rejected with error code "<code>"
-  And <entry> is unchanged
-
-  Examples:
-    | entry                                                | field | new     | code                      |
-    | a paycheck for 2026-05 with gross 3000.00            | month | 2026-11 | PAYCHECK_MONTH_IN_FUTURE  |
-    | an annual statement for 2025 with gross 40000.00     | year  | 2027    | STATEMENT_YEAR_IN_FUTURE  |
+# @AC-30.1 (removed in v1.0): a month or year in the future is accepted now, see AC-29.8.
 
 @AC-30.2
 Scenario: A month that already has a paycheck is rejected
@@ -489,7 +491,7 @@ Scenario: Keeping the pay period is allowed with entries
 ```
 
 **REQ-25: Add an annual statement** *(event-driven)*
-When the user submits an annual statement for the yearly job chosen in the add form and a calendar year with a gross salary, the app shall store it, with holiday pay and bonus defaulting to 0.00, and shall accept any year that is not later than the current year, including years outside the job's start and end dates.
+When the user submits an annual statement for the yearly job chosen in the add form and a calendar year with a gross salary, the app shall store it, with holiday pay and bonus defaulting to 0.00, and shall accept any calendar year, including years in the future and years outside the job's start and end dates.
 
 ```gherkin
 @AC-25.1
@@ -505,11 +507,7 @@ Scenario: Year before the job start date is accepted
   When the user adds an annual statement for 2022 with gross salary 38000.00
   Then the annual statement for 2022 exists
 
-@AC-25.3
-Scenario: Year later than the current year is rejected
-  Given the current date is 26/10/2026
-  When the user adds an annual statement for 2027 with gross salary 40000.00
-  Then the statement is rejected with error code "STATEMENT_YEAR_IN_FUTURE"
+# @AC-25.3 (removed in v1.0): a year in the future is accepted now, see AC-25.6.
 
 @AC-25.4
 Scenario: Current year is accepted
@@ -528,7 +526,19 @@ Scenario Outline: Invalid year is rejected
     | 26      |
     | 2026-05 |
     | abcd    |
-    | 1899    |
+
+@AC-25.6
+Scenario: Year in the future is accepted
+  Given the current date is 26/10/2026
+  And a yearly job "Example Employer"
+  When the user adds an annual statement for 2027 with gross salary 40000.00
+  Then the annual statement for 2027 exists
+
+@AC-25.7
+Scenario: An old year is accepted
+  Given a yearly job "Example Employer"
+  When the user adds an annual statement for 1899 with gross salary 40000.00
+  Then the annual statement for 1899 exists
 ```
 
 **REQ-26: One annual statement per job per year** *(unwanted behaviour)*
@@ -633,8 +643,6 @@ Scenario: A statement does not count in other years
   When the user views the yearly totals
   Then there is a row for 2025 only
 ```
-
-AC-11.4 (removed in v0.8): the project has one currency, so there is nothing to convert (CSD-003).
 
 **REQ-12: Ordering** *(ubiquitous)*
 The app shall list jobs by start date, newest first, the entries of all jobs by period, newest first, with an annual statement counting as December of its year and, within a period, by job in job order, and the yearly totals by year, newest first.
@@ -777,7 +785,7 @@ erDiagram
         string title "optional"
         date start_date
         date end_date "optional"
-        PayPeriod pay_period "Monthly or Yearly; default Monthly"
+        PayPeriod period "Monthly or Yearly; default Monthly"
     }
     PAYCHECK {
         JobId job_id
@@ -795,15 +803,15 @@ erDiagram
     }
 ```
 
-The project file keeps annual statements in their own list `statements` next to `paychecks`. A job without a pay period is Monthly: `format_version` stays 1 and nothing is migrated, as the app is not released yet. Years are `YYYY` everywhere. Statements follow the same amount rules as paychecks and use the same amount error codes.
+The project file keeps annual statements in their own list `statements` next to `paychecks`. The pay period of a job is the field `period` in the project file and in IPC (one field name `period` for every pay, entry, statement and valuation period). The `income` section is required, and a job without `period` or with an unknown field is rejected like any other invalid file (CSD-002 REQ-17). Years are `YYYY` everywhere. Statements follow the same amount rules as paychecks and use the same amount error codes.
 
 Commands (all inputs validated in Rust; amounts cross IPC as decimal strings):
 `list_jobs`, `create_job`, `update_job`, `delete_job`, `list_entries()` (paychecks and annual statements of all jobs, each with its employer and period; replaces `list_paychecks()`), `add_paycheck`, `add_statement`, `update_paycheck` and `update_statement` (the month or year that identifies the entry stays an argument, and a new month or year is an extra argument, equal to it when the period does not change; the edit is applied as a whole or not at all, REQ-30), `delete_paycheck`, `delete_statement`, `copy_previous_entry(job_id)` (replaces `copy_previous_paycheck`), `yearly_totals()` (over all jobs). `yearly_totals()` still returns an entry count per year over IPC, and the Rust side uses entry counts internally (for example to lock the pay period, REQ-24); the frontend does not display any count. Project commands (save, open, new) are in CSD-002. The income data is stored as one section of the project file defined there.
 
-Error codes (returned as code plus safe message): `JOB_EMPLOYER_REQUIRED`, `JOB_START_REQUIRED`, `JOB_END_BEFORE_START`, `PAYCHECK_MONTH_IN_FUTURE`, `PAYCHECK_DUPLICATE_MONTH`, `PAYCHECK_GROSS_INVALID`, `PAYCHECK_AMOUNT_NEGATIVE`, `PAYCHECK_AMOUNT_PRECISION`, `PAYCHECK_AMOUNT_TOO_LARGE`, `JOB_DATE_INVALID`, `JOB_PERIOD_UNSUPPORTED`, `JOB_PERIOD_LOCKED`, `JOB_PERIOD_MISMATCH`, `STATEMENT_DUPLICATE_YEAR`, `STATEMENT_YEAR_IN_FUTURE`, `STATEMENT_YEAR_INVALID`. Project error codes are in CSD-002.
+Error codes (returned as code plus safe message): `JOB_EMPLOYER_REQUIRED`, `JOB_START_REQUIRED`, `JOB_END_BEFORE_START`, `PAYCHECK_DUPLICATE_MONTH`, `PAYCHECK_GROSS_INVALID`, `PAYCHECK_AMOUNT_NEGATIVE`, `PAYCHECK_AMOUNT_PRECISION`, `PAYCHECK_AMOUNT_TOO_LARGE`, `JOB_DATE_INVALID`, `JOB_PERIOD_UNSUPPORTED`, `JOB_PERIOD_LOCKED`, `JOB_PERIOD_MISMATCH`, `STATEMENT_DUPLICATE_YEAR`, `STATEMENT_YEAR_INVALID`. Project error codes are in CSD-002.
 
 ## 6. Constraints
-- CON-1: Amounts use `rust_decimal::Decimal` and are in the project currency (CSD-003), so adding amounts across jobs never mixes currencies. Rationale: `CLAUDE.md` money rules. (The v0.7 exception for mixed currencies is gone.)
+- CON-1: Amounts use `rust_decimal::Decimal` and are in the project currency (CSD-003), so adding amounts across jobs never mixes currencies. Rationale: `CLAUDE.md` money rules. Every amount is rounded to 2 decimals half-up and shown with two decimals (CSD-000 CON-8). Entered amounts with more than two decimals are rejected, not rounded (REQ-7), and totals are sums of two-decimal amounts.
 - CON-2: The frontend displays figures computed in Rust and computes none itself. Rationale: `CLAUDE.md` layout rule.
 - CON-3: No network access. Rationale: `CLAUDE.md` Tauri security rules.
 - CON-4: Errors shown to the user never contain file paths or OS details. Rationale: `CLAUDE.md` error rules.
@@ -819,7 +827,7 @@ All ACs are proven by `cargo test`, with domain logic tested in `domain/`. Tests
 | Requirement | Command |
 |---|---|
 | All of REQ-1 to REQ-13, REQ-24 to REQ-27, REQ-29 (except AC-29.6) and REQ-30, and AC-22.2 and AC-22.3 | `cargo test test_csd001_` |
-| AC-1.7, AC-5.6, AC-22.1, AC-29.6, REQ-28, REQ-23 (AC-23.1, AC-23.2, AC-23.4), the display parts of AC-9.3 to AC-9.5, AC-11.1, AC-11.2, AC-13.2 and the confirmation text of AC-4.1 and AC-4.3 | Manual checklist: section order and contents, page title "Income", job buttons and no counts, columns of the yearly totals, delete confirmation text, no selection, dd/mm/yyyy dates, default job in the add form, the month or year field in the edit form. There is no frontend test setup |
+| AC-1.7, AC-5.6, AC-22.1, AC-29.6, REQ-28, REQ-23 (AC-23.1, AC-23.2, AC-23.4), the display parts of AC-9.3 to AC-9.5, AC-11.1, AC-11.2, AC-13.2 and the confirmation text of AC-4.1 and AC-4.3 | DOM tests: section order and contents, page title "Income", job buttons and no counts, columns of the yearly totals, delete confirmation text, no selection, dd/mm/yyyy dates, default job in the add form, the month or year field in the edit form. These display ACs are covered by DOM tests (dev-only test harness) |
 | AC-23.3 (data) | `cargo test test_csd001_ac_23_` covers the data of the entries table (all jobs, their employer and period) |
 | One requirement, e.g. REQ-5 | `cargo test test_csd001_ac_5_` |
 
@@ -829,13 +837,12 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 - OQ-1: (moved to CSD-002 in v0.4) File format, resolved there.
 - OQ-2: (moved to CSD-002 in v0.4) Dialog plugin and permissions, resolved there.
 - OQ-3: (moved to CSD-002 OQ-2 in v0.4) The `CLAUDE.md` update at approval.
-- OQ-4: (resolved in v0.2, moved to CSD-003 in v0.8) Currencies are EUR, USD and GBP.
 - OQ-5: (moved to CSD-002 in v0.4) Testing the unsaved state, resolved there.
 - OQ-6: (resolved in v0.2, reversed in v0.12) The month of an existing paycheck was not editable. It is editable now, and so is the year of an annual statement: REQ-29, REQ-30.
 - OQ-7: (resolved in v0.2) Deleting a single paycheck needs no confirmation.
-- OQ-8: (resolved in v0.8) The project is single-currency: per-job currency, `JOB_CURRENCY_*`, the Currency column and the CON-1 exception are removed (CSD-003).
 
 ## 9. Changelog
+- 1.0 (03/11/2026): First release, no legacy and no date bounds. A paycheck month or annual statement year in the future is accepted (REQ-5, REQ-25, REQ-30; AC-5.4, AC-25.3 and AC-30.1 removed; new AC-5.7, AC-25.6, AC-29.8), the year 1900 lower bound is gone (AC-25.5, new AC-25.7), error codes `PAYCHECK_MONTH_IN_FUTURE` and `STATEMENT_YEAR_IN_FUTURE` removed. The per-job currency tombstones (AC-11.4, OQ-4, OQ-8) and the "job without pay period" compatibility text are removed: the project file is strict (CSD-002). The job field `pay_period` is now `period` in the file and IPC. Rounding refers to CSD-000 CON-8. Display ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.13 (29/10/2026): The page is titled "Income" (REQ-23, AC-23.1). Entry counts are no longer shown: removed from the yearly totals (REQ-11, AC-11.1, AC-11.3, AC-11.5), from the job rows (AC-23.2) and from the job delete confirmation, which now has fixed text (REQ-4, AC-4.1, new AC-4.3). The count stays in the IPC payload but is not displayed.
 - 0.12 (28/10/2026): The month of a paycheck and the year of an annual statement can be changed when editing (GitHub issue 12). REQ-8 no longer forbids it, AC-8.4 and AC-8.6 are removed, new REQ-29 (AC-29.1 to AC-29.7) and REQ-30 (AC-30.1 to AC-30.6) reuse the add rules and error codes, NG-9 and NG-10 added, OQ-6 reversed, the commands `update_paycheck` and `update_statement` take a new month or year. Back to `draft` until the owner approves.
 - 0.11 (26/10/2026): NG-6 no longer excludes the yearly insights chart of CSD-006. No other change to income behaviour.

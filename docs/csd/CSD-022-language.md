@@ -1,10 +1,10 @@
 ---
 id: CSD-022
 title: Language (English and Dutch)
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.2
-last_updated: 02/11/2026
+version: 0.3
+last_updated: 03/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-008]
 ---
 
@@ -23,10 +23,10 @@ Every text in the app is in English. The owner works in Dutch as well, and a Dut
 ### 2.2 Non-goals
 - NG-1: Languages other than English and Dutch, and a translation tool or a way for the user to add a language.
 - NG-2: Translating what the user typed: account, bank, debt, house and job names, notes and any other project data. These show as they were entered.
-- NG-3: Changing how amounts, percentages and dates are written. They keep their current format in both languages (dates stay dd/mm/yyyy).
+- NG-3: Changing how amounts, percentages and dates are written with the language. They keep one format in both languages (REQ-10).
 - NG-4: Following the macOS language. The user chooses, and the default is English.
 - NG-5: A language per project. The project file holds no language (CSD-003 CON-2 stays as it is).
-- NG-6: The native macOS menu bar and native file dialogs. They keep the language the system gives them.
+- NG-6: The native macOS menu bar stays in English, which is accepted, and native file dialogs keep the language the system gives them.
 - NG-7: Translating the project file, the specs in `docs/` or the app name.
 
 ## 3. Definitions
@@ -257,10 +257,34 @@ Scenario: Read-only config folder
   And the message contains no file path
 ```
 
+**REQ-10: Formats do not follow the language** *(ubiquitous)*
+The app shall write dates as dd/mm/yyyy and amounts with a comma as thousands separator, a point as decimal separator and two decimals (for example 1,234.50, CSD-000 CON-8) in every language.
+
+```gherkin
+@AC-10.1
+Scenario Outline: Dates and amounts are the same in both languages
+  Given the language is "<language>"
+  And a job starting 01/03/2024 and a paycheck with gross salary 1234.50
+  Then the job start date is shown as "01/03/2024"
+  And the gross salary is shown as "1,234.50"
+
+  Examples:
+    | language |
+    | en       |
+    | nl       |
+
+@AC-10.2
+Scenario: Switching the language does not change the formats
+  Given the language is "en" and an amount is shown as "1,234.50"
+  When the user chooses "Nederlands"
+  Then the amount is still shown as "1,234.50"
+  And dates are still shown as dd/mm/yyyy
+```
+
 ## 5. Interfaces and contracts
 Commands: `get_preferences()` returns `{ theme, language }` (CSD-008 returned `{ theme }`), and `set_language(language)` takes `"en"` or `"nl"` and returns `{ language }`. It saves first and returns only when the save succeeded, so a failed save changes nothing (REQ-9), as `set_theme` does.
 
-Preference file: `preferences.json`, for example `{ "theme": "system", "language": "en" }`. Unknown fields are ignored, and a missing `language` means English (AC-8.3).
+Preference file: `preferences.json`, for example `{ "theme": "system", "language": "en" }`. Unknown fields are ignored, and a missing `language` means English (AC-8.3). The preference file is lenient on purpose, unlike the strict project file (CSD-002 REQ-17).
 
 Error codes: `PREFERENCES_LANGUAGE_UNSUPPORTED` (new), `PREFERENCES_SAVE_FAILED` (CSD-008). Rust keeps sending its English message with every code.
 
@@ -279,7 +303,7 @@ The preference is proven by `cargo test`. Tests are named `test_csd022_ac_<n>_<m
 | Requirement | Command |
 |---|---|
 | REQ-2 (AC-2.1), REQ-4 (AC-4.3, AC-4.4), REQ-8, REQ-9, and the data of REQ-1 and REQ-3 | `cargo test test_csd022_`. Storage tests (save, load, missing, empty, invalid, older file, read-only folder) run in a temporary directory |
-| REQ-1 (display), AC-2.2, REQ-3, AC-4.1, AC-4.2, REQ-5, REQ-6, REQ-7 | Manual checklist: the "Language" choice, switching with every page open in turn, a dialog, a toast, an error in each language, restarting in Dutch, a second project, a deleted Dutch text. There is no frontend test setup and none is added |
+| REQ-1 (display), AC-2.2, REQ-3, AC-4.1, AC-4.2, REQ-5, REQ-6, REQ-7, REQ-10 | DOM tests (dev-only test harness): the "Language" choice, switching with every page open in turn, a dialog, a toast, an error in each language, a deleted Dutch text, and the date and amount formats in both languages. Manual checklist for what needs a real restart or macOS: AC-2.2 and AC-4.1 |
 
 Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 
@@ -288,5 +312,6 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 - OQ-2: Who writes and reviews the Dutch texts? Claude can draft them, and the owner reviews the wording before approval. Owner: Thijs. Blocks: REQ-5.
 
 ## 9. Changelog
+- 0.3 (03/11/2026): Formatting does not follow the language: new REQ-10 (AC-10.1, AC-10.2), dates stay dd/mm/yyyy and amounts stay 1,234.50 in Dutch too, NG-3 and CSD-000 CON-8 referenced. The native menu stays in English, which is accepted (NG-6). Display ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.1 (02/11/2026): initial draft, from GitHub issue 22 and the interview. Beyond the interview: the macOS language is not followed (NG-4), the native menu and file dialogs stay as they are (NG-6), and a text without a translation falls back to English (REQ-6).
 - 0.2 (02/11/2026): CON-3 clarified for the implementation: English texts are the keys, so there is a Dutch dictionary only (no clarification of behaviour).

@@ -1,10 +1,10 @@
 ---
 id: CSD-003
 title: Project settings
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.12
-last_updated: 30/10/2026
+version: 1.0
+last_updated: 03/11/2026
 related: [CSD-001, CSD-002, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-020]
 ---
 
@@ -24,13 +24,13 @@ Settings that belong to the whole project, such as its currency, need one place 
 - NG-2: A currency per job or per paycheck.
 - NG-3: Settings that live outside the project file (application preferences). They are specified in CSD-008, and appear on the same page in their own panel.
 - NG-4: Currencies other than EUR, USD and GBP.
-- NG-5: Migrating project files made before this capability. Such a file opens with the default settings and its per-job currencies are ignored. The owner recreates old files.
+- NG-5: (removed in v1.0) Migrating or defaulting project files made before this capability. The app is not released yet, so there are no old files, and a file without a `settings` section is invalid (CSD-002 REQ-17).
 
 ## 3. Definitions
 | Term | Meaning |
 |---|---|
 | **Project currency** | The one currency of every amount in the project. |
-| **Settings page** | The page "Settings", reached from the left pane or the app menu. Its "General" panel holds the project settings, and its "Appearance" panel holds an application preference (CSD-008). |
+| **Settings page** | The page "Settings", reached from the left pane or the app menu. Its "General" panel holds the project settings, and its "Appearance" panel holds the application preferences theme (CSD-008) and language (CSD-022). |
 
 ## 4. Requirements
 
@@ -271,20 +271,24 @@ The app shall save the project settings in the project file and restore them whe
 ```gherkin
 @AC-7.1
 Scenario: Currency survives save and open
-  Given a project in "GBP" saved to "example-a.wealth"
+  Given a project in "GBP" saved to "example-a.varde"
   When the file is opened in a fresh session
   Then the project currency is "GBP"
 
-@AC-7.2
-Scenario: A file without settings opens with the defaults
-  Given a project file that has no settings section
-  When the user opens it
-  Then the project currency is "EUR"
+# @AC-7.2 (removed in v1.0): a file without a settings section is rejected, see AC-7.4.
 
 @AC-7.3
 Scenario: The settings are in their own section
-  Given a project in "USD" saved to "example-a.wealth"
+  Given a project in "USD" saved to "example-a.varde"
   Then the file has a settings section with the currency "USD"
+
+@AC-7.4
+Scenario: A file without settings is rejected
+  Given a project file that has no settings section
+  And the app holds a project in memory
+  When the user opens it
+  Then an error with code "PROJECT_INVALID_FILE" is shown
+  And the project in memory is unchanged
 ```
 
 **REQ-8: The currency is shown only in Settings** *(ubiquitous)*
@@ -305,7 +309,7 @@ Commands: `get_settings()` returns `{ currency, entry_count }` (the frontend rea
 
 Menu: the item `open-settings` is added to the app menu, below About, with the accelerator ⌘,. Choosing it emits the event `menu-action` with that id, as the File menu items do (CSD-002 REQ-9).
 
-Project file: a second section `settings` next to `income`, for example `"settings": { "currency": "EUR" }`. The `format_version` stays 1 (NG-5).
+Project file: the section `settings`, one of the required sections of the project file (CSD-002 REQ-16), for example `"settings": { "currency": "EUR" }`. A file without it, or with an unknown field in it, is rejected (CSD-002 REQ-17).
 
 Error code: `PROJECT_CURRENCY_UNSUPPORTED`.
 
@@ -315,15 +319,16 @@ Error code: `PROJECT_CURRENCY_UNSUPPORTED`.
 - CON-3: The menu item uses Tauri's built-in menu API: no plugin and no extra permission. Rationale: least privilege per `CLAUDE.md`.
 - CON-4: The frontend displays the currency it is given and decides nothing about amounts. Rationale: `CLAUDE.md` layout rule.
 - CON-5: Tests use synthetic data only. Rationale: the repo is public.
+- CON-6: Changing the currency never rounds or reformats an amount: amounts keep their two decimals (CSD-000 CON-8). Rationale: the change only changes the label (CON-1).
 
 ## 7. Verification
 All behaviour except the screens is proven by `cargo test`. Tests are named `test_csd003_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
 | Requirement | Command |
 |---|---|
-| REQ-3, REQ-4, REQ-6, REQ-7, and the data of REQ-5 and REQ-8 | `cargo test test_csd003_` |
+| REQ-3, REQ-4, REQ-6, REQ-7 (AC-7.1, AC-7.3, AC-7.4), and the data of REQ-5 and REQ-8 | `cargo test test_csd003_` |
 | AC-2.1 | `cargo test test_csd003_ac_2_1` checks the table the menu item is built from. Native menus can only be created on the main thread, so the built menu is on the manual checklist |
-| AC-1.1, AC-1.2, AC-2.2, AC-3.2 (display), AC-4.2 (indicator), AC-5.1 to AC-5.6, AC-5.15 (dialogs), AC-8.1 | Manual checklist: the left pane order, the Settings page, ⌘, and the app menu item, the confirmation, and the titles without a currency. There is no frontend test setup |
+| AC-1.1, AC-1.2, AC-2.2, AC-3.2 (display), AC-4.2 (indicator), AC-5.1 to AC-5.6, AC-5.15 (dialogs), AC-8.1 | DOM tests (dev-only test harness): the left pane order, the Settings page, the confirmation, and the titles without a currency. Manual checklist for the native parts: ⌘, and the app menu item |
 
 Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 
@@ -331,6 +336,7 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 None.
 
 ## 9. Changelog
+- 1.0 (03/11/2026): First release, no legacy. NG-5 removed and AC-7.2 removed: a file without a `settings` section is rejected (new AC-7.4, CSD-002 REQ-17). Section 5 no longer says "next to income" and points to the sections list of CSD-002. The Settings page definition names both preferences, theme and language. CON-6 added (CSD-000 CON-8). Display ACs are covered by DOM tests. The save-overwrite and startup-restore behaviour of decision D14 lives in CSD-002 (REQ-12 to REQ-15). Back to `draft` until re-approved.
 - 0.12 (30/10/2026): House valuations (formerly asset valuations) count for the currency confirmation: wording only. Back to `draft` until re-approved (GitHub issue 31).
 - 0.11 (29/10/2026): The currency confirmation states no number of entries: it reads "Existing amounts keep their values and only the currency changes. Amounts are not converted." and is still shown only when the project has at least one entry (REQ-5, new AC-5.15, manual checklist). `entry_count` stays in IPC and is not displayed.
 - 0.10 (29/10/2026): House valuations (CSD-015) also count as entries for the currency confirmation: REQ-5 reworded, AC-5.13 and AC-5.14 added, `entry_count` counts them. Back to `draft` until the owner approves.
