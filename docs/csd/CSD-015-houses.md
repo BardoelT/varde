@@ -3,7 +3,7 @@ id: CSD-015
 title: Houses
 status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-016, CSD-020]
 ---
@@ -1004,7 +1004,7 @@ erDiagram
 
 The change per valuation, the opening value and the change in a year are not part of the model: they are derived (REQ-19, REQ-20).
 
-The project file section is `houses` with the lists `houses` and `valuations`, houses in the order they were created. The section is required and unknown fields are rejected (CSD-002, REQ-27). The house field for the valuation period is named `period` in the project file and in IPC, as the period of a valuation is (CSD-002). Dates are ISO 8601 and values are decimal strings.
+The project file section is `houses` with the lists `houses` and `valuations`, houses in the order they were created. The section is required and unknown fields are rejected (CSD-002, REQ-27). The house field for the valuation period is named `period` in the project file and in IPC, as the period of a valuation is (CSD-002), and the sale fields are named `sell_date` and `sell_amount` there too. Dates are ISO 8601 and values are decimal strings.
 
 Commands (all inputs validated in Rust; amounts cross IPC as decimal strings): `list_houses()` (each house with its valuation count, latest value and period and colour slot, plus the total value; the count is used to lock the period (REQ-5) and is not displayed), `create_house`, `update_house`, `delete_house`, `list_house_valuations()` (valuations of all houses, each with its house name and its change, or null), `add_house_valuation`, `update_house_valuation` (keeps the period that identifies the valuation as an argument and takes the new period as an extra one, equal to it when the period does not change, and applies the edit as a whole or not at all, REQ-13), `delete_house_valuation`, `copy_previous_house_valuation(house_id)` and `yearly_house_values()` (over all houses; each row has the year, closing value, change or null and valuation count, newest year first; the count is not displayed). The insights command is in CSD-016. Project commands (save, open, new) are in CSD-002.
 
@@ -1038,9 +1038,11 @@ The data and the domain logic are proven by `cargo test`, with domain logic test
 Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 
 ## 8. Open questions
-None. (OQ-1, the position in the left pane, is settled by REQ-26 and CSD-024 REQ-1.)
+None open. (OQ-1, the position in the left pane, is settled by REQ-26 and CSD-024 REQ-1.)
+- OQ-2: (resolved 03/11/2026) The sale fields keep the names `sell_date` and `sell_amount` in the data model, IPC and the project file (section 5, CSD-002, CSD-020).
 
 ## 9. Changelog
+- 1.1 (03/11/2026): Owner decision: the sale fields keep the names `sell_date` and `sell_amount` (OQ-2 resolved, section 5 names them for IPC and the project file, matching CSD-002 and CSD-020). The house field `period` is confirmed as the valuation period name in the data model, replacing any `pay_period` or `valuation_period`. No behaviour change. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): A house always has a purchase: `purchase_date` and `purchase_amount` are mandatory (REQ-1, new AC-1.4, REQ-4, section 5 data model, the section 4 note); CSD-019 is merged into CSD-020, so all references now point to CSD-020 with its new numbers. No date bounds: the future-period rejection and the year-1900 bound are removed (REQ-7, AC-7.4, AC-7.5, REQ-13, AC-13.1 removed, error code `HOUSE_VALUATION_IN_FUTURE` removed). First release, no legacy: the former `assets` section is not read (REQ-24, AC-24.6 removed), a file without the section, with an unknown field or with a house without purchase is invalid (new REQ-27, AC-24.2 and AC-24.5 moved to AC-27.1 and AC-27.3). The valuation period of a house is the field `period` in the file and IPC (section 5). Money rounding references CSD-000 CON-8 (new CON-11). Verification table rewritten to what is covered (the claimed ac_21_ coverage and the CSD-003 currency tests are corrected; display ACs are covered by DOM tests). Back to `draft` for re-approval.
 - 0.5 (30/10/2026): Assets are renamed to houses everywhere (labels, error codes `HOUSE_*`, commands, the `houses` section of the project file, which also reads the old `assets` key; CSD-002). The app tracks houses only: every existing asset becomes a house, and NG-2 excludes any other kind of property. NG-3 is removed: CSD-020 links existing debts to a house. Back to `draft` until re-approved (GitHub issue 31).
 - 0.4 (29/10/2026): CSD-019 adds a purchase and a sale to every house (GitHub issue 27). NG-1, NG-6 and NG-8 no longer exclude them, the Intent says so, and a note in section 4 lists the requirements CSD-019 extends.

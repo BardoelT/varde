@@ -3,7 +3,7 @@ id: CSD-002
 title: Project file (save, open, new)
 status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 03/11/2026
 related: [CSD-001, CSD-003, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-020]
 ---
@@ -36,6 +36,7 @@ The app keeps all of the user's data in one local project file instead of a data
 |---|---|
 | **Project** | All app data held in memory, plus an optional path to its file. |
 | **Project file** | A JSON file with the extension `.varde` holding the project. Its sections and versioning are in REQ-16 to REQ-18. |
+| **Gone for good** | The remembered project file does not exist while its parent folder exists and can be read (for example the file was deleted). Any other reason the file cannot be opened is *transient* or a problem of the file itself, and the remembered path is kept (REQ-13). |
 | **Unsaved changes** | The in-memory project differs from the last saved or opened state. |
 
 ## 4. Requirements
@@ -287,11 +288,11 @@ Scenario: A failed save does not change the remembered path
 ```
 
 **REQ-11: Remembered file cannot be reopened** *(unwanted behaviour)*
-If the remembered project file cannot be opened at start, then the app shall start with an empty project that has no path and show a notice once without the file path.
+If the remembered project file cannot be opened at start, then the app shall start with an empty project that has no path and show a notice once for that start, without the file path.
 
 ```gherkin
 @AC-11.1
-Scenario Outline: Missing, unreadable, unavailable or invalid file
+Scenario Outline: The file cannot be opened
   Given the remembered file "example-a.varde" is <problem>
   When the app starts
   Then no jobs exist and no path is set
@@ -299,27 +300,38 @@ Scenario Outline: Missing, unreadable, unavailable or invalid file
   And the notice text does not contain the file path
 
   Examples:
-    | problem                                  | code                 |
-    | missing                                  | PROJECT_OPEN_FAILED  |
-    | on a drive that is not mounted           | PROJECT_OPEN_FAILED  |
-    | not a valid project file                 | PROJECT_INVALID_FILE |
+    | problem                                              | code                 |
+    | deleted, while its folder still exists               | PROJECT_OPEN_FAILED  |
+    | on a drive that is not mounted                       | PROJECT_OPEN_FAILED  |
+    | in a folder that no longer exists                    | PROJECT_OPEN_FAILED  |
+    | not a valid project file                             | PROJECT_INVALID_FILE |
+    | from a newer version of the app (format_version 2)   | PROJECT_FILE_NEWER   |
 
-# @AC-11.2 (removed in v1.0): the notice is not repeated once the path is forgotten, see AC-12.1.
+# @AC-11.2 (removed in v1.0): the notice is not repeated once the path is forgotten, see AC-12.2.
+```
 
 **REQ-12: Forget a remembered file that is gone for good** *(unwanted behaviour)*
-If the remembered project file cannot be opened at start because it is gone for good, then the app shall forget the remembered path.
+If the remembered project file cannot be opened at start because its parent folder exists and the file does not, then the app shall forget the remembered path.
 
 ```gherkin
 @AC-12.1
+Scenario: A deleted file in an existing folder is forgotten
+  Given the remembered file "example-a.varde" was deleted
+  And its folder "example-folder" exists
+  When the app starts
+  Then a notice with code "PROJECT_OPEN_FAILED" is shown once
+  And the remembered path is forgotten
+
+@AC-12.2
 Scenario: The error is not repeated
-  Given the remembered file was gone for good at the last start
+  Given the remembered path was forgotten at the last start (AC-12.1)
   When the app starts again
   Then no notice is shown
   And no jobs exist and no path is set
 ```
 
-**REQ-13: Keep the remembered path on a transient error** *(unwanted behaviour)*
-If the remembered project file cannot be opened at start because of a transient error, such as a drive that is not mounted, then the app shall keep the remembered path.
+**REQ-13: Keep the remembered path in every other case** *(unwanted behaviour)*
+If the remembered project file cannot be opened at start for any reason other than the one of REQ-12 (its parent folder is missing or cannot be read, or the file exists but is invalid or from a newer version of the app), then the app shall keep the remembered path.
 
 ```gherkin
 @AC-13.1
@@ -336,6 +348,31 @@ Scenario: The project is back at the next start
   When the app starts
   Then the project of "example-a.varde" is opened
   And no notice is shown
+
+@AC-13.3
+Scenario Outline: A file that exists but cannot be used keeps its path
+  Given the remembered file "example-a.varde" exists and is <problem>
+  When the app starts
+  Then an error notice with code "<code>" is shown once
+  And the remembered path is still "example-a.varde"
+
+  Examples:
+    | problem                                            | code                 |
+    | not a valid project file                           | PROJECT_INVALID_FILE |
+    | from a newer version of the app (format_version 2) | PROJECT_FILE_NEWER   |
+
+@AC-13.4
+Scenario Outline: A parent folder that is missing or unreadable keeps the path
+  Given the remembered file is "example-folder/example-a.varde"
+  And the folder "example-folder" is <state>
+  When the app starts
+  Then an error notice with code "PROJECT_OPEN_FAILED" is shown once
+  And the remembered path is still "example-folder/example-a.varde"
+
+  Examples:
+    | state                  |
+    | missing                |
+    | not readable           |
 ```
 
 **REQ-14: Saving never overwrites another file silently** *(event-driven)*
@@ -461,7 +498,7 @@ Project file: JSON with the extension `.varde`, a top-level integer `format_vers
 | `houses` | Houses (CSD-015, CSD-020) |
 | `settings` | Project settings (CSD-003) |
 
-Every period field in a section is called `period` (the pay period of a job, and the period of an investment account, bank account, debt or house), so the names `pay_period`, `entry_period`, `statement_period` and `valuation_period` do not exist. The preferences of the person (theme, language) are not in the file (CSD-008, CSD-022).
+Every period field in a section is called `period` (the pay period of a job, which was `pay_period` and now holds the same Monthly or Yearly value under the name `period`, and the period of an investment account, bank account, debt or house), so the names `pay_period`, `entry_period`, `statement_period` and `valuation_period` do not exist. The preferences of the person (theme, language) are not in the file (CSD-008, CSD-022). A house keeps its purchase as `purchase_date` and `purchase_amount` and its optional sale as `sell_date` and `sell_amount` (CSD-015, CSD-020).
 
 Versioning policy: the version is 1 at the first release. The first change of the schema after 1.0 raises `format_version`, and an older app then shows the `PROJECT_FILE_NEWER` error (REQ-18) instead of a generic parse error. There is no migration (NG-7) and no backup copy (NG-2).
 
@@ -490,11 +527,12 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 ## 8. Open questions
 - OQ-1: (resolved) Tests include the CSD number, `test_csd<NNN>_ac_n_m_...`. CSD-000 is now 2.1 and `CLAUDE.md` uses the same naming.
 - OQ-2: (removed in v1.0) Obsolete: the SQLite text in `CLAUDE.md` is gone.
-- OQ-3: Does a typed name without `.varde` get the extension appended (as REQ-15 says in this draft) or is it rejected? Owner: Thijs. Blocks: REQ-15.
-- OQ-4: When is a remembered file "gone for good" (REQ-12) and when is the error transient (REQ-13)? An unmounted drive and a deleted file can both look like "not found". Owner: Thijs. Blocks: REQ-12, REQ-13.
-- OQ-5: A remembered file that exists but is invalid or from a newer app version: forget the path (as AC-11.1 and the old behaviour did) or keep it like a transient error? Decision D14 says to forget only when the file is gone for good, which keeps it. Owner: Thijs. Blocks: REQ-12.
+- OQ-3: (resolved 03/11/2026) A typed name without `.varde` gets the extension appended, it is not rejected (REQ-15 stays as written).
+- OQ-4: (resolved 03/11/2026) A remembered file is gone for good only when its parent folder exists and the file does not (REQ-12). When the parent folder is missing or cannot be read, the error is transient and the path is kept (REQ-13).
+- OQ-5: (resolved 03/11/2026) A remembered file that exists but is invalid or from a newer app version keeps its remembered path and shows the error (REQ-13, AC-13.3).
 
 ## 9. Changelog
+- 1.1 (03/11/2026): Owner decisions. REQ-11 lists the five failure cases with their codes (AC-11.1; the newer version case is new) and the notice is shown once per start. REQ-12 is now exact: the path is forgotten only when the parent folder exists and the file does not (AC-12.1 is the deleted-file scenario, the old AC-12.1 became AC-12.2). REQ-13 keeps the path in every other case, including a file that exists but is invalid or from a newer version (behaviour change: it used to be forgotten; new AC-13.3, AC-13.4). Definition "Gone for good" added. Section 5 names the `period` field of a job and the `sell_date` and `sell_amount` house fields. `PROJECT_FILE_NEWER` confirmed. OQ-3 to OQ-5 resolved. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): First release, strict schema. The project file extension is `.varde` (was `.wealth`). New REQ-16 to REQ-18: the sections of the file are listed and all required (`income`, `investments`, `bank_accounts`, `debts`, `expenses`, `houses`, `settings`), unknown fields and missing sections are rejected, a newer `format_version` has its own error `PROJECT_FILE_NEWER` (AC-2.3 removed, see AC-18.1); `format_version` stays 1, with the policy that the first schema change after 1.0 raises it; no migration (NG-7), no `.bak`. The `period` field replaces `pay_period`, `entry_period`, `statement_period` and `valuation_period`. New REQ-14 and REQ-15: saving never overwrites another file without confirmation, and `.varde` is appended. REQ-11 split: the remembered path is forgotten only when the file is gone for good (REQ-12), and kept on a transient error such as an unmounted drive (REQ-13); AC-11.2 moved to AC-12.1. OQ-2 removed as obsolete, OQ-3 to OQ-5 added. Display and dialog ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.14 (30/10/2026): The `assets` section is renamed `houses`; the reader also accepts `assets` and the app writes `houses` (CSD-015 REQ-24, AC-24.6). Debts may carry a link to a house and a settlement (CSD-020). `format_version` stays 1. Back to `draft` until re-approved (GitHub issue 31).
 - 0.13 (29/10/2026): The project file gets a `houses` section (CSD-015). `format_version` stays 1: a file without it opens with no houses, as the app is not released yet. Back to `draft` until the owner approves.

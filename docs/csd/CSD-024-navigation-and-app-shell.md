@@ -3,7 +3,7 @@ id: CSD-024
 title: Navigation and app shell
 status: draft
 owner: Thijs Bardoel
-version: 0.1
+version: 0.2
 last_updated: 03/11/2026
 related: [CSD-002, CSD-003, CSD-004, CSD-022]
 ---
@@ -23,8 +23,9 @@ The app has one window with a left pane that opens the pages, and a native macOS
 - NG-1: Any page in the Insights group other than the Net worth page of CSD-017 and the Ratios page of CSD-018 (moved from CSD-004 NG-5).
 - NG-2: Pages that have no function yet: Accounts, Transactions and Budget.
 - NG-3: Collapsible groups, and a user-defined order of the items.
-- NG-4: Keyboard shortcuts that open a page, other than ⌘, for Settings (CSD-003 REQ-2).
+- NG-4: Keyboard shortcuts that open a page, other than ⌘, for Settings (CSD-003 REQ-2). Decided for the first release (OQ-1).
 - NG-5: The content of a page, its tabs (such as Overview and Insights) and the actions behind the menu items (the owning CSDs).
+- NG-6: Remembering the last shown page between sessions (OQ-2).
 
 ## 3. Definitions
 | Term | Meaning |
@@ -129,7 +130,7 @@ Scenario: Pinned items stay in place
 ```
 
 **REQ-5: Native menu** *(ubiquitous)*
-The app shall show the native macOS menu bar with the app menu holding "Settings…" (⌘,) below "About", the File menu holding "New" (⌘N), "Open…" (⌘O), "Save" (⌘S) and "Save As…" (⇧⌘S) above its standard items, and macOS's standard Edit, View and Window menus.
+The app shall show the native macOS menu bar with the standard menus (app, File, Edit, View and Window), where the app menu holds "Settings…" (⌘,) below "About" and the File menu holds "New" (⌘N), "Open…" (⌘O), "Save" (⌘S) and "Save As…" (⇧⌘S) above its standard items, and no other menu item is specified.
 
 ```gherkin
 @AC-5.1
@@ -137,7 +138,7 @@ Scenario: Items and shortcuts
   Given the app has started
   Then the app menu holds "Settings…" with ⌘, directly below "About"
   And the File menu starts with "New" ⌘N, "Open…" ⌘O, "Save" ⌘S and "Save As…" ⇧⌘S
-  And the menu bar has the menus Edit, View and Window
+  And the menu bar has the menus app, File, Edit, View and Window
 
 @AC-5.2
 Scenario: Copy and paste keep working
@@ -193,9 +194,10 @@ Menu: Rust builds the menu. The items `open-settings`, `project-new`, `project-o
 Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 
 ## 8. Open questions
-- OQ-1: Should the groups or the pages stay reachable by a keyboard shortcut (for example ⌘1 to ⌘9)? Today only ⌘, exists, and NG-4 excludes more. Owner: Thijs. Blocks: REQ-3.
-- OQ-2: Should the app remember the last shown page when a remembered project is opened, instead of opening on the Dashboard (REQ-2)? Owner: Thijs. Blocks: REQ-2.
-- OQ-3: The File menu "Open…" and "Save As…" names, and the View and Window menus, are Tauri's defaults: should the menu be listed item by item, or is "standard menus" enough (REQ-5)? Owner: Thijs. Blocks: REQ-5.
+- OQ-1: (resolved 03/11/2026) No keyboard shortcuts for pages in the first release; only ⌘, for Settings exists and NG-4 stays.
+- OQ-2: (resolved 03/11/2026) The app always opens on the Dashboard and does not remember the last page (REQ-2, AC-2.2, NG-6).
+- OQ-3: (resolved 03/11/2026) The native menu is specified only as the standard menus (app, File, Edit, View, Window) plus the items already named; it is not listed item by item (REQ-5).
 
 ## 9. Changelog
+- 0.2 (03/11/2026): Owner decisions, OQ-1 to OQ-3 resolved. No page shortcuts in the first release (NG-4 stays), the app always opens on the Dashboard (new NG-6 for remembering the last page), and REQ-5 now says the menu is the standard menus (app, File, Edit, View, Window) without a full item list (AC-5.1 names the five menus). Back to `draft` until re-approved.
 - 0.1 (03/11/2026): initial draft. The left pane requirements move here from CSD-004 REQ-1, AC-1.1, AC-1.2 and NG-5 (decision D9); the native menu, which CSD-002 REQ-9 and CSD-003 REQ-2 specify item by item, gets one overview (REQ-5 to REQ-7). Describes the behaviour of the app today.
