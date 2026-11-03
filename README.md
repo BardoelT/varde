@@ -15,7 +15,7 @@ The left pane groups the pages as **Overview**, **Finance**, **Wealth**, **Liabi
 - **Debts:** what you owe, each recorded monthly or yearly as a remaining balance, with the amount repaid per year. Insights charts the debt per debt per year.
 - **Net worth:** one chart of your overall financial state: a stacked bar per year with houses, investments and cash above the zero line and debts below it, and a marker at the net worth. Every figure is the one the chart of its own area shows.
 - **Ratios:** one table with the years as columns: total income, how much of it became wealth (bank increase, investment net deposits and debt repaid), the growth of the investments and of the total wealth, and the disposable income with its share of the income.
-- **Settings:** the currency (EUR, USD or GBP) of the whole project, and the theme (System, Light or Dark). Changing the currency does not convert any amount.
+- **Settings:** the currency (EUR, USD or GBP) of the whole project, the theme (System, Light or Dark) and the language (English or Dutch). Changing the currency does not convert any amount.
 - **Project file:** everything is saved in one file you choose, and the app reopens the last one you used.
 
 All insights charts look and behave alike: hovering a legend item highlights that series in every year, and the tooltip lists its rows in the same order as the bar.
@@ -84,6 +84,7 @@ cargo fmt --all
 cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all-features
 cargo deny check
+GOLDEN_UPDATE=1 cargo test golden        # only for a deliberate change of behaviour: rewrites src-tauri/golden/
 npm ci                                   # once: installs jsdom, the tests-only dev dependency
 npm test                                 # DOM tests of ui/ (Node 26)
 ```
@@ -97,18 +98,20 @@ ui/                 frontend (HTML, CSS, JS; no build step)
   index.html
   main.js           entry point: wires the pages and reloads them
   navigation.js     left-pane navigation
-  pages/            one file per page or view (income-overview, income-insights, ...)
-  shared/           helpers pages share (ipc, dom, format, date-mask, chart, yearly-chart, tabs)
+  pages/            one file per page or view (income-overview, income-insights, ..., dashboard, settings)
+  shared/           helpers pages share (ipc, dom, crud, list-rows, record-form, insights-page, format, i18n, settle, date-mask, chart, yearly-chart, tabs)
+  locales/          Dutch texts (the English text in the code is the key)
   styles/           CSS by area (base, layout, components, pages, charts)
   tests/            DOM tests (node:test + jsdom) and their harness; not part of the app
 src-tauri/
   src/lib.rs        app setup, command registration
   src/menu.rs       native macOS menu bar (File menu, Settings…)
   src/commands/     thin #[tauri::command] handlers
-  src/domain/       pure business logic (money, income, expenses, bank accounts, investments, houses, debts, net worth, ratios, settings), unit-tested
-  src/storage/      project file persistence (JSON, atomic write)
+  src/domain/       pure business logic (income, expenses, bank accounts, investments, houses, debts, net worth, ratios, the shared series core, charts and money, preferences, settings), unit-tested
+  src/storage/      project file persistence (JSON, atomic write), last project, preferences
   src/error.rs      app error type
   capabilities/     Tauri permission files
+  golden/           golden files of the golden tests
 docs/
   architecture.md   how the code is organised and the conventions it follows
   csd/              capability specifications
@@ -123,7 +126,7 @@ Behaviour is defined in Capability Specification Documents in [`docs/csd/`](docs
 | [CSD-001](docs/csd/CSD-001-employment-income.md) | Income tracking (employment income) |
 | [CSD-002](docs/csd/CSD-002-project-file.md) | Project file (save, open, new, reopen last project) |
 | [CSD-003](docs/csd/CSD-003-project-settings.md) | Project settings (currency) |
-| [CSD-004](docs/csd/CSD-004-income-dashboard.md) | Income dashboard and the structure of the left pane |
+| [CSD-004](docs/csd/CSD-004-income-dashboard.md) | Income dashboard |
 | [CSD-005](docs/csd/CSD-005-investments.md) | Investments (accounts, statements, net deposits, capital growth, yearly totals) |
 | [CSD-006](docs/csd/CSD-006-income-insights.md) | Income insights chart |
 | [CSD-007](docs/csd/CSD-007-investment-insights.md) | Investment insights chart |
@@ -138,7 +141,11 @@ Behaviour is defined in Capability Specification Documents in [`docs/csd/`](docs
 | [CSD-016](docs/csd/CSD-016-house-insights.md) | House insights chart |
 | [CSD-017](docs/csd/CSD-017-net-worth-insights.md) | Net worth insights (the Net worth page) |
 | [CSD-018](docs/csd/CSD-018-ratios.md) | Ratios (the Ratios page) |
-| [CSD-020](docs/csd/CSD-020-debt-linked-to-house.md) | Debt linked to a house |
+| [CSD-020](docs/csd/CSD-020-debt-linked-to-house.md) | House purchase, sale and linked debts |
+| [CSD-021](docs/csd/CSD-021-ci-and-release-pipeline.md) | CI and release pipeline |
+| [CSD-022](docs/csd/CSD-022-language.md) | Language (English and Dutch) |
+| [CSD-024](docs/csd/CSD-024-navigation-and-app-shell.md) | Navigation and app shell |
+| [CSD-025](docs/csd/CSD-025-shared-charts.md) | Shared charts |
 
 Only specs with `status: approved` are implemented; check a spec's status before relying on it. Tests reference acceptance criteria in their names, for example `test_csd002_ac_1_1_...` (Rust) and `test_csd024_ac_3_1_...` (DOM tests).
 
