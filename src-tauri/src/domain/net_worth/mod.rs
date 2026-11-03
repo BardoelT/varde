@@ -6,7 +6,7 @@ use rust_decimal::Decimal;
 use serde::Serialize;
 
 use crate::domain::bank_accounts::BankAccounts;
-use crate::domain::common::YearMonth;
+use crate::domain::common::{series_years, YearMonth};
 use crate::domain::debts::Debts;
 use crate::domain::houses::Houses;
 use crate::domain::investments::Investments;
@@ -64,10 +64,11 @@ impl Default for Figures {
 }
 
 /// One figure set per calendar year from the earliest year with a record in
-/// any area up to and including the current year, oldest first. Each figure is
-/// the one the chart of its own area shows (CSD-017 REQ-3, CON-4); an area
-/// without a record in a year gives 0.00 and nothing is carried forward
-/// (REQ-4). The current year is partial.
+/// any area up to and including the later of the current year and the latest
+/// year with a record, at most 50 years back from it, oldest first (CSD-017
+/// REQ-2). Each figure is the one the chart of its own area shows (REQ-3,
+/// CON-4); an area without a record in a year gives 0.00 and nothing is carried
+/// forward (REQ-4). The current year is partial; a later year is not (REQ-15).
 #[must_use]
 pub fn net_worth_insights(
     houses: &Houses,
@@ -97,10 +98,11 @@ pub fn net_worth_insights(
         figures.debts = row.closing_balance;
         figures.has_records |= row.statement_count > 0;
     }
-    let Some(&first) = by_year.keys().next() else {
-        return NetWorthInsights { years: Vec::new() };
-    };
-    let years = (first..=today.year())
+    // The areas' series already end at the latest record and reach back at most
+    // 50 years from their own last year, so the shared range of their years is
+    // the range of all records.
+    let years = series_years(by_year.keys().copied(), today.year())
+        .into_iter()
         .map(|year| {
             let figures = by_year.get(&year).copied().unwrap_or_default();
             NetWorthYear {

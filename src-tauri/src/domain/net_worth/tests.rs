@@ -304,3 +304,87 @@ fn test_csd020_ac_11_1_net_worth_drops_a_sold_house() {
     assert_eq!(year(&data, 2025).houses.to_string(), "210000.00");
     assert_eq!(year(&data, 2026).houses.to_string(), "0.00");
 }
+
+fn add_named_cash(data: &mut ProjectData, name: &str, at: &str, amount: &str) {
+    let id = data
+        .bank_accounts
+        .create_account(&BankInput {
+            name: name.to_owned(),
+            period: Some("Yearly".to_owned()),
+        })
+        .unwrap()
+        .id;
+    data.bank_accounts
+        .add_entry(
+            id,
+            crate::domain::bank_accounts::parse_period(at).unwrap(),
+            BankBalance::parse(amount).unwrap(),
+            Note::default(),
+        )
+        .unwrap();
+}
+
+#[test]
+fn test_csd017_ac_2_3_records_after_the_current_year_extend_the_series() {
+    let mut data = ProjectData::default();
+    add_cash(&mut data, "2024", "100.00");
+    add_cash_entry_later(&mut data, "2027", "200.00");
+    assert_eq!(years(&data), [2024, 2025, 2026, 2027]);
+    assert_eq!(year(&data, 2025).cash.to_string(), "0.00");
+    assert_eq!(year(&data, 2026).cash.to_string(), "0.00");
+}
+
+/// A second entry on the one bank account of the data.
+fn add_cash_entry_later(data: &mut ProjectData, at: &str, amount: &str) {
+    let id = data.bank_accounts.accounts()[0].id;
+    data.bank_accounts
+        .add_entry(
+            id,
+            crate::domain::bank_accounts::parse_period(at).unwrap(),
+            BankBalance::parse(amount).unwrap(),
+            Note::default(),
+        )
+        .unwrap();
+}
+
+#[test]
+fn test_csd017_ac_2_4_a_very_old_record_gets_no_slot_but_still_counts() {
+    let mut data = ProjectData::default();
+    add_named_cash(&mut data, "Example Bank", "1950", "1000.00");
+    add_named_cash(&mut data, "Other Bank", "2026", "500.00");
+    let rows = years(&data);
+    assert_eq!(rows.len(), 50);
+    assert_eq!((rows[0], rows[49]), (1977, 2026));
+    assert_eq!(year(&data, 2026).cash.to_string(), "500.00");
+    let totals = data.bank_accounts.yearly_totals();
+    let old = totals.iter().find(|t| t.year == 1950).unwrap();
+    assert_eq!(old.closing_balance.to_string(), "1000.00");
+}
+
+#[test]
+fn test_csd017_ac_15_2_a_year_after_the_current_year_has_a_slot() {
+    let mut data = ProjectData::default();
+    add_cash(&mut data, "2027", "7000.00");
+    assert_eq!(years(&data).last(), Some(&2027));
+    assert_eq!(year(&data, 2027).cash.to_string(), "7000.00");
+    assert_eq!(year(&data, 2027).net_worth.to_string(), "7000.00");
+}
+
+#[test]
+fn test_csd017_ac_15_3_a_year_after_the_current_year_is_not_partial() {
+    let mut data = ProjectData::default();
+    add_cash(&mut data, "2025", "100.00");
+    add_cash_entry_later(&mut data, "2027", "7000.00");
+    assert!(year(&data, 2026).is_partial);
+    assert!(!year(&data, 2027).is_partial);
+}
+
+#[test]
+fn test_csd017_ac_2_3_a_later_record_in_another_area_limits_the_old_start() {
+    let mut data = ProjectData::default();
+    add_named_cash(&mut data, "Example Bank", "1950", "1000.00");
+    add_house(&mut data, "2060", "200.00");
+    let rows = years(&data);
+    assert_eq!(rows.len(), 50);
+    assert_eq!((rows[0], rows[49]), (2011, 2060));
+}

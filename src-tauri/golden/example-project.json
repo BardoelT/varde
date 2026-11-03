@@ -137,6 +137,12 @@
         "name": "Example Savings",
         "period": "Yearly",
         "colour_slot": 1
+      },
+      {
+        "id": "id-7",
+        "name": "Example Old Bank",
+        "period": "Yearly",
+        "colour_slot": 2
       }
     ],
     "entries": [
@@ -169,18 +175,24 @@
         "period": "2027",
         "balance": "1500.00",
         "note": "Future entry"
+      },
+      {
+        "account_id": "id-7",
+        "period": "1950",
+        "balance": "100.00",
+        "note": "Very old entry"
       }
     ]
   },
   "debts": {
     "debts": [
       {
-        "id": "id-7",
+        "id": "id-8",
         "name": "Example Mortgage",
         "period": "Monthly",
         "colour_slot": 0,
         "category": "Mortgage",
-        "house_id": "id-8",
+        "house_id": "id-9",
         "settlement": {
           "outcome": "Repaid",
           "date": "2026-06-10",
@@ -188,12 +200,12 @@
         }
       },
       {
-        "id": "id-9",
+        "id": "id-10",
         "name": "Example Home Loan",
         "period": "Monthly",
         "colour_slot": 1,
         "category": "Loan",
-        "house_id": "id-8",
+        "house_id": "id-9",
         "settlement": {
           "outcome": "Cancelled",
           "date": "2026-06-10",
@@ -201,7 +213,7 @@
         }
       },
       {
-        "id": "id-10",
+        "id": "id-11",
         "name": "Example Student Loan",
         "period": "Yearly",
         "colour_slot": 2,
@@ -210,44 +222,44 @@
     ],
     "statements": [
       {
-        "debt_id": "id-7",
+        "debt_id": "id-8",
         "period": "2025-12",
         "balance": "150000.00",
         "note": ""
       },
       {
-        "debt_id": "id-7",
+        "debt_id": "id-8",
         "period": "2026-04",
         "balance": "148000.50",
         "note": ""
       },
       {
-        "debt_id": "id-9",
+        "debt_id": "id-10",
         "period": "2026-04",
         "balance": "20000.00",
         "note": ""
       },
       {
-        "debt_id": "id-10",
+        "debt_id": "id-11",
         "period": "2025",
         "balance": "8000.00",
         "note": ""
       },
       {
-        "debt_id": "id-10",
+        "debt_id": "id-11",
         "period": "2026",
         "balance": "7000.00",
         "note": ""
       },
       {
-        "debt_id": "id-9",
+        "debt_id": "id-10",
         "period": "2026-06",
         "balance": "0.00",
         "note": "Cancelled on sale of Example House",
         "settlement": true
       },
       {
-        "debt_id": "id-7",
+        "debt_id": "id-8",
         "period": "2026-06",
         "balance": "0.00",
         "note": "Repaid on sale of Example House",
@@ -258,7 +270,7 @@
   "expenses": {
     "expenses": [
       {
-        "id": "id-11",
+        "id": "id-12",
         "name": "Example Bike",
         "amount": "500.00",
         "date": "2025-03-05",
@@ -266,7 +278,7 @@
         "note": ""
       },
       {
-        "id": "id-12",
+        "id": "id-13",
         "name": "Example Trip",
         "amount": "1250.50",
         "date": "2025-07-20",
@@ -274,7 +286,7 @@
         "note": ""
       },
       {
-        "id": "id-13",
+        "id": "id-14",
         "name": "Example Sofa",
         "amount": "800.00",
         "date": "2026-02-11",
@@ -282,11 +294,19 @@
         "note": ""
       },
       {
-        "id": "id-14",
+        "id": "id-15",
         "name": "Example Class",
         "amount": "120.00",
         "date": "2026-09-02",
         "category": "Study",
+        "note": ""
+      },
+      {
+        "id": "id-16",
+        "name": "Example Heirloom",
+        "amount": "100.00",
+        "date": "1950-01-01",
+        "category": "Other",
         "note": ""
       }
     ]
@@ -294,7 +314,7 @@
   "houses": {
     "houses": [
       {
-        "id": "id-8",
+        "id": "id-9",
         "name": "Example House",
         "period": "Monthly",
         "colour_slot": 0,
@@ -304,7 +324,7 @@
         "sell_amount": "300000.00"
       },
       {
-        "id": "id-15",
+        "id": "id-17",
         "name": "Example Lodge",
         "period": "Yearly",
         "colour_slot": 1,
@@ -316,25 +336,25 @@
     ],
     "valuations": [
       {
-        "house_id": "id-8",
+        "house_id": "id-9",
         "period": "2025-12",
         "value": "260000.00",
         "note": ""
       },
       {
-        "house_id": "id-8",
+        "house_id": "id-9",
         "period": "2026-04",
         "value": "270000.00",
         "note": "Valued by an example agent"
       },
       {
-        "house_id": "id-15",
+        "house_id": "id-17",
         "period": "2025",
         "value": "105000.00",
         "note": ""
       },
       {
-        "house_id": "id-15",
+        "house_id": "id-17",
         "period": "2026",
         "value": "110000.00",
         "note": ""

@@ -1262,3 +1262,27 @@ fn test_csd011_ac_26_3_a_debt_without_statements_has_no_mark() {
     debt(&mut debts, "Example Card", "Monthly");
     assert!(!debts.overview().debts[0].repaid);
 }
+
+#[test]
+fn test_csd017_ac_15_2_a_debt_statement_after_the_current_year_extends_the_series() {
+    let mut debts = Debts::default();
+    let id = debt(&mut debts, "Example Loan", "Monthly");
+    add(&mut debts, id, "2024-03", "100.00");
+    add(&mut debts, id, "2027-05", "50.00");
+    let years = debts.insights(today()).years;
+    let numbers: Vec<i32> = years.iter().map(|y| y.year).collect();
+    assert_eq!(numbers, [2024, 2025, 2026, 2027]);
+    assert!(!years[3].is_partial);
+    assert_eq!(years[3].closing_balance.to_string(), "50.00");
+}
+
+#[test]
+fn test_csd017_ac_2_4_a_very_old_debt_statement_gets_no_slot() {
+    let mut debts = Debts::default();
+    let id = debt(&mut debts, "Example Loan", "Monthly");
+    add(&mut debts, id, "1950-01", "100.00");
+    add(&mut debts, id, "2026-03", "50.00");
+    let years = debts.insights(today()).years;
+    assert_eq!(years.len(), 50);
+    assert_eq!(years[0].year, 1977);
+}

@@ -1197,3 +1197,47 @@ fn test_csd016_ac_15_3_a_moved_valuation_follows_to_its_new_year() {
     assert_eq!(years[0].segments.len(), 1);
     assert_eq!(years[1].segments.len(), 0);
 }
+
+fn insight_years_of(houses: &Houses) -> Vec<i32> {
+    houses
+        .insights(today())
+        .years
+        .iter()
+        .map(|y| y.year)
+        .collect()
+}
+
+#[test]
+fn test_csd016_ac_2_4_a_valuation_in_the_future_extends_the_series() {
+    let mut houses = Houses::default();
+    let id = new_house(&mut houses, "Example House", "Monthly");
+    add(&mut houses, id, "2024-03", "100.00");
+    add(&mut houses, id, "2028-05", "200.00");
+    assert_eq!(insight_years_of(&houses), [2024, 2025, 2026, 2027, 2028]);
+}
+
+#[test]
+fn test_csd016_ac_2_5_a_very_old_valuation_gets_no_slot_but_still_counts() {
+    let mut houses = Houses::default();
+    let id = new_house(&mut houses, "Example House", "Monthly");
+    add(&mut houses, id, "1950-01", "100000.00");
+    add(&mut houses, id, "2026-03", "250000.00");
+    let years = houses.insights(today()).years;
+    assert_eq!(years.len(), 50);
+    assert_eq!((years[0].year, years[49].year), (1977, 2026));
+    assert_eq!(years[49].closing_value.to_string(), "250000.00");
+    let values = houses.yearly_values();
+    let old = values.iter().find(|v| v.year == 1950).unwrap();
+    assert_eq!(old.closing_value.to_string(), "100000.00");
+}
+
+#[test]
+fn test_csd016_ac_4_3_a_future_year_is_not_marked_partial() {
+    let mut houses = Houses::default();
+    let id = new_house(&mut houses, "Example House", "Monthly");
+    add(&mut houses, id, "2026-03", "100.00");
+    add(&mut houses, id, "2028-05", "200.00");
+    let years = houses.insights(today()).years;
+    let partial: Vec<(i32, bool)> = years.iter().map(|y| (y.year, y.is_partial)).collect();
+    assert_eq!(partial, [(2026, true), (2027, false), (2028, false)]);
+}

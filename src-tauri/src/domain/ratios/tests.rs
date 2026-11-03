@@ -470,3 +470,25 @@ fn test_csd018_section_5_figures_cross_ipc_as_strings_and_none_as_null() {
     assert_eq!(row["wealth_percent"], "12.50");
     assert_eq!(row["wealth_growth_percent"], serde_json::Value::Null);
 }
+
+#[test]
+fn test_csd018_ac_2_4_a_record_after_the_current_year_extends_the_series() {
+    let mut data = ProjectData::default();
+    add_expense(&mut data, "05/03/2024", "10.00");
+    add_bank(&mut data, "Example Bank", &[("2027", "7000.00")]);
+    let rows = series(&data);
+    let years: Vec<i32> = rows.iter().map(|row| row.year).collect();
+    assert_eq!(years, [2024, 2025, 2026, 2027]);
+    let partial: Vec<bool> = rows.iter().map(|row| row.is_partial).collect();
+    assert_eq!(partial, [false, false, true, false]);
+}
+
+#[test]
+fn test_csd018_ac_2_5_a_very_old_record_gets_no_column() {
+    let mut data = ProjectData::default();
+    add_expense(&mut data, "01/01/1950", "10.00");
+    add_expense(&mut data, "15/09/2026", "10.00");
+    let years: Vec<i32> = series(&data).iter().map(|row| row.year).collect();
+    assert_eq!(years.len(), 50);
+    assert_eq!((years[0], years[49]), (1977, 2026));
+}

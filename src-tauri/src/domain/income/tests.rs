@@ -1670,3 +1670,41 @@ fn test_csd006_ac_10_1_no_entries_gives_an_empty_series() {
     job_with(&mut income, "01/03/2024", "");
     assert_eq!(income.insights(today()).len(), 0);
 }
+
+#[test]
+fn test_csd006_ac_2_4_an_entry_after_the_current_year_extends_the_series() {
+    let mut income = Income::default();
+    let id = yearly_job_named(&mut income, "Example Employer");
+    add_statement_of(&mut income, id, "2024", ["30000.00", "", ""]);
+    add_statement_of(&mut income, id, "2027", ["31000.00", "", ""]);
+    let series = income.insights(today());
+    assert_eq!(years_of(&series), [2024, 2025, 2026, 2027]);
+    assert_eq!(series[3].total_gross.to_string(), "31000.00");
+}
+
+#[test]
+fn test_csd006_ac_2_5_a_very_old_entry_gets_no_slot_but_still_counts() {
+    let mut income = Income::default();
+    let id = yearly_job_named(&mut income, "Example Employer");
+    add_statement_of(&mut income, id, "1950", ["1000.00", "0.00", "0.00"]);
+    add_statement_of(&mut income, id, "2026", ["30000.00", "", ""]);
+    let years = years_of(&income.insights(today()));
+    assert_eq!(years.len(), 50);
+    assert_eq!((years[0], years[49]), (1977, 2026));
+    assert!(!years.contains(&1950));
+    let totals = income.yearly_totals();
+    let old = totals.iter().find(|t| t.year == 1950).unwrap();
+    assert_eq!(old.total_gross.to_string(), "1000.00");
+}
+
+#[test]
+fn test_csd006_ac_4_2_a_future_year_is_not_marked_partial() {
+    let mut income = Income::default();
+    let id = yearly_job_named(&mut income, "Example Employer");
+    add_statement_of(&mut income, id, "2026", ["30000.00", "", ""]);
+    add_statement_of(&mut income, id, "2027", ["31000.00", "", ""]);
+    let series = income.insights(today());
+    assert_eq!(years_of(&series), [2026, 2027]);
+    assert!(series[0].is_partial);
+    assert!(!series[1].is_partial);
+}

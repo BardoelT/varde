@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::common::YearMonth;
+use crate::domain::common::{series_years, YearMonth};
 use crate::domain::money::zero;
 
 use super::{DebtId, Debts};
@@ -45,24 +45,20 @@ pub struct DebtInsights {
 
 impl Debts {
     /// One figure set per calendar year from the first statement up to and
-    /// including the current year, oldest first, and the debts that have a
-    /// segment in them, in creation order (CSD-012). Years without statements
-    /// are zero and have no segments. The current year is partial. Statements
-    /// after the current year, which only a project file can contain, are not
-    /// shown.
+    /// including the later of the current year and the latest statement, at
+    /// most 50 years back from it, oldest first, and the debts that have a
+    /// segment in them, in creation order (CSD-012, with the series range of
+    /// CSD-017 REQ-2 so the net worth can show the debts of a later year). Years
+    /// without statements are zero and have no segments. The current year is
+    /// partial; a year after it is not.
     #[must_use]
     pub fn insights(&self, today: YearMonth) -> DebtInsights {
         let mut counts: BTreeMap<i32, usize> = BTreeMap::new();
         for statement in &self.statements {
             *counts.entry(statement.period.year()).or_default() += 1;
         }
-        let Some(&first) = counts.keys().next() else {
-            return DebtInsights {
-                debts: Vec::new(),
-                years: Vec::new(),
-            };
-        };
-        let years: Vec<DebtInsightsYear> = (first..=today.year())
+        let years: Vec<DebtInsightsYear> = series_years(counts.keys().copied(), today.year())
+            .into_iter()
             .map(|year| {
                 let segments: Vec<InsightsSegment> = self
                     .year_segments(year)

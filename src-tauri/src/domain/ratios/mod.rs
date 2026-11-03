@@ -6,7 +6,7 @@ use rust_decimal::Decimal;
 use serde::Serialize;
 
 use crate::domain::bank_accounts::BankAccounts;
-use crate::domain::common::YearMonth;
+use crate::domain::common::{series_years, YearMonth};
 use crate::domain::debts::Debts;
 use crate::domain::expenses::Expenses;
 use crate::domain::houses::Houses;
@@ -57,8 +57,11 @@ pub struct RatioSources<'a> {
 }
 
 /// One column per calendar year from the earliest year in which any area has a
-/// record up to and including the current year, oldest first (REQ-2). Every
-/// figure comes from the code that gives it to its own page (CON-2).
+/// record up to and including the later of the current year and the latest year
+/// with a record, at most 50 years back from it, oldest first (REQ-2). A record
+/// older than that has no column but still counts in every figure that spans
+/// all years. Every figure comes from the code that gives it to its own page
+/// (CON-2). The first column has no year before it to compare with.
 #[must_use]
 pub fn ratios(sources: &RatioSources<'_>, today: YearMonth) -> Ratios {
     let income: BTreeMap<i32, Decimal> = sources
@@ -107,15 +110,14 @@ pub fn ratios(sources: &RatioSources<'_>, today: YearMonth) -> Ratios {
     .map(|row| (row.year, (row.has_records, row.net_worth)))
     .collect();
 
-    let earliest = [&income, &expenses]
-        .iter()
-        .filter_map(|series| series.keys().next().copied())
-        .chain(net_worth.keys().next().copied())
-        .min();
-    let Some(first) = earliest else {
-        return Ratios { years: Vec::new() };
-    };
-    let years = (first..=today.year())
+    // The net worth years already span every record of the wealth areas.
+    let record_years = income
+        .keys()
+        .chain(expenses.keys())
+        .chain(net_worth.keys())
+        .copied();
+    let years = series_years(record_years, today.year())
+        .into_iter()
         .map(|year| {
             let total_income = income.get(&year).copied().unwrap_or_else(zero);
             let wealth_accumulation = wealth_accumulation(

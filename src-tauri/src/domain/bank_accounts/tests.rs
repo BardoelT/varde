@@ -1079,3 +1079,79 @@ fn test_csd010_ac_15_3_a_moved_entry_follows_to_its_new_year() {
     assert_eq!(years[0].segments.len(), 1);
     assert_eq!(years[1].segments.len(), 0);
 }
+
+fn series_years_of(banks: &BankAccounts) -> Vec<i32> {
+    banks
+        .insights(insights_today())
+        .years
+        .iter()
+        .map(|y| y.year)
+        .collect()
+}
+
+#[test]
+fn test_csd010_ac_2_5_an_entry_after_the_current_year_extends_the_series() {
+    let mut banks = BankAccounts::default();
+    let id = account(&mut banks, "Example Bank", "Monthly");
+    add(&mut banks, id, "2024-03", "100.00");
+    add(&mut banks, id, "2027-05", "200.00");
+    assert_eq!(series_years_of(&banks), [2024, 2025, 2026, 2027]);
+}
+
+#[test]
+fn test_csd010_ac_2_6_a_very_old_entry_gets_no_slot_but_still_counts() {
+    let mut banks = BankAccounts::default();
+    let example = account(&mut banks, "Example Bank", "Monthly");
+    let other = account(&mut banks, "Other Bank", "Monthly");
+    add(&mut banks, example, "1950-01", "1000.00");
+    add(&mut banks, other, "2026-03", "500.00");
+    let years = banks.insights(insights_today()).years;
+    assert_eq!(years.len(), 50);
+    assert_eq!((years[0].year, years[49].year), (1977, 2026));
+    assert_eq!(years[49].closing_balance.to_string(), "500.00");
+    let totals = banks.yearly_totals();
+    let old = totals.iter().find(|t| t.year == 1950).unwrap();
+    assert_eq!(old.closing_balance.to_string(), "1000.00");
+}
+
+#[test]
+fn test_csd010_ac_4_3_a_future_year_is_not_marked_partial() {
+    let mut banks = BankAccounts::default();
+    let id = account(&mut banks, "Example Bank", "Monthly");
+    add(&mut banks, id, "2026-03", "100.00");
+    add(&mut banks, id, "2027-05", "200.00");
+    let years = banks.insights(insights_today()).years;
+    let partial: Vec<(i32, bool)> = years.iter().map(|y| (y.year, y.is_partial)).collect();
+    assert_eq!(partial, [(2026, true), (2027, false)]);
+}
+
+#[test]
+fn test_csd010_ac_5_5_a_year_after_the_current_year_equals_the_yearly_totals() {
+    let mut banks = BankAccounts::default();
+    let id = account(&mut banks, "Example Current Account", "Monthly");
+    add(&mut banks, id, "2026-05", "3000.00");
+    add(&mut banks, id, "2027-02", "3500.00");
+    let years = banks.insights(insights_today()).years;
+    for total in banks.yearly_totals() {
+        let row = years.iter().find(|y| y.year == total.year).unwrap();
+        assert_eq!(row.closing_balance, total.closing_balance);
+        assert_eq!(row.entry_count, total.entry_count);
+    }
+    assert_eq!(years[1].closing_balance.to_string(), "3500.00");
+}
+
+#[test]
+fn test_csd009_ac_19_10_a_year_after_the_current_year_has_a_row_like_any_other() {
+    let mut banks = BankAccounts::default();
+    let id = account(&mut banks, "Example Current Account", "Monthly");
+    add(&mut banks, id, "2026-05", "3000.00");
+    add(&mut banks, id, "2027-02", "3500.00");
+    let totals = banks.yearly_totals();
+    assert_eq!(totals[0].year, 2027);
+    assert_eq!(totals[0].closing_balance.to_string(), "3500.00");
+    assert_eq!(totals[0].entry_count, 1);
+    assert_eq!(totals[1].year, 2026);
+    let insights = banks.insights(insights_today()).years;
+    assert_eq!(insights[0].closing_balance.to_string(), "3000.00");
+    assert_eq!(insights[1].closing_balance.to_string(), "3500.00");
+}

@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::common::YearMonth;
+use crate::domain::common::{series_years, YearMonth};
 use crate::domain::money::{percent_of, zero};
 
 use super::{InvestmentYearlyTotal, Investments};
@@ -34,9 +34,11 @@ fn growth_percent(growth: Decimal, opening: Decimal) -> Option<Decimal> {
 
 impl Investments {
     /// One figure set per calendar year from the first statement up to and
-    /// including the current year, oldest first (CSD-007). Years without
-    /// statements are zero. The current year is partial. Statements after the
-    /// current year, which only a project file can contain, are not shown.
+    /// including the later of the current year and the latest statement, at
+    /// most 50 years back from it, oldest first (CSD-007 REQ-2). An older
+    /// statement has no slot but still counts in the yearly totals and in the
+    /// opening balance of its account. Years without statements are zero. The
+    /// current year is partial; a year after it is not.
     #[must_use]
     pub fn insights(&self, today: YearMonth) -> Vec<InvestmentInsightsYear> {
         let totals: BTreeMap<i32, InvestmentYearlyTotal> = self
@@ -44,10 +46,8 @@ impl Investments {
             .into_iter()
             .map(|total| (total.year, total))
             .collect();
-        let Some(&first) = totals.keys().next() else {
-            return Vec::new();
-        };
-        (first..=today.year())
+        series_years(totals.keys().copied(), today.year())
+            .into_iter()
             .map(|year| {
                 let (net_deposits, capital_growth, closing_balance, statement_count) =
                     totals.get(&year).map_or_else(

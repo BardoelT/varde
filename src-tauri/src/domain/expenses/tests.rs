@@ -873,14 +873,41 @@ fn test_csd014_ac_6_2_colour_slots_are_fixed_by_the_category_list() {
     );
 }
 
+fn series_years_of(expenses: &Expenses) -> Vec<i32> {
+    insights(expenses).years.iter().map(|y| y.year).collect()
+}
+
 #[test]
-fn test_csd014_expenses_after_the_current_year_are_not_shown() {
+fn test_csd014_ac_1_5_an_expense_dated_in_the_future_extends_the_series() {
     let mut expenses = Expenses::default();
-    add(&mut expenses, "A", "1.00", "15/03/2026", "Other");
-    let mut value = serde_json::to_value(&expenses).unwrap();
-    value["expenses"][0]["date"] = "2027-01-01".into();
-    let future: Expenses = serde_json::from_value(value).unwrap();
-    // The file is valid; the chart simply stops at the current year.
-    assert!(future.validate().is_ok());
-    assert!(insights(&future).years.iter().all(|y| y.expense_count == 0));
+    add(&mut expenses, "A", "1.00", "15/03/2024", "Other");
+    add(&mut expenses, "B", "2.00", "10/05/2028", "Other");
+    assert_eq!(series_years_of(&expenses), [2024, 2025, 2026, 2027, 2028]);
+    let years = insights(&expenses).years;
+    assert_eq!(years[3].total.to_string(), "0.00");
+    assert_eq!(years[3].segments.len(), 0);
+}
+
+#[test]
+fn test_csd014_ac_1_6_a_very_old_expense_gets_no_slot_but_still_counts() {
+    let mut expenses = Expenses::default();
+    add(&mut expenses, "A", "100.00", "01/01/1950", "Other");
+    add(&mut expenses, "B", "50.00", "15/09/2026", "Other");
+    let years = series_years_of(&expenses);
+    assert_eq!(years.len(), 50);
+    assert_eq!((years[0], years[49]), (1977, 2026));
+    assert!(!years.contains(&1950));
+    let totals = expenses.yearly_totals();
+    let old = totals.iter().find(|t| t.year == 1950).unwrap();
+    assert_eq!(old.total.to_string(), "100.00");
+}
+
+#[test]
+fn test_csd014_ac_3_3_a_future_year_is_not_marked_partial() {
+    let mut expenses = Expenses::default();
+    add(&mut expenses, "A", "1.00", "10/05/2026", "Other");
+    add(&mut expenses, "B", "1.00", "10/05/2028", "Other");
+    let years = insights(&expenses).years;
+    let partial: Vec<(i32, bool)> = years.iter().map(|y| (y.year, y.is_partial)).collect();
+    assert_eq!(partial, [(2026, true), (2027, false), (2028, false)]);
 }

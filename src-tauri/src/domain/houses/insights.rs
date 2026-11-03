@@ -3,7 +3,7 @@
 use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::common::YearMonth;
+use crate::domain::common::{series_years, YearMonth};
 use crate::domain::money::zero;
 
 use super::{HouseId, Houses};
@@ -43,21 +43,17 @@ pub struct HouseInsights {
 
 impl Houses {
     /// One figure set per calendar year from the first valuation up to and
-    /// including the current year, oldest first, and the houses that have a
-    /// segment in them, in creation order (CSD-016). Years without valuations
-    /// are zero and have no segments. The current year is partial. Valuations
-    /// after the current year, which only a project file can contain, are not
-    /// shown.
+    /// including the later of the current year and the latest valuation, at
+    /// most 50 years back from it, oldest first, and the houses that have a
+    /// segment in them, in creation order (CSD-016 REQ-2). An older valuation
+    /// has no slot but still counts in the yearly values. Years without
+    /// valuations are zero and have no segments. The current year is partial; a
+    /// year after it is not.
     #[must_use]
     pub fn insights(&self, today: YearMonth) -> HouseInsights {
         let counts = self.counted_valuations_per_year();
-        let Some(&first) = counts.keys().next() else {
-            return HouseInsights {
-                houses: Vec::new(),
-                years: Vec::new(),
-            };
-        };
-        let years: Vec<HouseInsightsYear> = (first..=today.year())
+        let years: Vec<HouseInsightsYear> = series_years(counts.keys().copied(), today.year())
+            .into_iter()
             .map(|year| {
                 let segments: Vec<InsightsSegment> = self
                     .year_segments(year)

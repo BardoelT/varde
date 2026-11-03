@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
+use crate::domain::common::series_years;
 use crate::domain::money::zero;
 
 use super::{Category, Expenses};
@@ -42,9 +43,10 @@ pub struct ExpenseInsights {
 
 impl Expenses {
     /// One figure set per calendar year from the first expense up to and
-    /// including `current_year`, oldest first. A year without expenses is zero
-    /// and has no segments, and the current year is partial. Expenses after
-    /// the current year, which only a project file can contain, are not shown
+    /// including the later of `current_year` and the latest expense, at most 50
+    /// years back from it, oldest first. An older expense has no slot but still
+    /// counts in the yearly totals. A year without expenses is zero and has no
+    /// segments; the current year is partial and a later year is not
     /// (CSD-014 REQ-1 to REQ-4).
     #[must_use]
     pub fn insights(&self, current_year: i32) -> ExpenseInsights {
@@ -55,12 +57,6 @@ impl Expenses {
                 colour_slot: name.colour_slot(),
             })
             .collect();
-        let Some(first) = self.expenses.iter().map(|e| e.date.year()).min() else {
-            return ExpenseInsights {
-                categories,
-                years: Vec::new(),
-            };
-        };
         let mut sums: BTreeMap<(i32, usize), (Decimal, usize)> = BTreeMap::new();
         for expense in &self.expenses {
             let Some(slot) = Category::ALL.iter().position(|c| *c == expense.category) else {
@@ -72,7 +68,8 @@ impl Expenses {
             entry.0 += expense.amount.value();
             entry.1 += 1;
         }
-        let years = (first..=current_year)
+        let years = series_years(self.expenses.iter().map(|e| e.date.year()), current_year)
+            .into_iter()
             .map(|year| {
                 let segments: Vec<InsightsSegment> = Category::ALL
                     .iter()

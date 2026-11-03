@@ -1821,19 +1821,6 @@ fn test_csd007_ac_7_4_a_year_with_only_new_accounts_has_no_percentage() {
 }
 
 #[test]
-fn statements_after_the_current_year_are_not_in_the_series() {
-    let id = Uuid::new_v4();
-    let json = format!(
-        r#"{{"accounts":[{{"id":"{id}","name":"Example","period":"Monthly"}}],
-            "statements":[
-            {{"account_id":"{id}","period":"2026-03","balance":"1000.00","net_deposits":"0.00","note":""}},
-            {{"account_id":"{id}","period":"2027-03","balance":"2000.00","net_deposits":"0.00","note":""}}]}}"#
-    );
-    let investments: Investments = serde_json::from_str(&json).unwrap();
-    assert_eq!(insight_years(&investments), [2026]);
-}
-
-#[test]
 fn validate_rejects_inconsistent_files() {
     let id = Uuid::new_v4();
     let other = Uuid::new_v4();
@@ -2109,4 +2096,64 @@ fn test_csd005_ac_24_14_editing_without_a_period_change_uses_the_earlier_stateme
         )
         .unwrap();
     assert_eq!(result.capital_growth.to_string(), "700.00");
+}
+
+#[test]
+fn test_csd007_ac_2_4_a_statement_after_the_current_year_extends_the_series() {
+    let mut investments = Investments::default();
+    let id = add_account(&mut investments, "Example Brokerage", "Monthly");
+    add(&mut investments, id, "2024-03", "1000.00");
+    add(&mut investments, id, "2027-05", "2000.00");
+    assert_eq!(insight_years(&investments), [2024, 2025, 2026, 2027]);
+    assert_eq!(
+        insight(&investments, 2027).closing_balance.to_string(),
+        "2000.00"
+    );
+}
+
+#[test]
+fn test_csd007_ac_2_5_a_very_old_statement_gets_no_slot_but_still_counts() {
+    let mut investments = Investments::default();
+    let id = add_account(&mut investments, "Example Brokerage", "Monthly");
+    add_with_deposits(&mut investments, id, "1950-12", "1000.00", "1000.00");
+    add_with_deposits(&mut investments, id, "2026-06", "1500.00", "200.00");
+    let years = insight_years(&investments);
+    assert_eq!(years.len(), 50);
+    assert_eq!((years[0], years[49]), (1977, 2026));
+    assert!(!years.contains(&1950));
+    let row = insight(&investments, 2026);
+    assert_eq!(
+        parts(&row),
+        (
+            "1000.00".to_owned(),
+            "200.00".to_owned(),
+            "300.00".to_owned(),
+            "1500.00".to_owned()
+        )
+    );
+    assert!(investments.yearly_totals().iter().any(|t| t.year == 1950));
+}
+
+#[test]
+fn test_csd007_ac_4_3_a_future_year_is_not_marked_partial() {
+    let mut investments = Investments::default();
+    let id = add_account(&mut investments, "Example Brokerage", "Monthly");
+    add(&mut investments, id, "2026-03", "1000.00");
+    add(&mut investments, id, "2027-05", "2000.00");
+    assert!(insight(&investments, 2026).is_partial);
+    assert!(!insight(&investments, 2027).is_partial);
+}
+
+#[test]
+fn test_csd005_oq_4_the_series_ends_with_the_latest_statement_and_equals_the_totals() {
+    let mut investments = Investments::default();
+    let id = add_account(&mut investments, "Example Brokerage", "Monthly");
+    add(&mut investments, id, "2026-03", "1000.00");
+    add(&mut investments, id, "2027-03", "2000.00");
+    assert_eq!(insight_years(&investments), [2026, 2027]);
+    for total in investments.yearly_totals() {
+        let row = insight(&investments, total.year);
+        assert_eq!(row.closing_balance, total.closing_balance);
+        assert_eq!(row.statement_count, total.statement_count);
+    }
 }

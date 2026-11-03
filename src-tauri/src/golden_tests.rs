@@ -186,6 +186,15 @@ fn add_bank_accounts(app: &Harness) {
             json!({ "accountId": id_of(&savings), "period": period, "balance": balance, "note": note }),
         );
     }
+    // A record older than the 50 slots of the series (CSD-010 AC-2.6).
+    let old = app.ok(
+        "create_bank_account",
+        json!({ "input": { "name": "Example Old Bank", "period": "Yearly" } }),
+    );
+    app.ok(
+        "add_bank_entry",
+        json!({ "accountId": id_of(&old), "period": "1950", "balance": "100.00", "note": "Very old entry" }),
+    );
 }
 
 fn add_expenses(app: &Harness) {
@@ -194,6 +203,8 @@ fn add_expenses(app: &Harness) {
         ("Example Trip", "1250.50", "20/07/2025", "Holiday"),
         ("Example Sofa", "800.00", "11/02/2026", "Home"),
         ("Example Class", "120.00", "02/09/2026", "Study"),
+        // Older than the 50 slots of the series (CSD-014 AC-1.6).
+        ("Example Heirloom", "100.00", "01/01/1950", "Other"),
     ] {
         app.ok(
             "add_expense",
