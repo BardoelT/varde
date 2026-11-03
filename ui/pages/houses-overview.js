@@ -1,7 +1,7 @@
 // Houses: things the user owns with a monthly or yearly valuation, each a value and a note (CSD-015),
 // bought once and possibly sold (CSD-020 REQ-1, REQ-2).
 import { invoke, errorText } from '../shared/ipc.js';
-import { h, iconButton, confirmAction, showToast, showError } from '../shared/dom.js';
+import { h, iconButton, confirmAction, showToast, showError, submitOnce, reloadAfterSave } from '../shared/dom.js';
 import { formatAmount, formatDate, currentYear, currentMonth } from '../shared/format.js';
 import { askSettlements } from '../shared/settle.js';
 import { t } from '../shared/i18n.js';
@@ -203,7 +203,7 @@ async function submitHouse(event) {
       await invoke('create_house', { input, links });
     }
     $('house-dialog').close();
-    await changed();
+    await reloadAfterSave(changed);
   } catch (error) {
     showError('house-error', error);
   }
@@ -301,7 +301,7 @@ async function submitValuation(event) {
       await invoke('add_house_valuation', args);
     }
     $('house-valuation-dialog').close();
-    await changed();
+    await reloadAfterSave(changed);
   } catch (error) {
     showError('house-valuation-error', error);
   }
@@ -339,9 +339,9 @@ export function initHousesOverview({ onChanged: callback }) {
   onChanged = callback;
   $('house-add').addEventListener('click', () => openHouseDialog(null));
   $('house-add-first').addEventListener('click', () => openHouseDialog(null));
-  $('house-form').addEventListener('submit', submitHouse);
+  submitOnce($('house-form'), submitHouse);
   $('house-valuation-add').addEventListener('click', () => openValuationDialog());
   $('house-valuation-copy').addEventListener('click', copyPrevious);
-  $('house-valuation-form').addEventListener('submit', submitValuation);
+  submitOnce($('house-valuation-form'), submitValuation);
   $('house-valuation-form').elements.house_id.addEventListener('change', () => applyValuationPeriod({ resetPeriod: true }));
 }

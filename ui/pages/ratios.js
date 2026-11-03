@@ -21,7 +21,7 @@ const GROUPS = [
     ['Wealth accumulation from cash', 'wealth_accumulation', amountCell,
       'The increase of the bank accounts, plus the net deposits to the investments, plus the debt repaid in the year. Houses are not counted. Shown as – when none of these has data.'],
     ['Percentage of income to wealth', 'wealth_percent', percentCell,
-      'The wealth accumulation divided by the total income, times 100. Shown as – when either is missing or the total income is 0.00.'],
+      'The wealth accumulation from cash divided by the total income, times 100. Shown as – when either is missing or the total income is 0.00.'],
   ]],
   ['Growth', [
     ['Growth of investments', 'investment_growth_percent', percentCell,
@@ -31,7 +31,7 @@ const GROUPS = [
   ]],
   ['Free income', [
     ['Disposable income', 'disposable_income', amountCell,
-      'The wealth accumulation plus the expenses of the year: what was set aside plus what was spent. Shown as – when there is no wealth accumulation.'],
+      'The wealth accumulation from cash plus the expenses of the year: what was set aside plus what was spent. Shown as – when there is no wealth accumulation from cash.'],
     ['Percentage of disposable income', 'disposable_percent', percentCell,
       'The disposable income divided by the total income, times 100. Shown as – when either is missing or the total income is 0.00.'],
   ]],

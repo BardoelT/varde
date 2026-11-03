@@ -1,6 +1,6 @@
 // Bank accounts: accounts with a monthly or yearly entry, each a closing balance and a note (CSD-009).
 import { invoke, errorText } from '../shared/ipc.js';
-import { h, iconButton, confirmAction, showToast, showError } from '../shared/dom.js';
+import { h, iconButton, confirmAction, showToast, showError, submitOnce, reloadAfterSave } from '../shared/dom.js';
 import { formatAmount, currentYear, currentMonth } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 
@@ -143,7 +143,7 @@ async function submitAccount(event) {
       await invoke('create_bank_account', { input });
     }
     $('bank-account-dialog').close();
-    await changed();
+    await reloadAfterSave(changed);
   } catch (error) {
     showError('bank-account-error', error);
   }
@@ -241,7 +241,7 @@ async function submitEntry(event) {
       await invoke('add_bank_entry', args);
     }
     $('bank-entry-dialog').close();
-    await changed();
+    await reloadAfterSave(changed);
   } catch (error) {
     showError('bank-entry-error', error);
   }
@@ -279,9 +279,9 @@ export function initBankOverview({ onChanged: callback }) {
   onChanged = callback;
   $('bank-account-add').addEventListener('click', () => openAccountDialog(null));
   $('bank-account-add-first').addEventListener('click', () => openAccountDialog(null));
-  $('bank-account-form').addEventListener('submit', submitAccount);
+  submitOnce($('bank-account-form'), submitAccount);
   $('bank-entry-add').addEventListener('click', () => openEntryDialog());
   $('bank-entry-copy').addEventListener('click', copyPrevious);
-  $('bank-entry-form').addEventListener('submit', submitEntry);
+  submitOnce($('bank-entry-form'), submitEntry);
   $('bank-entry-form').elements.account_id.addEventListener('change', () => applyEntryPeriod({ resetPeriod: true }));
 }

@@ -1,6 +1,6 @@
 // Investments: accounts with a monthly or yearly statement, each a balance, net deposits and a note (CSD-005).
 import { invoke, errorText } from '../shared/ipc.js';
-import { h, iconButton, confirmAction, showToast, showError } from '../shared/dom.js';
+import { h, iconButton, confirmAction, showToast, showError, submitOnce, reloadAfterSave } from '../shared/dom.js';
 import { formatAmount, currentYear, currentMonth } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 
@@ -156,7 +156,7 @@ async function submitAccount(event) {
       await invoke('create_investment_account', { input });
     }
     $('account-dialog').close();
-    await changed();
+    await reloadAfterSave(changed);
   } catch (error) {
     showError('account-error', error);
   }
@@ -342,7 +342,7 @@ async function submitStatement(event) {
       await invoke('add_investment_statement', args);
     }
     $('statement-dialog').close();
-    await changed();
+    await reloadAfterSave(changed);
   } catch (error) {
     showError('statement-error', error);
   }
@@ -387,10 +387,10 @@ export function initInvestmentsOverview({ onChanged: callback }) {
   onChanged = callback;
   $('account-add').addEventListener('click', () => openAccountDialog(null));
   $('account-add-first').addEventListener('click', () => openAccountDialog(null));
-  $('account-form').addEventListener('submit', submitAccount);
+  submitOnce($('account-form'), submitAccount);
   $('statement-add').addEventListener('click', () => openStatementDialog());
   $('statement-copy').addEventListener('click', copyPrevious);
-  $('statement-form').addEventListener('submit', submitStatement);
+  submitOnce($('statement-form'), submitStatement);
   const form = $('statement-form');
   form.elements.account_id.addEventListener('change', () => {
     applyStatementPeriod({ resetPeriod: true });

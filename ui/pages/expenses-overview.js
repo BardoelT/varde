@@ -1,6 +1,6 @@
 // Expenses: dated expenses with a category and a note, and yearly totals (CSD-013).
 import { invoke, errorText } from '../shared/ipc.js';
-import { h, iconButton, confirmAction, showToast, showError } from '../shared/dom.js';
+import { h, iconButton, confirmAction, showToast, showError, submitOnce, reloadAfterSave } from '../shared/dom.js';
 import { formatAmount, formatDate } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 
@@ -124,7 +124,7 @@ async function submitExpense(event) {
       await invoke('add_expense', { input });
     }
     $('expense-dialog').close();
-    await changed();
+    await reloadAfterSave(changed);
   } catch (error) {
     showError('expense-error', error);
   }
@@ -165,6 +165,6 @@ async function deleteExpense(expense) {
 export function initExpensesOverview({ onChanged: callback }) {
   onChanged = callback;
   $('expense-add').addEventListener('click', () => openExpenseDialog(null));
-  $('expense-form').addEventListener('submit', submitExpense);
+  submitOnce($('expense-form'), submitExpense);
   $('expense-copy').addEventListener('click', copyPrevious);
 }

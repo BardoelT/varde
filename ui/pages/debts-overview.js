@@ -1,6 +1,6 @@
 // Debts: debts with a monthly or yearly statement, each a remaining balance and a note (CSD-011).
 import { invoke, errorText } from '../shared/ipc.js';
-import { h, iconButton, confirmAction, showToast, showError } from '../shared/dom.js';
+import { h, iconButton, confirmAction, showToast, showError, submitOnce, reloadAfterSave } from '../shared/dom.js';
 import { formatAmount, currentYear, currentMonth } from '../shared/format.js';
 import { askSettlements } from '../shared/settle.js';
 import { t } from '../shared/i18n.js';
@@ -207,7 +207,7 @@ async function submitDebt(event) {
       await invoke('create_debt', { input });
     }
     $('debt-dialog').close();
-    await changed();
+    await reloadAfterSave(changed);
   } catch (error) {
     showError('debt-error', error);
   }
@@ -305,7 +305,7 @@ async function submitStatement(event) {
       await invoke('add_debt_statement', args);
     }
     $('debt-statement-dialog').close();
-    await changed();
+    await reloadAfterSave(changed);
   } catch (error) {
     showError('debt-statement-error', error);
   }
@@ -343,10 +343,10 @@ export function initDebtsOverview({ onChanged: callback }) {
   onChanged = callback;
   $('debt-add').addEventListener('click', () => openDebtDialog(null));
   $('debt-add-first').addEventListener('click', () => openDebtDialog(null));
-  $('debt-form').addEventListener('submit', submitDebt);
+  submitOnce($('debt-form'), submitDebt);
   $('debt-form').elements.category.addEventListener('change', applyCategory);
   $('debt-statement-add').addEventListener('click', () => openStatementDialog());
   $('debt-statement-copy').addEventListener('click', copyPrevious);
-  $('debt-statement-form').addEventListener('submit', submitStatement);
+  submitOnce($('debt-statement-form'), submitStatement);
   $('debt-statement-form').elements.debt_id.addEventListener('change', () => applyStatementPeriod({ resetPeriod: true }));
 }

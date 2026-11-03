@@ -72,7 +72,7 @@ tests/              DOM tests and their harness (not part of the app)
 | File | Job |
 |---|---|
 | `ipc.js` | `invoke`, `listen`, `errorText`: the only place that talks to Tauri |
-| `dom.js` | `h` (element builder), icons, toast, the confirm dialog, `showError` |
+| `dom.js` | `h` (element builder), icons, toast, the confirm dialog, `showError`, `submitOnce` (one submit at a time per form) and `reloadAfterSave` (a failing reload after a save goes to the toast) |
 | `format.js` | Display formatting and today's year or month. No figures are computed |
 | `chart.js` | Chart building blocks: SVG helper, `toPosition` (the one place a received decimal string becomes a number, for a position only), bar segments, tooltip rows (listed top to bottom like the bar, using the `hangs` of the received pieces), legend items, the highlight |
 | `yearly-chart.js` | The frame every insights chart shares: one size rule (`CHART_SIZE` and a plot height that follows the window), the axis, bars and marker drawn from the received `axis`, `pieces` and `marker`, tooltip, loading, resize |

@@ -103,3 +103,43 @@ export function showError(id, error) {
   box.textContent = errorText(error);
   box.hidden = false;
 }
+
+/**
+ * Runs `handler(event)` when `form` is submitted, one submit at a time. While the handler is
+ * pending the submit buttons are disabled and a second submit (a double Enter or click) is
+ * ignored, so one action never creates two records. Both are undone when the handler ends,
+ * also when it throws.
+ */
+export function submitOnce(form, handler) {
+  let busy = false;
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (busy) return;
+    busy = true;
+    const buttons = [...form.querySelectorAll('[type="submit"]')];
+    buttons.forEach((button) => {
+      button.disabled = true;
+    });
+    try {
+      await handler(event);
+    } finally {
+      busy = false;
+      buttons.forEach((button) => {
+        button.disabled = false;
+      });
+    }
+  });
+}
+
+/**
+ * Reloads what a saved change touched. The change itself is saved and its dialog is closed by
+ * then, so a failing reload goes to the toast, where the user sees it, and not into the closed
+ * dialog's error box.
+ */
+export async function reloadAfterSave(reload) {
+  try {
+    await reload();
+  } catch (error) {
+    showToast(errorText(error));
+  }
+}

@@ -1,6 +1,6 @@
 // Employment income: jobs, yearly totals over all jobs, and the paychecks and annual statements of all jobs (CSD-001).
 import { invoke, errorText } from '../shared/ipc.js';
-import { h, iconButton, confirmAction, showToast, showError } from '../shared/dom.js';
+import { h, iconButton, confirmAction, showToast, showError, submitOnce, reloadAfterSave } from '../shared/dom.js';
 import { formatAmount, formatDate, currentYear, currentMonth } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 
@@ -151,7 +151,7 @@ async function submitJob(event) {
       await invoke('create_job', { input });
     }
     $('job-dialog').close();
-    await changed();
+    await reloadAfterSave(changed);
   } catch (error) {
     showError('job-error', error);
   }
@@ -264,7 +264,7 @@ async function submitEntry(event) {
       }
     }
     $('paycheck-dialog').close();
-    await changed();
+    await reloadAfterSave(changed);
   } catch (error) {
     showError('paycheck-error', error);
   }
@@ -300,9 +300,9 @@ export function initIncomeOverview({ onChanged: callback }) {
   onChanged = callback;
   $('job-add').addEventListener('click', () => openJobDialog(null));
   $('job-add-first').addEventListener('click', () => openJobDialog(null));
-  $('job-form').addEventListener('submit', submitJob);
+  submitOnce($('job-form'), submitJob);
   $('paycheck-add').addEventListener('click', () => openEntryDialog());
   $('paycheck-copy').addEventListener('click', copyPrevious);
-  $('paycheck-form').addEventListener('submit', submitEntry);
+  submitOnce($('paycheck-form'), submitEntry);
   $('paycheck-form').elements.job_id.addEventListener('change', () => applyPayPeriod({ resetPeriod: true }));
 }
