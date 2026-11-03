@@ -11,12 +11,12 @@ use time::UtcOffset;
 use crate::configure;
 use crate::storage::Preferences;
 
-struct Harness {
-    window: WebviewWindow<MockRuntime>,
+pub(crate) struct Harness {
+    pub(crate) window: WebviewWindow<MockRuntime>,
     _app: App<MockRuntime>,
 }
 
-fn harness() -> Harness {
+pub(crate) fn harness() -> Harness {
     let app = configure(mock_builder(), UtcOffset::UTC)
         .build(mock_context(noop_assets()))
         .unwrap();
@@ -41,7 +41,7 @@ fn harness_in(config_dir: &std::path::Path) -> Harness {
 }
 
 impl Harness {
-    fn call(&self, command: &str, args: Value) -> Result<Value, Value> {
+    pub(crate) fn call(&self, command: &str, args: Value) -> Result<Value, Value> {
         let request = InvokeRequest {
             cmd: command.into(),
             callback: tauri::ipc::CallbackFn(0),
@@ -54,7 +54,7 @@ impl Harness {
         get_ipc_response(&self.window, request).map(|body| body.deserialize::<Value>().unwrap())
     }
 
-    fn ok(&self, command: &str, args: Value) -> Value {
+    pub(crate) fn ok(&self, command: &str, args: Value) -> Value {
         self.call(command, args)
             .unwrap_or_else(|error| panic!("{command} failed: {error}"))
     }

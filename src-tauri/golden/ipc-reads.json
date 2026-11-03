@@ -1,0 +1,1012 @@
+{
+  "get_bank_insights": {
+    "banks": [
+      {
+        "colour_slot": 0,
+        "id": "id-1",
+        "name": "Example Current Account"
+      },
+      {
+        "colour_slot": 1,
+        "id": "id-2",
+        "name": "Example Savings"
+      }
+    ],
+    "years": [
+      {
+        "closing_balance": "-400.00",
+        "entry_count": 1,
+        "is_partial": false,
+        "segments": [
+          {
+            "account_id": "id-2",
+            "balance": "-400.00"
+          }
+        ],
+        "year": 2024
+      },
+      {
+        "closing_balance": "3000.00",
+        "entry_count": 2,
+        "is_partial": false,
+        "segments": [
+          {
+            "account_id": "id-1",
+            "balance": "2000.00"
+          },
+          {
+            "account_id": "id-2",
+            "balance": "1000.00"
+          }
+        ],
+        "year": 2025
+      },
+      {
+        "closing_balance": "2500.50",
+        "entry_count": 1,
+        "is_partial": true,
+        "segments": [
+          {
+            "account_id": "id-1",
+            "balance": "2500.50"
+          }
+        ],
+        "year": 2026
+      }
+    ]
+  },
+  "get_dashboard": {
+    "has_jobs": true,
+    "last_month": "2026-08",
+    "last_month_totals": {
+      "bonus": "0.00",
+      "entry_count": 1,
+      "gross_salary": "3300.00",
+      "holiday_pay": "0.00",
+      "total_gross": "3300.00"
+    },
+    "year": 2026,
+    "year_to_date": {
+      "bonus": "1000.00",
+      "entry_count": 2,
+      "gross_salary": "6600.00",
+      "holiday_pay": "0.00",
+      "total_gross": "7600.00"
+    }
+  },
+  "get_debt_insights": {
+    "debts": [
+      {
+        "colour_slot": 0,
+        "id": "id-3",
+        "name": "Example Mortgage"
+      },
+      {
+        "colour_slot": 1,
+        "id": "id-4",
+        "name": "Example Home Loan"
+      },
+      {
+        "colour_slot": 2,
+        "id": "id-5",
+        "name": "Example Student Loan"
+      }
+    ],
+    "years": [
+      {
+        "closing_balance": "158000.00",
+        "is_partial": false,
+        "repaid": null,
+        "segments": [
+          {
+            "balance": "150000.00",
+            "debt_id": "id-3"
+          },
+          {
+            "balance": "8000.00",
+            "debt_id": "id-5"
+          }
+        ],
+        "statement_count": 2,
+        "year": 2025
+      },
+      {
+        "closing_balance": "7000.00",
+        "is_partial": true,
+        "repaid": "151000.00",
+        "segments": [
+          {
+            "balance": "0.00",
+            "debt_id": "id-3"
+          },
+          {
+            "balance": "0.00",
+            "debt_id": "id-4"
+          },
+          {
+            "balance": "7000.00",
+            "debt_id": "id-5"
+          }
+        ],
+        "statement_count": 5,
+        "year": 2026
+      }
+    ]
+  },
+  "get_expense_insights": {
+    "categories": [
+      {
+        "colour_slot": 0,
+        "name": "Home"
+      },
+      {
+        "colour_slot": 1,
+        "name": "Vehicle"
+      },
+      {
+        "colour_slot": 2,
+        "name": "Holiday"
+      },
+      {
+        "colour_slot": 3,
+        "name": "Sport"
+      },
+      {
+        "colour_slot": 4,
+        "name": "Study"
+      },
+      {
+        "colour_slot": 5,
+        "name": "Appliances"
+      },
+      {
+        "colour_slot": 6,
+        "name": "Hobby"
+      },
+      {
+        "colour_slot": 7,
+        "name": "Other"
+      }
+    ],
+    "years": [
+      {
+        "expense_count": 2,
+        "is_partial": false,
+        "segments": [
+          {
+            "amount": "500.00",
+            "category": "Vehicle"
+          },
+          {
+            "amount": "1250.50",
+            "category": "Holiday"
+          }
+        ],
+        "total": "1750.50",
+        "year": 2025
+      },
+      {
+        "expense_count": 2,
+        "is_partial": true,
+        "segments": [
+          {
+            "amount": "800.00",
+            "category": "Home"
+          },
+          {
+            "amount": "120.00",
+            "category": "Study"
+          }
+        ],
+        "total": "920.00",
+        "year": 2026
+      }
+    ]
+  },
+  "get_house_insights": {
+    "houses": [
+      {
+        "colour_slot": 0,
+        "id": "id-6",
+        "name": "Example House"
+      },
+      {
+        "colour_slot": 1,
+        "id": "id-7",
+        "name": "Example Lodge"
+      }
+    ],
+    "years": [
+      {
+        "change": null,
+        "closing_value": "365000.00",
+        "is_partial": false,
+        "segments": [
+          {
+            "house_id": "id-6",
+            "value": "260000.00"
+          },
+          {
+            "house_id": "id-7",
+            "value": "105000.00"
+          }
+        ],
+        "valuation_count": 2,
+        "year": 2025
+      },
+      {
+        "change": "5000.00",
+        "closing_value": "110000.00",
+        "is_partial": true,
+        "segments": [
+          {
+            "house_id": "id-7",
+            "value": "110000.00"
+          }
+        ],
+        "valuation_count": 1,
+        "year": 2026
+      }
+    ]
+  },
+  "get_income_insights": {
+    "years": [
+      {
+        "bonus": "2000.00",
+        "entry_count": 1,
+        "gross_salary": "36000.00",
+        "growth_percent": null,
+        "holiday_pay": "0.00",
+        "is_partial": false,
+        "total_gross": "38000.00",
+        "year": 2023
+      },
+      {
+        "bonus": "2000.00",
+        "entry_count": 2,
+        "gross_salary": "41000.00",
+        "growth_percent": "13.2",
+        "holiday_pay": "0.00",
+        "is_partial": false,
+        "total_gross": "43000.00",
+        "year": 2024
+      },
+      {
+        "bonus": "2500.00",
+        "entry_count": 2,
+        "gross_salary": "43200.00",
+        "growth_percent": "11.9",
+        "holiday_pay": "2400.00",
+        "is_partial": false,
+        "total_gross": "48100.00",
+        "year": 2025
+      },
+      {
+        "bonus": "1000.00",
+        "entry_count": 2,
+        "gross_salary": "6600.00",
+        "growth_percent": null,
+        "holiday_pay": "0.00",
+        "is_partial": true,
+        "total_gross": "7600.00",
+        "year": 2026
+      }
+    ]
+  },
+  "get_investment_insights": {
+    "years": [
+      {
+        "capital_growth": "5000.00",
+        "closing_balance": "5000.00",
+        "growth_percent": null,
+        "is_partial": false,
+        "net_deposits": "0.00",
+        "opening_balance": "0.00",
+        "statement_count": 1,
+        "year": 2024
+      },
+      {
+        "capital_growth": "11000.00",
+        "closing_balance": "16000.00",
+        "growth_percent": "20.0",
+        "is_partial": false,
+        "net_deposits": "0.00",
+        "opening_balance": "5000.00",
+        "statement_count": 2,
+        "year": 2025
+      },
+      {
+        "capital_growth": "2000.00",
+        "closing_balance": "12000.00",
+        "growth_percent": "20.0",
+        "is_partial": true,
+        "net_deposits": "0.00",
+        "opening_balance": "10000.00",
+        "statement_count": 2,
+        "year": 2026
+      }
+    ]
+  },
+  "get_net_worth_insights": {
+    "years": [
+      {
+        "cash": "-400.00",
+        "debts": "0.00",
+        "has_records": true,
+        "houses": "0.00",
+        "investments": "5000.00",
+        "is_partial": false,
+        "net_worth": "4600.00",
+        "year": 2024
+      },
+      {
+        "cash": "3000.00",
+        "debts": "158000.00",
+        "has_records": true,
+        "houses": "365000.00",
+        "investments": "16000.00",
+        "is_partial": false,
+        "net_worth": "226000.00",
+        "year": 2025
+      },
+      {
+        "cash": "2500.50",
+        "debts": "7000.00",
+        "has_records": true,
+        "houses": "110000.00",
+        "investments": "12000.00",
+        "is_partial": true,
+        "net_worth": "117500.50",
+        "year": 2026
+      }
+    ]
+  },
+  "get_ratios": {
+    "years": [
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "investment_growth_percent": null,
+        "is_partial": false,
+        "total_income": "38000.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_percent": null,
+        "year": 2023
+      },
+      {
+        "disposable_income": "0.00",
+        "disposable_percent": "0.0",
+        "investment_growth_percent": null,
+        "is_partial": false,
+        "total_income": "43000.00",
+        "wealth_accumulation": "0.00",
+        "wealth_growth_percent": null,
+        "wealth_percent": "0.0",
+        "year": 2024
+      },
+      {
+        "disposable_income": "3150.50",
+        "disposable_percent": "6.5",
+        "investment_growth_percent": "20.0",
+        "is_partial": false,
+        "total_income": "48100.00",
+        "wealth_accumulation": "1400.00",
+        "wealth_growth_percent": "4813.0",
+        "wealth_percent": "2.9",
+        "year": 2025
+      },
+      {
+        "disposable_income": "152420.50",
+        "disposable_percent": "2005.5",
+        "investment_growth_percent": "20.0",
+        "is_partial": true,
+        "total_income": "7600.00",
+        "wealth_accumulation": "151500.50",
+        "wealth_growth_percent": "-48.0",
+        "wealth_percent": "1993.4",
+        "year": 2026
+      }
+    ]
+  },
+  "get_settings": {
+    "currency": "EUR",
+    "entry_count": 31
+  },
+  "list_bank_accounts": {
+    "accounts": [
+      {
+        "colour_slot": 0,
+        "entry_count": 2,
+        "id": "id-1",
+        "latest_balance": "2500.50",
+        "latest_period": "2026-08",
+        "name": "Example Current Account",
+        "period": "Monthly"
+      },
+      {
+        "colour_slot": 1,
+        "entry_count": 2,
+        "id": "id-2",
+        "latest_balance": "1000.00",
+        "latest_period": "2025",
+        "name": "Example Savings",
+        "period": "Yearly"
+      }
+    ],
+    "total": "3500.50"
+  },
+  "list_bank_entries": [
+    {
+      "account_id": "id-1",
+      "account_name": "Example Current Account",
+      "balance": "2500.50",
+      "note": "",
+      "period": "2026-08"
+    },
+    {
+      "account_id": "id-1",
+      "account_name": "Example Current Account",
+      "balance": "2000.00",
+      "note": "",
+      "period": "2025-12"
+    },
+    {
+      "account_id": "id-2",
+      "account_name": "Example Savings",
+      "balance": "1000.00",
+      "note": "",
+      "period": "2025"
+    },
+    {
+      "account_id": "id-2",
+      "account_name": "Example Savings",
+      "balance": "-400.00",
+      "note": "Overdrawn",
+      "period": "2024"
+    }
+  ],
+  "list_debt_statements": [
+    {
+      "balance": "7000.00",
+      "change": "1000.00",
+      "debt_id": "id-5",
+      "debt_name": "Example Student Loan",
+      "locked": false,
+      "note": "",
+      "outcome": null,
+      "period": "2026",
+      "settlement": false
+    },
+    {
+      "balance": "0.00",
+      "change": "20000.00",
+      "debt_id": "id-4",
+      "debt_name": "Example Home Loan",
+      "locked": true,
+      "note": "Cancelled on sale of Example House",
+      "outcome": "Cancelled",
+      "period": "2026-06",
+      "settlement": true
+    },
+    {
+      "balance": "0.00",
+      "change": "148000.50",
+      "debt_id": "id-3",
+      "debt_name": "Example Mortgage",
+      "locked": true,
+      "note": "Repaid on sale of Example House",
+      "outcome": "Repaid",
+      "period": "2026-06",
+      "settlement": true
+    },
+    {
+      "balance": "20000.00",
+      "change": null,
+      "debt_id": "id-4",
+      "debt_name": "Example Home Loan",
+      "locked": false,
+      "note": "",
+      "outcome": null,
+      "period": "2026-04",
+      "settlement": false
+    },
+    {
+      "balance": "148000.50",
+      "change": "1999.50",
+      "debt_id": "id-3",
+      "debt_name": "Example Mortgage",
+      "locked": false,
+      "note": "",
+      "outcome": null,
+      "period": "2026-04",
+      "settlement": false
+    },
+    {
+      "balance": "150000.00",
+      "change": null,
+      "debt_id": "id-3",
+      "debt_name": "Example Mortgage",
+      "locked": false,
+      "note": "",
+      "outcome": null,
+      "period": "2025-12",
+      "settlement": false
+    },
+    {
+      "balance": "8000.00",
+      "change": null,
+      "debt_id": "id-5",
+      "debt_name": "Example Student Loan",
+      "locked": false,
+      "note": "",
+      "outcome": null,
+      "period": "2025",
+      "settlement": false
+    }
+  ],
+  "list_debts": {
+    "debts": [
+      {
+        "category": "Loan",
+        "colour_slot": 1,
+        "house_id": "id-6",
+        "house_name": "Example House",
+        "id": "id-4",
+        "latest_balance": "0.00",
+        "latest_period": "2026-06",
+        "name": "Example Home Loan",
+        "period": "Monthly",
+        "repaid": true,
+        "settlement": {
+          "amount": "20000.00",
+          "date": "2026-06-10",
+          "outcome": "Cancelled"
+        },
+        "statement_count": 2
+      },
+      {
+        "category": "Mortgage",
+        "colour_slot": 0,
+        "house_id": "id-6",
+        "house_name": "Example House",
+        "id": "id-3",
+        "latest_balance": "0.00",
+        "latest_period": "2026-06",
+        "name": "Example Mortgage",
+        "period": "Monthly",
+        "repaid": true,
+        "settlement": {
+          "amount": "148000.50",
+          "date": "2026-06-10",
+          "outcome": "Repaid"
+        },
+        "statement_count": 3
+      },
+      {
+        "category": "Other",
+        "colour_slot": 2,
+        "house_name": null,
+        "id": "id-5",
+        "latest_balance": "7000.00",
+        "latest_period": "2026",
+        "name": "Example Student Loan",
+        "period": "Yearly",
+        "repaid": false,
+        "statement_count": 2
+      }
+    ],
+    "total": "7000.00"
+  },
+  "list_entries": [
+    {
+      "bonus": "0.00",
+      "employer": "Example Employer",
+      "gross_salary": "3300.00",
+      "holiday_pay": "0.00",
+      "job_id": "id-8",
+      "kind": "paycheck",
+      "period": "2026-08",
+      "total_gross": "3300.00"
+    },
+    {
+      "bonus": "1000.00",
+      "employer": "Example Employer",
+      "gross_salary": "3300.00",
+      "holiday_pay": "0.00",
+      "job_id": "id-8",
+      "kind": "paycheck",
+      "period": "2026-03",
+      "total_gross": "4300.00"
+    },
+    {
+      "bonus": "2000.00",
+      "employer": "Example Consultancy",
+      "gross_salary": "40000.00",
+      "holiday_pay": "0.00",
+      "job_id": "id-9",
+      "kind": "statement",
+      "period": "2025",
+      "total_gross": "42000.00"
+    },
+    {
+      "bonus": "500.00",
+      "employer": "Example Employer",
+      "gross_salary": "3200.00",
+      "holiday_pay": "2400.00",
+      "job_id": "id-8",
+      "kind": "paycheck",
+      "period": "2025-06",
+      "total_gross": "6100.00"
+    },
+    {
+      "bonus": "2000.00",
+      "employer": "Example Consultancy",
+      "gross_salary": "38000.00",
+      "holiday_pay": "0.00",
+      "job_id": "id-9",
+      "kind": "statement",
+      "period": "2024",
+      "total_gross": "40000.00"
+    },
+    {
+      "bonus": "0.00",
+      "employer": "Example Employer",
+      "gross_salary": "3000.00",
+      "holiday_pay": "0.00",
+      "job_id": "id-8",
+      "kind": "paycheck",
+      "period": "2024-06",
+      "total_gross": "3000.00"
+    },
+    {
+      "bonus": "2000.00",
+      "employer": "Example Consultancy",
+      "gross_salary": "36000.00",
+      "holiday_pay": "0.00",
+      "job_id": "id-9",
+      "kind": "statement",
+      "period": "2023",
+      "total_gross": "38000.00"
+    }
+  ],
+  "list_expenses": {
+    "expenses": [
+      {
+        "amount": "120.00",
+        "category": "Study",
+        "date": "2026-09-02",
+        "id": "id-10",
+        "name": "Example Class",
+        "note": ""
+      },
+      {
+        "amount": "800.00",
+        "category": "Home",
+        "date": "2026-02-11",
+        "id": "id-11",
+        "name": "Example Sofa",
+        "note": ""
+      },
+      {
+        "amount": "1250.50",
+        "category": "Holiday",
+        "date": "2025-07-20",
+        "id": "id-12",
+        "name": "Example Trip",
+        "note": ""
+      },
+      {
+        "amount": "500.00",
+        "category": "Vehicle",
+        "date": "2025-03-05",
+        "id": "id-13",
+        "name": "Example Bike",
+        "note": ""
+      }
+    ],
+    "total": "2670.50"
+  },
+  "list_house_valuations": [
+    {
+      "change": "5000.00",
+      "house_id": "id-7",
+      "house_name": "Example Lodge",
+      "note": "",
+      "period": "2026",
+      "value": "110000.00"
+    },
+    {
+      "change": "10000.00",
+      "house_id": "id-6",
+      "house_name": "Example House",
+      "note": "Valued by an example agent",
+      "period": "2026-04",
+      "value": "270000.00"
+    },
+    {
+      "change": null,
+      "house_id": "id-6",
+      "house_name": "Example House",
+      "note": "",
+      "period": "2025-12",
+      "value": "260000.00"
+    },
+    {
+      "change": null,
+      "house_id": "id-7",
+      "house_name": "Example Lodge",
+      "note": "",
+      "period": "2025",
+      "value": "105000.00"
+    }
+  ],
+  "list_houses": {
+    "houses": [
+      {
+        "colour_slot": 0,
+        "held": false,
+        "id": "id-6",
+        "latest_period": "2026-04",
+        "latest_value": "270000.00",
+        "linked_debts": [
+          {
+            "category": "Loan",
+            "debt_id": "id-4",
+            "debt_name": "Example Home Loan",
+            "latest_balance": "0.00",
+            "settlement": {
+              "amount": "20000.00",
+              "date": "2026-06-10",
+              "outcome": "Cancelled"
+            }
+          },
+          {
+            "category": "Mortgage",
+            "debt_id": "id-3",
+            "debt_name": "Example Mortgage",
+            "latest_balance": "0.00",
+            "settlement": {
+              "amount": "148000.50",
+              "date": "2026-06-10",
+              "outcome": "Repaid"
+            }
+          }
+        ],
+        "name": "Example House",
+        "period": "Monthly",
+        "purchase_amount": "250000.00",
+        "purchase_date": "2024-03-15",
+        "result": "50000.00",
+        "sell_amount": "300000.00",
+        "sell_date": "2026-06-10",
+        "valuation_count": 2
+      },
+      {
+        "colour_slot": 1,
+        "held": true,
+        "id": "id-7",
+        "latest_period": "2026",
+        "latest_value": "110000.00",
+        "linked_debts": [],
+        "name": "Example Lodge",
+        "period": "Yearly",
+        "purchase_amount": "100000.00",
+        "purchase_date": "2025-01-01",
+        "result": null,
+        "sell_amount": null,
+        "sell_date": null,
+        "valuation_count": 2
+      }
+    ],
+    "total": "110000.00"
+  },
+  "list_investment_accounts": {
+    "accounts": [
+      {
+        "id": "id-14",
+        "latest_balance": "12000.00",
+        "latest_period": "2026-08",
+        "name": "Example Brokerage",
+        "period": "Monthly",
+        "statement_count": 3
+      },
+      {
+        "id": "id-15",
+        "latest_balance": "6000.00",
+        "latest_period": "2025",
+        "name": "Example Pension",
+        "period": "Yearly",
+        "statement_count": 2
+      }
+    ],
+    "total": "18000.00"
+  },
+  "list_investment_statements": [
+    {
+      "account_id": "id-14",
+      "account_name": "Example Brokerage",
+      "balance": "12000.00",
+      "capital_growth": "-500.50",
+      "net_deposits": "0.00",
+      "note": "",
+      "period": "2026-08"
+    },
+    {
+      "account_id": "id-14",
+      "account_name": "Example Brokerage",
+      "balance": "12500.50",
+      "capital_growth": "2500.50",
+      "net_deposits": "0.00",
+      "note": "Bought example fund",
+      "period": "2026-06"
+    },
+    {
+      "account_id": "id-14",
+      "account_name": "Example Brokerage",
+      "balance": "10000.00",
+      "capital_growth": "10000.00",
+      "net_deposits": "0.00",
+      "note": "",
+      "period": "2025-12"
+    },
+    {
+      "account_id": "id-15",
+      "account_name": "Example Pension",
+      "balance": "6000.00",
+      "capital_growth": "1000.00",
+      "net_deposits": "0.00",
+      "note": "",
+      "period": "2025"
+    },
+    {
+      "account_id": "id-15",
+      "account_name": "Example Pension",
+      "balance": "5000.00",
+      "capital_growth": "5000.00",
+      "net_deposits": "0.00",
+      "note": "",
+      "period": "2024"
+    }
+  ],
+  "list_jobs": [
+    {
+      "employer": "Example Employer",
+      "end_date": null,
+      "entry_count": 4,
+      "id": "id-8",
+      "period": "Monthly",
+      "start_date": "2024-01-01",
+      "title": "Engineer"
+    },
+    {
+      "employer": "Example Consultancy",
+      "end_date": "2025-12-31",
+      "entry_count": 3,
+      "id": "id-9",
+      "period": "Yearly",
+      "start_date": "2023-01-01",
+      "title": null
+    }
+  ],
+  "project_status": {
+    "has_path": true,
+    "unsaved_changes": false
+  },
+  "yearly_bank_totals": [
+    {
+      "closing_balance": "2500.50",
+      "entry_count": 1,
+      "year": 2026
+    },
+    {
+      "closing_balance": "3000.00",
+      "entry_count": 2,
+      "year": 2025
+    },
+    {
+      "closing_balance": "-400.00",
+      "entry_count": 1,
+      "year": 2024
+    }
+  ],
+  "yearly_debt_totals": [
+    {
+      "closing_balance": "7000.00",
+      "repaid": "151000.00",
+      "statement_count": 5,
+      "year": 2026
+    },
+    {
+      "closing_balance": "158000.00",
+      "repaid": null,
+      "statement_count": 2,
+      "year": 2025
+    }
+  ],
+  "yearly_expense_totals": [
+    {
+      "expense_count": 2,
+      "largest": "800.00",
+      "total": "920.00",
+      "year": 2026
+    },
+    {
+      "expense_count": 2,
+      "largest": "1250.50",
+      "total": "1750.50",
+      "year": 2025
+    }
+  ],
+  "yearly_house_values": [
+    {
+      "change": "5000.00",
+      "closing_value": "110000.00",
+      "valuation_count": 1,
+      "year": 2026
+    },
+    {
+      "change": null,
+      "closing_value": "365000.00",
+      "valuation_count": 2,
+      "year": 2025
+    }
+  ],
+  "yearly_investment_totals": [
+    {
+      "capital_growth": "2000.00",
+      "closing_balance": "12000.00",
+      "net_deposits": "0.00",
+      "statement_count": 2,
+      "year": 2026
+    },
+    {
+      "capital_growth": "11000.00",
+      "closing_balance": "16000.00",
+      "net_deposits": "0.00",
+      "statement_count": 2,
+      "year": 2025
+    },
+    {
+      "capital_growth": "5000.00",
+      "closing_balance": "5000.00",
+      "net_deposits": "0.00",
+      "statement_count": 1,
+      "year": 2024
+    }
+  ],
+  "yearly_totals": [
+    {
+      "bonus": "1000.00",
+      "entry_count": 2,
+      "gross_salary": "6600.00",
+      "holiday_pay": "0.00",
+      "total_gross": "7600.00",
+      "year": 2026
+    },
+    {
+      "bonus": "2500.00",
+      "entry_count": 2,
+      "gross_salary": "43200.00",
+      "holiday_pay": "2400.00",
+      "total_gross": "48100.00",
+      "year": 2025
+    },
+    {
+      "bonus": "2000.00",
+      "entry_count": 2,
+      "gross_salary": "41000.00",
+      "holiday_pay": "0.00",
+      "total_gross": "43000.00",
+      "year": 2024
+    },
+    {
+      "bonus": "2000.00",
+      "entry_count": 1,
+      "gross_salary": "36000.00",
+      "holiday_pay": "0.00",
+      "total_gross": "38000.00",
+      "year": 2023
+    }
+  ]
+}

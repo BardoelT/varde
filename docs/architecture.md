@@ -47,6 +47,8 @@ A big domain module is a folder. Its `mod.rs` holds the data struct (`Income`, `
 
 **Tests.** Test names point at the specification: `test_csd005_ac_23_3_...` proves AC-23.3 of CSD-005. `cargo test test_csd005_` runs one spec's tests.
 
+**Golden tests.** `golden_tests.rs` builds one synthetic example project through the IPC commands, then compares its project file and the output of every read command with the files in `src-tauri/golden/`. They pin behaviour for refactorings that must not change it. Ids are replaced by `id-n` and "today" is fixed. A deliberate change of behaviour updates them with `GOLDEN_UPDATE=1 cargo test golden`, and the diff is reviewed. A new read command or a new field in the project file needs a line in `read_everything` or `build_example_project`.
+
 ## Frontend (`ui/`)
 
 ```
