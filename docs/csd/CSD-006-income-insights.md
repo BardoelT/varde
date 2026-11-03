@@ -1,7 +1,7 @@
 ---
 id: CSD-006
 title: Income insights
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 1.1
 last_updated: 03/11/2026

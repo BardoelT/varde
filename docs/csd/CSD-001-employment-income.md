@@ -1,7 +1,7 @@
 ---
 id: CSD-001
 title: Employment income tracking
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 1.0
 last_updated: 03/11/2026

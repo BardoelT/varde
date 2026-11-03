@@ -1,7 +1,7 @@
 ---
 id: CSD-013
 title: Expenses
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 1.0
 last_updated: 03/11/2026
