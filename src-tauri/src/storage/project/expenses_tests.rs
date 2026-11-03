@@ -61,7 +61,7 @@ fn test_csd013_ac_16_3_the_other_sections_are_untouched() {
         .unwrap();
     project
         .bank_accounts_mut()
-        .create_account(&crate::domain::bank_accounts::AccountInput {
+        .create_account(&crate::domain::bank_accounts::BankAccountInput {
             name: "Example Current Account".to_owned(),
             period: None,
         })

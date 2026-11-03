@@ -99,7 +99,7 @@ fn test_csd020_ac_1_1_a_house_with_a_purchase() {
     );
     assert_eq!(created.purchase_amount.value().to_string(), "250000.00");
     assert!(created.is_held());
-    assert_eq!(created.sell_date, None);
+    assert_eq!(created.sale, None);
 }
 
 #[test]
@@ -135,8 +135,9 @@ fn test_csd020_ac_2_1_sell_a_house() {
         .unwrap();
     let sold = house(&houses, id);
     assert!(!sold.is_held());
-    assert_eq!(serde_json::to_value(sold.sell_date).unwrap(), "2026-06-10");
-    assert_eq!(sold.sell_amount.unwrap().value().to_string(), "300000.00");
+    let sale = sold.sale.unwrap();
+    assert_eq!(serde_json::to_value(sale.date).unwrap(), "2026-06-10");
+    assert_eq!(sale.amount.value().to_string(), "300000.00");
 }
 
 #[test]
@@ -160,7 +161,7 @@ fn test_csd020_ac_2_2_undo_a_sale() {
         .unwrap();
     let held = house(&houses, id);
     assert!(held.is_held());
-    assert_eq!(held.sell_amount, None);
+    assert_eq!(held.sale, None);
 }
 
 #[test]
@@ -593,9 +594,60 @@ fn test_csd020_ac_13_2_a_damaged_sale_is_invalid() {
     let mut houses = Houses::default();
     held(&mut houses, "Monthly", "15/03/2024");
     let mut json = serde_json::to_value(&houses).unwrap();
-    json["houses"][0]["sell_date"] = serde_json::json!("2026-06-10");
+    json["houses"][0]["sell_date"] = serde_json::json!("2023-06-10");
+    json["houses"][0]["sell_amount"] = serde_json::json!("300000.00");
     let damaged: Houses = serde_json::from_value(json).unwrap();
     assert_eq!(damaged.validate().unwrap_err().code(), "HOUSE_DATA_INVALID");
+}
+
+#[test]
+fn test_csd020_ac_5_1_a_sale_with_only_one_of_its_two_fields_cannot_be_read() {
+    let mut houses = Houses::default();
+    held(&mut houses, "Monthly", "15/03/2024");
+    let json = serde_json::to_value(&houses).unwrap();
+    for (field, value) in [
+        ("sell_date", serde_json::json!("2026-06-10")),
+        ("sell_amount", serde_json::json!("300000.00")),
+    ] {
+        let mut damaged = json.clone();
+        damaged["houses"][0][field] = value;
+        assert!(
+            serde_json::from_value::<Houses>(damaged).is_err(),
+            "{field}"
+        );
+    }
+    let mut missing = json.clone();
+    missing["houses"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("sell_date");
+    missing["houses"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("sell_amount");
+    let read: Houses = serde_json::from_value(missing).unwrap();
+    assert_eq!(read, houses);
+}
+
+#[test]
+fn test_csd020_ac_13_1_a_house_keeps_its_flat_wire_format() {
+    let mut houses = Houses::default();
+    let held_id = held(&mut houses, "Monthly", "15/03/2024");
+    let mut sold_houses = Houses::default();
+    let sold_id = create(
+        &mut sold_houses,
+        ("15/03/2024", "250000.00"),
+        ("10/06/2026", "300000.00"),
+    );
+    let held_json = serde_json::to_value(house(&houses, held_id)).unwrap();
+    let object = held_json.as_object().unwrap();
+    assert_eq!(object["sell_date"], serde_json::Value::Null);
+    assert_eq!(object["sell_amount"], serde_json::Value::Null);
+    assert!(!object.contains_key("sale"));
+    let sold_json = serde_json::to_value(house(&sold_houses, sold_id)).unwrap();
+    assert_eq!(sold_json["sell_date"], "2026-06-10");
+    assert_eq!(sold_json["sell_amount"], "300000.00");
+    assert!(sold_json.get("sale").is_none());
 }
 
 #[test]

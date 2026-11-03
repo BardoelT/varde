@@ -2,8 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::domain::common::PayPeriod;
 use crate::domain::common::MAX_NAME_CHARS;
+use crate::domain::common::{ColourSlot, PayPeriod};
 use crate::domain::common::{Id, IdKind};
 use crate::domain::error::DomainError;
 
@@ -24,12 +24,12 @@ pub struct BankAccount {
     pub name: String,
     pub period: PayPeriod,
     /// 0 to 7, fixed when the account is created (CSD-009 REQ-3).
-    pub colour_slot: u8,
+    pub colour_slot: ColourSlot,
 }
 
 /// Account fields as typed by the user, before validation.
 #[derive(Clone, Debug, Default, Deserialize)]
-pub struct AccountInput {
+pub struct BankAccountInput {
     #[serde(default)]
     pub name: String,
     /// `None` means Monthly when creating and "unchanged" when editing.
@@ -42,7 +42,7 @@ pub(super) struct ValidAccount {
     pub(super) period: Option<PayPeriod>,
 }
 
-impl AccountInput {
+impl BankAccountInput {
     pub(super) fn validate(&self) -> Result<ValidAccount, DomainError> {
         let name = self.name.trim();
         if name.is_empty() {

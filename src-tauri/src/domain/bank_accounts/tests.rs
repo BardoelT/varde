@@ -1,6 +1,6 @@
 use super::*;
+use crate::domain::common::ColourSlot;
 use crate::domain::common::PayPeriod;
-use crate::domain::common::COLOUR_SLOTS;
 use crate::domain::YearMonth;
 
 fn period(text: &str) -> Period {
@@ -11,8 +11,8 @@ fn balance(text: &str) -> BankBalance {
     BankBalance::parse(text).unwrap()
 }
 
-fn input(name: &str, period: &str) -> AccountInput {
-    AccountInput {
+fn input(name: &str, period: &str) -> BankAccountInput {
+    BankAccountInput {
         name: name.to_owned(),
         period: Some(period.to_owned()),
     }
@@ -48,7 +48,7 @@ fn codes<T>(result: Result<T, DomainError>) -> &'static str {
 fn test_csd009_ac_1_1_an_account_is_monthly_by_default() {
     let mut banks = BankAccounts::default();
     let created = banks
-        .create_account(&AccountInput {
+        .create_account(&BankAccountInput {
             name: "Example Current Account".to_owned(),
             period: None,
         })
@@ -139,6 +139,7 @@ fn test_csd009_ac_3_1_slots_follow_creation_order() {
                 .create_account(&input(name, "Monthly"))
                 .unwrap()
                 .colour_slot
+                .get()
         })
         .collect();
     assert_eq!(slots, [0, 1, 2]);
@@ -147,11 +148,11 @@ fn test_csd009_ac_3_1_slots_follow_creation_order() {
 #[test]
 fn test_csd009_ac_3_2_slots_cycle_after_eight_accounts() {
     let mut banks = BankAccounts::default();
-    for index in 0..COLOUR_SLOTS {
+    for index in 0..ColourSlot::COUNT {
         account(&mut banks, &format!("Bank {index}"), "Monthly");
     }
     let ninth = banks.create_account(&input("Bank 9", "Monthly")).unwrap();
-    assert_eq!(ninth.colour_slot, 0);
+    assert_eq!(ninth.colour_slot.get(), 0);
 }
 
 #[test]
@@ -161,7 +162,11 @@ fn test_csd009_ac_3_3_deleting_an_account_does_not_recolour_the_others() {
     account(&mut banks, "B", "Monthly");
     account(&mut banks, "C", "Monthly");
     banks.delete_account(first).unwrap();
-    let slots: Vec<u8> = banks.accounts().iter().map(|a| a.colour_slot).collect();
+    let slots: Vec<u8> = banks
+        .accounts()
+        .iter()
+        .map(|a| a.colour_slot.get())
+        .collect();
     assert_eq!(slots, [1, 2]);
 }
 
@@ -173,7 +178,7 @@ fn test_csd009_ac_3_4_a_freed_slot_is_used_first() {
     account(&mut banks, "C", "Monthly");
     banks.delete_account(second).unwrap();
     let new = banks.create_account(&input("D", "Monthly")).unwrap();
-    assert_eq!(new.colour_slot, 1);
+    assert_eq!(new.colour_slot.get(), 1);
 }
 
 #[test]
@@ -185,7 +190,7 @@ fn test_csd009_ac_3_5_renaming_keeps_the_slot() {
     let renamed = banks
         .update_account(third, &input("Renamed", "Monthly"))
         .unwrap();
-    assert_eq!(renamed.colour_slot, 2);
+    assert_eq!(renamed.colour_slot.get(), 2);
 }
 
 // REQ-4 to REQ-6
@@ -893,10 +898,6 @@ fn test_csd009_a_damaged_section_is_not_consistent() {
     let id = account(&mut banks, "Example Current Account", "Monthly");
     add(&mut banks, id, "2026-09", "2500.00");
     assert!(banks.validate().is_ok());
-
-    let mut bad_slot = banks.clone();
-    bad_slot.accounts[0].colour_slot = COLOUR_SLOTS;
-    assert_eq!(codes(bad_slot.validate()), "BANK_DATA_INVALID");
 
     let mut orphan = banks.clone();
     orphan.accounts.clear();

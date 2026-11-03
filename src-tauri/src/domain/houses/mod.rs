@@ -28,7 +28,7 @@ pub use house::{House, HouseId, HouseInput};
 pub use insights::HouseInsights;
 pub use overview::HouseSummary;
 pub use totals::HouseYearlyValue;
-pub use valuation::{parse_period, HouseValuation, ValuationPrefill};
+pub use valuation::{parse_period, HouseValuation, HouseValuationPrefill};
 
 use std::collections::HashSet;
 
@@ -37,7 +37,7 @@ use serde::{Deserialize, Serialize};
 use crate::domain::common::{Note, Period};
 use crate::domain::error::DomainError;
 
-use crate::domain::common::{COLOUR_SLOTS, MAX_NAME_CHARS};
+use crate::domain::common::{ColourSlot, MAX_NAME_CHARS};
 use crate::domain::series;
 
 /// All houses with their valuations. Houses are kept in the order they were
@@ -69,8 +69,7 @@ impl Houses {
             colour_slot: self.next_colour_slot(),
             purchase_date: valid.purchase_date,
             purchase_amount: valid.purchase_amount,
-            sell_date: valid.sale.map(|(date, _)| date),
-            sell_amount: valid.sale.map(|(_, amount)| amount),
+            sale: valid.sale,
         };
         self.houses.push(house.clone());
         Ok(house)
@@ -99,8 +98,7 @@ impl Houses {
         updated.period = period;
         updated.purchase_date = valid.purchase_date;
         updated.purchase_amount = valid.purchase_amount;
-        updated.sell_date = valid.sale.map(|(date, _)| date);
-        updated.sell_amount = valid.sale.map(|(_, amount)| amount);
+        updated.sale = valid.sale;
         if self
             .valuations
             .iter()
@@ -262,7 +260,6 @@ impl Houses {
             let name = house.name.trim();
             if name.is_empty()
                 || name.chars().count() > MAX_NAME_CHARS
-                || house.colour_slot >= COLOUR_SLOTS
                 || !ids.insert(house.id)
                 || !names.insert(name.to_lowercase())
                 || !purchase_and_sale_consistent(house)
@@ -342,7 +339,7 @@ impl Houses {
     }
 
     /// The lowest colour slot used by the fewest houses (REQ-3).
-    fn next_colour_slot(&self) -> u8 {
+    fn next_colour_slot(&self) -> ColourSlot {
         series::next_colour_slot(self.houses.iter().map(|house| house.colour_slot))
     }
 
@@ -358,18 +355,20 @@ impl Houses {
     }
 }
 
-/// Whether the sale of a house read from a file is both fields, not before the
-/// purchase, and whether the amounts are valid (CSD-020 REQ-5, REQ-13).
+/// Whether the sale of a house read from a file is not before the purchase and
+/// whether the amounts are valid (CSD-020 REQ-5, REQ-13). That the sale has
+/// both a date and an amount is the type `Sale`.
 fn purchase_and_sale_consistent(house: &House) -> bool {
-    let amounts_valid = [Some(house.purchase_amount), house.sell_amount]
-        .into_iter()
-        .flatten()
-        .all(|amount| HouseValue::new(amount.value()).is_ok());
-    let sale_valid = match (house.sell_date, house.sell_amount) {
-        (None, None) => true,
-        (Some(sold), Some(_)) => sold >= house.purchase_date,
-        _ => false,
-    };
+    let amounts_valid = [
+        Some(house.purchase_amount),
+        house.sale.map(|sale| sale.amount),
+    ]
+    .into_iter()
+    .flatten()
+    .all(|amount| HouseValue::new(amount.value()).is_ok());
+    let sale_valid = house
+        .sale
+        .is_none_or(|sale| sale.date >= house.purchase_date);
     amounts_valid && sale_valid
 }
 

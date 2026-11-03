@@ -5,12 +5,12 @@
 
 use std::fmt::Display;
 
-use super::common::COLOUR_SLOTS;
+use super::common::ColourSlot;
 
 /// The lowest colour slot used by the fewest series.
-pub(crate) fn next_colour_slot(used: impl IntoIterator<Item = u8>) -> u8 {
-    let used: Vec<u8> = used.into_iter().collect();
-    (0..COLOUR_SLOTS)
+pub(crate) fn next_colour_slot(used: impl IntoIterator<Item = ColourSlot>) -> ColourSlot {
+    let used: Vec<ColourSlot> = used.into_iter().collect();
+    ColourSlot::all()
         .min_by_key(|slot| {
             let count: usize = used.iter().map(|u| usize::from(u == slot)).sum();
             (count, *slot)
@@ -42,10 +42,18 @@ mod tests {
 
     #[test]
     fn next_colour_slot_takes_the_lowest_slot_used_least() {
-        assert_eq!(next_colour_slot([]), 0);
-        assert_eq!(next_colour_slot([0, 1]), 2);
-        assert_eq!(next_colour_slot(0..COLOUR_SLOTS), 0);
-        assert_eq!(next_colour_slot((0..COLOUR_SLOTS).chain([0, 2])), 1);
+        let slots = |numbers: &[u8]| -> Vec<ColourSlot> {
+            numbers
+                .iter()
+                .copied()
+                .filter_map(ColourSlot::new)
+                .collect()
+        };
+        let next = |numbers: &[u8]| next_colour_slot(slots(numbers)).get();
+        assert_eq!(next(&[]), 0);
+        assert_eq!(next(&[0, 1]), 2);
+        assert_eq!(next(&[0, 1, 2, 3, 4, 5, 6, 7]), 0);
+        assert_eq!(next(&[0, 1, 2, 3, 4, 5, 6, 7, 0, 2]), 1);
     }
 
     #[test]

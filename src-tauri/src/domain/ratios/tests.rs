@@ -1,11 +1,11 @@
 use super::*;
-use crate::domain::bank_accounts::{AccountInput as BankInput, BankBalance};
+use crate::domain::bank_accounts::{BankAccountInput as BankInput, BankBalance};
 use crate::domain::common::{Note, Period};
 use crate::domain::debts::{DebtBalance, DebtInput};
 use crate::domain::expenses::ExpenseInput;
 use crate::domain::houses::{HouseInput, HouseValue};
 use crate::domain::income::JobInput;
-use crate::domain::investments::{AccountInput as InvestmentInput, Balance, NetDeposits};
+use crate::domain::investments::{Balance, InvestmentAccountInput as InvestmentInput, NetDeposits};
 use crate::domain::money::Amounts;
 use crate::domain::ProjectData;
 

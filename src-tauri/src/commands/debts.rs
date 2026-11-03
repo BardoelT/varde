@@ -48,9 +48,9 @@ impl StatementView {
             balance: statement.balance.value(),
             change: debts.change(statement),
             note: statement.note.as_str().to_owned(),
-            settlement: statement.settlement,
+            settlement: statement.is_settlement(),
             outcome: statement
-                .settlement
+                .is_settlement()
                 .then(|| debt.settlement.as_ref().map(|settled| settled.outcome))
                 .flatten(),
             locked: debts.statement_locked(statement),

@@ -23,7 +23,7 @@ pub struct InvestmentStatement {
 /// Form values for "copy previous month" or "copy previous year" (CSD-005
 /// REQ-13): the note is never copied and the net deposits start at `0.00`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-pub struct StatementPrefill {
+pub struct InvestmentStatementPrefill {
     pub balance: Option<Decimal>,
     pub net_deposits: Decimal,
 }
@@ -37,9 +37,9 @@ impl Investments {
     pub fn prefill_from_latest(
         &self,
         id: InvestmentAccountId,
-    ) -> Result<StatementPrefill, DomainError> {
+    ) -> Result<InvestmentStatementPrefill, DomainError> {
         self.account(id)?;
-        Ok(StatementPrefill {
+        Ok(InvestmentStatementPrefill {
             balance: self.latest(id).map(|statement| statement.balance.value()),
             net_deposits: zero(),
         })

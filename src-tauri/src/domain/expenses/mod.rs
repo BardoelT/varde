@@ -18,7 +18,7 @@ mod totals;
 mod tests;
 
 pub use amounts::{expense_note, ExpenseAmount};
-pub use category::Category;
+pub use category::ExpenseCategory;
 pub use date::ExpenseDate;
 pub use expense::{Expense, ExpenseId, ExpenseInput};
 pub use insights::ExpenseInsights;

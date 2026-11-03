@@ -8,7 +8,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::debts::{
-    Category, Debt, DebtId, DebtInput, DebtSummary, Debts, OpenDebt, Outcome, Settlement,
+    Debt, DebtCategory, DebtId, DebtInput, DebtSummary, Debts, OpenDebt, Outcome, Settlement,
 };
 use crate::domain::error::DomainError;
 
@@ -188,7 +188,7 @@ fn apply_category_and_link(
     input: &DebtFormInput,
 ) -> Result<(), DomainError> {
     let category = match input.category.as_deref().map(str::trim) {
-        Some(text) if !text.is_empty() => Category::parse(text)?,
+        Some(text) if !text.is_empty() => DebtCategory::parse(text)?,
         _ => debts.get(id).map(|debt| debt.category).unwrap_or_default(),
     };
     let wanted = match input.house_id.as_deref().map(str::trim) {
@@ -227,8 +227,8 @@ fn apply_category_and_link(
     };
     let house = houses.get(house_id).ok_or(DomainError::HouseNotFound)?;
     debts.set_house(id, Some(house_id))?;
-    match house.sell_date {
-        Some(date) => settle_on_link(debts, id, house, date, outcome),
+    match house.sale {
+        Some(sale) => settle_on_link(debts, id, house, sale.date, outcome),
         None if outcome.is_some() => Err(DomainError::HouseSettlementInvalid),
         None => Ok(()),
     }
@@ -265,14 +265,16 @@ pub fn debt_open_balance(
 ) -> Result<Option<OpenDebt>, DomainError> {
     let house = houses.get(house_id).ok_or(DomainError::HouseNotFound)?;
     let debt = debts.get(debt_id).ok_or(DomainError::DebtNotFound)?;
-    let Some(date) = house.sell_date else {
+    let Some(sale) = house.sale else {
         return Ok(None);
     };
-    Ok(debts.open_balance(debt_id, date)?.map(|amount| OpenDebt {
-        debt_id,
-        debt_name: debt.name.clone(),
-        amount,
-    }))
+    Ok(debts
+        .open_balance(debt_id, sale.date)?
+        .map(|amount| OpenDebt {
+            debt_id,
+            debt_name: debt.name.clone(),
+            amount,
+        }))
 }
 
 /// Applies the debt side of a saved house. `old` is the house before the save,
@@ -291,7 +293,9 @@ fn apply(
         .filter(|id| debts.is_settled(*id))
         .collect();
     if was_sold && !house.is_held() {
-        if old.is_some_and(|old| old.sell_date != house.sell_date) && !settled.is_empty() {
+        if old.is_some_and(|old| old.sale.map(|sale| sale.date) != house.sale.map(|sale| sale.date))
+            && !settled.is_empty()
+        {
             return Err(DomainError::HouseSellDateLocked);
         }
         if !parsed.settlements.is_empty() {
@@ -307,8 +311,8 @@ fn apply(
             debts.unsettle(id)?;
         }
     }
-    match house.sell_date {
-        Some(date) => settle_all(debts, house, date, &parsed.settlements),
+    match house.sale {
+        Some(sale) => settle_all(debts, house, sale.date, &parsed.settlements),
         None if parsed.settlements.is_empty() => Ok(()),
         None => Err(DomainError::HouseSettlementInvalid),
     }
@@ -342,7 +346,7 @@ fn settle_all(
 pub struct LinkedDebt {
     pub debt_id: DebtId,
     pub debt_name: String,
-    pub category: Category,
+    pub category: DebtCategory,
     pub latest_balance: Option<Decimal>,
     pub settlement: Option<Settlement>,
 }

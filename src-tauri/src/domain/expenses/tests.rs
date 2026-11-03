@@ -1,4 +1,5 @@
 use super::*;
+use crate::domain::common::wire_name;
 
 fn input(name: &str, amount: &str, date: &str, category: &str) -> ExpenseInput {
     ExpenseInput {
@@ -48,7 +49,7 @@ fn test_csd013_ac_1_1_expense_with_a_note() {
     assert_eq!(added.amount.value(), dec("4500.00"));
     assert_eq!(added.date.year(), 2026);
     assert_eq!(added.date.month(), 9);
-    assert_eq!(added.category, Category::Home);
+    assert_eq!(added.category, ExpenseCategory::Home);
     assert_eq!(added.note.as_str(), "Replaced tiles");
 }
 
@@ -137,7 +138,7 @@ fn test_csd013_ac_3_1_every_category_is_accepted() {
     ] {
         let mut expenses = Expenses::default();
         let added = add(&mut expenses, "Example", "1.00", "15/09/2026", name);
-        assert_eq!(added.category.name(), name);
+        assert_eq!(wire_name(&added.category), name);
     }
 }
 
@@ -300,7 +301,7 @@ fn test_csd013_ac_7_1_edit_every_field() {
     assert_eq!(edited.name, "Example E-Bike");
     assert_eq!(edited.amount.value(), dec("1200.00"));
     assert_eq!(edited.date.month(), 9);
-    assert_eq!(edited.category, Category::Vehicle);
+    assert_eq!(edited.category, ExpenseCategory::Vehicle);
     assert_eq!(edited.note.as_str(), "Upgraded");
     assert_eq!(expenses.total_count(), 1);
 }
@@ -456,7 +457,7 @@ fn test_csd013_ac_9_1_the_form_is_filled_from_the_previous_expense() {
     let prefill = expenses.prefill_from_previous().unwrap();
     assert_eq!(prefill.name, "Example Roof Repair");
     assert_eq!(prefill.amount, dec("4500.00"));
-    assert_eq!(prefill.category, Category::Home);
+    assert_eq!(prefill.category, ExpenseCategory::Home);
     assert_eq!(expenses.total_count(), 2);
 }
 
@@ -744,11 +745,11 @@ fn test_csd014_ac_4_1_segments_are_the_sums_per_category() {
     assert_eq!(year.segments.len(), 2);
     assert_eq!(
         (year.segments[0].category, year.segments[0].amount),
-        (Category::Home, dec("5700.00"))
+        (ExpenseCategory::Home, dec("5700.00"))
     );
     assert_eq!(
         (year.segments[1].category, year.segments[1].amount),
-        (Category::Hobby, dec("900.00"))
+        (ExpenseCategory::Hobby, dec("900.00"))
     );
     assert_eq!((year.total, year.expense_count), (dec("6600.00"), 3));
 }
@@ -760,9 +761,12 @@ fn test_csd014_ac_4_2_a_category_without_an_expense_has_no_segment() {
     add(&mut expenses, "B", "650.00", "02/10/2026", "Appliances");
     let result = insights(&expenses);
     assert_eq!(result.years[0].segments.len(), 1);
-    assert_eq!(result.years[0].segments[0].category, Category::Hobby);
+    assert_eq!(result.years[0].segments[0].category, ExpenseCategory::Hobby);
     assert_eq!(result.years[1].segments.len(), 1);
-    assert_eq!(result.years[1].segments[0].category, Category::Appliances);
+    assert_eq!(
+        result.years[1].segments[0].category,
+        ExpenseCategory::Appliances
+    );
 }
 
 #[test]
@@ -770,12 +774,12 @@ fn test_csd014_ac_4_3_segments_follow_the_fixed_order_not_the_order_added() {
     let mut expenses = Expenses::default();
     add(&mut expenses, "A", "900.00", "10/09/2026", "Hobby");
     add(&mut expenses, "B", "4500.00", "11/09/2026", "Home");
-    let order: Vec<Category> = insights(&expenses).years[0]
+    let order: Vec<ExpenseCategory> = insights(&expenses).years[0]
         .segments
         .iter()
         .map(|s| s.category)
         .collect();
-    assert_eq!(order, [Category::Home, Category::Hobby]);
+    assert_eq!(order, [ExpenseCategory::Home, ExpenseCategory::Hobby]);
 }
 
 #[test]
@@ -810,7 +814,11 @@ fn test_csd014_ac_4_5_all_eight_categories_in_the_fixed_order() {
         add(&mut expenses, "Example", "100.00", "15/03/2026", category);
     }
     let year = &insights(&expenses).years[0];
-    let order: Vec<&str> = year.segments.iter().map(|s| s.category.name()).collect();
+    let order: Vec<String> = year
+        .segments
+        .iter()
+        .map(|s| wire_name(&s.category))
+        .collect();
     assert_eq!(
         order,
         [
@@ -848,16 +856,17 @@ fn test_csd014_ac_4_7_an_edit_moves_the_segment() {
         .unwrap();
     let year = &insights(&expenses).years[0];
     assert_eq!(year.segments.len(), 1);
-    assert_eq!(year.segments[0].category, Category::Sport);
+    assert_eq!(year.segments[0].category, ExpenseCategory::Sport);
 }
 
 #[test]
 fn test_csd014_ac_6_2_colour_slots_are_fixed_by_the_category_list() {
-    let slots: Vec<(&str, u8)> = insights(&Expenses::default())
+    let slots: Vec<(String, u8)> = insights(&Expenses::default())
         .categories
         .iter()
-        .map(|c| (c.name.name(), c.colour_slot))
+        .map(|c| (wire_name(&c.name), c.colour_slot.get()))
         .collect();
+    let slots: Vec<(&str, u8)> = slots.iter().map(|(n, s)| (n.as_str(), *s)).collect();
     assert_eq!(
         slots,
         [
@@ -910,4 +919,17 @@ fn test_csd014_ac_3_3_a_future_year_is_not_marked_partial() {
     let years = insights(&expenses).years;
     let partial: Vec<(i32, bool)> = years.iter().map(|y| (y.year, y.is_partial)).collect();
     assert_eq!(partial, [(2026, true), (2027, false), (2028, false)]);
+}
+
+#[test]
+fn test_csd013_ac_3_2_the_category_names_are_the_wire_names_and_match_exactly() {
+    for category in ExpenseCategory::ALL {
+        let name = wire_name(&category);
+        assert_eq!(serde_json::to_value(category).unwrap(), name);
+        assert_eq!(ExpenseCategory::parse(&format!(" {name} ")), Ok(category));
+        assert_eq!(
+            ExpenseCategory::parse(&name.to_lowercase()),
+            Err(DomainError::ExpenseCategoryUnsupported)
+        );
+    }
 }

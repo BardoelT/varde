@@ -16,7 +16,7 @@ mod totals;
 #[cfg(test)]
 mod tests;
 
-pub use account::{AccountInput, BankAccount, BankAccountId};
+pub use account::{BankAccount, BankAccountId, BankAccountInput};
 pub use amounts::{bank_note, BankBalance};
 pub use entry::{parse_period, BankEntry, EntryPrefill};
 pub use insights::BankInsights;
@@ -30,7 +30,7 @@ use serde::{Deserialize, Serialize};
 use crate::domain::common::{Note, Period};
 use crate::domain::error::DomainError;
 
-use crate::domain::common::{COLOUR_SLOTS, MAX_NAME_CHARS};
+use crate::domain::common::{ColourSlot, MAX_NAME_CHARS};
 use crate::domain::series;
 
 /// All bank accounts with their entries. Accounts are kept in the order they
@@ -48,7 +48,7 @@ impl BankAccounts {
     ///
     /// # Errors
     /// Returns the name errors of REQ-2 or `BankAccountPeriodUnsupported`.
-    pub fn create_account(&mut self, input: &AccountInput) -> Result<BankAccount, DomainError> {
+    pub fn create_account(&mut self, input: &BankAccountInput) -> Result<BankAccount, DomainError> {
         let valid = input.validate()?;
         if self.name_taken(&valid.name, None) {
             return Err(DomainError::BankAccountNameDuplicate);
@@ -73,7 +73,7 @@ impl BankAccounts {
     pub fn update_account(
         &mut self,
         id: BankAccountId,
-        input: &AccountInput,
+        input: &BankAccountInput,
     ) -> Result<BankAccount, DomainError> {
         let valid = input.validate()?;
         let current = self.account(id)?.period;
@@ -240,7 +240,6 @@ impl BankAccounts {
             let name = account.name.trim();
             if name.is_empty()
                 || name.chars().count() > MAX_NAME_CHARS
-                || account.colour_slot >= COLOUR_SLOTS
                 || !ids.insert(account.id)
                 || !names.insert(name.to_lowercase())
             {
@@ -308,7 +307,7 @@ impl BankAccounts {
     }
 
     /// The lowest colour slot used by the fewest accounts (REQ-3).
-    fn next_colour_slot(&self) -> u8 {
+    fn next_colour_slot(&self) -> ColourSlot {
         series::next_colour_slot(self.accounts.iter().map(|account| account.colour_slot))
     }
 

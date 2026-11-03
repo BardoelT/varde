@@ -9,9 +9,9 @@ use tauri::State;
 
 use super::AppState;
 use crate::domain::{
-    AccountInput, Balance, CalculationInput, InvestmentAccount, InvestmentAccountId,
-    InvestmentInsightsYear, InvestmentStatement, InvestmentYearlyTotal, Investments,
-    InvestmentsOverview, NetDeposits, Note, Period, StatementCalculation, StatementPrefill,
+    Balance, CalculationInput, InvestmentAccount, InvestmentAccountId, InvestmentAccountInput,
+    InvestmentInsightsYear, InvestmentStatement, InvestmentStatementPrefill, InvestmentYearlyTotal,
+    Investments, InvestmentsOverview, NetDeposits, Note, Period, StatementCalculation,
 };
 use crate::error::AppError;
 
@@ -61,7 +61,7 @@ pub fn list_investment_accounts(
 #[tauri::command]
 pub fn create_investment_account(
     state: State<'_, AppState>,
-    input: AccountInput,
+    input: InvestmentAccountInput,
 ) -> Result<InvestmentAccount, AppError> {
     let mut project = state.project()?;
     Ok(project.investments_mut().create_account(&input)?)
@@ -71,7 +71,7 @@ pub fn create_investment_account(
 pub fn update_investment_account(
     state: State<'_, AppState>,
     account_id: String,
-    input: AccountInput,
+    input: InvestmentAccountInput,
 ) -> Result<InvestmentAccount, AppError> {
     let mut project = state.project()?;
     Ok(project
@@ -175,7 +175,7 @@ pub fn delete_investment_statement(
 pub fn copy_previous_investment_statement(
     state: State<'_, AppState>,
     account_id: String,
-) -> Result<StatementPrefill, AppError> {
+) -> Result<InvestmentStatementPrefill, AppError> {
     let project = state.project()?;
     Ok(project
         .investments()

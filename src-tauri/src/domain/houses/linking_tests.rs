@@ -5,7 +5,7 @@ use rust_decimal::Decimal;
 use crate::domain::common::Note;
 use crate::domain::common::YearMonth;
 use crate::domain::debts::{
-    debt_note, parse_period, Category, DebtBalance, DebtId, DebtInput, Outcome,
+    debt_note, parse_period, DebtBalance, DebtCategory, DebtId, DebtInput, Outcome,
 };
 use crate::domain::houses::linking::{self, DebtFormInput, DebtLinksInput, SettlementChoice};
 use crate::domain::houses::{HouseId, HouseInput, HouseValue};
@@ -61,7 +61,7 @@ fn statements_of(data: &ProjectData, id: DebtId, at: &str) -> Vec<(String, Strin
             (
                 s.balance.value().to_string(),
                 s.note.as_str().to_owned(),
-                s.settlement,
+                s.is_settlement(),
             )
         })
         .collect()
@@ -183,7 +183,7 @@ fn settlement_of(data: &ProjectData, id: DebtId) -> Option<(Outcome, String)> {
 
 // REQ-1: link a debt in the debt form
 
-fn category_of(data: &ProjectData, id: DebtId) -> crate::domain::debts::Category {
+fn category_of(data: &ProjectData, id: DebtId) -> crate::domain::debts::DebtCategory {
     data.debts.get(id).unwrap().category
 }
 
@@ -193,7 +193,7 @@ fn test_csd020_ac_15_1_link_a_mortgage() {
     let mortgage = debt(&mut data, "Example Mortgage", "Monthly");
     let house = add_house(&mut data, "Example House", &[]);
     link(&mut data, mortgage, "Mortgage", Some(house)).unwrap();
-    assert_eq!(category_of(&data, mortgage), Category::Mortgage);
+    assert_eq!(category_of(&data, mortgage), DebtCategory::Mortgage);
     assert_eq!(data.debts.house_of(mortgage), Some(house));
 }
 
@@ -202,7 +202,7 @@ fn test_csd020_ac_15_2_unlink_a_debt() {
     let (mut data, _house, _mortgage, loan) = house_with_two_debts();
     link(&mut data, loan, "Loan", None).unwrap();
     assert_eq!(data.debts.house_of(loan), None);
-    assert_eq!(category_of(&data, loan), Category::Loan);
+    assert_eq!(category_of(&data, loan), DebtCategory::Loan);
     assert!(balance_of(&data, loan, "2026-03").is_some());
 }
 
@@ -210,7 +210,7 @@ fn test_csd020_ac_15_2_unlink_a_debt() {
 fn test_csd020_ac_15_3_changing_the_category_to_other_removes_the_link() {
     let (mut data, _house, _mortgage, loan) = house_with_two_debts();
     link(&mut data, loan, "Other", None).unwrap();
-    assert_eq!(category_of(&data, loan), Category::Other);
+    assert_eq!(category_of(&data, loan), DebtCategory::Other);
     assert_eq!(data.debts.house_of(loan), None);
 }
 
@@ -233,7 +233,7 @@ fn test_csd020_ac_15_4_link_while_adding_a_debt() {
     )
     .unwrap();
     assert_eq!(created.house_id, Some(house));
-    assert_eq!(created.category, Category::Mortgage);
+    assert_eq!(created.category, DebtCategory::Mortgage);
 }
 
 #[test]
@@ -251,7 +251,7 @@ fn test_csd020_ac_15_5_the_category_defaults_to_other() {
         },
     )
     .unwrap();
-    assert_eq!(created.category, Category::Other);
+    assert_eq!(created.category, DebtCategory::Other);
     assert_eq!(created.house_id, None);
 }
 
@@ -621,8 +621,9 @@ fn test_csd020_ac_22_2_the_sell_amount_can_change() {
         data.houses
             .get(house)
             .unwrap()
-            .sell_amount
+            .sale
             .unwrap()
+            .amount
             .value()
             .to_string(),
         "310000.00"
@@ -839,7 +840,7 @@ fn test_csd020_ac_29_2_the_houses_view_lists_the_linked_debts() {
     let rows = &view.houses[0].linked_debts;
     assert_eq!(rows.len(), 2);
     assert!(rows.iter().any(|row| row.debt_name == "Example Loan"
-        && row.category == Category::Loan
+        && row.category == DebtCategory::Loan
         && row.latest_balance == Some(dec("0.00"))
         && row.settlement.as_ref().is_some_and(
             |s| s.outcome == Outcome::Cancelled && s.amount.value() == dec("10000.00")
@@ -974,7 +975,7 @@ fn test_csd020_ac_15_6_a_scholarship_cannot_be_linked() {
     let house = add_house(&mut data, "Example House", &[]);
     let study = debt(&mut data, "Example Study Debt", "Yearly");
     link(&mut data, study, "Scholarship", None).unwrap();
-    assert_eq!(category_of(&data, study), Category::Scholarship);
+    assert_eq!(category_of(&data, study), DebtCategory::Scholarship);
     assert_eq!(data.debts.house_of(study), None);
     assert_eq!(
         code(link(&mut data, study, "Scholarship", Some(house))),
@@ -986,7 +987,7 @@ fn test_csd020_ac_15_6_a_scholarship_cannot_be_linked() {
 fn test_csd020_ac_15_6_changing_a_linked_loan_to_scholarship_removes_the_link() {
     let (mut data, _house, _mortgage, loan) = house_with_two_debts();
     link(&mut data, loan, "Scholarship", None).unwrap();
-    assert_eq!(category_of(&data, loan), Category::Scholarship);
+    assert_eq!(category_of(&data, loan), DebtCategory::Scholarship);
     assert_eq!(data.debts.house_of(loan), None);
 }
 
@@ -1027,7 +1028,7 @@ fn test_csd020_ac_32_1_both_rows_show_and_are_locked() {
         .map(|(_, s)| {
             (
                 s.period.to_string(),
-                s.settlement,
+                s.is_settlement(),
                 data.debts.statement_locked(s),
             )
         })
@@ -1112,4 +1113,55 @@ fn test_csd020_ac_23_3_the_regular_statement_of_the_settlement_period_stays_edit
             .code(),
         "DEBT_SETTLED_LOCKED"
     );
+}
+
+// REQ-33: the file
+
+fn debts_json(data: &ProjectData) -> serde_json::Value {
+    serde_json::to_value(&data.debts).unwrap()
+}
+
+fn links_valid(data: &ProjectData, debts: serde_json::Value) -> Result<(), &'static str> {
+    let debts: crate::domain::Debts = serde_json::from_value(debts).unwrap();
+    debts
+        .validate_links(&data.houses)
+        .map_err(|error| error.code())
+}
+
+#[test]
+fn test_csd020_ac_33_1_a_statement_keeps_its_boolean_settlement_key_on_the_wire() {
+    let (data, _house, mortgage) = sold_house();
+    let json = debts_json(&data);
+    let statements = json["statements"].as_array().unwrap();
+    let settlement: Vec<bool> = statements
+        .iter()
+        .map(|s| s.get("settlement") == Some(&serde_json::json!(true)))
+        .collect();
+    assert_eq!(settlement, [false, true]);
+    assert!(statements[0].get("settlement").is_none());
+    assert!(statements[0].get("kind").is_none());
+    assert!(links_valid(&data, json).is_ok());
+    assert!(settlement_of(&data, mortgage).is_some());
+}
+
+#[test]
+fn test_csd020_ac_33_2_a_settlement_statement_without_a_settlement_is_invalid() {
+    let (data, _house, _mortgage) = sold_house();
+    let mut json = debts_json(&data);
+    json["debts"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("settlement");
+    assert_eq!(links_valid(&data, json), Err("DEBT_DATA_INVALID"));
+}
+
+#[test]
+fn test_csd020_ac_33_2_a_settlement_without_a_settlement_statement_is_invalid() {
+    let (data, _house, _mortgage) = sold_house();
+    let mut json = debts_json(&data);
+    json["statements"][1]
+        .as_object_mut()
+        .unwrap()
+        .remove("settlement");
+    assert_eq!(links_valid(&data, json), Err("DEBT_DATA_INVALID"));
 }

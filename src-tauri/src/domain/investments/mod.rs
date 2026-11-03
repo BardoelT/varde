@@ -16,12 +16,12 @@ mod totals;
 #[cfg(test)]
 mod tests;
 
-pub use account::{AccountInput, InvestmentAccount, InvestmentAccountId};
+pub use account::{InvestmentAccount, InvestmentAccountId, InvestmentAccountInput};
 pub use amounts::{Balance, NetDeposits};
 pub use growth::{CalculationInput, StatementCalculation};
 pub use insights::InvestmentInsightsYear;
 pub use overview::InvestmentsOverview;
-pub use statement::{InvestmentStatement, StatementPrefill};
+pub use statement::{InvestmentStatement, InvestmentStatementPrefill};
 pub use totals::InvestmentYearlyTotal;
 
 use std::collections::HashSet;
@@ -49,7 +49,7 @@ impl Investments {
     /// Returns the name errors of REQ-2 or `InvestmentPeriodUnsupported`.
     pub fn create_account(
         &mut self,
-        input: &AccountInput,
+        input: &InvestmentAccountInput,
     ) -> Result<InvestmentAccount, DomainError> {
         let valid = input.validate()?;
         if self.name_taken(&valid.name, None) {
@@ -73,7 +73,7 @@ impl Investments {
     pub fn update_account(
         &mut self,
         id: InvestmentAccountId,
-        input: &AccountInput,
+        input: &InvestmentAccountInput,
     ) -> Result<InvestmentAccount, DomainError> {
         let valid = input.validate()?;
         let current = self.account(id)?.period;

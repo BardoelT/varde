@@ -1,6 +1,6 @@
 use super::*;
+use crate::domain::common::ColourSlot;
 use crate::domain::common::PayPeriod;
-use crate::domain::common::COLOUR_SLOTS;
 use crate::domain::YearMonth;
 
 fn period(text: &str) -> Period {
@@ -173,6 +173,7 @@ fn test_csd011_ac_3_1_slots_follow_creation_order() {
                 .create_debt(&input(name, "Monthly"))
                 .unwrap()
                 .colour_slot
+                .get()
         })
         .collect();
     assert_eq!(slots, [0, 1, 2]);
@@ -181,14 +182,15 @@ fn test_csd011_ac_3_1_slots_follow_creation_order() {
 #[test]
 fn test_csd011_ac_3_2_slots_cycle_after_eight_debts() {
     let mut debts = Debts::default();
-    for index in 0..COLOUR_SLOTS {
+    for index in 0..ColourSlot::COUNT {
         debt(&mut debts, &format!("Debt {index}"), "Monthly");
     }
     assert_eq!(
         debts
             .create_debt(&input("Debt 9", "Monthly"))
             .unwrap()
-            .colour_slot,
+            .colour_slot
+            .get(),
         0
     );
 }
@@ -200,7 +202,7 @@ fn test_csd011_ac_3_3_deleting_a_debt_does_not_recolour_the_others() {
     debt(&mut debts, "B", "Monthly");
     debt(&mut debts, "C", "Monthly");
     debts.delete_debt(first).unwrap();
-    let slots: Vec<u8> = debts.debts().iter().map(|d| d.colour_slot).collect();
+    let slots: Vec<u8> = debts.debts().iter().map(|d| d.colour_slot.get()).collect();
     assert_eq!(slots, [1, 2]);
 }
 
@@ -215,7 +217,8 @@ fn test_csd011_ac_3_4_a_freed_slot_is_used_first() {
         debts
             .create_debt(&input("D", "Monthly"))
             .unwrap()
-            .colour_slot,
+            .colour_slot
+            .get(),
         1
     );
 }
@@ -229,7 +232,7 @@ fn test_csd011_ac_3_5_renaming_keeps_the_slot() {
     let renamed = debts
         .update_debt(third, &input("Renamed", "Monthly"))
         .unwrap();
-    assert_eq!(renamed.colour_slot, 2);
+    assert_eq!(renamed.colour_slot.get(), 2);
 }
 
 // REQ-4 to REQ-6
@@ -1061,10 +1064,6 @@ fn test_csd011_a_damaged_section_is_not_consistent() {
     add(&mut debts, id, "2026-09", "150000.00");
     assert!(debts.validate().is_ok());
 
-    let mut bad_slot = debts.clone();
-    bad_slot.debts[0].colour_slot = COLOUR_SLOTS;
-    assert_eq!(code(bad_slot.validate()), "DEBT_DATA_INVALID");
-
     let mut orphan = debts.clone();
     orphan.debts.clear();
     assert_eq!(code(orphan.validate()), "DEBT_DATA_INVALID");
@@ -1285,4 +1284,48 @@ fn test_csd017_ac_2_4_a_very_old_debt_statement_gets_no_slot() {
     let years = debts.insights(today()).years;
     assert_eq!(years.len(), 50);
     assert_eq!(years[0].year, 1977);
+}
+
+#[test]
+fn test_csd020_ac_15_1_category_and_outcome_names_are_the_wire_names() {
+    for (text, category) in [
+        ("Mortgage", DebtCategory::Mortgage),
+        ("Loan", DebtCategory::Loan),
+        ("Scholarship", DebtCategory::Scholarship),
+        ("Other", DebtCategory::Other),
+    ] {
+        assert_eq!(DebtCategory::parse(&format!(" {text} ")).unwrap(), category);
+        assert_eq!(
+            serde_json::to_value(category).unwrap(),
+            serde_json::json!(text)
+        );
+    }
+    for (text, outcome) in [
+        ("Repaid", Outcome::Repaid),
+        ("Cancelled", Outcome::Cancelled),
+    ] {
+        assert_eq!(Outcome::parse(&format!(" {text} ")).unwrap(), outcome);
+        assert_eq!(
+            serde_json::to_value(outcome).unwrap(),
+            serde_json::json!(text)
+        );
+    }
+}
+
+#[test]
+fn test_csd020_ac_15_1_other_category_and_outcome_text_is_rejected_with_its_own_code() {
+    for text in ["mortgage", "LOAN", "", "Savings"] {
+        assert_eq!(
+            code(DebtCategory::parse(text)),
+            "DEBT_CATEGORY_INVALID",
+            "{text}"
+        );
+    }
+    for text in ["repaid", "CANCELLED", "", "Paid"] {
+        assert_eq!(
+            code(Outcome::parse(text)),
+            "HOUSE_SETTLEMENT_INVALID",
+            "{text}"
+        );
+    }
 }

@@ -3,12 +3,12 @@ use std::fs;
 use tempfile::TempDir;
 
 use super::*;
-use crate::domain::{AccountInput, Balance, NetDeposits, Note, Period};
+use crate::domain::{Balance, InvestmentAccountInput, NetDeposits, Note, Period};
 
 fn account(project: &mut Project, name: &str, period: &str) -> crate::domain::InvestmentAccountId {
     project
         .investments_mut()
-        .create_account(&AccountInput {
+        .create_account(&InvestmentAccountInput {
             name: name.to_owned(),
             period: Some(period.to_owned()),
         })

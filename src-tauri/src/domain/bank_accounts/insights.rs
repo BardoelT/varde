@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::common::{series_years, YearMonth};
+use crate::domain::common::{series_years, ColourSlot, YearMonth};
 use crate::domain::money::zero;
 
 use super::{BankAccountId, BankAccounts};
@@ -15,7 +15,7 @@ use super::{BankAccountId, BankAccounts};
 pub struct InsightsBank {
     pub id: BankAccountId,
     pub name: String,
-    pub colour_slot: u8,
+    pub colour_slot: ColourSlot,
 }
 
 /// The part of a year's bar that belongs to one bank (CSD-010 REQ-5).

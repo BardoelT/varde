@@ -2,8 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::domain::common::PayPeriod;
 use crate::domain::common::MAX_NAME_CHARS;
+use crate::domain::common::{parse_wire_name, ColourSlot, PayPeriod};
 use crate::domain::common::{Id, IdKind};
 use crate::domain::error::DomainError;
 use crate::domain::houses::HouseId;
@@ -22,7 +22,7 @@ impl IdKind for Debt {
 /// The kind of a debt: Mortgage, Loan, Scholarship or Other. Only a Mortgage
 /// or a Loan can be linked to a house (CSD-020 section 3).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Category {
+pub enum DebtCategory {
     Mortgage,
     Loan,
     Scholarship,
@@ -30,19 +30,14 @@ pub enum Category {
     Other,
 }
 
-impl Category {
-    /// Parses `Mortgage`, `Loan`, `Scholarship` or `Other`.
+impl DebtCategory {
+    /// Parses `Mortgage`, `Loan`, `Scholarship` or `Other`, the names serde
+    /// writes.
     ///
     /// # Errors
     /// Returns `DebtCategoryInvalid` for any other text.
     pub fn parse(text: &str) -> Result<Self, DomainError> {
-        match text.trim() {
-            "Mortgage" => Ok(Self::Mortgage),
-            "Loan" => Ok(Self::Loan),
-            "Scholarship" => Ok(Self::Scholarship),
-            "Other" => Ok(Self::Other),
-            _ => Err(DomainError::DebtCategoryInvalid),
-        }
+        parse_wire_name(text).ok_or(DomainError::DebtCategoryInvalid)
     }
 
     /// Whether a debt of this category may be linked to a house.
@@ -60,9 +55,9 @@ pub struct Debt {
     pub name: String,
     pub period: PayPeriod,
     /// 0 to 7, fixed when the debt is created (CSD-011 REQ-3).
-    pub colour_slot: u8,
+    pub colour_slot: ColourSlot,
     /// Mortgage, Loan or Other (CSD-020 REQ-15).
-    pub category: Category,
+    pub category: DebtCategory,
     /// The house this debt is linked to (CSD-020 REQ-15).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub house_id: Option<HouseId>,

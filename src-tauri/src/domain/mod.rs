@@ -22,25 +22,23 @@ pub use bank_accounts::{
 };
 pub use common::{Note, Period, Year, YearMonth};
 pub use debts::{
-    Debt, DebtId, DebtInsights, DebtStatement, DebtYearlyTotal, Debts,
-    StatementPrefill as DebtStatementPrefill,
+    Debt, DebtId, DebtInsights, DebtStatement, DebtStatementPrefill, DebtYearlyTotal, Debts,
 };
 pub use error::DomainError;
 pub use expenses::{
     Expense, ExpenseId, ExpenseInsights, ExpenseList, ExpensePrefill, ExpenseYearlyTotal, Expenses,
 };
 pub use houses::{
-    House, HouseId, HouseInsights, HouseValuation, HouseYearlyValue, Houses,
-    ValuationPrefill as HouseValuationPrefill,
+    House, HouseId, HouseInsights, HouseValuation, HouseValuationPrefill, HouseYearlyValue, Houses,
 };
 pub use income::{
     Entry, Income, IncomeInsightsYear, IncomeOverview, IncomeYearlyTotal, Job, JobId, JobInput,
     PaycheckPrefill,
 };
 pub use investments::{
-    AccountInput, Balance, CalculationInput, InvestmentAccount, InvestmentAccountId,
-    InvestmentInsightsYear, InvestmentStatement, InvestmentYearlyTotal, Investments,
-    InvestmentsOverview, NetDeposits, StatementCalculation, StatementPrefill,
+    Balance, CalculationInput, InvestmentAccount, InvestmentAccountId, InvestmentAccountInput,
+    InvestmentInsightsYear, InvestmentStatement, InvestmentStatementPrefill, InvestmentYearlyTotal,
+    Investments, InvestmentsOverview, NetDeposits, StatementCalculation,
 };
 pub use money::{Amounts, Currency};
 pub use net_worth::NetWorthInsights;

@@ -18,11 +18,11 @@ mod totals;
 mod tests;
 
 pub use amounts::{debt_note, DebtBalance};
-pub use debt::{Category, Debt, DebtId, DebtInput};
+pub use debt::{Debt, DebtCategory, DebtId, DebtInput};
 pub use insights::DebtInsights;
 pub use overview::DebtSummary;
 pub use settlement::{OpenDebt, Outcome, Settlement};
-pub use statement::{parse_period, DebtStatement, StatementPrefill};
+pub use statement::{parse_period, DebtStatement, DebtStatementPrefill, StatementKind};
 pub use totals::DebtYearlyTotal;
 
 use std::collections::HashSet;
@@ -32,7 +32,7 @@ use serde::{Deserialize, Serialize};
 use crate::domain::common::{Note, Period};
 use crate::domain::error::DomainError;
 
-use crate::domain::common::{COLOUR_SLOTS, MAX_NAME_CHARS};
+use crate::domain::common::{ColourSlot, MAX_NAME_CHARS};
 use crate::domain::series;
 
 /// All debts with their statements. Debts are kept in the order they were
@@ -60,7 +60,7 @@ impl Debts {
             name: valid.name,
             period: valid.period.unwrap_or_default(),
             colour_slot: self.next_colour_slot(),
-            category: Category::default(),
+            category: DebtCategory::default(),
             house_id: None,
             settlement: None,
         };
@@ -148,7 +148,7 @@ impl Debts {
             period,
             balance,
             note,
-            settlement: false,
+            kind: StatementKind::Regular,
         };
         self.statements.push(statement.clone());
         Ok(statement)
@@ -183,7 +183,7 @@ impl Debts {
         let statement = self
             .statements
             .iter_mut()
-            .find(|s| s.debt_id == debt_id && s.period == period && !s.settlement)
+            .find(|s| s.debt_id == debt_id && s.period == period && !s.is_settlement())
             .ok_or(DomainError::DebtStatementNotFound)?;
         statement.period = new_period;
         statement.balance = balance;
@@ -201,7 +201,7 @@ impl Debts {
         self.check_target_editable(debt_id, period)?;
         let before = self.statements.len();
         self.statements
-            .retain(|s| !(s.debt_id == debt_id && s.period == period && !s.settlement));
+            .retain(|s| !(s.debt_id == debt_id && s.period == period && !s.is_settlement()));
         if self.statements.len() == before {
             return Err(DomainError::DebtStatementNotFound);
         }
@@ -242,7 +242,6 @@ impl Debts {
             let name = debt.name.trim();
             if name.is_empty()
                 || name.chars().count() > MAX_NAME_CHARS
-                || debt.colour_slot >= COLOUR_SLOTS
                 || !ids.insert(debt.id)
                 || !names.insert(name.to_lowercase())
             {
@@ -255,7 +254,7 @@ impl Debts {
                 .debt(statement.debt_id)
                 .is_ok_and(|debt| debt.period == statement.period.kind());
             if !matches_debt
-                || !seen.insert((statement.debt_id, statement.period, statement.settlement))
+                || !seen.insert((statement.debt_id, statement.period, statement.kind))
                 || DebtBalance::new(statement.balance.value()).is_err()
                 || debt_note(statement.note.as_str()).is_err()
             {
@@ -284,7 +283,7 @@ impl Debts {
     fn statement(&self, debt_id: DebtId, period: Period) -> Option<&DebtStatement> {
         self.statements
             .iter()
-            .find(|s| s.debt_id == debt_id && s.period == period && !s.settlement)
+            .find(|s| s.debt_id == debt_id && s.period == period && !s.is_settlement())
     }
 
     /// The rules a period must follow for a debt to hold a statement for it:
@@ -308,7 +307,7 @@ impl Debts {
     }
 
     /// The lowest colour slot used by the fewest debts (REQ-3).
-    fn next_colour_slot(&self) -> u8 {
+    fn next_colour_slot(&self) -> ColourSlot {
         series::next_colour_slot(self.debts.iter().map(|debt| debt.colour_slot))
     }
 

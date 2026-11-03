@@ -1,6 +1,6 @@
 use super::*;
+use crate::domain::common::ColourSlot;
 use crate::domain::common::PayPeriod;
-use crate::domain::common::COLOUR_SLOTS;
 use crate::domain::YearMonth;
 
 fn period(text: &str) -> Period {
@@ -173,6 +173,7 @@ fn test_csd015_ac_3_1_slots_follow_creation_order() {
                 .create_house(&input(name, "Monthly"))
                 .unwrap()
                 .colour_slot
+                .get()
         })
         .collect();
     assert_eq!(slots, [0, 1, 2]);
@@ -181,14 +182,15 @@ fn test_csd015_ac_3_1_slots_follow_creation_order() {
 #[test]
 fn test_csd015_ac_3_2_slots_cycle_after_eight_houses() {
     let mut houses = Houses::default();
-    for index in 0..COLOUR_SLOTS {
+    for index in 0..ColourSlot::COUNT {
         new_house(&mut houses, &format!("House {index}"), "Monthly");
     }
     assert_eq!(
         houses
             .create_house(&input("House 9", "Monthly"))
             .unwrap()
-            .colour_slot,
+            .colour_slot
+            .get(),
         0
     );
 }
@@ -200,7 +202,11 @@ fn test_csd015_ac_3_3_deleting_a_house_does_not_recolour_the_others() {
     new_house(&mut houses, "B", "Monthly");
     new_house(&mut houses, "C", "Monthly");
     houses.delete_house(first).unwrap();
-    let slots: Vec<u8> = houses.houses().iter().map(|d| d.colour_slot).collect();
+    let slots: Vec<u8> = houses
+        .houses()
+        .iter()
+        .map(|d| d.colour_slot.get())
+        .collect();
     assert_eq!(slots, [1, 2]);
 }
 
@@ -215,7 +221,8 @@ fn test_csd015_ac_3_4_a_freed_slot_is_used_first() {
         houses
             .create_house(&input("D", "Monthly"))
             .unwrap()
-            .colour_slot,
+            .colour_slot
+            .get(),
         1
     );
 }
@@ -229,7 +236,7 @@ fn test_csd015_ac_3_5_renaming_keeps_the_slot() {
     let renamed = houses
         .update_house(third, &input("Renamed", "Monthly"))
         .unwrap();
-    assert_eq!(renamed.colour_slot, 2);
+    assert_eq!(renamed.colour_slot.get(), 2);
 }
 
 // REQ-4 to REQ-6
@@ -1029,10 +1036,6 @@ fn test_csd015_a_damaged_section_is_not_consistent() {
     let id = new_house(&mut houses, "Example House", "Monthly");
     add(&mut houses, id, "2026-09", "150000.00");
     assert!(houses.validate().is_ok());
-
-    let mut bad_slot = houses.clone();
-    bad_slot.houses[0].colour_slot = COLOUR_SLOTS;
-    assert_eq!(code(bad_slot.validate()), "HOUSE_DATA_INVALID");
 
     let mut orphan = houses.clone();
     orphan.houses.clear();

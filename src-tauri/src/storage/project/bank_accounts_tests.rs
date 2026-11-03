@@ -3,13 +3,13 @@ use std::fs;
 use tempfile::TempDir;
 
 use super::*;
-use crate::domain::bank_accounts::{bank_note, parse_period, AccountInput};
+use crate::domain::bank_accounts::{bank_note, parse_period, BankAccountInput};
 use crate::domain::{BankAccountId, BankBalance};
 
 fn account(project: &mut Project, name: &str, period: &str) -> BankAccountId {
     project
         .bank_accounts_mut()
-        .create_account(&AccountInput {
+        .create_account(&BankAccountInput {
             name: name.to_owned(),
             period: Some(period.to_owned()),
         })
@@ -40,7 +40,7 @@ fn test_csd009_ac_23_1_bank_accounts_survive_save_and_open_including_notes_and_s
     assert_eq!(fresh.bank_accounts(), project.bank_accounts());
     let rows = fresh.bank_accounts().all_entries();
     assert_eq!(rows[0].1.note.as_str(), "Line one\nLine two");
-    assert_eq!(rows[0].0.colour_slot, 1);
+    assert_eq!(rows[0].0.colour_slot.get(), 1);
     assert!(!fresh.status().unsaved_changes);
 
     // The section sits next to the others; the version stays 1.
@@ -84,7 +84,7 @@ fn test_csd009_ac_23_4_the_other_sections_are_untouched() {
     account(&mut project, "Example Current Account", "Monthly");
     project
         .investments_mut()
-        .create_account(&crate::domain::AccountInput {
+        .create_account(&crate::domain::InvestmentAccountInput {
             name: "Example Brokerage".to_owned(),
             period: None,
         })
@@ -122,4 +122,22 @@ fn test_csd009_a_bank_change_is_an_unsaved_change() {
     assert!(!project.status().unsaved_changes);
     account(&mut project, "Example Current Account", "Monthly");
     assert!(project.status().unsaved_changes);
+}
+
+#[test]
+fn test_csd009_ac_3_1_a_bank_account_colour_slot_of_8_is_an_invalid_file() {
+    let dir = TempDir::new().unwrap();
+    let mut project = Project::new();
+    account(&mut project, "Example Current Account", "Monthly");
+    let path = dir.path().join("example-a.varde");
+    project.save_as(path.clone()).unwrap();
+    let mut value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+    value["bank_accounts"]["accounts"][0]["colour_slot"] = serde_json::json!(7);
+    fs::write(&path, value.to_string()).unwrap();
+    Project::new().open(&path).unwrap();
+    value["bank_accounts"]["accounts"][0]["colour_slot"] = serde_json::json!(8);
+    fs::write(&path, value.to_string()).unwrap();
+    let error = Project::new().open(&path).unwrap_err();
+    assert_eq!(error.code(), "PROJECT_INVALID_FILE");
 }

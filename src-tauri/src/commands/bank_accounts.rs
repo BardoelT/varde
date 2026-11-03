@@ -8,7 +8,7 @@ use serde::Serialize;
 use tauri::State;
 
 use super::AppState;
-use crate::domain::bank_accounts::{bank_note, parse_period, AccountInput};
+use crate::domain::bank_accounts::{bank_note, parse_period, BankAccountInput};
 use crate::domain::{
     BankAccount, BankAccountId, BankAccounts, BankBalance, BankEntry, BankInsights, BankOverview,
     BankYearlyTotal, EntryPrefill,
@@ -50,7 +50,7 @@ pub fn list_bank_accounts(state: State<'_, AppState>) -> Result<BankOverview, Ap
 #[tauri::command]
 pub fn create_bank_account(
     state: State<'_, AppState>,
-    input: AccountInput,
+    input: BankAccountInput,
 ) -> Result<BankAccount, AppError> {
     let mut project = state.project()?;
     Ok(project.bank_accounts_mut().create_account(&input)?)
@@ -60,7 +60,7 @@ pub fn create_bank_account(
 pub fn update_bank_account(
     state: State<'_, AppState>,
     account_id: String,
-    input: AccountInput,
+    input: BankAccountInput,
 ) -> Result<BankAccount, AppError> {
     let mut project = state.project()?;
     Ok(project

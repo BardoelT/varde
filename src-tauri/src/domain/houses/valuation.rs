@@ -29,7 +29,7 @@ pub fn parse_period(text: &str) -> Result<Period, DomainError> {
 /// Form values for "copy previous month" or "copy previous year" (CSD-015
 /// REQ-15): the note is never copied.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-pub struct ValuationPrefill {
+pub struct HouseValuationPrefill {
     pub value: Option<Decimal>,
 }
 
@@ -39,9 +39,9 @@ impl Houses {
     ///
     /// # Errors
     /// Returns `HouseNotFound`.
-    pub fn prefill_from_latest(&self, id: HouseId) -> Result<ValuationPrefill, DomainError> {
+    pub fn prefill_from_latest(&self, id: HouseId) -> Result<HouseValuationPrefill, DomainError> {
         self.house(id)?;
-        Ok(ValuationPrefill {
+        Ok(HouseValuationPrefill {
             value: self.latest(id).map(|valuation| valuation.value.value()),
         })
     }

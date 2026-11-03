@@ -44,7 +44,7 @@ fn test_csd015_ac_24_1_houses_survive_save_and_open_including_notes_and_slots() 
     assert_eq!(fresh.houses(), project.houses());
     let rows = fresh.houses().all_valuations();
     assert_eq!(rows[0].1.note.as_str(), "Line one\nLine two");
-    assert_eq!(rows[0].0.colour_slot, 1);
+    assert_eq!(rows[0].0.colour_slot.get(), 1);
     assert!(!fresh.status().unsaved_changes);
 
     // The section sits next to the others; the version stays 1.
@@ -85,14 +85,14 @@ fn test_csd015_ac_24_4_the_other_sections_are_untouched() {
     house(&mut project, "Example House", "Monthly");
     project
         .bank_accounts_mut()
-        .create_account(&crate::domain::bank_accounts::AccountInput {
+        .create_account(&crate::domain::bank_accounts::BankAccountInput {
             name: "Example Current Account".to_owned(),
             period: None,
         })
         .unwrap();
     project
         .investments_mut()
-        .create_account(&crate::domain::AccountInput {
+        .create_account(&crate::domain::InvestmentAccountInput {
             name: "Example Brokerage".to_owned(),
             period: None,
         })
@@ -287,4 +287,66 @@ fn test_csd020_ac_13_4_a_house_without_a_purchase_is_an_invalid_file() {
         Project::new().open(&bad).unwrap_err().code(),
         "PROJECT_INVALID_FILE"
     );
+}
+
+/// Saves a project with one house, lets `change` edit the file's JSON and
+/// opens the result.
+fn open_changed_house_file(
+    change: impl FnOnce(&mut serde_json::Value),
+) -> Result<(), StorageError> {
+    let dir = TempDir::new().unwrap();
+    let mut project = Project::new();
+    house(&mut project, "Example House", "Monthly");
+    let path = dir.path().join("example-a.varde");
+    project.save_as(path.clone()).unwrap();
+    let mut value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+    change(&mut value);
+    fs::write(&path, value.to_string()).unwrap();
+    Project::new().open(&path)
+}
+
+#[test]
+fn test_csd020_ac_5_1_a_file_with_only_a_sell_date_or_only_a_sell_amount_is_invalid() {
+    for (field, value) in [
+        ("sell_date", serde_json::json!("2026-06-10")),
+        ("sell_amount", serde_json::json!("300000.00")),
+    ] {
+        let error = open_changed_house_file(|file| {
+            file["houses"]["houses"][0][field] = value;
+        })
+        .err()
+        .unwrap();
+        assert_eq!(error.code(), "PROJECT_INVALID_FILE", "{field}");
+    }
+}
+
+#[test]
+fn test_csd020_ac_5_1_a_file_with_both_sale_fields_or_none_opens() {
+    assert!(open_changed_house_file(|_| {}).is_ok());
+    assert!(open_changed_house_file(|file| {
+        file["houses"]["houses"][0]["sell_date"] = serde_json::json!("2026-06-10");
+        file["houses"]["houses"][0]["sell_amount"] = serde_json::json!("300000.00");
+    })
+    .is_ok());
+    assert!(open_changed_house_file(|file| {
+        let house = file["houses"]["houses"][0].as_object_mut().unwrap();
+        house.remove("sell_date");
+        house.remove("sell_amount");
+    })
+    .is_ok());
+}
+
+#[test]
+fn test_csd015_ac_3_1_a_house_colour_slot_of_8_is_an_invalid_file() {
+    let error = open_changed_house_file(|file| {
+        file["houses"]["houses"][0]["colour_slot"] = serde_json::json!(8);
+    })
+    .err()
+    .unwrap();
+    assert_eq!(error.code(), "PROJECT_INVALID_FILE");
+    assert!(open_changed_house_file(|file| {
+        file["houses"]["houses"][0]["colour_slot"] = serde_json::json!(7);
+    })
+    .is_ok());
 }

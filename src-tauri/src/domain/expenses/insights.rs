@@ -5,22 +5,22 @@ use std::collections::BTreeMap;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::common::series_years;
+use crate::domain::common::{series_years, ColourSlot};
 use crate::domain::money::zero;
 
-use super::{Category, Expenses};
+use super::{ExpenseCategory, Expenses};
 
 /// A category in the legend of the chart (CSD-014 REQ-7).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct InsightsCategory {
-    pub name: Category,
-    pub colour_slot: u8,
+    pub name: ExpenseCategory,
+    pub colour_slot: ColourSlot,
 }
 
 /// The part of a year's bar that belongs to one category (CSD-014 REQ-4).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct InsightsSegment {
-    pub category: Category,
+    pub category: ExpenseCategory,
     pub amount: Decimal,
 }
 
@@ -50,7 +50,7 @@ impl Expenses {
     /// (CSD-014 REQ-1 to REQ-4).
     #[must_use]
     pub fn insights(&self, current_year: i32) -> ExpenseInsights {
-        let categories = Category::ALL
+        let categories = ExpenseCategory::ALL
             .into_iter()
             .map(|name| InsightsCategory {
                 name,
@@ -59,7 +59,10 @@ impl Expenses {
             .collect();
         let mut sums: BTreeMap<(i32, usize), (Decimal, usize)> = BTreeMap::new();
         for expense in &self.expenses {
-            let Some(slot) = Category::ALL.iter().position(|c| *c == expense.category) else {
+            let Some(slot) = ExpenseCategory::ALL
+                .iter()
+                .position(|c| *c == expense.category)
+            else {
                 continue;
             };
             let entry = sums
@@ -71,7 +74,7 @@ impl Expenses {
         let years = series_years(self.expenses.iter().map(|e| e.date.year()), current_year)
             .into_iter()
             .map(|year| {
-                let segments: Vec<InsightsSegment> = Category::ALL
+                let segments: Vec<InsightsSegment> = ExpenseCategory::ALL
                     .iter()
                     .enumerate()
                     .filter_map(|(slot, category)| {
@@ -81,7 +84,7 @@ impl Expenses {
                         })
                     })
                     .collect();
-                let expense_count = (0..Category::ALL.len())
+                let expense_count = (0..ExpenseCategory::ALL.len())
                     .filter_map(|slot| sums.get(&(year, slot)))
                     .map(|(_, count)| *count)
                     .sum();

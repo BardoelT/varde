@@ -4,9 +4,9 @@
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-use crate::domain::common::PayPeriod;
 use crate::domain::common::Period;
 use crate::domain::common::MAX_NAME_CHARS;
+use crate::domain::common::{ColourSlot, PayPeriod};
 use crate::domain::common::{Id, IdKind};
 use crate::domain::error::DomainError;
 
@@ -21,41 +21,101 @@ impl IdKind for House {
     }
 }
 
-/// One thing the user owns that has a value (CSD-015 REQ-1).
+/// The sale of a house: the date and the amount together (CSD-020 REQ-5).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Sale {
+    pub date: HouseDate,
+    pub amount: HouseValue,
+}
+
+/// One thing the user owns that has a value (CSD-015 REQ-1). On the wire the
+/// sale is the two flat keys `sell_date` and `sell_amount`, both set or both
+/// null.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(try_from = "HouseRaw", into = "HouseRaw")]
 pub struct House {
     pub id: HouseId,
     pub name: String,
     pub period: PayPeriod,
     /// 0 to 7, fixed when the house is created (CSD-015 REQ-3).
-    pub colour_slot: u8,
+    pub colour_slot: ColourSlot,
     /// Every house has a purchase (CSD-020 REQ-1).
     pub purchase_date: HouseDate,
     pub purchase_amount: HouseValue,
-    /// The sale: both fields or neither (CSD-020 REQ-5).
-    pub sell_date: Option<HouseDate>,
-    pub sell_amount: Option<HouseValue>,
+    /// The sale, with its date and amount together or none (CSD-020 REQ-5).
+    pub sale: Option<Sale>,
+}
+
+/// The flat shape of a house in the project file and IPC. `flatten` does not
+/// combine with `deny_unknown_fields`, so the sale is split into its two keys
+/// here and a file with only one of them is rejected.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HouseRaw {
+    id: HouseId,
+    name: String,
+    period: PayPeriod,
+    colour_slot: ColourSlot,
+    purchase_date: HouseDate,
+    purchase_amount: HouseValue,
+    sell_date: Option<HouseDate>,
+    sell_amount: Option<HouseValue>,
+}
+
+impl TryFrom<HouseRaw> for House {
+    type Error = DomainError;
+
+    fn try_from(raw: HouseRaw) -> Result<Self, DomainError> {
+        let sale = match (raw.sell_date, raw.sell_amount) {
+            (None, None) => None,
+            (Some(date), Some(amount)) => Some(Sale { date, amount }),
+            _ => return Err(DomainError::HouseSaleIncomplete),
+        };
+        Ok(Self {
+            id: raw.id,
+            name: raw.name,
+            period: raw.period,
+            colour_slot: raw.colour_slot,
+            purchase_date: raw.purchase_date,
+            purchase_amount: raw.purchase_amount,
+            sale,
+        })
+    }
+}
+
+impl From<House> for HouseRaw {
+    fn from(house: House) -> Self {
+        Self {
+            id: house.id,
+            name: house.name,
+            period: house.period,
+            colour_slot: house.colour_slot,
+            purchase_date: house.purchase_date,
+            purchase_amount: house.purchase_amount,
+            sell_date: house.sale.map(|sale| sale.date),
+            sell_amount: house.sale.map(|sale| sale.amount),
+        }
+    }
 }
 
 impl House {
     /// Whether the house has no sale (CSD-020 section 3).
     #[must_use]
     pub fn is_held(&self) -> bool {
-        self.sell_date.is_none()
+        self.sale.is_none()
     }
 
     /// The sell amount minus the purchase amount of a sold house (CSD-020
     /// REQ-8). It is derived and never stored.
     #[must_use]
     pub fn result(&self) -> Option<Decimal> {
-        Some(self.sell_amount?.value() - self.purchase_amount.value())
+        Some(self.sale?.amount.value() - self.purchase_amount.value())
     }
 
     /// Whether the house was purchased on or before 31/12 of `year` and not
     /// sold on or before it (CSD-020 REQ-10).
     pub(super) fn held_at_end_of(&self, year: i32) -> bool {
-        self.purchase_date.year() <= year && self.sell_date.is_none_or(|date| date.year() > year)
+        self.purchase_date.year() <= year && self.sale.is_none_or(|sale| sale.date.year() > year)
     }
 
     /// Whether `period` lies in the holding window: not before the period of
@@ -70,7 +130,7 @@ impl House {
             Period::Month(_) => period.sort_key(),
             Period::Year(_) => (period.year(), 0),
         };
-        own >= key(self.purchase_date) && self.sell_date.is_none_or(|date| own <= key(date))
+        own >= key(self.purchase_date) && self.sale.is_none_or(|sale| own <= key(sale.date))
     }
 }
 
@@ -99,7 +159,7 @@ pub(super) struct ValidHouse {
     pub(super) period: Option<PayPeriod>,
     pub(super) purchase_date: HouseDate,
     pub(super) purchase_amount: HouseValue,
-    pub(super) sale: Option<(HouseDate, HouseValue)>,
+    pub(super) sale: Option<Sale>,
 }
 
 /// The text of an optional field, trimmed, `None` when empty.
@@ -140,7 +200,10 @@ impl HouseInput {
                 if date < purchase_date {
                     return Err(DomainError::HouseSellBeforePurchase);
                 }
-                Some((date, HouseValue::parse_amount(amount)?))
+                Some(Sale {
+                    date,
+                    amount: HouseValue::parse_amount(amount)?,
+                })
             }
             _ => return Err(DomainError::HouseSaleIncomplete),
         };

@@ -75,8 +75,8 @@ fn account_with_august() -> (Investments, InvestmentAccountId) {
     (investments, id)
 }
 
-fn input(name: &str, period: Option<&str>) -> AccountInput {
-    AccountInput {
+fn input(name: &str, period: Option<&str>) -> InvestmentAccountInput {
+    InvestmentAccountInput {
         name: name.to_owned(),
         period: period.map(str::to_owned),
     }

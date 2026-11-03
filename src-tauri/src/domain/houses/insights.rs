@@ -3,7 +3,7 @@
 use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::common::{series_years, YearMonth};
+use crate::domain::common::{series_years, ColourSlot, YearMonth};
 use crate::domain::money::zero;
 
 use super::{HouseId, Houses};
@@ -13,7 +13,7 @@ use super::{HouseId, Houses};
 pub struct InsightsHouse {
     pub id: HouseId,
     pub name: String,
-    pub colour_slot: u8,
+    pub colour_slot: ColourSlot,
 }
 
 /// The part of a year's bar that belongs to one house (CSD-016 REQ-5).

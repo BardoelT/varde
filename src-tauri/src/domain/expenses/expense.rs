@@ -7,7 +7,7 @@ use crate::domain::common::MAX_NAME_CHARS;
 use crate::domain::common::{Id, IdKind};
 use crate::domain::error::DomainError;
 
-use super::{expense_note, Category, ExpenseAmount, ExpenseDate};
+use super::{expense_note, ExpenseAmount, ExpenseCategory, ExpenseDate};
 
 /// Identifies a Expense.
 pub type ExpenseId = Id<Expense>;
@@ -26,7 +26,7 @@ pub struct Expense {
     pub name: String,
     pub amount: ExpenseAmount,
     pub date: ExpenseDate,
-    pub category: Category,
+    pub category: ExpenseCategory,
     pub note: Note,
 }
 
@@ -51,7 +51,7 @@ pub(super) struct ValidExpense {
     pub(super) name: String,
     pub(super) amount: ExpenseAmount,
     pub(super) date: ExpenseDate,
-    pub(super) category: Category,
+    pub(super) category: ExpenseCategory,
     pub(super) note: Note,
 }
 
@@ -70,7 +70,7 @@ impl ExpenseInput {
             name: name.to_owned(),
             amount: ExpenseAmount::parse(&self.amount)?,
             date: ExpenseDate::parse(&self.date)?,
-            category: Category::parse(&self.category)?,
+            category: ExpenseCategory::parse(&self.category)?,
             note: expense_note(self.note.as_deref().unwrap_or_default())?,
         })
     }

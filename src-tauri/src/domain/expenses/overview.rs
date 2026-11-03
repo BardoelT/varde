@@ -7,7 +7,7 @@ use serde::Serialize;
 
 use crate::domain::money::zero;
 
-use super::{Category, Expense, Expenses};
+use super::{Expense, ExpenseCategory, Expenses};
 
 /// All expenses with their total (CSD-013 REQ-11).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -23,7 +23,7 @@ pub struct ExpenseList {
 pub struct ExpensePrefill {
     pub name: String,
     pub amount: Decimal,
-    pub category: Category,
+    pub category: ExpenseCategory,
 }
 
 impl Expenses {

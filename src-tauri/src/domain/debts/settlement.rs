@@ -4,11 +4,11 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::common::PayPeriod;
-use crate::domain::common::Period;
+use crate::domain::common::{parse_wire_name, wire_name, Period, Year, YearMonth};
 use crate::domain::error::DomainError;
 use crate::domain::houses::{HouseDate, HouseId, Houses};
 
-use super::{Category, Debt, DebtBalance, DebtId, DebtStatement, Debts};
+use super::{Debt, DebtBalance, DebtCategory, DebtId, DebtStatement, Debts, StatementKind};
 
 /// How a debt ended on the sale of its house (CSD-020 section 3).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -20,23 +20,12 @@ pub enum Outcome {
 }
 
 impl Outcome {
-    /// Parses `Repaid` or `Cancelled`.
+    /// Parses `Repaid` or `Cancelled`, the names serde writes.
     ///
     /// # Errors
     /// Returns `HouseSettlementInvalid` for any other text.
     pub fn parse(text: &str) -> Result<Self, DomainError> {
-        match text.trim() {
-            "Repaid" => Ok(Self::Repaid),
-            "Cancelled" => Ok(Self::Cancelled),
-            _ => Err(DomainError::HouseSettlementInvalid),
-        }
-    }
-
-    fn label(self) -> &'static str {
-        match self {
-            Self::Repaid => "Repaid",
-            Self::Cancelled => "Cancelled",
-        }
+        parse_wire_name(text).ok_or(DomainError::HouseSettlementInvalid)
     }
 }
 
@@ -62,11 +51,13 @@ pub struct OpenDebt {
 /// The period of a debt that holds `date`: the month of a monthly debt, the
 /// year of a yearly one (CSD-020 section 3).
 pub(crate) fn sale_period(kind: PayPeriod, date: HouseDate) -> Result<Period, DomainError> {
-    let text = match kind {
-        PayPeriod::Monthly => format!("{:04}-{:02}", date.year(), date.month()),
-        PayPeriod::Yearly => format!("{:04}", date.year()),
-    };
-    Period::parse(&text).map_err(|_| DomainError::DebtDataInvalid)
+    let invalid = || DomainError::DebtDataInvalid;
+    match kind {
+        PayPeriod::Monthly => YearMonth::new(date.year(), date.month())
+            .map(Period::Month)
+            .ok_or_else(invalid),
+        PayPeriod::Yearly => Year::new(date.year()).map(Period::Year).ok_or_else(invalid),
+    }
 }
 
 impl Debts {
@@ -105,7 +96,7 @@ impl Debts {
     pub(crate) fn set_category(
         &mut self,
         id: DebtId,
-        category: Category,
+        category: DebtCategory,
     ) -> Result<(), DomainError> {
         let debt = self.debt_mut(id)?;
         if debt.category != category && debt.settlement.is_some() {
@@ -200,14 +191,14 @@ impl Debts {
         }
         let note = crate::domain::debts::debt_note(&format!(
             "{} on sale of {house_name}",
-            outcome.label()
+            wire_name(&outcome)
         ))?;
         self.statements.push(DebtStatement {
             debt_id: id,
             period,
             balance: DebtBalance::new(Decimal::ZERO)?,
             note,
-            settlement: true,
+            kind: StatementKind::Settlement,
         });
         self.debt_mut(id)?.settlement = Some(Settlement {
             outcome,
@@ -229,7 +220,7 @@ impl Debts {
         };
         let period = sale_period(debt.period, settlement.date)?;
         self.statements
-            .retain(|s| !(s.debt_id == id && s.period == period && s.settlement));
+            .retain(|s| !(s.debt_id == id && s.period == period && s.is_settlement()));
         self.debt_mut(id)?.settlement = None;
         Ok(())
     }
@@ -279,7 +270,7 @@ impl Debts {
     /// REQ-23, REQ-32).
     #[must_use]
     pub fn statement_locked(&self, statement: &DebtStatement) -> bool {
-        statement.settlement
+        statement.is_settlement()
             || self
                 .is_after_settlement(statement.debt_id, statement.period)
                 .unwrap_or(false)
@@ -294,7 +285,7 @@ impl Debts {
         let invalid = DomainError::DebtDataInvalid;
         // A settlement statement belongs to a settled debt, in its settlement
         // period (CSD-020 REQ-33).
-        for statement in self.statements.iter().filter(|s| s.settlement) {
+        for statement in self.statements.iter().filter(|s| s.is_settlement()) {
             let debt = self.debt(statement.debt_id)?;
             let belongs = match &debt.settlement {
                 Some(settlement) => sale_period(debt.period, settlement.date)? == statement.period,
@@ -318,7 +309,7 @@ impl Debts {
             let period = sale_period(debt.period, settlement.date)?;
             let zero_statement = self.statements.iter().any(|s| {
                 s.debt_id == debt.id
-                    && s.settlement
+                    && s.is_settlement()
                     && s.period == period
                     && s.balance.value().is_zero()
             });
@@ -326,7 +317,7 @@ impl Debts {
                 .statements
                 .iter()
                 .any(|s| s.debt_id == debt.id && s.period.sort_key() > period.sort_key());
-            if house.is_none_or(|house| house.sell_date != Some(settlement.date))
+            if house.is_none_or(|house| house.sale.map(|sale| sale.date) != Some(settlement.date))
                 || !zero_statement
                 || later
             {

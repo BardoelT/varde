@@ -27,7 +27,7 @@ pub struct InvestmentAccount {
 
 /// Account fields as typed by the user, before validation.
 #[derive(Clone, Debug, Default, Deserialize)]
-pub struct AccountInput {
+pub struct InvestmentAccountInput {
     #[serde(default)]
     pub name: String,
     /// `None` means Monthly when creating and "unchanged" when editing.
@@ -40,7 +40,7 @@ pub(super) struct ValidAccount {
     pub(super) period: Option<PayPeriod>,
 }
 
-impl AccountInput {
+impl InvestmentAccountInput {
     pub(super) fn validate(&self) -> Result<ValidAccount, DomainError> {
         let name = self.name.trim();
         if name.is_empty() {
