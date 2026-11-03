@@ -75,7 +75,7 @@ There is no npm or frontend build step. `ui/` is served as-is.
 - **Settings** open from the Settings item at the bottom of the left pane, or from the app menu with ⌘,.
 - **Dates** are shown and typed as `dd/mm/yyyy`, and months as `YYYY-MM`.
 
-> **Project files hold real financial data** and are plain, unencrypted JSON. `*.wealth` is git-ignored. Never commit one.
+> **Project files hold real financial data** and are plain, unencrypted JSON. `*.varde` is git-ignored. Never commit one.
 
 ## Development
 

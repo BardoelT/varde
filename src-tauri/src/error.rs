@@ -52,7 +52,7 @@ mod tests {
 
     #[test]
     fn storage_errors_do_not_leak_the_cause() {
-        let cause = std::io::Error::other("/Users/someone/secret/path.wealth");
+        let cause = std::io::Error::other("/Users/someone/secret/path.varde");
         let error = AppError::from(StorageError::SaveFailed(cause));
         let json = serde_json::to_string(&error).unwrap();
         assert!(!json.contains("/Users"));

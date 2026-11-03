@@ -6,11 +6,11 @@ publish = false
 license = "GPL-3.0-only"
 
 [lib]
-name = "personal_finance_lib"
+name = "varde_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [[bin]]
-name = "Varde"
+name = "varde"
 path = "src/main.rs"
 
 [build-dependencies]

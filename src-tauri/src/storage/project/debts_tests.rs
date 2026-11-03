@@ -33,7 +33,7 @@ fn test_csd011_ac_23_1_debts_survive_save_and_open_including_notes_and_slots() {
             YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
 
     let mut fresh = Project::new();
@@ -56,7 +56,7 @@ fn test_csd011_ac_23_1_debts_survive_save_and_open_including_notes_and_slots() {
 #[test]
 fn test_csd011_ac_23_2_a_file_without_the_section_opens_without_debts() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
         r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]}}"#,
@@ -83,7 +83,7 @@ fn test_csd011_ac_23_3_a_zero_balance_survives_the_round_trip() {
             YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
     let mut fresh = Project::new();
     fresh.open(&path).unwrap();
@@ -110,7 +110,7 @@ fn test_csd011_ac_23_4_the_other_sections_are_untouched() {
             statement_period: None,
         })
         .unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
     let mut fresh = Project::new();
     fresh.open(&path).unwrap();
@@ -122,7 +122,7 @@ fn test_csd011_ac_23_4_the_other_sections_are_untouched() {
 #[test]
 fn test_csd011_ac_23_5_a_damaged_section_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     // A statement of a debt that does not exist.
     fs::write(
         &path,
@@ -140,9 +140,7 @@ fn test_csd011_ac_23_5_a_damaged_section_is_an_invalid_file() {
 fn test_csd011_a_debt_change_is_an_unsaved_change() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
-    project
-        .save_as(dir.path().join("example-a.wealth"))
-        .unwrap();
+    project.save_as(dir.path().join("example-a.varde")).unwrap();
     assert!(!project.status().unsaved_changes);
     debt(&mut project, "Example Mortgage", "Monthly");
     assert!(project.status().unsaved_changes);

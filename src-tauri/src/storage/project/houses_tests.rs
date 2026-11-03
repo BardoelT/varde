@@ -40,7 +40,7 @@ fn test_csd015_ac_24_1_houses_survive_save_and_open_including_notes_and_slots() 
             YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
 
     let mut fresh = Project::new();
@@ -63,7 +63,7 @@ fn test_csd015_ac_24_1_houses_survive_save_and_open_including_notes_and_slots() 
 #[test]
 fn test_csd015_ac_24_2_a_file_without_the_section_opens_without_houses() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
         r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]}}"#,
@@ -78,7 +78,7 @@ fn test_csd015_ac_24_2_a_file_without_the_section_opens_without_houses() {
 #[test]
 fn test_csd015_ac_24_6_a_file_with_the_former_section_opens_as_houses() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
         r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
@@ -91,10 +91,8 @@ fn test_csd015_ac_24_6_a_file_with_the_former_section_opens_as_houses() {
     let mut project = Project::new();
     project.open(&path).unwrap();
     assert_eq!(project.houses().houses().len(), 1);
-    project
-        .save_as(dir.path().join("example-b.wealth"))
-        .unwrap();
-    let text = fs::read_to_string(dir.path().join("example-b.wealth")).unwrap();
+    project.save_as(dir.path().join("example-b.varde")).unwrap();
+    let text = fs::read_to_string(dir.path().join("example-b.varde")).unwrap();
     let value: serde_json::Value = serde_json::from_str(&text).unwrap();
     assert!(value.get("assets").is_none());
     assert_eq!(value["houses"]["houses"][0]["name"], "Example House");
@@ -116,7 +114,7 @@ fn test_csd015_ac_24_3_a_zero_value_survives_the_round_trip() {
             YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
     let mut fresh = Project::new();
     fresh.open(&path).unwrap();
@@ -143,7 +141,7 @@ fn test_csd015_ac_24_4_the_other_sections_are_untouched() {
             statement_period: None,
         })
         .unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
     let mut fresh = Project::new();
     fresh.open(&path).unwrap();
@@ -155,7 +153,7 @@ fn test_csd015_ac_24_4_the_other_sections_are_untouched() {
 #[test]
 fn test_csd015_ac_24_5_a_damaged_section_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     // A valuation of a house that does not exist.
     fs::write(
         &path,
@@ -233,7 +231,7 @@ fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
     };
     let (houses, debts) = project.houses_and_debts_mut();
     linking::update_house(houses, debts, house, &sold, &settle, today).unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
     let mut reopened = Project::new();
     reopened.open(&path).unwrap();
@@ -245,7 +243,7 @@ fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
 #[test]
 fn test_csd020_ac_16_2_a_file_without_links_opens_without_links() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
         r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
@@ -264,7 +262,7 @@ fn test_csd020_ac_16_2_a_file_without_links_opens_without_links() {
 #[test]
 fn test_csd020_ac_16_3_a_damaged_link_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
         r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
@@ -282,7 +280,7 @@ fn test_csd020_ac_16_3_a_damaged_link_is_an_invalid_file() {
 #[test]
 fn test_csd020_ac_16_4_a_link_on_a_debt_of_category_other_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
         r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
@@ -304,9 +302,7 @@ fn test_csd020_ac_16_4_a_link_on_a_debt_of_category_other_is_an_invalid_file() {
 fn test_csd015_a_house_change_is_an_unsaved_change() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
-    project
-        .save_as(dir.path().join("example-a.wealth"))
-        .unwrap();
+    project.save_as(dir.path().join("example-a.varde")).unwrap();
     assert!(!project.status().unsaved_changes);
     house(&mut project, "Example House", "Monthly");
     assert!(project.status().unsaved_changes);
@@ -315,7 +311,7 @@ fn test_csd015_a_house_change_is_an_unsaved_change() {
 #[test]
 fn test_csd020_ac_16_5_a_settlement_statement_without_a_settlement_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
         r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
@@ -333,7 +329,7 @@ fn test_csd020_ac_16_5_a_settlement_statement_without_a_settlement_is_an_invalid
 #[test]
 fn test_csd020_ac_16_6_a_debt_settled_by_an_earlier_version_opens_in_the_current_form() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
         r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
@@ -374,11 +370,11 @@ fn test_csd020_ac_16_6_a_debt_settled_by_an_earlier_version_opens_in_the_current
             ("2025".to_owned(), "6000.00".to_owned(), false),
         ]
     );
-    let saved = dir.path().join("example-b.wealth");
+    let saved = dir.path().join("example-b.varde");
     project.save_as(saved.clone()).unwrap();
     let text = fs::read_to_string(saved).unwrap();
     assert!(!text.contains("replaced"));
     let mut reopened = Project::new();
-    reopened.open(&dir.path().join("example-b.wealth")).unwrap();
+    reopened.open(&dir.path().join("example-b.varde")).unwrap();
     assert_eq!(reopened.debts(), project.debts());
 }

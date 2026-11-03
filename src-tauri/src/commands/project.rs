@@ -21,15 +21,15 @@ pub struct DialogResult {
     status: ProjectStatus,
 }
 
-const FILTER_NAME: &str = "Wealth project";
-const FILTER_EXTENSIONS: &[&str] = &["wealth"];
+const FILTER_NAME: &str = "Varde project";
+const FILTER_EXTENSIONS: &[&str] = &["varde"];
 
 /// Shows the native "save" dialog. Returns `None` when cancelled.
 fn pick_save_path<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
     app.dialog()
         .file()
         .add_filter(FILTER_NAME, FILTER_EXTENSIONS)
-        .set_file_name("project.wealth")
+        .set_file_name("project.varde")
         .blocking_save_file()
         .and_then(|path| path.into_path().ok())
 }
@@ -171,7 +171,7 @@ mod tests {
     #[test]
     fn test_csd002_ac_1_3_flow_asks_once_and_reuses_the_path() {
         let dir = TempDir::new().unwrap();
-        let path = dir.path().join("example-a.wealth");
+        let path = dir.path().join("example-a.varde");
         let state = state_with_job();
         let mut asked = 0;
 
@@ -213,8 +213,8 @@ mod tests {
     fn test_csd002_ac_1_4_flow_save_as_moves_the_project() {
         let dir = TempDir::new().unwrap();
         let state = state_with_job();
-        let path_a = dir.path().join("example-a.wealth");
-        let path_b = dir.path().join("example-b.wealth");
+        let path_a = dir.path().join("example-a.varde");
+        let path_b = dir.path().join("example-b.varde");
         save_flow(&state, || Some(path_a.clone())).unwrap();
         save_as_flow(&state, || Some(path_b.clone())).unwrap();
         assert!(path_b.exists());
@@ -225,7 +225,7 @@ mod tests {
     #[test]
     fn open_flow_replaces_the_project() {
         let dir = TempDir::new().unwrap();
-        let path = dir.path().join("example-a.wealth");
+        let path = dir.path().join("example-a.varde");
         let source = state_with_job();
         save_flow(&source, || Some(path.clone())).unwrap();
 

@@ -60,7 +60,7 @@ fn test_csd002_ac_1_1_save_and_reload_round_trips() {
     }
     add_paycheck(&mut project, second, "2026-08", "1000.50");
     add_paycheck(&mut project, second, "2026-09", "1000.50");
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
 
     let mut fresh = Project::new();
@@ -77,7 +77,7 @@ fn test_csd002_ac_1_2_write_failure_keeps_changes_unsaved() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
     add_job(&mut project, "Example Employer");
-    let missing = dir.path().join("no-such-dir").join("example-a.wealth");
+    let missing = dir.path().join("no-such-dir").join("example-a.varde");
 
     let error = project.save_as(missing.clone()).unwrap_err();
     assert_eq!(error.code(), "PROJECT_SAVE_FAILED");
@@ -99,7 +99,7 @@ fn test_csd002_ac_1_3_path_is_asked_once_then_reused() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
     add_job(&mut project, "Example Employer");
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     let asked = Cell::new(0);
     let ask = || {
         asked.set(asked.get() + 1);
@@ -119,8 +119,8 @@ fn test_csd002_ac_1_3_path_is_asked_once_then_reused() {
 #[test]
 fn test_csd002_ac_1_4_save_as_asks_again() {
     let dir = TempDir::new().unwrap();
-    let (mut project, path_a) = saved_project(&dir, "example-a.wealth");
-    let path_b = dir.path().join("example-b.wealth");
+    let (mut project, path_a) = saved_project(&dir, "example-a.varde");
+    let path_b = dir.path().join("example-b.varde");
 
     let outcome = project.save_as_asking(|| Some(path_b.clone())).unwrap();
     assert_eq!(outcome, SaveOutcome::Saved);
@@ -163,7 +163,7 @@ fn a_path_without_extension_gets_the_project_extension() {
     let mut project = Project::new();
     add_job(&mut project, "Example Employer");
     project.save_as(dir.path().join("example")).unwrap();
-    assert!(dir.path().join("example.wealth").exists());
+    assert!(dir.path().join("example.varde").exists());
     assert!(!dir.path().join("example").exists());
 }
 
@@ -176,7 +176,7 @@ fn test_csd002_ac_2_1_open_valid_file() {
     let job = add_job(&mut project, "Example Employer");
     add_paycheck(&mut project, job, "2026-08", "3000.00");
     add_paycheck(&mut project, job, "2026-09", "3000.00");
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
 
     let mut opened = Project::new();
@@ -195,14 +195,14 @@ fn test_csd002_ac_2_2_invalid_file_is_rejected() {
     let before = project.income().clone();
 
     let garbage = [
-        ("not-json.wealth", "this is not a project file"),
+        ("not-json.varde", "this is not a project file"),
         (
-            "no-version.wealth",
+            "no-version.varde",
             r#"{"income":{"jobs":[],"paychecks":[]}}"#,
         ),
-        ("wrong-shape.wealth", r#"{"format_version":1,"income":42}"#),
+        ("wrong-shape.varde", r#"{"format_version":1,"income":42}"#),
         (
-            "orphan-paycheck.wealth",
+            "orphan-paycheck.varde",
             r#"{"format_version":1,"income":{"jobs":[],"paychecks":[{
                 "job_id":"00000000-0000-4000-8000-000000000000","month":"2026-09",
                 "gross_salary":"3000.00","holiday_pay":"0.00","bonus":"0.00"}]}}"#,
@@ -225,12 +225,12 @@ fn test_csd002_ac_2_2_invalid_file_is_rejected() {
 #[test]
 fn test_csd002_ac_2_3_file_from_newer_version_is_rejected() {
     let dir = TempDir::new().unwrap();
-    let (mut project, path) = saved_project(&dir, "example-a.wealth");
+    let (mut project, path) = saved_project(&dir, "example-a.varde");
     let newer = fs::read_to_string(&path)
         .unwrap()
         .replace("\"format_version\": 1", "\"format_version\": 2");
     assert!(newer.contains("\"format_version\": 2"));
-    let newer_path = dir.path().join("newer.wealth");
+    let newer_path = dir.path().join("newer.varde");
     fs::write(&newer_path, newer).unwrap();
     let before = project.income().clone();
 
@@ -246,9 +246,7 @@ fn opening_a_missing_file_or_a_directory_fails_without_changes() {
     add_job(&mut project, "Example Employer");
     let before = project.income().clone();
 
-    let missing = project
-        .open(&dir.path().join("missing.wealth"))
-        .unwrap_err();
+    let missing = project.open(&dir.path().join("missing.varde")).unwrap_err();
     assert_eq!(missing.code(), "PROJECT_OPEN_FAILED");
     assert!(!missing.to_string().contains(dir.path().to_str().unwrap()));
     let directory = project.open(dir.path()).unwrap_err();
@@ -273,7 +271,7 @@ fn cancelling_the_open_dialog_changes_nothing() {
 #[test]
 fn test_csd002_ac_3_1_indicator_follows_edits() {
     let dir = TempDir::new().unwrap();
-    let (_, path) = saved_project(&dir, "example-a.wealth");
+    let (_, path) = saved_project(&dir, "example-a.varde");
     let mut project = Project::new();
     project.open(&path).unwrap();
     assert!(!project.status().unsaved_changes);
@@ -288,7 +286,7 @@ fn test_csd002_ac_3_1_indicator_follows_edits() {
 #[test]
 fn indicator_clears_when_an_edit_is_undone() {
     let dir = TempDir::new().unwrap();
-    let (mut project, _) = saved_project(&dir, "example-a.wealth");
+    let (mut project, _) = saved_project(&dir, "example-a.varde");
     let job = add_job(&mut project, "Second Example Employer");
     assert!(project.status().unsaved_changes);
     project.income_mut().delete_job(job).unwrap();
@@ -314,7 +312,7 @@ fn move_paycheck(project: &mut Project, job: JobId, from: &str, to: &str) -> boo
 #[test]
 fn test_csd001_ac_29_7_a_move_is_an_unsaved_change() {
     let dir = TempDir::new().unwrap();
-    let (mut project, _) = saved_project(&dir, "example-a.wealth");
+    let (mut project, _) = saved_project(&dir, "example-a.varde");
     let job = project.income().jobs()[0].id;
     add_paycheck(&mut project, job, "2026-05", "3000.00");
     project.save().unwrap();
@@ -330,7 +328,7 @@ fn test_csd001_ac_29_7_a_move_is_an_unsaved_change() {
 #[test]
 fn test_csd001_ac_30_4_a_rejected_move_is_not_an_unsaved_change() {
     let dir = TempDir::new().unwrap();
-    let (mut project, _) = saved_project(&dir, "example-a.wealth");
+    let (mut project, _) = saved_project(&dir, "example-a.varde");
     let job = project.income().jobs()[0].id;
     add_paycheck(&mut project, job, "2026-04", "2000.00");
     add_paycheck(&mut project, job, "2026-05", "3000.00");
@@ -346,7 +344,7 @@ fn test_csd001_ac_30_4_a_rejected_move_is_not_an_unsaved_change() {
 fn test_csd005_ac_28_8_a_move_is_an_unsaved_change() {
     use crate::domain::investments::{AccountInput, Balance, NetDeposits, Note, Period};
     let dir = TempDir::new().unwrap();
-    let (mut project, _) = saved_project(&dir, "example-a.wealth");
+    let (mut project, _) = saved_project(&dir, "example-a.varde");
     let account = project
         .investments_mut()
         .create_account(&AccountInput {
@@ -394,7 +392,7 @@ fn test_csd005_ac_28_8_a_move_is_an_unsaved_change() {
 #[test]
 fn test_csd002_ac_5_1_interrupted_write_does_not_corrupt_the_file() {
     let dir = TempDir::new().unwrap();
-    let (_, path) = saved_project(&dir, "example-a.wealth");
+    let (_, path) = saved_project(&dir, "example-a.varde");
     let original = fs::read(&path).unwrap();
 
     let result = write_atomic_with(&path, |file| {
@@ -420,7 +418,7 @@ fn test_csd002_ac_5_1_interrupted_write_does_not_corrupt_the_file() {
 #[test]
 fn test_csd002_ac_5_1_failed_save_reports_the_spec_error_code() {
     let dir = TempDir::new().unwrap();
-    let (mut project, path) = saved_project(&dir, "example-a.wealth");
+    let (mut project, path) = saved_project(&dir, "example-a.varde");
     add_job(&mut project, "Second Example Employer");
     // Make the target a directory so the final rename fails.
     fs::remove_file(&path).unwrap();
@@ -438,7 +436,7 @@ fn test_csd002_ac_5_1_failed_save_reports_the_spec_error_code() {
 #[test]
 fn test_csd002_ac_6_1_new_project_is_empty() {
     let dir = TempDir::new().unwrap();
-    let (mut project, _) = saved_project(&dir, "example-a.wealth");
+    let (mut project, _) = saved_project(&dir, "example-a.varde");
     project.reset();
     assert_eq!(job_count(&project), 0);
     assert_eq!(
@@ -454,7 +452,7 @@ fn test_csd002_ac_6_1_new_project_is_empty() {
 #[test]
 fn test_csd002_ac_6_2_saved_file_is_untouched_by_new() {
     let dir = TempDir::new().unwrap();
-    let (mut project, path) = saved_project(&dir, "example-a.wealth");
+    let (mut project, path) = saved_project(&dir, "example-a.varde");
     project.reset();
     drop(project);
     assert_eq!(file_job_count(&path), 1);
@@ -488,7 +486,7 @@ fn test_csd002_ac_8_2_the_last_project_is_reopened() {
     let dir = TempDir::new().unwrap();
     let mut project = restart(&dir);
     add_job(&mut project, "Example Employer");
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
     drop(project);
 
@@ -513,24 +511,22 @@ fn test_csd002_ac_10_1_save_remembers_the_path() {
     let dir = TempDir::new().unwrap();
     let mut project = restart(&dir);
     add_job(&mut project, "Example Employer");
-    project
-        .save_as(dir.path().join("example-a.wealth"))
-        .unwrap();
+    project.save_as(dir.path().join("example-a.varde")).unwrap();
     assert_eq!(
         memory_in(&dir).load(),
-        Some(dir.path().join("example-a.wealth"))
+        Some(dir.path().join("example-a.varde"))
     );
 }
 
 #[test]
 fn test_csd002_ac_10_2_open_and_save_as_move_the_remembered_path() {
     let dir = TempDir::new().unwrap();
-    let (_, path_a) = saved_project(&dir, "example-a.wealth");
+    let (_, path_a) = saved_project(&dir, "example-a.varde");
     let mut project = restart(&dir);
     project.open(&path_a).unwrap();
     assert_eq!(memory_in(&dir).load(), Some(path_a));
 
-    let path_c = dir.path().join("example-c.wealth");
+    let path_c = dir.path().join("example-c.varde");
     project.save_as(path_c.clone()).unwrap();
     assert_eq!(memory_in(&dir).load(), Some(path_c.clone()));
     let next = restart(&dir);
@@ -543,7 +539,7 @@ fn test_csd002_ac_10_3_new_project_keeps_the_remembered_path() {
     let dir = TempDir::new().unwrap();
     let mut project = restart(&dir);
     add_job(&mut project, "Example Employer");
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
 
     project.reset();
@@ -560,10 +556,10 @@ fn test_csd002_ac_10_4_a_failed_save_keeps_the_remembered_path() {
     let dir = TempDir::new().unwrap();
     let mut project = restart(&dir);
     add_job(&mut project, "Example Employer");
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
 
-    let unwritable = dir.path().join("no-such-dir").join("example-b.wealth");
+    let unwritable = dir.path().join("no-such-dir").join("example-b.varde");
     assert!(project.save_as(unwritable).is_err());
     assert_eq!(memory_in(&dir).load(), Some(path));
 }
@@ -580,7 +576,7 @@ fn test_csd002_ac_11_1_missing_or_invalid_file_starts_empty_with_a_notice() {
     ];
     for (name, content, code) in cases {
         let dir = TempDir::new().unwrap();
-        let path = dir.path().join("example-a.wealth");
+        let path = dir.path().join("example-a.varde");
         if let Some(content) = content {
             fs::write(&path, content).unwrap();
         }
@@ -606,7 +602,7 @@ fn test_csd002_ac_11_1_missing_or_invalid_file_starts_empty_with_a_notice() {
 fn test_csd002_ac_11_2_the_error_is_not_repeated_at_the_next_start() {
     let dir = TempDir::new().unwrap();
     memory_in(&dir)
-        .store(&dir.path().join("example-a.wealth"))
+        .store(&dir.path().join("example-a.varde"))
         .unwrap();
     let mut first = restart(&dir);
     assert!(first.take_startup_notice().is_some());
@@ -620,7 +616,7 @@ fn test_csd002_ac_11_2_the_error_is_not_repeated_at_the_next_start() {
 #[test]
 fn a_project_without_memory_still_saves_and_opens() {
     let dir = TempDir::new().unwrap();
-    let (project, path) = saved_project(&dir, "example-a.wealth");
+    let (project, path) = saved_project(&dir, "example-a.varde");
     assert_eq!(job_count(&project), 1);
     assert_eq!(file_job_count(&path), 1);
     assert_eq!(memory_in(&dir).load(), None);
@@ -636,7 +632,7 @@ fn test_csd003_ac_7_1_currency_survives_save_and_open() {
     let mut project = Project::new();
     add_job(&mut project, "Example Employer");
     project.settings_mut().set_currency("GBP").unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
 
     let mut fresh = Project::new();
@@ -648,7 +644,7 @@ fn test_csd003_ac_7_1_currency_survives_save_and_open() {
 #[test]
 fn test_csd003_ac_7_2_a_file_without_settings_opens_with_the_defaults() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     // Also has the old per-job currency, which is ignored (NG-5).
     fs::write(
         &path,
@@ -668,7 +664,7 @@ fn test_csd003_ac_7_3_the_settings_are_a_section_of_the_file() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
     project.settings_mut().set_currency("USD").unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
@@ -679,7 +675,7 @@ fn test_csd003_ac_7_3_the_settings_are_a_section_of_the_file() {
 #[test]
 fn test_csd003_ac_4_2_a_currency_change_is_an_unsaved_change() {
     let dir = TempDir::new().unwrap();
-    let (mut project, _) = saved_project(&dir, "example-a.wealth");
+    let (mut project, _) = saved_project(&dir, "example-a.varde");
     assert!(!project.status().unsaved_changes);
     project.settings_mut().set_currency("GBP").unwrap();
     assert!(project.status().unsaved_changes);
@@ -690,7 +686,7 @@ fn test_csd003_ac_4_2_a_currency_change_is_an_unsaved_change() {
 #[test]
 fn test_csd003_ac_4_3_choosing_the_current_currency_changes_nothing() {
     let dir = TempDir::new().unwrap();
-    let (mut project, _) = saved_project(&dir, "example-a.wealth");
+    let (mut project, _) = saved_project(&dir, "example-a.varde");
     project.settings_mut().set_currency("EUR").unwrap();
     assert!(!project.status().unsaved_changes);
     // Changing and changing back is no change either.
@@ -703,7 +699,7 @@ fn test_csd003_ac_4_3_choosing_the_current_currency_changes_nothing() {
 #[test]
 fn test_csd003_ac_3_1_a_new_project_starts_in_eur() {
     let dir = TempDir::new().unwrap();
-    let (mut project, _) = saved_project(&dir, "example-a.wealth");
+    let (mut project, _) = saved_project(&dir, "example-a.varde");
     project.settings_mut().set_currency("USD").unwrap();
     project.reset();
     assert_eq!(project.settings().currency, Currency::Eur);
@@ -743,7 +739,7 @@ fn test_csd002_ac_1_1_annual_statements_round_trip() {
             )
             .unwrap();
     }
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
 
     let mut fresh = Project::new();
@@ -773,7 +769,7 @@ fn test_csd001_the_file_keeps_pay_periods_and_statements_in_their_own_list() {
             YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
 
     let value: serde_json::Value =
@@ -796,7 +792,7 @@ fn test_csd001_the_file_keeps_pay_periods_and_statements_in_their_own_list() {
 #[test]
 fn test_csd001_an_older_file_without_pay_periods_or_statements_opens_as_monthly() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
         r#"{"format_version":1,"settings":{"currency":"EUR"},"income":{
@@ -819,7 +815,7 @@ fn test_csd001_an_older_file_without_pay_periods_or_statements_opens_as_monthly(
 #[test]
 fn a_file_with_an_entry_of_the_wrong_kind_is_invalid() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     // An annual statement for a job that has no pay period, so it is monthly.
     fs::write(
         &path,
@@ -846,7 +842,7 @@ fn test_csd002_con_3_file_has_version_and_decimal_strings() {
     let mut project = Project::new();
     let job = add_job(&mut project, "Example Employer");
     add_paycheck(&mut project, job, "2026-09", "3000.00");
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
 
     let value: serde_json::Value =
@@ -865,7 +861,7 @@ fn test_csd002_con_3_file_has_version_and_decimal_strings() {
 fn test_csd002_con_1_project_file_is_private_to_the_owner() {
     use std::os::unix::fs::PermissionsExt;
     let dir = TempDir::new().unwrap();
-    let (_, path) = saved_project(&dir, "example-a.wealth");
+    let (_, path) = saved_project(&dir, "example-a.varde");
     let mode = fs::metadata(&path).unwrap().permissions().mode();
     assert_eq!(mode & 0o077, 0, "mode {mode:o}");
 }

@@ -33,7 +33,7 @@ fn test_csd013_ac_16_1_expenses_survive_save_and_open_including_notes() {
         "15/09/2026",
         "Line one\nLine two",
     );
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
 
     let mut fresh = Project::new();
@@ -54,7 +54,7 @@ fn test_csd013_ac_16_1_expenses_survive_save_and_open_including_notes() {
 #[test]
 fn test_csd013_ac_16_2_a_file_without_the_section_opens_without_expenses() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
         r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]}}"#,
@@ -85,7 +85,7 @@ fn test_csd013_ac_16_3_the_other_sections_are_untouched() {
             entry_period: None,
         })
         .unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
     let mut fresh = Project::new();
     fresh.open(&path).unwrap();
@@ -97,7 +97,7 @@ fn test_csd013_ac_16_3_the_other_sections_are_untouched() {
 #[test]
 fn test_csd013_ac_16_4_a_damaged_section_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     let id = "671166f4-5827-4794-bcdc-54d7824fb650";
     let expense = |amount: &str, date: &str, category: &str| {
         format!(
@@ -129,9 +129,7 @@ fn test_csd013_ac_16_4_a_damaged_section_is_an_invalid_file() {
 fn test_csd013_an_expense_change_is_an_unsaved_change() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
-    project
-        .save_as(dir.path().join("example-a.wealth"))
-        .unwrap();
+    project.save_as(dir.path().join("example-a.varde")).unwrap();
     assert!(!project.status().unsaved_changes);
     add(&mut project, "Example Bike", "900.00", "10/09/2026", "");
     assert!(project.status().unsaved_changes);

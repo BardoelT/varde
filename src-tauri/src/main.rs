@@ -2,5 +2,5 @@
 #![forbid(unsafe_code)]
 
 fn main() {
-    personal_finance_lib::run();
+    varde_lib::run();
 }

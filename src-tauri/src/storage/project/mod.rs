@@ -8,7 +8,7 @@ use crate::domain::{
 };
 
 /// The extension of project files.
-const EXTENSION: &str = "wealth";
+const EXTENSION: &str = "varde";
 
 /// Whether the project differs from disk, and whether it has a file yet.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
