@@ -335,7 +335,7 @@ fn golden_the_example_project_file_and_every_read_command() {
 
     // The file as written.
     let file_text = fs::read_to_string(&path).unwrap();
-    assert_golden("example.varde", &normalize_ids(&file_text));
+    assert_golden("example-project.json", &normalize_ids(&file_text));
 
     // The same project reopened from that file answers the same.
     let reopened = harness();
