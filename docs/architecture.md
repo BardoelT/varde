@@ -59,6 +59,7 @@ navigation.js       left-pane navigation (a plain script, no imports)
 pages/              one file per page or view
 shared/             helpers pages share
 styles/             CSS by area
+tests/              DOM tests and their harness (not part of the app)
 ```
 
 **`pages/`** files are named `<page>-<view>.js`: `income-overview.js`, `income-insights.js`, `investments-overview.js`, `investments-insights.js`, `bank-overview.js`, `bank-insights.js`, `houses-overview.js`, `houses-insights.js`, `debts-overview.js`, `debts-insights.js`, `expenses-overview.js`, `expenses-insights.js`. Each exports `init<Page><View>()` (wire the events once) and `reload<Page><View>()` (fetch from Rust and render). `dashboard.js`, `net-worth.js`, `ratios.js`, `settings.js` and `project.js` are pages without views; `ratios.js` lays out the table of the Ratios page; `net-worth.js` draws the one chart of the Net worth page with `createYearlyChart`.
@@ -82,6 +83,8 @@ styles/             CSS by area
 **Styles** are loaded in order by `<link>` tags: `base` (tokens, light and dark), `layout`, `components`, `pages`, `charts`. Colours come from CSS variables so both modes work. Motion uses CSS transitions of 140 ms and is switched off under `prefers-reduced-motion`.
 
 **Charts, in short.** Items in a legend, a tooltip row and a bar segment share a `data-legend` key. Hovering a legend item or a segment highlights that series in every year of every chart, and a tooltip lists its rows in the order the bar shows them, top to bottom.
+
+**Frontend tests.** `ui/tests/` holds the DOM tests (`npm test`, Node's `node:test` with `jsdom`, the one tests-only dev dependency). `harness.js` builds the page of `index.html` in jsdom, installs a fake `window.__TAURI__` (`core.invoke` backed by a table of canned answers, `event.listen`, and `emit` for events such as `menu-action`) before it imports the real `navigation.js` and `main.js`, and gives every test its own module registry (`hooks.js`), so no state leaks between tests. `fixtures.js` serves the read answers of the golden files in `src-tauri/golden/` as the example project, and an empty project derived from them. `settle()` waits until no command is in flight, so tests never sleep. jsdom has no layout, no `<dialog>` behaviour (the harness adds `showModal` and `close`) and no real keyboard activation; what needs them stays on the manual checklist of the CSDs. Test titles carry the AC id, as the Rust tests do (`test_csd024_ac_3_1_...`).
 
 ## How to add...
 

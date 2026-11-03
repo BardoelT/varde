@@ -22,11 +22,13 @@ cargo clippy --all-targets --all-features -- -D warnings   # lint (must be clean
 cargo test --all-features                # all tests
 cargo test <name>                        # single test
 cargo deny check                         # licenses, advisories, banned crates
+npm ci                                   # once: installs jsdom (tests-only dev dependency)
+npm test                                 # DOM tests of ui/ (node:test + jsdom)
 ```
 
-No npm / frontend build step — `ui/` is served as-is by Tauri.
+The app has no frontend build step and no runtime npm dependency — `ui/` is served as-is by Tauri. `jsdom` is the one tests-only dev dependency (CSD-021 CON-5): exact-pinned in `package.json`, installed from `package-lock.json`, never bundled. Use only `node:test` and `node:assert` besides it.
 
-Before saying a task is done: fmt, clippy, and tests must all pass.
+Before saying a task is done: fmt, clippy and the cargo tests must pass, and `npm test` too when `ui/` changed.
 
 ## Layout
 
@@ -38,6 +40,7 @@ ui/                   # frontend (UI only — HTML + CSS + JS, no business logic
   pages/              # one file per page or view, named <page>-<view>.js
   shared/             # helpers pages share: ipc, dom, format, date-mask, chart, yearly-chart, tabs
   styles/             # CSS by area: base, layout, components, pages, charts
+  tests/              # DOM tests (node:test + jsdom) and their harness; not part of the app
 src-tauri/
   src/main.rs         # thin entry point
   src/lib.rs          # app setup, command registration
@@ -122,6 +125,7 @@ This app handles personal financial data and the repo is public.
 - Use property tests (`proptest`) for arithmetic invariants where useful.
 - Storage tests run against a temporary directory, never real project files.
 - Bug fix = failing test first, then the fix.
+- Display ACs (what the screen shows) are covered by DOM tests in `ui/tests/` (`node:test` + jsdom, a fake Tauri bridge fed with the golden files). Test titles carry the AC id: `test_csd024_ac_3_1_...`. Rust computes every figure, so DOM tests feed canned answers and check only what is displayed.
 - Don't delete or weaken existing tests to make a change pass.
 
 ## Git and PRs

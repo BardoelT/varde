@@ -67,7 +67,7 @@ Build a release bundle (`.app` / `.dmg`):
 cargo tauri build
 ```
 
-There is no npm or frontend build step. `ui/` is served as-is.
+The app has no frontend build step and no runtime npm dependency. `ui/` is served as-is. Node and npm are only needed to run the frontend tests (see Development).
 
 ## Using the app
 
@@ -84,9 +84,11 @@ cargo fmt --all
 cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all-features
 cargo deny check
+npm ci                                   # once: installs jsdom, the tests-only dev dependency
+npm test                                 # DOM tests of ui/ (Node 26)
 ```
 
-Format, clippy and tests must pass before a change is done. CI runs the same checks on `macos-latest`.
+Format, clippy and the Rust tests must pass before a change is done, and `npm test` too when `ui/` changed. The release run on `macos-latest` repeats all of them.
 
 ### Layout
 
@@ -98,6 +100,7 @@ ui/                 frontend (HTML, CSS, JS; no build step)
   pages/            one file per page or view (income-overview, income-insights, ...)
   shared/           helpers pages share (ipc, dom, format, date-mask, chart, yearly-chart, tabs)
   styles/           CSS by area (base, layout, components, pages, charts)
+  tests/            DOM tests (node:test + jsdom) and their harness; not part of the app
 src-tauri/
   src/lib.rs        app setup, command registration
   src/menu.rs       native macOS menu bar (File menu, Settings…)
@@ -137,7 +140,7 @@ Behaviour is defined in Capability Specification Documents in [`docs/csd/`](docs
 | [CSD-018](docs/csd/CSD-018-ratios.md) | Ratios (the Ratios page) |
 | [CSD-020](docs/csd/CSD-020-debt-linked-to-house.md) | Debt linked to a house |
 
-Only specs with `status: approved` are implemented; check a spec's status before relying on it. Tests reference acceptance criteria in their names, for example `test_csd002_ac_1_1_...`.
+Only specs with `status: approved` are implemented; check a spec's status before relying on it. Tests reference acceptance criteria in their names, for example `test_csd002_ac_1_1_...` (Rust) and `test_csd024_ac_3_1_...` (DOM tests).
 
 ### Contributing
 

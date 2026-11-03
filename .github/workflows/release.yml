@@ -19,6 +19,12 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: cargo test --all-features
+      # The DOM tests of ui/ (CSD-021 REQ-1). jsdom is a tests-only dev dependency, installed from the lock file.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - run: npm ci
+      - run: npm test
 
   deny:
     runs-on: macos-latest
