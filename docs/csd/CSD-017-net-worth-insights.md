@@ -1,11 +1,11 @@
 ---
 id: CSD-017
 title: Net worth insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.5
-last_updated: 30/10/2026
-related: [CSD-000, CSD-004, CSD-007, CSD-010, CSD-012, CSD-016, CSD-019, CSD-020]
+version: 1.0
+last_updated: 03/11/2026
+related: [CSD-000, CSD-007, CSD-010, CSD-012, CSD-016, CSD-020, CSD-024, CSD-025]
 ---
 
 # CSD-017: Net worth insights
@@ -15,7 +15,7 @@ Each area of the app (houses, investments, bank accounts, debts) has its own yea
 
 ## 2. Scope
 ### 2.1 In scope
-- A page "Net worth" in the left pane that replaces the "Reports" placeholder (CSD-004 REQ-1).
+- A page "Net worth" in the left pane that in the Insights group of the left pane (CSD-024).
 - A yearly stacked bar chart with four segments (Houses, Investments, Cash, Debts), a net worth marker, a legend, a tooltip and the highlight of one series.
 - Its empty state.
 
@@ -35,7 +35,7 @@ Each area of the app (houses, investments, bank accounts, debts) has its own yea
 |---|---|
 | **Year** | A calendar year. |
 | **Current year** | The calendar year of today, in local time. Its figures run up to the latest record so far and are therefore partial. |
-| **Houses** | The total value of a year of CSD-016 (the closing value of CSD-015 REQ-20, counting houses held at the end of the year, CSD-019 REQ-11). |
+| **Houses** | The total value of a year of CSD-016 (the closing value of CSD-015 REQ-20, counting houses held at the end of the year, CSD-020 REQ-10). |
 | **Investments** | The closing balance of a year of CSD-007 (CSD-005 REQ-26). |
 | **Cash** | The closing balance of a year over all bank accounts of CSD-010 (CSD-009 REQ-19). It is the sum of the latest balances of the banks, so an overdrawn bank reduces it. |
 | **Debts** | The total debt of a year of CSD-012 (the closing balance of CSD-011 REQ-19), never negative. |
@@ -113,7 +113,7 @@ Scenario: Debts above everything
 ```
 
 **REQ-4: Years without records** *(unwanted behaviour)*
-If an area has no record in a year of the series, then the app shall give that area 0.00 for the year and shall not carry a figure forward from an earlier year.
+If an area has no record in a year of the series, then the app shall give that area 0.00 for the year and shall not carry a figure forward from an earlier year, so that the area counts as 0.00 in the net worth of that year. This is intended, also when it makes the net worth drop.
 
 ```gherkin
 @AC-4.1
@@ -127,6 +127,14 @@ Scenario: Before the first record of an area
   Given the first debt statement is for 2026 and the first bank account entry is for 2024
   When the series is computed
   Then Debts of 2024 and 2025 is 0.00
+
+@AC-4.3
+Scenario: A gap year counts as zero in the net worth
+  Given investments have a statement for 2024 with balance 20000.00 and none for 2025
+  And cash is 5000.00 in 2024 and in 2025
+  When the series is computed
+  Then Net worth of 2024 is 25000.00
+  And Net worth of 2025 is 5000.00
 ```
 
 **REQ-5: Current year is partial** *(state-driven)*
@@ -147,7 +155,7 @@ Scenario: A past year
 ```
 
 **REQ-6: Chart** *(ubiquitous)*
-The app shall draw a stacked bar per year in which Houses, Investments and Cash rise from the zero line in that order from the bottom up and Debts hangs down from it, with the top corners of the highest segment and the bottom corners of Debts rounded, with the look, the size and the motion of the bank accounts chart (CSD-010 REQ-12 and REQ-13): bars at most 50% of the slot and at most 44 px wide, a 1 px gap between segments, a plot height that scales with the height of the window and a minimum slot of 64 px per year. A series of 0.00 adds no height. The axis shall reach the highest bar, the deepest Debts and the net worth markers.
+The app shall draw a stacked bar per year in which Houses, Investments and Cash rise from the zero line in that order from the bottom up and Debts hangs down from it, with the look, the size and the motion of the other yearly charts as CSD-025 (Shared charts) specifies them. A series of 0.00 adds no height. The axis shall reach the highest bar, the deepest Debts and the net worth markers.
 
 ```gherkin
 @AC-6.1
@@ -158,9 +166,9 @@ Scenario: Order of the segments
   And Debts hangs below the zero line
 
 @AC-6.2
-Scenario: Same size as the other charts
+Scenario: Same look as the other charts
   Given this chart and the chart of Bank accounts
-  Then both plots scale with the height of the window and give every year a slot of at least 64 px
+  Then both follow the same shared chart rules of CSD-025
 
 @AC-6.3
 Scenario: Nothing to draw for a series
@@ -174,18 +182,18 @@ Scenario: Negative net worth reaches the axis
 ```
 
 **REQ-7: Net worth marker** *(ubiquitous)*
-For each year in the series the app shall draw a marker across the bar at the net worth of the year, wider than the bar, with its value above it, as the closing-balance marker of CSD-010 REQ-7.
+For each year in the series the app shall draw a marker across the bar at the net worth of the year, wider than the bar, with its value above it, as the closing-balance marker of CSD-010 REQ-7, with the value label built by the backend in the short format of CSD-025 (Shared charts).
 
 ```gherkin
 @AC-7.1
 Scenario: Marker at the net worth
   Given 2025 has net worth 316000.00
-  Then the 2025 marker stands at 316000.00 and shows 316k above it
+  Then the 2025 marker stands at 316000.00 and shows 316.00k above it
 
 @AC-7.2
 Scenario: A negative marker
   Given 2025 has net worth -8000.00
-  Then the 2025 marker stands below the zero line and shows -8k
+  Then the 2025 marker stands below the zero line and shows -8.00k
 ```
 
 **REQ-8: Colours and legend** *(ubiquitous)*
@@ -282,6 +290,38 @@ Scenario: Figures follow changes
   Then the 2026 Cash segment shows 6000.00
 ```
 
+**REQ-14: Net worth in the sale year of a house** *(ubiquitous)*
+The app shall let the net worth of the year in which a house is sold drop by the value the house had, because the house is no longer held at the end of that year and leaves the yearly values (CSD-020 REQ-10), and the sale proceeds touch no cash (CSD-020 REQ-11). This dip is intended.
+
+```gherkin
+@AC-14.1
+Scenario: The dip in the sale year
+  Given a house sold on 10/06/2026 whose latest valuation is 2025-12 with value 210000.00
+  And cash is 20000.00 in 2025 and in 2026
+  When the series is computed
+  Then Houses and Net worth of 2025 are 210000.00 and 230000.00
+  And Houses and Net worth of 2026 are 0.00 and 20000.00
+```
+
+**REQ-15: Future-dated records** *(ubiquitous)*
+The app shall count a record dated later than today in the current year like any other record of that year, and shall not show a year after the current year.
+
+```gherkin
+@AC-15.1
+Scenario: A later month of the current year
+  Given today is 29/10/2026
+  And "Example Bank" has an entry for 2026-12 with balance 6000.00 and no other entry in 2026
+  When the series is computed
+  Then Cash of 2026 is 6000.00
+
+@AC-15.2
+Scenario: A year after the current year
+  Given today is 29/10/2026
+  And "Example Bank" has an entry for 2027-02 with balance 7000.00
+  When the series is computed
+  Then the series ends with 2026
+```
+
 ## 5. Interfaces and contracts
 
 Command: `get_net_worth_insights()` returns the series, oldest year first, and an empty list when no area has a record:
@@ -297,7 +337,7 @@ Command: `get_net_worth_insights()` returns the series, oldest year first, and a
 }
 ```
 
-`debts` is never negative: the chart draws it below the zero line and the tooltip shows it with a minus sign. `has_records` is used to detect a year in which no area has a record and is not displayed. Amounts are decimal strings in the project currency (CSD-003). The command only reads the project; it changes nothing and the project file is unchanged.
+`debts` is never negative: the chart draws it below the zero line and the tooltip shows it with a minus sign. `has_records` is used to detect a year in which no area has a record and is not displayed. Amounts are decimal strings in the project currency (CSD-003), rounded as CSD-000 CON-8 says. The label above each net worth marker and the short axis labels are text built in Rust (format: CSD-025), and the frontend only displays them. The command only reads the project; it changes nothing and the project file is unchanged.
 
 ## 6. Constraints
 - CON-1: The chart reuses the shared chart code of the frontend (`ui/shared/yearly-chart.js`) and adds no chart library or other dependency, and the other yearly charts keep working unchanged. Rationale: NG-7, and `CLAUDE.md` asks before adding dependencies.
@@ -306,22 +346,24 @@ Command: `get_net_worth_insights()` returns the series, oldest year first, and a
 - CON-4: The four yearly figures come from the same code that draws the chart of their own area, not from a second calculation. Rationale: REQ-3, so the figures can never differ between pages.
 - CON-5: Tests and fixtures use synthetic data only. Rationale: the repo is public.
 - CON-6: Colours are defined once as tokens per mode and none is written inline in the page code. Rationale: one place to adjust, and both modes stay in step.
+- CON-7: Every money amount of this page follows CSD-000 CON-8 (2 decimals, half-up). Rationale: one rounding rule for the whole application.
 
 ## 7. Verification
-The series is computed in Rust, so REQ-2 to REQ-4 and REQ-13 (the data) are proven by `cargo test`. Tests are named `test_csd017_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
+The series is computed in Rust, so REQ-2 to REQ-5, REQ-13 to REQ-15 (the data) are proven by `cargo test`; the display ACs are covered by DOM tests. Tests are named `test_csd017_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
 | Requirement | Command |
 |---|---|
-| REQ-2, REQ-3, REQ-4, REQ-5 (the data), AC-12.2, AC-13.1 (the data) | `cargo test test_csd017_` |
-| REQ-1, REQ-5 (display), REQ-6 to REQ-12 (all ACs), AC-13.1 (the screen) | Manual checklist: the page without tabs, stacking and the order of the segments, Debts below the zero line, axis range with a negative net worth, markers, colours of both modes, legend, highlight in every year, tooltip order and the "No records" note, accessible labels, empty states, the same size as the other charts. There is no frontend test setup |
+| REQ-2 to REQ-5 (the data), REQ-14, REQ-15, AC-12.2, AC-13.1 (the data) | `cargo test test_csd017_` |
+| REQ-1, REQ-5 (display), REQ-6 to REQ-12 (all ACs), AC-13.1 (the screen) | DOM tests: the page without tabs, stacking and the order of the segments, Debts below the zero line, axis range with a negative net worth, markers and their labels, colours of both modes, legend, highlight in every year, tooltip order and the "No records" note, accessible labels, empty states |
 | One requirement, e.g. REQ-3 | `cargo test test_csd017_ac_3_` |
 
 Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 
 ## 8. Open questions
-None.
+- OQ-1: A record dated in a year after the current year (allowed, since the app has no date bounds) is accepted but the series ends at the current year, so such a year is not shown (REQ-15). Should the series extend to the latest year with a record? Owner: Thijs. Blocks: REQ-2, REQ-15.
 
 ## 9. Changelog
+- 1.0 (03/11/2026): Money follows CSD-000 CON-8 (CON-7). The net worth of a sale year drops by the sold house, and a year without a record counts as 0.00, both stated as intended (REQ-14 with CSD-020 REQ-10 and REQ-11; REQ-4, AC-4.3). Future-dated records: the current year counts them, a later year is not shown (REQ-15, OQ-1). The look, size, motion and short labels of the chart now refer to CSD-025 instead of repeating them (REQ-6, REQ-7: marker labels read "316.00k" and "-8.00k"). Navigation moved to CSD-024; CSD-019 and CSD-020 references follow the merged CSD-020. The display ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.5 (30/10/2026): The segment Assets is renamed Houses (legend, tooltip, note and the `houses` field of the figures). A settled debt (CSD-020) counts like any debt: its 0.00 statement takes it out of Debts. No other requirement changes. Back to `draft` until re-approved (GitHub issue 31).
 - 0.4 (29/10/2026): The Houses figure counts houses held at the end of the year, so a sold house drops out from its sale year (definition of Houses, CSD-019 REQ-11; GitHub issue 27). No other change.
 - 0.3 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.

@@ -1,11 +1,11 @@
 ---
 id: CSD-006
 title: Income insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.6
-last_updated: 29/10/2026
-related: [CSD-001, CSD-003, CSD-004, CSD-007]
+version: 1.0
+last_updated: 03/11/2026
+related: [CSD-000, CSD-001, CSD-003, CSD-004, CSD-007, CSD-025]
 ---
 
 # CSD-006: Income insights
@@ -33,7 +33,7 @@ The Income page lists jobs, paychecks and a table of yearly totals, but a table 
 |---|---|
 | **Year** | A calendar year. Entries are summed per year over all jobs, as in the yearly totals (CSD-001 REQ-11). |
 | **Current year** | The calendar year of today, in local time. Its figures run up to and including the current month, and are therefore partial. |
-| **Growth** | The change in total gross of a year against the year before, in percent. |
+| **Growth** | The change in total gross of a year against the year before, in percent, with two decimals (CSD-000 CON-8). |
 | **Entry** | A paycheck of a monthly job or an annual statement of a yearly job (CSD-001). |
 
 ## 4. Requirements
@@ -134,7 +134,7 @@ Scenario: Current year is marked
 ```
 
 **REQ-5: Growth** *(ubiquitous)*
-The app shall calculate the growth of a year as (total gross − total gross of the year before) ÷ total gross of the year before × 100, rounded to one decimal place with banker's rounding.
+The app shall calculate the growth of a year as (total gross − total gross of the year before) ÷ total gross of the year before × 100, rounded to two decimal places half-up (CSD-000 CON-8), where a decrease that rounds to 0.00 is given as 0.00 without a sign.
 
 ```gherkin
 @AC-5.1
@@ -146,11 +146,13 @@ Scenario Outline: Growth per year
   Then the growth of 2024 is "<growth>"
 
   Examples:
-    | previous | current  | growth |
-    | 32400.00 | 34480.00 | 6.4    |
-    | 40000.00 | 39000.00 | -2.5   |
-    | 20000.00 | 20090.00 | 0.4    |
-    | 20000.00 | 20000.00 | 0.0    |
+    | previous  | current   | growth |
+    | 32400.00  | 34480.00  | 6.42   |
+    | 40000.00  | 39000.00  | -2.50  |
+    | 20000.00  | 20090.00  | 0.45   |
+    | 20000.00  | 20000.00  | 0.00   |
+    | 40000.00  | 40002.00  | 0.01   |
+    | 100000.00 | 99999.00  | 0.00   |
 ```
 
 **REQ-6: No growth available** *(unwanted behaviour)*
@@ -180,7 +182,7 @@ Scenario: Year after a gap has no growth
 ```
 
 **REQ-7: Chart** *(ubiquitous)*
-The Insights tab shall draw one stacked bar per year in the order received, built from gross salary, holiday pay and bonus, on a y-axis from 0 to a rounded-up value of at least the largest total gross, with gridlines, compact axis labels (such as "10k"), a legend naming the three amounts, and no currency. The chart has the size and the zero line of every yearly chart (REQ-17).
+The Insights tab shall draw one stacked bar per year in the order received, built from gross salary, holiday pay and bonus, on a y-axis from 0 to a rounded-up value of at least the largest total gross, with gridlines, short axis labels whose text is provided by the backend (format in CSD-025), a legend naming the three amounts, and no currency. The chart has the size and the zero line of every yearly chart (REQ-17).
 
 ```gherkin
 @AC-7.1
@@ -213,7 +215,7 @@ Scenario: Current year is marked
 ```
 
 **REQ-8: Growth labels** *(ubiquitous)*
-The Insights tab shall show the growth of each year with a growth value next to its bar as "+x.x%" or "−x.x%", "0.0%" for no change and "–" for no growth, using the negative colour only for decreases.
+The Insights tab shall show the growth of each year with a growth value next to its bar as "+x.xx%" or "−x.xx%", "0.00%" for no change (also for a decrease that rounds to 0.00, without a sign) and "–" for no growth, using the negative colour only for decreases.
 
 ```gherkin
 @AC-8.1
@@ -223,15 +225,15 @@ Scenario Outline: Growth label
   Then the label of that year reads "<label>"
 
   Examples:
-    | growth | label |
-    | 6.4    | +6.4% |
-    | -2.5   | −2.5% |
-    | 0.0    | 0.0%  |
-    | none   | –     |
+    | growth | label  |
+    | 6.42   | +6.42% |
+    | -2.50  | −2.50% |
+    | 0.00   | 0.00%  |
+    | none   | –      |
 
 @AC-8.2
 Scenario: Only decreases are red
-  Given the growth of 2023 is -2.5 and of 2024 is 6.4
+  Given the growth of 2023 is -2.50 and of 2024 is 6.42
   When the user opens the Insights tab
   Then the label of 2023 uses the negative colour
   And the label of 2024 does not
@@ -264,7 +266,7 @@ Scenario: Tooltip on keyboard focus
 
 @AC-9.3
 Scenario: Accessible label
-  Given the year 2025 has total gross 34480.00 and growth 6.4
+  Given the year 2025 has total gross 34480.00 and growth 6.42
   When a screen reader reads the 2025 bar
   Then it announces the year, the four amounts and the growth
 ```
@@ -508,17 +510,17 @@ Command: `get_income_insights()` returns the series, oldest year first:
 {
   "years": [
     { "year": 2024, "gross_salary": "30000.00", "holiday_pay": "2400.00", "bonus": "0.00", "total_gross": "32400.00", "entry_count": 12, "is_partial": false, "growth_percent": null },
-    { "year": 2025, "gross_salary": "31000.00", "holiday_pay": "2480.00", "bonus": "1000.00", "total_gross": "34480.00", "entry_count": 12, "is_partial": false, "growth_percent": "6.4" },
+    { "year": 2025, "gross_salary": "31000.00", "holiday_pay": "2480.00", "bonus": "1000.00", "total_gross": "34480.00", "entry_count": 12, "is_partial": false, "growth_percent": "6.42" },
     { "year": 2026, "gross_salary": "26000.00", "holiday_pay": "0.00", "bonus": "0.00", "total_gross": "26000.00", "entry_count": 10, "is_partial": true, "growth_percent": null }
   ]
 }
 ```
 
-`entry_count` stays in the payload (Rust-side use and tests) but the frontend does not display it, not in the tooltip and not elsewhere. `years` is empty when there are no entries. `growth_percent` is a decimal string or `null`. Amounts are decimal strings. Rust decides "today" (local time), the years, the partial flag and the growth, and the frontend only displays what it receives.
+`entry_count` stays in the payload (Rust-side use and tests) but the frontend does not display it, not in the tooltip and not elsewhere. `years` is empty when there are no entries. `growth_percent` is a decimal string with two decimals or `null`. Amounts are decimal strings. The text of the short axis labels is built by Rust and delivered with the series, and the frontend only displays it (format: CSD-025). Rust decides "today" (local time), the years, the partial flag and the growth, and the frontend only displays what it receives.
 
 ## 6. Constraints
 - CON-1: Figures and growth are computed in Rust and displayed as received; the frontend only scales values to positions on the chart. Rationale: `CLAUDE.md` layout rule.
-- CON-2: Amounts and growth use `rust_decimal::Decimal`. Rationale: `CLAUDE.md` money rules.
+- CON-2: Amounts and growth use `rust_decimal::Decimal` and are rounded as CSD-000 CON-8 states (two decimals, half-up). Rationale: `CLAUDE.md` money rules and one rounding rule project-wide.
 - CON-3: The chart is plain SVG drawn in `ui/`, with no chart library, no new crate and no network access. Rationale: `CLAUDE.md` dependency and Tauri security rules.
 - CON-4: Chart colours come from CSS variables and are legible in light and dark mode. Rationale: the app already supports both.
 - CON-5: The Overview tab behaves as before (CSD-001 is unchanged apart from NG-6). Rationale: this capability adds a view and changes no income behaviour.
@@ -540,6 +542,7 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 None.
 
 ## 9. Changelog
+- 1.0 (03/11/2026): Growth is rounded to two decimals half-up instead of one decimal with banker's rounding (CSD-000 CON-8): REQ-5 (AC-5.1 values and two new rows), REQ-8 (label "+x.xx%", AC-8.1, AC-8.2), AC-9.3, the JSON example and CON-2; a decrease that rounds to 0.00 shows no sign. The text of the short axis labels is provided by the backend, the format is in CSD-025 (REQ-7, section 5). Back to draft for re-approval.
 - 0.6 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.
 - 0.5 (29/10/2026): The plot of every yearly chart is 390 px high (was 260 px), 50% taller. No other behaviour change.
 - 0.4 (29/10/2026): The yearly charts share one size and behaviour with the bank accounts chart (CSD-010). New REQ-17 (plot height 260 px, minimum slot width 64 px, zero line, generated legend) and REQ-18 (tooltip rows in the order of the bar). REQ-13 now highlights a series in every year and also on hovering or focusing a legend item (AC-13.1 amended, AC-13.6 and AC-13.7 added). The tooltip shows no entry count and the note "No entries" for an empty year (REQ-9, AC-9.1, AC-9.4). `entry_count` stays in the payload but is not displayed. All new ACs are on the manual checklist.

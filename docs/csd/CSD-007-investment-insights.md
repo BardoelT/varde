@@ -1,11 +1,11 @@
 ---
 id: CSD-007
 title: Investment insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.8
-last_updated: 29/10/2026
-related: [CSD-003, CSD-005, CSD-006]
+version: 1.0
+last_updated: 03/11/2026
+related: [CSD-000, CSD-003, CSD-005, CSD-006, CSD-025]
 ---
 
 # CSD-007: Investment insights
@@ -35,7 +35,7 @@ The Investments page lists accounts, statements and a table of yearly totals, bu
 | **Current year** | The calendar year of today, in local time. Its figures run up to the latest statement so far, and are therefore partial. |
 | **Opening balance** | For a year: the sum, over the accounts that have a statement in that year, of the balance of each such account's latest statement before that year. An account without an earlier statement adds nothing: it is taken to start at 0.00 (CSD-005), so its balance shows up as net deposits and capital growth. |
 | **Net deposits, capital growth, closing balance** | As in CSD-005: the yearly totals of REQ-26. |
-| **Growth percentage** | The capital growth of a year, counting only the accounts that have an opening balance in that year, divided by the opening balance, in percent. It leaves net deposits out and ignores when in the year they arrived, so it is a simple yearly figure and not a time-weighted return. |
+| **Growth percentage** | The capital growth of a year, counting only the accounts that have an opening balance in that year, divided by the opening balance, in percent, with two decimals (CSD-000 CON-8). It leaves net deposits out and ignores when in the year they arrived, so it is a simple yearly figure and not a time-weighted return. |
 
 ## 4. Requirements
 
@@ -201,7 +201,7 @@ Scenario: Net deposits and closing balance equal the yearly totals
 ```
 
 **REQ-6: Growth percentage** *(ubiquitous)*
-The app shall calculate the growth percentage of a year as the capital growth of the accounts that have an opening balance in that year ÷ the opening balance × 100, rounded to one decimal place with banker's rounding.
+The app shall calculate the growth percentage of a year as the capital growth of the accounts that have an opening balance in that year ÷ the opening balance × 100, rounded to two decimal places half-up (CSD-000 CON-8), where a decrease that rounds to 0.00 is given as 0.00 without a sign.
 
 ```gherkin
 @AC-6.1
@@ -213,11 +213,13 @@ Scenario Outline: Growth percentage per year
   Then the growth percentage of 2025 is "<percent>"
 
   Examples:
-    | opening  | growth  | percent |
-    | 11500.00 | 700.00  | 6.1     |
-    | 40000.00 | -1000.00| -2.5    |
-    | 20000.00 | 90.00   | 0.4     |
-    | 20000.00 | 0.00    | 0.0     |
+    | opening   | growth   | percent |
+    | 11500.00  | 700.00   | 6.09    |
+    | 40000.00  | -1000.00 | -2.50   |
+    | 20000.00  | 90.00    | 0.45    |
+    | 20000.00  | 0.00     | 0.00    |
+    | 40000.00  | 2.00     | 0.01    |
+    | 100000.00 | -1.00    | 0.00    |
 
 @AC-6.2
 Scenario: Growth of an account without an opening balance is left out of the percentage
@@ -226,7 +228,7 @@ Scenario: Growth of an account without an opening balance is left out of the per
   And account "Example Crypto" with a first statement 2026-03 (balance 500.00, net deposits 400.00)
   When the insights are requested
   Then the capital growth of 2026 is 600.00
-  And the growth percentage of 2026 is "4.2"
+  And the growth percentage of 2026 is "4.17"
 ```
 
 **REQ-7: No growth percentage available** *(unwanted behaviour)*
@@ -252,12 +254,12 @@ Scenario: The current year has a percentage
   Given today is 26/10/2026
   And the opening balance of 2026 is 12500.00 and the capital growth of 2026 so far is 250.00
   When the insights are requested
-  Then the growth percentage of 2026 is "2.0"
+  Then the growth percentage of 2026 is "2.00"
   And 2026 is marked partial
 ```
 
 **REQ-8: Chart** *(ubiquitous)*
-The Insights tab shall draw one bar per year in the order received, stacked from the bottom as opening balance, net deposits and capital growth, in which a positive segment rises from the running total and a negative segment hangs down from it, with capital growth in a positive colour when it is positive and a negative colour when it is negative and a negative net deposit in a lighter tint of the net deposits colour with a thin dashed outline, on a y-axis that starts at 0 (or at a rounded-down negative value if a running total is negative) and ends at a rounded-up value of at least the highest running total, with gridlines, compact axis labels (such as "10k"), a legend with one item for each piece (Opening balance, Net deposits, Capital growth (gain), Capital growth (loss)) and one for the closing-balance marker, and no currency.
+The Insights tab shall draw one bar per year in the order received, stacked from the bottom as opening balance, net deposits and capital growth, in which a positive segment rises from the running total and a negative segment hangs down from it, with capital growth in a positive colour when it is positive and a negative colour when it is negative and a negative net deposit in a lighter tint of the net deposits colour with a thin dashed outline, on a y-axis that starts at 0 (or at a rounded-down negative value if a running total is negative) and ends at a rounded-up value of at least the highest running total, with gridlines, short axis labels whose text is provided by the backend (format in CSD-025), a legend with one item for each piece (Opening balance, Net deposits, Capital growth (gain), Capital growth (loss)) and one for the closing-balance marker, and no currency.
 
 ```gherkin
 @AC-8.1
@@ -304,7 +306,7 @@ Scenario: Current year is marked
 ```
 
 **REQ-9: Closing-balance marker** *(ubiquitous)*
-The Insights tab shall draw for each year with statements a horizontal marker line of 2 px with round ends in the muted text colour, wider than the bar, at the closing balance, with its compact value next to it (above the line), not connected to the markers of other years, and dashed for the current year.
+The Insights tab shall draw for each year with statements a horizontal marker line of 2 px with round ends in the muted text colour, wider than the bar, at the closing balance, with its short value label next to it (above the line), the label text being provided by the backend (format in CSD-025), not connected to the markers of other years, and dashed for the current year.
 
 ```gherkin
 @AC-9.1
@@ -312,7 +314,7 @@ Scenario: Marker at the closing balance
   Given 2025 has closing balance 11500.00
   When the user opens the Insights tab
   Then a marker line is drawn across the 2025 bar at 11500.00
-  And its label reads "11.5k"
+  And its label is the short label provided by the backend for 11500.00
 
 @AC-9.2
 Scenario: Marker sits at the top of a gaining bar and the bottom of a losing growth segment
@@ -331,7 +333,7 @@ Scenario: Markers are not connected and the current year is dashed
 ```
 
 **REQ-10: Growth percentage labels** *(ubiquitous)*
-The Insights tab shall show the growth percentage of each year as a second line under its year label as "+x.x%" or "−x.x%", "0.0%" for no change and "–" for no growth percentage, using the negative colour only for decreases.
+The Insights tab shall show the growth percentage of each year as a second line under its year label as "+x.xx%" or "−x.xx%", "0.00%" for no change (also for a decrease that rounds to 0.00, without a sign) and "–" for no growth percentage, using the negative colour only for decreases.
 
 ```gherkin
 @AC-10.1
@@ -341,15 +343,15 @@ Scenario Outline: Growth percentage label
   Then the second line under the label of that year reads "<label>"
 
   Examples:
-    | percent | label |
-    | 6.1     | +6.1% |
-    | -2.5    | −2.5% |
-    | 0.0     | 0.0%  |
-    | none    | –     |
+    | percent | label  |
+    | 6.09    | +6.09% |
+    | -2.50   | −2.50% |
+    | 0.00    | 0.00%  |
+    | none    | –      |
 
 @AC-10.2
 Scenario: Only decreases are red
-  Given the growth percentage of 2025 is -2.5 and of 2026 is 6.1
+  Given the growth percentage of 2025 is -2.50 and of 2026 is 6.09
   When the user opens the Insights tab
   Then the percentage of 2025 uses the negative colour
   And the percentage of 2026 does not
@@ -361,7 +363,7 @@ When the user hovers over or moves keyboard focus to a year, the Insights tab sh
 ```gherkin
 @AC-11.1
 Scenario: Tooltip on hover
-  Given 2026 has opening balance 11500.00, net deposits 300.00, capital growth 700.00, closing balance 12500.00 and growth percentage 6.1
+  Given 2026 has opening balance 11500.00, net deposits 300.00, capital growth 700.00, closing balance 12500.00 and growth percentage 6.09
   When the user hovers over the 2026 bar
   Then a tooltip shows those five values
   And it shows no number of statements
@@ -454,7 +456,7 @@ Scenario: Tooltip flips near the right edge
 
 @AC-14.9
 Scenario: Rows follow the bar from top to bottom
-  Given 2025 has opening balance 10700.00, net deposits 500.00, capital growth 3800.00, closing balance 15000.00 and growth percentage 35.5
+  Given 2025 has opening balance 10700.00, net deposits 500.00, capital growth 3800.00, closing balance 15000.00 and growth percentage 35.51
   When the user hovers over the 2025 bar
   Then the tooltip rows are listed Capital growth, Net deposits, Opening balance, Closing balance, Growth (%) in that order
   And no row is listed above Capital growth
@@ -655,16 +657,16 @@ Command: `get_investment_insights()` returns the series, oldest year first:
 {
   "years": [
     { "year": 2025, "opening_balance": "0.00", "net_deposits": "11200.00", "capital_growth": "300.00", "growth_percent": null, "closing_balance": "11500.00", "statement_count": 2, "is_partial": false },
-    { "year": 2026, "opening_balance": "11500.00", "net_deposits": "300.00", "capital_growth": "700.00", "growth_percent": "6.1", "closing_balance": "12500.00", "statement_count": 1, "is_partial": true }
+    { "year": 2026, "opening_balance": "11500.00", "net_deposits": "300.00", "capital_growth": "700.00", "growth_percent": "6.09", "closing_balance": "12500.00", "statement_count": 1, "is_partial": true }
   ]
 }
 ```
 
-`statement_count` is returned but never displayed. `years` is empty when there are no statements. `growth_percent` is a decimal string or `null`. Amounts are decimal strings. Rust decides "today" (local time), the years, the partial flag and the growth percentage, and the frontend only displays what it receives.
+`statement_count` is returned but never displayed. `years` is empty when there are no statements. `growth_percent` is a decimal string with two decimals or `null`. Amounts are decimal strings. The text of the short axis labels and of the marker value labels is built by Rust and delivered with the series, and the frontend only displays it (format: CSD-025). Rust decides "today" (local time), the years, the partial flag and the growth percentage, and the frontend only displays what it receives.
 
 ## 6. Constraints
 - CON-1: Figures and the growth percentage are computed in Rust and displayed as received; the frontend only scales values to positions on the chart. Rationale: `CLAUDE.md` layout rule.
-- CON-2: Amounts and the percentage use `rust_decimal::Decimal`. Rationale: `CLAUDE.md` money rules.
+- CON-2: Amounts and the percentage use `rust_decimal::Decimal` and are rounded as CSD-000 CON-8 states (two decimals, half-up). Rationale: `CLAUDE.md` money rules and one rounding rule project-wide.
 - CON-3: The chart is plain SVG drawn in `ui/`, with no chart library, no new crate and no network access. Rationale: `CLAUDE.md` dependency and Tauri security rules.
 - CON-4: Chart colours come from CSS variables and are legible in light and dark mode, and no meaning is carried by colour alone (signs and labels state it as well). Rationale: the app already supports both modes, and colour-blind readers.
 - CON-5: The Overview tab behaves as before, and the income insights chart behaves exactly as before; helpers shared by both charts may move into a common `ui/` module without changing the income chart's output. Rationale: this capability adds a view and changes no existing behaviour.
@@ -687,6 +689,7 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 None.
 
 ## 9. Changelog
+- 1.0 (03/11/2026): The growth percentage is rounded to two decimals half-up instead of one decimal with banker's rounding (CSD-000 CON-8): REQ-6 (AC-6.1 values and two new rows, AC-6.2), AC-7.3, REQ-10 (label "+x.xx%", AC-10.1, AC-10.2), AC-11.1, AC-14.9, the JSON example and CON-2; a decrease that rounds to 0.00 shows no sign. The text of the short axis labels and the marker value labels is provided by the backend, the format is in CSD-025 (REQ-8, REQ-9, AC-9.1, section 5). Back to draft for re-approval.
 - 0.8 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.
 - 0.7 (29/10/2026): The Reports page is replaced by the Net worth page of CSD-017 (NG-5; GitHub issue 24). No other change.
 - 0.6 (29/10/2026): The plot of every yearly chart is 390 px high (was 260 px), 50% taller. No other behaviour change.
