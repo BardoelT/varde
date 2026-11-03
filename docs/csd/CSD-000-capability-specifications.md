@@ -1,10 +1,10 @@
 ---
 id: CSD-000
 title: Capability Specification Documents (CSD): reading, interpreting and writing
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 2.2
-last_updated: 25/10/2026
+version: 3.0
+last_updated: 03/11/2026
 location: docs/csd/CSD-000-capability-specifications.md
 applies_to: all humans and agents (Claude Code) working in this repository
 ---
@@ -83,9 +83,9 @@ When Claude is asked to implement or change behaviour, Claude shall search `docs
 @AC-1.1
 Scenario: Existing CSD is identified before coding
   Given a task that changes the behaviour of a capability
-  And "docs/csd/CSD-003-transaction-import.md" governs that capability
+  And "docs/csd/CSD-011-debts.md" governs that capability
   When Claude starts the task
-  Then Claude names "CSD-003" and its title before writing any code
+  Then Claude names "CSD-011" and its title before writing any code
 
 @AC-1.2
 Scenario: No CSD exists for a non-trivial capability
@@ -110,19 +110,16 @@ stateDiagram-v2
     [*] --> draft: Claude or a human creates it
     draft --> review: checklist (Appendix A) passes
     review --> draft: changes requested
-    review --> approved: human approves in PR
-    approved --> implemented: all ACs pass and are merged
-    approved --> draft: major change needed
-    implemented --> draft: behaviour change proposed
-    implemented --> deprecated: superseded or removed
+    review --> approved: a reviewer approves in PR
+    approved --> draft: behaviour change proposed
+    approved --> deprecated: superseded or removed
     deprecated --> [*]
 ```
 
 | Status | What Claude may do |
 |---|---|
 | `draft` / `review` | Discuss and edit the CSD only |
-| `approved` | Implement against it |
-| `implemented` | Treat it as the description of current behaviour. Changes need a CSD update first |
+| `approved` | Implement against it, and treat it as the description of current behaviour. A behaviour change needs a CSD update first, which sets the status back to `draft` |
 | `deprecated` | Read only. Follow `superseded_by` |
 
 ```gherkin
@@ -167,7 +164,7 @@ flowchart TD
     B -- No --> D[Decide per CLAUDE.md]
     D --> E[Record decision in PR description]
     C --> F{Answer changes the spec?}
-    F -- Yes --> G[Propose CSD update - REQ-12]
+    F -- Yes --> G[Propose CSD update - REQ-14]
     F -- No --> H[Continue implementation]
 ```
 
@@ -208,7 +205,7 @@ sequenceDiagram
     H-->>C: Answers
     C->>R: Write docs/csd/CSD-NNN-x.md (status: draft)
     C->>H: Draft + open questions
-    H->>R: Review in PR, set status: approved
+    H->>R: Review in PR, reviewer sets status: approved
 ```
 
 **REQ-8: Requirements use EARS** *(ubiquitous)*
@@ -251,7 +248,7 @@ If a draft prescribes internal design, then Claude shall rewrite it as observabl
 A CSD should fit in about 1–3 pages excluding diagrams and appendices. If it grows beyond that, it should be split into an overview CSD plus linked sub-CSDs.
 
 **REQ-13: Humans approve** *(unwanted behaviour)*
-If a CSD is ready for approval, then Claude shall not set `status: approved` itself. Only a human reviewer does this, normally through a pull request.
+If a CSD is ready for approval, then Claude shall not set `status: approved` itself. Any human reviewer (not only the owner) may approve a CSD, or restore `approved` after a change set it back to `draft`, normally through a pull request.
 
 ### 4.4 Maintaining a CSD
 
@@ -261,8 +258,8 @@ If implementation shows the CSD is wrong or incomplete, then Claude shall stop, 
 **REQ-15: Track changes** *(event-driven)*
 When a CSD changes substantively, Claude shall bump `version` (minor for clarifications, major for changed behaviour), update `last_updated`, and add a changelog line.
 
-**REQ-16: Mark completion** *(event-driven)*
-When all ACs are covered by passing tests and merged, Claude should propose changing the status to `implemented`.
+**REQ-16: Mark completion** *(removed in v3.0)*
+Removed together with the `implemented` status. A CSD stays `approved` once its behaviour is built.
 
 ## 5. Interfaces and contracts
 
@@ -374,8 +371,9 @@ Sections 1, 2, 4, 7 and 9 are **required**. Sections 3, 5, 6 and 8 may be omitte
 - **CON-3:** Acceptance criteria are valid Gherkin. Rationale: they are precise enough to drive Rust test naming and serve as executable specs if a Rust BDD crate is adopted later.
 - **CON-4:** Language: English. Rationale: consistent with code and tooling.
 - **CON-5:** No secrets, credentials, or real financial data (including PII) in CSDs. Use synthetic examples (e.g. "Example Bank", round amounts in EUR). Rationale: specs are widely read and fed into agent context; the repo is public.
-- **CON-6:** IDs (`REQ`, `AC`, `NG`, `CON`, `OQ`) are stable. Removed items are marked `(removed in vX)`, never renumbered. Rationale: tests and PRs reference them.
+- **CON-6:** IDs (`REQ`, `AC`, `NG`, `CON`, `OQ`) are stable. Removed items are marked `(removed in vX)`, never renumbered. Rationale: tests and PRs reference them. The merge of CSD-019 into CSD-020 (v3.0 of this CSD, 03/11/2026) renumbered the IDs once, as a one-time exception granted by the owner.
 - **CON-7:** Dates are written dd/mm/yyyy (for example 25/10/2026), in CSDs and in everything the app shows or accepts: front matter, changelogs, Gherkin examples, screens and messages. Months are written YYYY-MM. Machine-facing data (the project file and IPC) may use ISO 8601 and is converted at the edge. Rationale: one unambiguous convention for the owner, and no mix of formats in the specs.
+- **CON-8:** Money rounding is one rule for the whole application. Every money amount is rounded to 2 decimals, half-up (the midpoint rounds away from zero, so -0.125 becomes -0.13). No money value has more than 2 decimals outside the function that computes it. Percentages and ratios follow the same rule (2 decimals, half-up, for example "12.50"). A decrease that rounds to 0.00 is shown without a sign (0.00, not -0.00). CSDs that handle money, percentages or ratios reference CON-8 instead of restating the rule. Rationale: one unambiguous rounding rule, so figures agree across screens, tests and specs.
 
 ## 7. Verification
 
@@ -384,16 +382,18 @@ This CSD is working when:
 - **V-1:** A reviewer can map every behavioural change in a PR to a `REQ-`/`AC-` ID in its description.
 - **V-2:** Every new CSD passes the checklist in Appendix A before going to `review`.
 - **V-3:** Claude, given a draft CSD and an implementation request, does not implement until the CSD is approved or the human explicitly overrides (AC-2.1).
-- **V-4 (optional automation):** A CI job lints `docs/csd/`: valid front matter, required sections present, every `REQ-n` has at least one `@AC-n.*`, and Mermaid renders (`mmdc --input` dry-run).
+- **V-4 (advisory automation):** A lint script, run by hand and not enforced in CI, checks `docs/csd/`: valid front matter, required sections present, every `REQ-n` has at least one `@AC-n.*`, and Mermaid renders (`mmdc --input` dry-run).
 
 ## 8. Open questions
 
-- **OQ-1:** Should CI enforce V-4, or is it advisory only? Owner: Thijs.
-- **OQ-2:** Who may approve CSDs — the owner only, or any reviewer? Owner: Thijs.
-- **OQ-3:** Do we want to adopt a Rust BDD crate (e.g. `cucumber-rust`) so Gherkin ACs run as tests directly, or keep the convention of naming `#[test]` functions `test_csd<NNN>_ac_n_m_…`? Owner: Thijs.
-- **OQ-4:** Add a `/csd` Claude Code slash command that scaffolds a new CSD from §5.2? Owner: Thijs.
+- **OQ-1 (resolved in v3.0):** Should CI enforce V-4, or is it advisory only? Answer: advisory only, a script run by hand (V-4).
+- **OQ-2 (resolved in v3.0):** Who may approve CSDs, the owner only or any reviewer? Answer: any reviewer (REQ-13).
+- **OQ-3 (resolved in v3.0):** Adopt a Rust BDD crate, or keep naming `#[test]` functions `test_csd<NNN>_ac_n_m_…`? Answer: keep the naming convention (REQ-6), no Rust BDD crate.
+- **OQ-4 (resolved in v3.0):** Add a `/csd` slash command that scaffolds a new CSD? Answer: no.
 
 ## 9. Changelog
+
+- 3.0 (03/11/2026): The `implemented` status is removed (statuses: draft, review, approved, deprecated); REQ-16 removed, REQ-2 table and state diagram updated, an approved CSD returns to `draft` when behaviour changes. Any reviewer may approve or restore `approved` (REQ-13). V-4 is advisory; OQ-1 to OQ-4 resolved. New CON-8 (money rounding: 2 decimals, half-up, no sign on a zero decrease). CON-6 notes the one-time renumbering of the CSD-019 into CSD-020 merge. Fixed the REQ-14 reference in the flowchart and the AC-1.1 example.
 
 - 2.2 (25/10/2026): Dates are written dd/mm/yyyy everywhere (new CON-7, template placeholders, Appendix A checklist, existing dates converted). Months stay YYYY-MM.
 - 2.1 (25/10/2026): Test names now include the CSD number (`test_csd<NNN>_ac_n_m_…`) because AC numbers restart in every CSD (REQ-6, OQ-3, Appendix B).
