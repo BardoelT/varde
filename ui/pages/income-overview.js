@@ -284,6 +284,20 @@ async function copyPrevious() {
 }
 
 async function deleteEntry(entry) {
+  const statement = entry.kind === 'statement';
+  const values = { period: entry.period, employer: entry.employer };
+  const confirmed = await confirmAction({
+    title: t(statement ? 'Delete the annual statement of {period}?' : 'Delete the paycheck of {period}?', values),
+    message: t(
+      statement
+        ? 'The annual statement of {period} of {employer} will be deleted.'
+        : 'The paycheck of {period} of {employer} will be deleted.',
+      values,
+    ),
+    confirmLabel: t(statement ? 'Delete annual statement' : 'Delete paycheck'),
+    danger: true,
+  });
+  if (!confirmed) return;
   try {
     if (entry.kind === 'statement') {
       await invoke('delete_statement', { jobId: entry.job_id, year: entry.period });

@@ -96,17 +96,64 @@ test('test_ui_every_other_form_ignores_a_second_submit_too', async () => {
   }
 });
 
-// ---- 2. Deleting a paycheck or statement asks nothing (CSD-001 REQ-8) ----
+// ---- 2. Deleting a paycheck or an annual statement asks for confirmation (CSD-001 REQ-31) ----
 
-test('test_csd001_ac_8_3_deleting_a_paycheck_asks_no_confirmation', async () => {
-  const app = await openApp({ handlers: { delete_paycheck: {}, delete_statement: {} } });
+const entryOf = (kind) => exampleReads().list_entries.find((entry) => entry.kind === kind);
+
+function deleteButtonOf(app, entry) {
+  const label = `Delete ${entry.employer} ${entry.period}`;
+  return [...app.document.querySelectorAll('.icon-btn.danger')].find((button) => button.getAttribute('aria-label') === label);
+}
+
+async function startDeleting(app, entry) {
   await app.click(app.item('income'));
-  const button = app.document.querySelector('#paycheck-list .icon-btn.danger, #income .icon-btn.danger[aria-label^="Delete"][aria-label*="20"]');
-  const target = button ?? [...app.document.querySelectorAll('.icon-btn.danger')].find((candidate) => /paycheck|statement|20\d\d/i.test(candidate.getAttribute('aria-label')));
-  assert.ok(target, 'an entry has a Delete button');
-  await app.click(target);
-  assert.equal(app.$('confirm-dialog').open, false, 'no confirmation was asked');
-  assert.equal(app.callsOf('delete_paycheck').length + app.callsOf('delete_statement').length, 1);
+  const button = deleteButtonOf(app, entry);
+  assert.ok(button, `there is a Delete button for ${entry.employer} ${entry.period}`);
+  await app.click(button);
+}
+
+test('test_csd001_ac_31_1_a_confirmed_deletion_of_a_paycheck_removes_it', async () => {
+  const entry = entryOf('paycheck');
+  const app = await openApp({ handlers: { delete_paycheck: {} } });
+  await startDeleting(app, entry);
+  assert.equal(app.$('confirm-dialog').open, true, 'a confirmation was asked');
+  assert.equal(app.callsOf('delete_paycheck').length, 0, 'nothing is deleted before the answer');
+  await app.click(app.$('confirm-ok'));
+  const calls = app.callsOf('delete_paycheck');
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].args, { jobId: entry.job_id, month: entry.period });
+  app.close();
+});
+
+test('test_csd001_ac_31_2_a_cancelled_deletion_changes_nothing', async () => {
+  const entry = entryOf('paycheck');
+  const app = await openApp({ handlers: { delete_paycheck: {}, delete_statement: {} } });
+  await startDeleting(app, entry);
+  await app.click(app.$('confirm-cancel'));
+  assert.equal(app.$('confirm-dialog').open, false);
+  assert.equal(app.callsOf('delete_paycheck').length + app.callsOf('delete_statement').length, 0);
+  app.close();
+});
+
+test('test_csd001_ac_31_3_a_confirmed_deletion_of_an_annual_statement_removes_it', async () => {
+  const entry = entryOf('statement');
+  const app = await openApp({ handlers: { delete_statement: {} } });
+  await startDeleting(app, entry);
+  assert.equal(app.$('confirm-dialog').open, true, 'a confirmation was asked');
+  await app.click(app.$('confirm-ok'));
+  const calls = app.callsOf('delete_statement');
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].args, { jobId: entry.job_id, year: entry.period });
+  app.close();
+});
+
+test('test_csd001_ac_31_4_the_confirmation_names_the_entry', async () => {
+  const entry = entryOf('paycheck');
+  const app = await openApp({ handlers: { delete_paycheck: {} } });
+  await startDeleting(app, entry);
+  const text = `${app.textOf('confirm-title')} ${app.textOf('confirm-message')}`;
+  assert.ok(text.includes(entry.employer), text);
+  assert.ok(text.includes(entry.period), text);
   app.close();
 });
 

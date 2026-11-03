@@ -36,6 +36,12 @@ export default {
   'No expenses yet. Add your first expense.': 'Nog geen uitgaven. Voeg je eerste uitgave toe.',
   'Edit expense': 'Uitgave bewerken',
   'Add expense': 'Uitgave toevoegen',
+  'Delete the paycheck of {period}?': 'De salarisstrook van {period} verwijderen?',
+  'The paycheck of {period} of {employer} will be deleted.': 'De salarisstrook van {period} van {employer} wordt verwijderd.',
+  'Delete paycheck': 'Salarisstrook verwijderen',
+  'Delete the annual statement of {period}?': 'Het jaaroverzicht van {period} verwijderen?',
+  'The annual statement of {period} of {employer} will be deleted.': 'Het jaaroverzicht van {period} van {employer} wordt verwijderd.',
+  'Delete annual statement': 'Jaaroverzicht verwijderen',
   'The expense of {date} and its note will be deleted.': 'De uitgave van {date} en de bijbehorende notitie worden verwijderd.',
   'Delete expense': 'Uitgave verwijderen',
   // Categories
