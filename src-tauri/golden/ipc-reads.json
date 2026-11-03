@@ -411,7 +411,7 @@
   },
   "get_settings": {
     "currency": "EUR",
-    "entry_count": 31
+    "entry_count": 32
   },
   "list_bank_accounts": {
     "accounts": [
@@ -426,17 +426,24 @@
       },
       {
         "colour_slot": 1,
-        "entry_count": 2,
+        "entry_count": 3,
         "id": "id-2",
-        "latest_balance": "1000.00",
-        "latest_period": "2025",
+        "latest_balance": "1500.00",
+        "latest_period": "2027",
         "name": "Example Savings",
         "period": "Yearly"
       }
     ],
-    "total": "3500.50"
+    "total": "4000.50"
   },
   "list_bank_entries": [
+    {
+      "account_id": "id-2",
+      "account_name": "Example Savings",
+      "balance": "1500.00",
+      "note": "Future entry",
+      "period": "2027"
+    },
     {
       "account_id": "id-1",
       "account_name": "Example Current Account",
@@ -894,6 +901,11 @@
     "unsaved_changes": false
   },
   "yearly_bank_totals": [
+    {
+      "closing_balance": "1500.00",
+      "entry_count": 1,
+      "year": 2027
+    },
     {
       "closing_balance": "2500.50",
       "entry_count": 1,

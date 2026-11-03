@@ -1,13 +1,10 @@
 use super::*;
 use crate::domain::income::PayPeriod;
 use crate::domain::series::COLOUR_SLOTS;
+use crate::domain::YearMonth;
 
 fn period(text: &str) -> Period {
     parse_period(text).unwrap()
-}
-
-fn today() -> YearMonth {
-    YearMonth::parse("2026-10").unwrap()
 }
 
 fn balance(text: &str) -> BankBalance {
@@ -27,14 +24,14 @@ fn account(banks: &mut BankAccounts, name: &str, period: &str) -> BankAccountId 
 
 fn add(banks: &mut BankAccounts, id: BankAccountId, at: &str, amount: &str) {
     banks
-        .add_entry(id, period(at), balance(amount), Note::default(), today())
+        .add_entry(id, period(at), balance(amount), Note::default())
         .unwrap();
 }
 
 fn add_error(banks: &mut BankAccounts, id: BankAccountId, at: &str, amount: &str) -> DomainError {
     match parse_period(at)
         .and_then(|p| BankBalance::parse(amount).map(|b| (p, b)))
-        .and_then(|(p, b)| banks.add_entry(id, p, b, Note::default(), today()))
+        .and_then(|(p, b)| banks.add_entry(id, p, b, Note::default()))
     {
         Ok(_) => panic!("expected an error"),
         Err(error) => error,
@@ -263,7 +260,6 @@ fn test_csd009_ac_7_1_a_monthly_entry_with_a_note() {
             period("2026-09"),
             balance("2500.00"),
             bank_note("Salary received").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(entry.balance.value().to_string(), "2500.00");
@@ -279,28 +275,22 @@ fn test_csd009_ac_7_2_a_yearly_entry_without_a_note() {
 }
 
 #[test]
-fn test_csd009_ac_7_3_old_periods_are_accepted() {
-    let mut banks = BankAccounts::default();
-    let id = account(&mut banks, "Example Current Account", "Monthly");
-    add(&mut banks, id, "2019-01", "1000.00");
-    assert_eq!(banks.entry_count(id), 1);
-}
-
-#[test]
-fn test_csd009_ac_7_4_the_current_period_is_accepted_and_a_later_one_is_not() {
+fn test_csd009_ac_7_3_any_valid_period_is_accepted() {
     let mut banks = BankAccounts::default();
     let monthly = account(&mut banks, "Monthly", "Monthly");
     let yearly = account(&mut banks, "Yearly", "Yearly");
-    add(&mut banks, monthly, "2026-10", "1000.00");
-    add(&mut banks, yearly, "2026", "1000.00");
-    assert_eq!(
-        add_error(&mut banks, monthly, "2026-11", "1000.00").code(),
-        "BANK_ENTRY_IN_FUTURE"
-    );
-    assert_eq!(
-        add_error(&mut banks, yearly, "2027", "1000.00").code(),
-        "BANK_ENTRY_IN_FUTURE"
-    );
+    for (id, text) in [
+        (monthly, "2019-01"),
+        (monthly, "1899-12"),
+        (monthly, "2026-10"),
+        (monthly, "2026-11"),
+        (yearly, "2026"),
+        (yearly, "2027"),
+    ] {
+        add(&mut banks, id, text, "1000.00");
+    }
+    assert_eq!(banks.entry_count(monthly), 4);
+    assert_eq!(banks.entry_count(yearly), 2);
 }
 
 #[test]
@@ -314,7 +304,6 @@ fn test_csd009_ac_7_5_an_invalid_period_is_rejected() {
         (monthly, "abcd"),
         (yearly, "26"),
         (yearly, "abcd"),
-        (yearly, "1899"),
     ] {
         assert_eq!(
             add_error(&mut banks, id, text, "1000.00").code(),
@@ -334,7 +323,6 @@ fn test_csd009_ac_8_1_a_duplicate_period_is_rejected() {
             period("2026-09"),
             balance("2500.00"),
             bank_note("First").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(
@@ -448,7 +436,6 @@ fn update(
         period(to),
         balance(amount),
         Note::default(),
-        today(),
     )
 }
 
@@ -464,7 +451,6 @@ fn test_csd009_ac_12_1_edit_balance_and_note() {
             period("2026-09"),
             balance("2750.00"),
             bank_note("Corrected").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(entry.balance.value().to_string(), "2750.00");
@@ -484,7 +470,6 @@ fn test_csd009_ac_12_3_an_entry_moves_to_another_month() {
             period("2026-09"),
             balance("2500.00"),
             bank_note("First").unwrap(),
-            today(),
         )
         .unwrap();
     banks
@@ -494,7 +479,6 @@ fn test_csd009_ac_12_3_an_entry_moves_to_another_month() {
             period("2026-08"),
             balance("2500.00"),
             bank_note("First").unwrap(),
-            today(),
         )
         .unwrap();
     let rows = banks.all_entries();
@@ -546,23 +530,6 @@ fn test_csd009_ac_12_8_keeping_the_period_is_not_a_duplicate() {
     add(&mut banks, id, "2026-09", "2500.00");
     let entry = update(&mut banks, id, "2026-09", "2026-09", "2750.00").unwrap();
     assert_eq!(entry.balance.value().to_string(), "2750.00");
-}
-
-#[test]
-fn test_csd009_ac_13_1_a_new_period_in_the_future_is_rejected() {
-    let mut banks = BankAccounts::default();
-    let monthly = account(&mut banks, "Monthly", "Monthly");
-    let yearly = account(&mut banks, "Yearly", "Yearly");
-    add(&mut banks, monthly, "2026-09", "2500.00");
-    add(&mut banks, yearly, "2025", "2500.00");
-    assert_eq!(
-        codes(update(&mut banks, monthly, "2026-09", "2026-11", "1.00")),
-        "BANK_ENTRY_IN_FUTURE"
-    );
-    assert_eq!(
-        codes(update(&mut banks, yearly, "2025", "2027", "1.00")),
-        "BANK_ENTRY_IN_FUTURE"
-    );
 }
 
 #[test]
@@ -648,7 +615,6 @@ fn test_csd009_ac_15_1_the_form_is_prefilled_from_the_latest_entry_without_a_not
             period("2026-08"),
             balance("2500.00"),
             bank_note("Salary received").unwrap(),
-            today(),
         )
         .unwrap();
     let prefill = banks.prefill_from_latest(id).unwrap();

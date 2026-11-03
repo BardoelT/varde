@@ -179,6 +179,7 @@ fn add_bank_accounts(app: &Harness) {
     for (period, balance, note) in [
         ("2024", "-400.00", Some("Overdrawn")),
         ("2025", "1000.00", None),
+        ("2027", "1500.00", Some("Future entry")),
     ] {
         app.ok(
             "add_bank_entry",

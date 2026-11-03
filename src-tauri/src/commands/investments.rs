@@ -114,21 +114,16 @@ pub fn add_investment_statement(
     net_deposits: Option<String>,
     note: Option<String>,
 ) -> Result<StatementView, AppError> {
-    let today = state.today();
     let account_id = InvestmentAccountId::parse(&account_id)?;
     let period = Period::parse(&period)?;
     let balance = Balance::parse(&balance)?;
     let net_deposits = NetDeposits::parse(net_deposits.as_deref().unwrap_or_default())?;
     let note = Note::new(note.as_deref().unwrap_or_default())?;
     let mut project = state.project()?;
-    let statement = project.investments_mut().add_statement(
-        account_id,
-        period,
-        balance,
-        net_deposits,
-        note,
-        today,
-    )?;
+    let statement =
+        project
+            .investments_mut()
+            .add_statement(account_id, period, balance, net_deposits, note)?;
     statement_view(&project, &statement)
 }
 
@@ -142,7 +137,6 @@ pub fn update_investment_statement(
     net_deposits: Option<String>,
     note: Option<String>,
 ) -> Result<StatementView, AppError> {
-    let today = state.today();
     let account_id = InvestmentAccountId::parse(&account_id)?;
     let period = Period::parse(&period)?;
     let new_period = Period::parse(&new_period)?;
@@ -157,7 +151,6 @@ pub fn update_investment_statement(
         balance,
         net_deposits,
         note,
-        today,
     )?;
     statement_view(&project, &statement)
 }

@@ -107,24 +107,20 @@ impl Income {
             + self.statements.iter().filter(|s| s.job_id == id).count()
     }
 
-    /// Adds the paycheck of a month. `today` is the current month; later months
-    /// are rejected. The job's own start and end dates do not matter (REQ-5).
+    /// Adds the paycheck of a month. Any month is accepted, a later one included. The job's own
+    /// start and end dates do not matter (REQ-5).
     ///
     /// # Errors
     /// Returns `JobNotFound`, `JobPeriodMismatch` for a yearly job,
-    /// `PaycheckMonthInFuture` or `PaycheckDuplicateMonth`.
+    /// or `PaycheckDuplicateMonth`.
     pub fn add_paycheck(
         &mut self,
         job_id: JobId,
         month: YearMonth,
         amounts: Amounts,
-        today: YearMonth,
     ) -> Result<Paycheck, DomainError> {
         if self.job(job_id)?.period != PayPeriod::Monthly {
             return Err(DomainError::JobPeriodMismatch);
-        }
-        if month > today {
-            return Err(DomainError::PaycheckMonthInFuture);
         }
         if self.paycheck(job_id, month).is_some() {
             return Err(DomainError::PaycheckDuplicateMonth);
@@ -140,12 +136,11 @@ impl Income {
 
     /// Changes the amounts of an existing paycheck and, when `new_month` is a
     /// different month, moves it there. The new month follows the rules of
-    /// adding a paycheck: not after `today` and not taken by another paycheck of
-    /// the job. The job's own dates do not matter. The edit is applied as a
-    /// whole or not at all (REQ-8, REQ-29, REQ-30).
+    /// adding a paycheck: not taken by another paycheck of the job. The job's
+    /// own dates do not matter. The edit is applied as a whole or not at all (REQ-8, REQ-29, REQ-30).
     ///
     /// # Errors
-    /// Returns `JobNotFound`, `PaycheckNotFound`, `PaycheckMonthInFuture` or
+    /// Returns `JobNotFound`, `PaycheckNotFound` or
     /// `PaycheckDuplicateMonth`.
     pub fn update_paycheck(
         &mut self,
@@ -153,19 +148,13 @@ impl Income {
         month: YearMonth,
         new_month: YearMonth,
         amounts: Amounts,
-        today: YearMonth,
     ) -> Result<Paycheck, DomainError> {
         self.job(job_id)?;
         if self.paycheck(job_id, month).is_none() {
             return Err(DomainError::PaycheckNotFound);
         }
-        if new_month != month {
-            if new_month > today {
-                return Err(DomainError::PaycheckMonthInFuture);
-            }
-            if self.paycheck(job_id, new_month).is_some() {
-                return Err(DomainError::PaycheckDuplicateMonth);
-            }
+        if new_month != month && self.paycheck(job_id, new_month).is_some() {
+            return Err(DomainError::PaycheckDuplicateMonth);
         }
         let paycheck = self
             .paychecks
@@ -192,25 +181,20 @@ impl Income {
         Ok(())
     }
 
-    /// Adds the annual statement of a year. `today` is the current month, whose
-    /// year is the latest accepted one. The job's own start and end dates do not
-    /// matter (REQ-25).
+    /// Adds the annual statement of a year. Any year is accepted, a later one
+    /// included. The job's own start and end dates do not matter (REQ-25).
     ///
     /// # Errors
     /// Returns `JobNotFound`, `JobPeriodMismatch` for a monthly job,
-    /// `StatementYearInFuture` or `StatementDuplicateYear`.
+    /// or `StatementDuplicateYear`.
     pub fn add_statement(
         &mut self,
         job_id: JobId,
         year: Year,
         amounts: Amounts,
-        today: YearMonth,
     ) -> Result<AnnualStatement, DomainError> {
         if self.job(job_id)?.period != PayPeriod::Yearly {
             return Err(DomainError::JobPeriodMismatch);
-        }
-        if year.value() > today.year() {
-            return Err(DomainError::StatementYearInFuture);
         }
         if self.statement(job_id, year).is_some() {
             return Err(DomainError::StatementDuplicateYear);
@@ -226,12 +210,11 @@ impl Income {
 
     /// Changes the amounts of an existing annual statement and, when `new_year`
     /// is a different year, moves it there. The new year follows the rules of
-    /// adding a statement: not after the year of `today` and not taken by
-    /// another statement of the job. The edit is applied as a whole or not at
-    /// all (REQ-8, REQ-29, REQ-30).
+    /// adding a statement: not taken by another statement of the job. The edit
+    /// is applied as a whole or not at all (REQ-8, REQ-29, REQ-30).
     ///
     /// # Errors
-    /// Returns `JobNotFound`, `StatementNotFound`, `StatementYearInFuture` or
+    /// Returns `JobNotFound`, `StatementNotFound` or
     /// `StatementDuplicateYear`.
     pub fn update_statement(
         &mut self,
@@ -239,19 +222,13 @@ impl Income {
         year: Year,
         new_year: Year,
         amounts: Amounts,
-        today: YearMonth,
     ) -> Result<AnnualStatement, DomainError> {
         self.job(job_id)?;
         if self.statement(job_id, year).is_none() {
             return Err(DomainError::StatementNotFound);
         }
-        if new_year != year {
-            if new_year.value() > today.year() {
-                return Err(DomainError::StatementYearInFuture);
-            }
-            if self.statement(job_id, new_year).is_some() {
-                return Err(DomainError::StatementDuplicateYear);
-            }
+        if new_year != year && self.statement(job_id, new_year).is_some() {
+            return Err(DomainError::StatementDuplicateYear);
         }
         let statement = self
             .statements

@@ -51,14 +51,6 @@ impl Period {
             Self::Year(year) => (year.value(), 12),
         }
     }
-
-    /// Whether the period starts after the current month `today` (REQ-6).
-    pub(crate) fn is_after(self, today: YearMonth) -> bool {
-        match self {
-            Self::Month(month) => month > today,
-            Self::Year(year) => year.value() > today.year(),
-        }
-    }
 }
 
 impl fmt::Display for Period {

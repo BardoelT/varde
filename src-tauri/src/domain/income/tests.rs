@@ -31,7 +31,7 @@ fn amounts(gross: &str, holiday: &str, bonus: &str) -> Amounts {
 
 fn add(income: &mut Income, job: JobId, m: &str, gross: &str) -> Paycheck {
     income
-        .add_paycheck(job, month(m), amounts(gross, "", ""), today())
+        .add_paycheck(job, month(m), amounts(gross, "", ""))
         .unwrap()
 }
 
@@ -196,17 +196,6 @@ fn test_csd001_ac_5_3_month_after_job_end_is_accepted() {
 }
 
 #[test]
-fn test_csd001_ac_5_4_month_later_than_current_is_rejected() {
-    let mut income = Income::default();
-    let id = job_with(&mut income, "01/03/2024", "");
-    let error = income
-        .add_paycheck(id, month("2026-11"), amounts("3000.00", "", ""), today())
-        .unwrap_err();
-    assert_eq!(error.code(), "PAYCHECK_MONTH_IN_FUTURE");
-    assert_eq!(income.entry_count(id), 0);
-}
-
-#[test]
 fn test_csd001_ac_5_5_current_month_is_accepted() {
     let mut income = Income::default();
     let id = job_with(&mut income, "01/03/2024", "");
@@ -215,15 +204,19 @@ fn test_csd001_ac_5_5_current_month_is_accepted() {
 }
 
 #[test]
+fn test_csd001_ac_5_7_a_month_in_the_future_is_accepted() {
+    let mut income = Income::default();
+    let id = job_with(&mut income, "01/03/2024", "");
+    add(&mut income, id, "2026-11", "3000.00");
+    assert_eq!(income.entry_count(id), 1);
+    assert_eq!(months_of(&income, id), ["2026-11"]);
+}
+
+#[test]
 fn adding_a_paycheck_to_an_unknown_job_is_rejected() {
     let mut income = Income::default();
     let error = income
-        .add_paycheck(
-            JobId::generate(),
-            month("2026-09"),
-            amounts("1.00", "", ""),
-            today(),
-        )
+        .add_paycheck(JobId::generate(), month("2026-09"), amounts("1.00", "", ""))
         .unwrap_err();
     assert_eq!(error, DomainError::JobNotFound);
 }
@@ -236,7 +229,7 @@ fn test_csd001_ac_6_1_duplicate_month_rejected() {
     let id = job_with(&mut income, "01/03/2024", "");
     add(&mut income, id, "2026-09", "3000.00");
     let error = income
-        .add_paycheck(id, month("2026-09"), amounts("3100.00", "", ""), today())
+        .add_paycheck(id, month("2026-09"), amounts("3100.00", "", ""))
         .unwrap_err();
     assert_eq!(error.code(), "PAYCHECK_DUPLICATE_MONTH");
     let paychecks = income.paychecks(id).unwrap();
@@ -297,7 +290,6 @@ fn test_csd001_ac_8_1_edit_amounts() {
             month("2026-05"),
             month("2026-05"),
             amounts("3000.00", "2400.00", "0.00"),
-            today(),
         )
         .unwrap();
     assert_eq!(updated.amounts.holiday_pay().to_string(), "2400.00");
@@ -341,7 +333,7 @@ fn move_paycheck(
     to: &str,
     gross: &str,
 ) -> Result<Paycheck, DomainError> {
-    income.update_paycheck(job, month(from), month(to), amounts(gross, "", ""), today())
+    income.update_paycheck(job, month(from), month(to), amounts(gross, "", ""))
 }
 
 fn months_of(income: &Income, job: JobId) -> Vec<String> {
@@ -375,7 +367,6 @@ fn test_csd001_ac_29_2_the_month_and_an_amount_change_together() {
             month("2026-05"),
             month("2026-04"),
             amounts("3000.00", "2400.00", "0.00"),
-            today(),
         )
         .unwrap();
     assert_eq!(moved.month.to_string(), "2026-04");
@@ -389,13 +380,7 @@ fn test_csd001_ac_29_3_an_annual_statement_moves_to_another_year() {
     let id = yearly_job(&mut income);
     statement(&mut income, id, "2025", "40000.00");
     let moved = income
-        .update_statement(
-            id,
-            year("2025"),
-            year("2024"),
-            amounts("40000.00", "", ""),
-            today(),
-        )
+        .update_statement(id, year("2025"), year("2024"), amounts("40000.00", "", ""))
         .unwrap();
     assert_eq!(moved.year.to_string(), "2024");
     assert_eq!(moved.amounts.gross_salary().to_string(), "40000.00");
@@ -406,6 +391,25 @@ fn test_csd001_ac_29_3_an_annual_statement_moves_to_another_year() {
         .map(|s| s.year.to_string())
         .collect();
     assert_eq!(years, ["2024"]);
+}
+
+#[test]
+fn test_csd001_ac_29_8_a_month_or_year_in_the_future_is_accepted() {
+    let mut income = Income::default();
+    let id = job_with(&mut income, "01/03/2024", "");
+    add(&mut income, id, "2026-05", "3000.00");
+    let moved = move_paycheck(&mut income, id, "2026-05", "2026-11", "3200.00").unwrap();
+    assert_eq!(moved.month.to_string(), "2026-11");
+    assert_eq!(months_of(&income, id), ["2026-11"]);
+
+    let mut income = Income::default();
+    let id = yearly_job(&mut income);
+    statement(&mut income, id, "2025", "40000.00");
+    let moved = income
+        .update_statement(id, year("2025"), year("2027"), amounts("41000.00", "", ""))
+        .unwrap();
+    assert_eq!(moved.year.to_string(), "2027");
+    assert_eq!(moved.amounts.gross_salary().to_string(), "41000.00");
 }
 
 #[test]
@@ -435,46 +439,10 @@ fn test_csd001_ac_29_5_keeping_the_month_changes_only_the_amounts() {
     let id = yearly_job(&mut income);
     statement(&mut income, id, "2025", "40000.00");
     let updated = income
-        .update_statement(
-            id,
-            year("2025"),
-            year("2025"),
-            amounts("41000.00", "", ""),
-            today(),
-        )
+        .update_statement(id, year("2025"), year("2025"), amounts("41000.00", "", ""))
         .unwrap();
     assert_eq!(updated.year.to_string(), "2025");
     assert_eq!(updated.amounts.gross_salary().to_string(), "41000.00");
-}
-
-#[test]
-fn test_csd001_ac_30_1_a_month_or_year_in_the_future_is_rejected() {
-    let mut income = Income::default();
-    let id = job_with(&mut income, "01/03/2024", "");
-    add(&mut income, id, "2026-05", "3000.00");
-    assert_eq!(
-        move_paycheck(&mut income, id, "2026-05", "2026-11", "3200.00").unwrap_err(),
-        DomainError::PaycheckMonthInFuture
-    );
-    // The current month is allowed.
-    move_paycheck(&mut income, id, "2026-05", "2026-10", "3000.00").unwrap();
-
-    let mut income = Income::default();
-    let id = yearly_job(&mut income);
-    statement(&mut income, id, "2025", "40000.00");
-    let error = income
-        .update_statement(
-            id,
-            year("2025"),
-            year("2027"),
-            amounts("41000.00", "", ""),
-            today(),
-        )
-        .unwrap_err();
-    assert_eq!(error, DomainError::StatementYearInFuture);
-    let kept = income.statements(id).unwrap();
-    assert_eq!(kept[0].year.to_string(), "2025");
-    assert_eq!(kept[0].amounts.gross_salary().to_string(), "40000.00");
 }
 
 #[test]
@@ -489,7 +457,6 @@ fn test_csd001_ac_30_2_a_month_that_already_has_a_paycheck_is_rejected() {
             month("2026-05"),
             month("2026-04"),
             amounts("3000.00", "100.00", ""),
-            today(),
         )
         .unwrap_err();
     assert_eq!(error, DomainError::PaycheckDuplicateMonth);
@@ -509,13 +476,7 @@ fn test_csd001_ac_30_3_a_year_that_already_has_a_statement_is_rejected() {
     statement(&mut income, id, "2024", "38000.00");
     statement(&mut income, id, "2025", "40000.00");
     let error = income
-        .update_statement(
-            id,
-            year("2025"),
-            year("2024"),
-            amounts("41000.00", "", ""),
-            today(),
-        )
+        .update_statement(id, year("2025"), year("2024"), amounts("41000.00", "", ""))
         .unwrap_err();
     assert_eq!(error, DomainError::StatementDuplicateYear);
     let statements = income.statements(id).unwrap();
@@ -556,8 +517,7 @@ fn editing_or_deleting_a_missing_paycheck_is_rejected() {
                 id,
                 month("2026-05"),
                 month("2026-05"),
-                amounts("1.00", "", ""),
-                today()
+                amounts("1.00", "", "")
             )
             .unwrap_err(),
         DomainError::PaycheckNotFound
@@ -576,12 +536,7 @@ fn test_csd001_ac_9_1_form_prefilled_from_latest_paycheck() {
     let id = job_with(&mut income, "01/03/2024", "");
     add(&mut income, id, "2026-07", "3000.00");
     income
-        .add_paycheck(
-            id,
-            month("2026-08"),
-            amounts("3100.00", "", "500.00"),
-            today(),
-        )
+        .add_paycheck(id, month("2026-08"), amounts("3100.00", "", "500.00"))
         .unwrap();
     let prefill = income.prefill_from_latest(id).unwrap();
     assert_eq!(prefill.gross_salary.unwrap().to_string(), "3100.00");
@@ -616,20 +571,10 @@ fn test_csd001_ac_11_1_totals_per_calendar_year() {
     let id = job_with(&mut income, "01/03/2024", "");
     add(&mut income, id, "2025-11", "3000.00");
     income
-        .add_paycheck(
-            id,
-            month("2025-12"),
-            amounts("3000.00", "", "1000.00"),
-            today(),
-        )
+        .add_paycheck(id, month("2025-12"), amounts("3000.00", "", "1000.00"))
         .unwrap();
     income
-        .add_paycheck(
-            id,
-            month("2026-05"),
-            amounts("3000.00", "2400.00", ""),
-            today(),
-        )
+        .add_paycheck(id, month("2026-05"), amounts("3000.00", "2400.00", ""))
         .unwrap();
     let totals = income.yearly_totals();
     assert_eq!(totals.len(), 2);
@@ -662,12 +607,7 @@ fn test_csd001_ac_11_3_totals_add_up_all_jobs() {
     let second = job_with(&mut income, "01/01/2020", "");
     add(&mut income, first, "2026-08", "3000.00");
     income
-        .add_paycheck(
-            first,
-            month("2026-09"),
-            amounts("3000.00", "", "500.00"),
-            today(),
-        )
+        .add_paycheck(first, month("2026-09"), amounts("3000.00", "", "500.00"))
         .unwrap();
     add(&mut income, second, "2026-09", "1000.00");
 
@@ -793,12 +733,7 @@ fn dashboard_income() -> Income {
         .id;
     add(&mut income, recent, "2026-08", "3000.00");
     income
-        .add_paycheck(
-            recent,
-            month("2026-09"),
-            amounts("3000.00", "", "500.00"),
-            today(),
-        )
+        .add_paycheck(recent, month("2026-09"), amounts("3000.00", "", "500.00"))
         .unwrap();
     add(&mut income, recent, "2026-10", "3000.00");
     add(&mut income, older, "2026-09", "1000.00");
@@ -835,12 +770,7 @@ fn test_csd004_ac_2_3_months_after_the_current_month_are_not_counted() {
     add(&mut income, id, "2026-10", "3000.00");
     // Only a project file can hold a later month, so allow it here.
     income
-        .add_paycheck(
-            id,
-            month("2026-12"),
-            amounts("3000.00", "", ""),
-            month("2026-12"),
-        )
+        .add_paycheck(id, month("2026-12"), amounts("3000.00", "", ""))
         .unwrap();
     let totals = income.overview(today()).year_to_date.unwrap();
     assert_eq!(totals.gross_salary.to_string(), "3000.00");
@@ -864,12 +794,7 @@ fn test_csd004_ac_3_2_january_looks_back_to_december() {
     let mut income = Income::default();
     let id = job_with(&mut income, "01/03/2024", "");
     income
-        .add_paycheck(
-            id,
-            month("2026-12"),
-            amounts("3000.00", "", ""),
-            month("2027-01"),
-        )
+        .add_paycheck(id, month("2026-12"), amounts("3000.00", "", ""))
         .unwrap();
     let overview = income.overview(month("2027-01"));
     assert_eq!(overview.last_month.unwrap().to_string(), "2026-12");
@@ -893,12 +818,7 @@ fn test_csd004_ac_4_1_nothing_earned_this_year_yet_has_no_totals() {
     let mut income = Income::default();
     let id = job_with(&mut income, "01/03/2024", "");
     income
-        .add_paycheck(
-            id,
-            month("2026-12"),
-            amounts("3000.00", "", ""),
-            month("2027-01"),
-        )
+        .add_paycheck(id, month("2026-12"), amounts("3000.00", "", ""))
         .unwrap();
     let overview = income.overview(month("2027-01"));
     assert_eq!(overview.year, 2027);
@@ -931,7 +851,7 @@ fn test_csd004_ac_5_1_has_jobs_tells_an_empty_project_apart() {
 fn year_month_previous_wraps_and_stops_at_the_first_year() {
     assert_eq!(month("2026-10").previous().unwrap().to_string(), "2026-09");
     assert_eq!(month("2027-01").previous().unwrap().to_string(), "2026-12");
-    assert_eq!(month("1900-01").previous(), None);
+    assert_eq!(month("0001-01").previous(), None);
 }
 
 // ---- REQ-22: date format ----
@@ -1045,7 +965,7 @@ fn yearly_job(income: &mut Income) -> JobId {
 
 fn statement(income: &mut Income, job: JobId, y: &str, gross: &str) -> AnnualStatement {
     income
-        .add_statement(job, year(y), amounts(gross, "", ""), today())
+        .add_statement(job, year(y), amounts(gross, "", ""))
         .unwrap()
 }
 
@@ -1181,17 +1101,6 @@ fn test_csd001_ac_25_2_a_year_before_the_job_start_is_accepted() {
 }
 
 #[test]
-fn test_csd001_ac_25_3_a_year_later_than_the_current_year_is_rejected() {
-    let mut income = Income::default();
-    let id = yearly_job(&mut income);
-    let error = income
-        .add_statement(id, year("2027"), amounts("40000.00", "", ""), today())
-        .unwrap_err();
-    assert_eq!(error.code(), "STATEMENT_YEAR_IN_FUTURE");
-    assert_eq!(income.entry_count(id), 0);
-}
-
-#[test]
 fn test_csd001_ac_25_4_the_current_year_is_accepted() {
     let mut income = Income::default();
     let id = yearly_job(&mut income);
@@ -1200,9 +1109,26 @@ fn test_csd001_ac_25_4_the_current_year_is_accepted() {
 }
 
 #[test]
+fn test_csd001_ac_25_6_a_year_in_the_future_is_accepted() {
+    let mut income = Income::default();
+    let id = yearly_job(&mut income);
+    statement(&mut income, id, "2027", "40000.00");
+    assert_eq!(income.entry_count(id), 1);
+}
+
+#[test]
+fn test_csd001_ac_25_7_an_old_year_is_accepted() {
+    let mut income = Income::default();
+    let id = yearly_job(&mut income);
+    statement(&mut income, id, "1899", "40000.00");
+    assert_eq!(income.entry_count(id), 1);
+    assert_eq!(income.statements(id).unwrap()[0].year.to_string(), "1899");
+}
+
+#[test]
 fn test_csd001_ac_25_5_an_invalid_year_is_rejected() {
     for text in [
-        "26", "2026-05", "abcd", "1899", "", " ", "20266", "-202", "2026 ",
+        "26", "2026-05", "abcd", "0000", "", " ", "20266", "-202", "2026 ",
     ] {
         let result = Year::parse(text);
         if text.trim() == "2026" {
@@ -1216,7 +1142,7 @@ fn test_csd001_ac_25_5_an_invalid_year_is_rejected() {
             );
         }
     }
-    assert_eq!(year("1900").to_string(), "1900");
+    assert_eq!(year("0001").to_string(), "0001");
     assert_eq!(year("9999").to_string(), "9999");
 }
 
@@ -1226,7 +1152,7 @@ fn test_csd001_ac_26_1_a_duplicate_year_is_rejected() {
     let id = yearly_job(&mut income);
     statement(&mut income, id, "2025", "40000.00");
     let error = income
-        .add_statement(id, year("2025"), amounts("41000.00", "", ""), today())
+        .add_statement(id, year("2025"), amounts("41000.00", "", ""))
         .unwrap_err();
     assert_eq!(error.code(), "STATEMENT_DUPLICATE_YEAR");
     let kept = income.statements(id).unwrap();
@@ -1250,7 +1176,7 @@ fn test_csd001_ac_27_1_a_paycheck_for_a_yearly_job_is_rejected() {
     let mut income = Income::default();
     let id = yearly_job(&mut income);
     let error = income
-        .add_paycheck(id, month("2026-09"), amounts("3000.00", "", ""), today())
+        .add_paycheck(id, month("2026-09"), amounts("3000.00", "", ""))
         .unwrap_err();
     assert_eq!(error.code(), "JOB_PERIOD_MISMATCH");
     assert_eq!(income.entry_count(id), 0);
@@ -1261,7 +1187,7 @@ fn test_csd001_ac_27_2_a_statement_for_a_monthly_job_is_rejected() {
     let mut income = Income::default();
     let id = job_with(&mut income, "01/03/2024", "");
     let error = income
-        .add_statement(id, year("2025"), amounts("40000.00", "", ""), today())
+        .add_statement(id, year("2025"), amounts("40000.00", "", ""))
         .unwrap_err();
     assert_eq!(error.code(), "JOB_PERIOD_MISMATCH");
     assert_eq!(income.entry_count(id), 0);
@@ -1271,12 +1197,7 @@ fn test_csd001_ac_27_2_a_statement_for_a_monthly_job_is_rejected() {
 fn adding_a_statement_to_an_unknown_job_is_rejected() {
     let mut income = Income::default();
     let error = income
-        .add_statement(
-            JobId::generate(),
-            year("2025"),
-            amounts("1.00", "", ""),
-            today(),
-        )
+        .add_statement(JobId::generate(), year("2025"), amounts("1.00", "", ""))
         .unwrap_err();
     assert_eq!(error, DomainError::JobNotFound);
 }
@@ -1292,7 +1213,6 @@ fn test_csd001_ac_8_5_a_statement_can_be_edited_and_deleted() {
             year("2025"),
             year("2025"),
             amounts("40000.00", "", "3000.00"),
-            today(),
         )
         .unwrap();
     assert_eq!(updated.amounts.bonus().to_string(), "3000.00");
@@ -1305,13 +1225,7 @@ fn test_csd001_ac_8_5_a_statement_can_be_edited_and_deleted() {
     );
     assert_eq!(
         income
-            .update_statement(
-                id,
-                year("2025"),
-                year("2025"),
-                amounts("1.00", "", ""),
-                today()
-            )
+            .update_statement(id, year("2025"), year("2025"), amounts("1.00", "", ""))
             .unwrap_err(),
         DomainError::StatementNotFound
     );
@@ -1334,12 +1248,7 @@ fn test_csd001_ac_9_4_copy_previous_year_uses_the_latest_statement() {
     let id = yearly_job(&mut income);
     statement(&mut income, id, "2024", "40000.00");
     income
-        .add_statement(
-            id,
-            year("2025"),
-            amounts("42000.00", "", "3000.00"),
-            today(),
-        )
+        .add_statement(id, year("2025"), amounts("42000.00", "", "3000.00"))
         .unwrap();
     let prefill = income.prefill_from_latest(id).unwrap();
     assert_eq!(prefill.gross_salary.unwrap().to_string(), "42000.00");
@@ -1370,12 +1279,7 @@ fn test_csd001_ac_11_5_statements_count_in_their_year_next_to_paychecks() {
     let yearly = yearly_job(&mut income);
     let monthly = job_with(&mut income, "01/01/2020", "");
     income
-        .add_statement(
-            yearly,
-            year("2025"),
-            amounts("40000.00", "", "3000.00"),
-            today(),
-        )
+        .add_statement(yearly, year("2025"), amounts("40000.00", "", "3000.00"))
         .unwrap();
     add(&mut income, monthly, "2025-12", "3000.00");
 
@@ -1428,12 +1332,7 @@ fn test_csd001_ac_12_5_the_same_period_is_ordered_by_job() {
         .id;
     // 2026-12 is later than today, so allow it for this ordering test.
     income
-        .add_paycheck(
-            monthly,
-            month("2026-12"),
-            amounts("3000.00", "", ""),
-            month("2026-12"),
-        )
+        .add_paycheck(monthly, month("2026-12"), amounts("3000.00", "", ""))
         .unwrap();
     statement(&mut income, yearly, "2026", "40000.00");
     let rows: Vec<(String, bool)> = income
@@ -1506,12 +1405,7 @@ fn test_csd004_ac_2_4_an_annual_statement_counts_in_full_this_year() {
     let yearly = yearly_job(&mut income);
     let monthly = job_with(&mut income, "01/01/2020", "");
     income
-        .add_statement(
-            yearly,
-            year("2026"),
-            amounts("40000.00", "", "3000.00"),
-            today(),
-        )
+        .add_statement(yearly, year("2026"), amounts("40000.00", "", "3000.00"))
         .unwrap();
     add(&mut income, monthly, "2026-09", "3000.00");
     let totals = income.overview(today()).year_to_date.unwrap();
@@ -1579,8 +1473,8 @@ fn validate_rejects_entries_that_do_not_match_the_pay_period() {
 #[test]
 fn year_orders_and_prints_with_four_digits() {
     assert!(year("2025") < year("2026"));
-    assert_eq!(year("1900").to_string(), "1900");
-    assert_eq!(Year::new(1899), None);
+    assert_eq!(year("0001").to_string(), "0001");
+    assert_eq!(Year::new(0), None);
     assert_eq!(Year::new(10000), None);
     let json = serde_json::to_string(&year("2025")).unwrap();
     assert_eq!(json, "\"2025\"");
@@ -1595,7 +1489,7 @@ fn year_month_round_trips_and_orders() {
     assert_eq!(month("2026-09").to_string(), "2026-09");
     assert!(month("2025-12") < month("2026-01"));
     for bad in [
-        "2026-9", "26-09", "2026-13", "2026-00", "2026/09", "", "1899-12",
+        "2026-9", "26-09", "2026-13", "2026-00", "2026/09", "", "0000-12",
     ] {
         assert_eq!(
             YearMonth::parse(bad).unwrap_err(),
@@ -1639,7 +1533,7 @@ fn yearly_job_named(income: &mut Income, employer: &str) -> JobId {
 
 fn add_statement_of(income: &mut Income, job: JobId, y: &str, parts: [&str; 3]) {
     income
-        .add_statement(job, year(y), amounts(parts[0], parts[1], parts[2]), today())
+        .add_statement(job, year(y), amounts(parts[0], parts[1], parts[2]))
         .unwrap();
 }
 

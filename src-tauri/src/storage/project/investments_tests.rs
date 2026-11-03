@@ -3,7 +3,7 @@ use std::fs;
 use tempfile::TempDir;
 
 use super::*;
-use crate::domain::{AccountInput, Balance, NetDeposits, Note, Period, YearMonth};
+use crate::domain::{AccountInput, Balance, NetDeposits, Note, Period};
 
 fn account(project: &mut Project, name: &str, period: &str) -> crate::domain::InvestmentAccountId {
     project
@@ -29,7 +29,6 @@ fn test_csd005_ac_19_1_investments_survive_save_and_open_including_notes() {
             Balance::parse("80000.00").unwrap(),
             NetDeposits::parse("-250.00").unwrap(),
             Note::new("Line one\nLine two").unwrap(),
-            YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
     let path = dir.path().join("example-a.varde");

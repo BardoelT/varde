@@ -4,7 +4,7 @@ use tempfile::TempDir;
 
 use super::*;
 use crate::domain::bank_accounts::{bank_note, parse_period, AccountInput};
-use crate::domain::{BankAccountId, BankBalance, YearMonth};
+use crate::domain::{BankAccountId, BankBalance};
 
 fn account(project: &mut Project, name: &str, period: &str) -> BankAccountId {
     project
@@ -30,7 +30,6 @@ fn test_csd009_ac_23_1_bank_accounts_survive_save_and_open_including_notes_and_s
             parse_period("2025").unwrap(),
             BankBalance::parse("8000.00").unwrap(),
             bank_note("Line one\nLine two").unwrap(),
-            YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
     let path = dir.path().join("example-a.varde");
@@ -68,7 +67,6 @@ fn test_csd009_ac_23_3_a_negative_balance_survives_the_round_trip() {
             parse_period("2026-09").unwrap(),
             BankBalance::parse("-150.25").unwrap(),
             bank_note("").unwrap(),
-            YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
     let path = dir.path().join("example-a.varde");

@@ -18,16 +18,13 @@ fn period(text: &str) -> Period {
 fn add_house(data: &mut ProjectData, at: &str, amount: &str) {
     let id = data
         .houses
-        .create_house(
-            &HouseInput {
-                name: "Example House".to_owned(),
-                period: Some("Yearly".to_owned()),
-                purchase_date: Some("01/01/1900".to_owned()),
-                purchase_amount: Some("0.00".to_owned()),
-                ..HouseInput::default()
-            },
-            time::macros::date!(2026 - 10 - 29),
-        )
+        .create_house(&HouseInput {
+            name: "Example House".to_owned(),
+            period: Some("Yearly".to_owned()),
+            purchase_date: Some("01/01/1900".to_owned()),
+            purchase_amount: Some("0.00".to_owned()),
+            ..HouseInput::default()
+        })
         .unwrap()
         .id;
     data.houses
@@ -36,7 +33,6 @@ fn add_house(data: &mut ProjectData, at: &str, amount: &str) {
             crate::domain::houses::parse_period(at).unwrap(),
             HouseValue::parse(amount).unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
 }
@@ -61,7 +57,6 @@ fn add_investment(data: &mut ProjectData, at: &str, amount: &str) {
             Balance::parse(amount).unwrap(),
             NetDeposits::parse(amount).unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
 }
@@ -81,7 +76,6 @@ fn add_cash(data: &mut ProjectData, at: &str, amount: &str) {
             crate::domain::bank_accounts::parse_period(at).unwrap(),
             BankBalance::parse(amount).unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
 }
@@ -101,7 +95,6 @@ fn add_debt(data: &mut ProjectData, at: &str, amount: &str) {
             crate::domain::debts::parse_period(at).unwrap(),
             DebtBalance::parse(amount).unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
 }
@@ -291,17 +284,14 @@ fn test_csd019_ac_11_6_net_worth_drops_a_sold_house() {
     let mut data = ProjectData::default();
     let id = data
         .houses
-        .create_house(
-            &HouseInput {
-                name: "Example House".to_owned(),
-                period: Some("Yearly".to_owned()),
-                purchase_date: Some("15/03/2024".to_owned()),
-                purchase_amount: Some("250000.00".to_owned()),
-                sell_date: Some("10/06/2026".to_owned()),
-                sell_amount: Some("300000.00".to_owned()),
-            },
-            time::macros::date!(2026 - 10 - 29),
-        )
+        .create_house(&HouseInput {
+            name: "Example House".to_owned(),
+            period: Some("Yearly".to_owned()),
+            purchase_date: Some("15/03/2024".to_owned()),
+            purchase_amount: Some("250000.00".to_owned()),
+            sell_date: Some("10/06/2026".to_owned()),
+            sell_amount: Some("300000.00".to_owned()),
+        })
         .unwrap()
         .id;
     data.houses
@@ -310,7 +300,6 @@ fn test_csd019_ac_11_6_net_worth_drops_a_sold_house() {
             crate::domain::houses::parse_period("2025").unwrap(),
             HouseValue::parse("210000.00").unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
     assert_eq!(year(&data, 2025).houses.to_string(), "210000.00");

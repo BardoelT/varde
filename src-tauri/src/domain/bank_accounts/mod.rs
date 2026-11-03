@@ -28,7 +28,6 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::error::DomainError;
-use crate::domain::income::YearMonth;
 use crate::domain::investments::{Note, Period};
 
 use crate::domain::series::{self, COLOUR_SLOTS, MAX_NAME_CHARS};
@@ -124,21 +123,20 @@ impl BankAccounts {
         self.entries.len()
     }
 
-    /// Adds the entry of a period. `today` is the current month; later periods
-    /// are rejected. Any earlier period is accepted (REQ-7 to REQ-9).
+    /// Adds the entry of a period. Any period is accepted, a later one
+    /// included (REQ-7 to REQ-9).
     ///
     /// # Errors
-    /// Returns `BankAccountNotFound`, `BankEntryPeriodMismatch`,
-    /// `BankEntryInFuture` or `BankEntryDuplicate`.
+    /// Returns `BankAccountNotFound`, `BankEntryPeriodMismatch`
+    /// or `BankEntryDuplicate`.
     pub fn add_entry(
         &mut self,
         account_id: BankAccountId,
         period: Period,
         balance: BankBalance,
         note: Note,
-        today: YearMonth,
     ) -> Result<BankEntry, DomainError> {
-        self.check_new_period(account_id, period, today)?;
+        self.check_new_period(account_id, period)?;
         let entry = BankEntry {
             account_id,
             period,
@@ -151,13 +149,13 @@ impl BankAccounts {
 
     /// Changes the balance and note of an entry and, when `new_period` is a
     /// different period, moves it there. The new period follows the rules of
-    /// adding an entry: the kind of the account, not after `today` and not
+    /// adding an entry: the kind of the account, not
     /// taken by another entry of the account. The edit is applied as a whole or
     /// not at all (REQ-12, REQ-13).
     ///
     /// # Errors
     /// Returns `BankAccountNotFound`, `BankEntryNotFound`,
-    /// `BankEntryPeriodMismatch`, `BankEntryInFuture` or `BankEntryDuplicate`.
+    /// `BankEntryPeriodMismatch` or `BankEntryDuplicate`.
     pub fn update_entry(
         &mut self,
         account_id: BankAccountId,
@@ -165,14 +163,13 @@ impl BankAccounts {
         new_period: Period,
         balance: BankBalance,
         note: Note,
-        today: YearMonth,
     ) -> Result<BankEntry, DomainError> {
         self.account(account_id)?;
         if self.entry(account_id, period).is_none() {
             return Err(DomainError::BankEntryNotFound);
         }
         if new_period != period {
-            self.check_new_period(account_id, new_period, today)?;
+            self.check_new_period(account_id, new_period)?;
         }
         let entry = self
             .entries
@@ -286,18 +283,14 @@ impl BankAccounts {
     }
 
     /// The rules a period must follow for an account to hold an entry for it:
-    /// the kind of the account, not after `today`, not taken (REQ-7 to REQ-9).
+    /// the kind of the account, not taken (REQ-7 to REQ-9).
     fn check_new_period(
         &self,
         account_id: BankAccountId,
         period: Period,
-        today: YearMonth,
     ) -> Result<(), DomainError> {
         if self.account(account_id)?.period != period.kind() {
             return Err(DomainError::BankEntryPeriodMismatch);
-        }
-        if period.is_after(today) {
-            return Err(DomainError::BankEntryInFuture);
         }
         if self.entry(account_id, period).is_some() {
             return Err(DomainError::BankEntryDuplicate);

@@ -1,10 +1,7 @@
 //! Tests for CSD-019: the purchase and sale of a house.
+use crate::domain::YearMonth;
 
 use super::*;
-fn today_date() -> Date {
-    time::macros::date!(2026 - 10 - 29)
-}
-
 fn today() -> YearMonth {
     YearMonth::parse("2026-10").unwrap()
 }
@@ -29,20 +26,19 @@ fn input(name: &str, kind: &str, bought: (&str, &str), sold: (&str, &str)) -> Ho
 
 fn create(houses: &mut Houses, bought: (&str, &str), sold: (&str, &str)) -> HouseId {
     houses
-        .create_house(
-            &input("Example House", "Monthly", bought, sold),
-            today_date(),
-        )
+        .create_house(&input("Example House", "Monthly", bought, sold))
         .unwrap()
         .id
 }
 
 fn held(houses: &mut Houses, kind: &str, purchase: &str) -> HouseId {
     houses
-        .create_house(
-            &input("Example House", kind, (purchase, "250000.00"), ("", "")),
-            today_date(),
-        )
+        .create_house(&input(
+            "Example House",
+            kind,
+            (purchase, "250000.00"),
+            ("", ""),
+        ))
         .unwrap()
         .id
 }
@@ -54,7 +50,6 @@ fn add(houses: &mut Houses, id: HouseId, at: &str, amount: &str) -> Result<(), D
             period(at),
             HouseValue::parse(amount).unwrap(),
             Note::default(),
-            today(),
         )
         .map(|_| ())
 }
@@ -114,10 +109,8 @@ fn test_csd019_ac_1_2_a_missing_purchase_field_is_rejected() {
         ("15/03/2024", "", "HOUSE_PURCHASE_AMOUNT_REQUIRED"),
     ] {
         let mut houses = Houses::default();
-        let result = houses.create_house(
-            &input("Example House", "Monthly", (date, amount), ("", "")),
-            today_date(),
-        );
+        let result =
+            houses.create_house(&input("Example House", "Monthly", (date, amount), ("", "")));
         assert_eq!(code(result), expected);
         assert_eq!(houses.houses().len(), 0);
     }
@@ -138,7 +131,6 @@ fn test_csd019_ac_2_1_sell_a_house() {
                 ("15/03/2024", "250000.00"),
                 ("10/06/2026", "300000.00"),
             ),
-            today_date(),
         )
         .unwrap();
     let sold = house(&houses, id);
@@ -164,7 +156,6 @@ fn test_csd019_ac_2_2_undo_a_sale() {
                 ("15/03/2024", "250000.00"),
                 ("", ""),
             ),
-            today_date(),
         )
         .unwrap();
     let held = house(&houses, id);
@@ -175,15 +166,12 @@ fn test_csd019_ac_2_2_undo_a_sale() {
 #[test]
 fn test_csd019_ac_2_3_a_sale_on_the_day_of_purchase_is_allowed() {
     let mut houses = Houses::default();
-    let result = houses.create_house(
-        &input(
-            "Example Cabin",
-            "Monthly",
-            ("01/09/2026", "10000.00"),
-            ("01/09/2026", "9500.00"),
-        ),
-        today_date(),
-    );
+    let result = houses.create_house(&input(
+        "Example Cabin",
+        "Monthly",
+        ("01/09/2026", "10000.00"),
+        ("01/09/2026", "9500.00"),
+    ));
     assert_eq!(code(result), "OK");
 }
 
@@ -194,13 +182,6 @@ fn test_csd019_ac_3_1_invalid_dates_are_rejected() {
     for (purchase, sell, sell_amount, expected) in [
         ("31/02/2024", "", "", "HOUSE_DATE_INVALID"),
         ("2024-03-15", "", "", "HOUSE_DATE_INVALID"),
-        ("30/10/2026", "", "", "HOUSE_DATE_IN_FUTURE"),
-        (
-            "15/03/2024",
-            "30/10/2026",
-            "1000.00",
-            "HOUSE_DATE_IN_FUTURE",
-        ),
         (
             "15/03/2024",
             "14/03/2024",
@@ -209,24 +190,29 @@ fn test_csd019_ac_3_1_invalid_dates_are_rejected() {
         ),
     ] {
         let mut houses = Houses::default();
-        let result = houses.create_house(
-            &input(
-                "Example House",
-                "Monthly",
-                (purchase, "250000.00"),
-                (sell, sell_amount),
-            ),
-            today_date(),
-        );
+        let result = houses.create_house(&input(
+            "Example House",
+            "Monthly",
+            (purchase, "250000.00"),
+            (sell, sell_amount),
+        ));
         assert_eq!(code(result), expected, "{purchase} {sell}");
         assert_eq!(houses.houses().len(), 0);
     }
 }
 
 #[test]
-fn test_csd019_ac_3_2_today_is_accepted() {
+fn test_csd020_ac_3_2_a_future_date_is_accepted() {
     let mut houses = Houses::default();
-    held(&mut houses, "Monthly", "29/10/2026");
+    held(&mut houses, "Monthly", "15/03/2040");
+    assert_eq!(houses.houses().len(), 1);
+    assert_eq!(houses.houses()[0].purchase_date.year(), 2040);
+}
+
+#[test]
+fn test_csd020_ac_3_3_a_date_has_no_lower_bound() {
+    let mut houses = Houses::default();
+    held(&mut houses, "Monthly", "01/01/1850");
     assert_eq!(houses.houses().len(), 1);
 }
 
@@ -251,7 +237,6 @@ fn test_csd019_ac_4_1_invalid_amounts_are_rejected() {
                 ("15/03/2024", "250000.00"),
                 ("10/06/2026", amount),
             ),
-            today_date(),
         );
         assert_eq!(code(result), expected, "{amount}");
         assert!(house(&houses, id).is_held());
@@ -280,7 +265,6 @@ fn test_csd019_ac_5_1_half_a_sale_is_rejected() {
                 ("15/03/2024", "250000.00"),
                 (date, amount),
             ),
-            today_date(),
         );
         assert_eq!(code(result), "HOUSE_SALE_INCOMPLETE");
         assert!(house(&houses, id).is_held());
@@ -322,15 +306,12 @@ fn test_csd019_ac_7_2_a_yearly_house_is_compared_by_year() {
 fn test_csd019_ac_7_2_a_yearly_house_may_have_its_sale_year() {
     let mut houses = Houses::default();
     let id = houses
-        .create_house(
-            &input(
-                "Example Lodge",
-                "Yearly",
-                ("15/03/2024", "1.00"),
-                ("10/06/2026", "1.00"),
-            ),
-            today_date(),
-        )
+        .create_house(&input(
+            "Example Lodge",
+            "Yearly",
+            ("15/03/2024", "1.00"),
+            ("10/06/2026", "1.00"),
+        ))
         .unwrap()
         .id;
     assert_eq!(code(add(&mut houses, id, "2026", "1000.00")), "OK");
@@ -347,7 +328,6 @@ fn test_csd019_ac_7_3_moving_a_valuation_out_of_the_window_is_rejected() {
         period("2024-01"),
         HouseValue::parse("1000.00").unwrap(),
         Note::default(),
-        today(),
     );
     assert_eq!(code(result), "HOUSE_VALUATION_OUTSIDE_HOLDING");
     assert_eq!(houses.valuation_count(id), 1);
@@ -370,11 +350,7 @@ fn test_csd019_ac_8_1_narrowing_the_window_is_rejected() {
         add(&mut houses, id, "2024-05", "1000.00").unwrap();
         add(&mut houses, id, "2026-09", "1000.00").unwrap();
         let before = house(&houses, id);
-        let result = houses.update_house(
-            id,
-            &input("Example House", "Monthly", bought, sold),
-            today_date(),
-        );
+        let result = houses.update_house(id, &input("Example House", "Monthly", bought, sold));
         assert_eq!(code(result), "HOUSE_DATES_EXCLUDE_VALUATIONS");
         assert_eq!(house(&houses, id), before);
     }
@@ -394,7 +370,6 @@ fn test_csd019_ac_8_2_widening_the_window_is_accepted() {
                 ("01/01/2024", "250000.00"),
                 ("", ""),
             ),
-            today_date(),
         )
         .unwrap();
     assert_eq!(
@@ -444,10 +419,12 @@ fn test_csd019_ac_9_3_a_sold_house_stays_in_the_list() {
         ("10/06/2026", "300000.00"),
     );
     houses
-        .create_house(
-            &input("Example Lodge", "Monthly", ("15/03/2024", "1.00"), ("", "")),
-            today_date(),
-        )
+        .create_house(&input(
+            "Example Lodge",
+            "Monthly",
+            ("15/03/2024", "1.00"),
+            ("", ""),
+        ))
         .unwrap();
     let names: Vec<String> = houses
         .overview()
@@ -470,10 +447,12 @@ fn test_csd019_ac_10_1_a_sold_house_is_not_in_the_total() {
     );
     add(&mut houses, sold, "2026-05", "300000.00").unwrap();
     let land = houses
-        .create_house(
-            &input("Example Lodge", "Monthly", ("15/03/2024", "1.00"), ("", "")),
-            today_date(),
-        )
+        .create_house(&input(
+            "Example Lodge",
+            "Monthly",
+            ("15/03/2024", "1.00"),
+            ("", ""),
+        ))
         .unwrap()
         .id;
     add(&mut houses, land, "2026-09", "50000.00").unwrap();
@@ -494,10 +473,12 @@ fn test_csd019_ac_10_2_selling_a_house_lowers_the_total() {
     let house = held(&mut houses, "Monthly", "15/03/2024");
     add(&mut houses, house, "2026-09", "300000.00").unwrap();
     let land = houses
-        .create_house(
-            &input("Example Lodge", "Monthly", ("15/03/2024", "1.00"), ("", "")),
-            today_date(),
-        )
+        .create_house(&input(
+            "Example Lodge",
+            "Monthly",
+            ("15/03/2024", "1.00"),
+            ("", ""),
+        ))
         .unwrap()
         .id;
     add(&mut houses, land, "2026-09", "50000.00").unwrap();
@@ -511,7 +492,6 @@ fn test_csd019_ac_10_2_selling_a_house_lowers_the_total() {
                 ("15/03/2024", "250000.00"),
                 ("10/10/2026", "310000.00"),
             ),
-            today_date(),
         )
         .unwrap();
     assert_eq!(houses.overview().total.unwrap().to_string(), "50000.00");
@@ -567,10 +547,12 @@ fn test_csd019_ac_11_3_year_end_boundary() {
 fn test_csd019_ac_11_4_other_houses_are_unaffected() {
     let (mut houses, _) = sold_house_with_valuations();
     let land = houses
-        .create_house(
-            &input("Example Lodge", "Monthly", ("15/03/2024", "1.00"), ("", "")),
-            today_date(),
-        )
+        .create_house(&input(
+            "Example Lodge",
+            "Monthly",
+            ("15/03/2024", "1.00"),
+            ("", ""),
+        ))
         .unwrap()
         .id;
     add(&mut houses, land, "2026-03", "50000.00").unwrap();

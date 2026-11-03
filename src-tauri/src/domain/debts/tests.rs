@@ -1,6 +1,7 @@
 use super::*;
 use crate::domain::income::PayPeriod;
 use crate::domain::series::COLOUR_SLOTS;
+use crate::domain::YearMonth;
 
 fn period(text: &str) -> Period {
     parse_period(text).unwrap()
@@ -27,14 +28,14 @@ fn debt(debts: &mut Debts, name: &str, period: &str) -> DebtId {
 
 fn add(debts: &mut Debts, id: DebtId, at: &str, amount: &str) {
     debts
-        .add_statement(id, period(at), balance(amount), Note::default(), today())
+        .add_statement(id, period(at), balance(amount), Note::default())
         .unwrap();
 }
 
 fn add_error(debts: &mut Debts, id: DebtId, at: &str, amount: &str) -> DomainError {
     match parse_period(at)
         .and_then(|p| DebtBalance::parse(amount).map(|b| (p, b)))
-        .and_then(|(p, b)| debts.add_statement(id, p, b, Note::default(), today()))
+        .and_then(|(p, b)| debts.add_statement(id, p, b, Note::default()))
     {
         Ok(_) => panic!("expected an error"),
         Err(error) => error,
@@ -58,7 +59,6 @@ fn update(
         period(to),
         balance(amount),
         Note::default(),
-        today(),
     )
 }
 
@@ -328,7 +328,6 @@ fn test_csd011_ac_7_1_a_monthly_statement_with_a_note() {
             period("2026-09"),
             balance("150000.00"),
             debt_note("Paid extra").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(statement.balance.value().to_string(), "150000.00");
@@ -352,20 +351,31 @@ fn test_csd011_ac_7_3_old_periods_are_accepted() {
 }
 
 #[test]
-fn test_csd011_ac_7_4_the_current_period_is_accepted_and_a_later_one_is_not() {
+fn test_csd011_ac_7_4_current_and_future_periods_are_accepted() {
     let mut debts = Debts::default();
     let monthly = debt(&mut debts, "Monthly", "Monthly");
     let yearly = debt(&mut debts, "Yearly", "Yearly");
-    add(&mut debts, monthly, "2026-10", "1000.00");
-    add(&mut debts, yearly, "2026", "1000.00");
-    assert_eq!(
-        add_error(&mut debts, monthly, "2026-11", "1000.00").code(),
-        "DEBT_STATEMENT_IN_FUTURE"
-    );
-    assert_eq!(
-        add_error(&mut debts, yearly, "2027", "1000.00").code(),
-        "DEBT_STATEMENT_IN_FUTURE"
-    );
+    for (id, text) in [
+        (monthly, "2026-10"),
+        (monthly, "2026-11"),
+        (yearly, "2026"),
+        (yearly, "2027"),
+    ] {
+        add(&mut debts, id, text, "1000.00");
+    }
+    assert_eq!(debts.statement_count(monthly), 2);
+    assert_eq!(debts.statement_count(yearly), 2);
+}
+
+#[test]
+fn test_csd011_ac_7_6_a_period_has_no_date_bounds() {
+    let mut debts = Debts::default();
+    let monthly = debt(&mut debts, "Monthly", "Monthly");
+    let yearly = debt(&mut debts, "Yearly", "Yearly");
+    add(&mut debts, monthly, "1850-03", "1000.00");
+    add(&mut debts, yearly, "1899", "1000.00");
+    assert_eq!(debts.statement_count(monthly), 1);
+    assert_eq!(debts.statement_count(yearly), 1);
 }
 
 #[test]
@@ -379,7 +389,6 @@ fn test_csd011_ac_7_5_an_invalid_period_is_rejected() {
         (monthly, "abcd"),
         (yearly, "26"),
         (yearly, "abcd"),
-        (yearly, "1899"),
     ] {
         assert_eq!(
             add_error(&mut debts, id, text, "1000.00").code(),
@@ -399,7 +408,6 @@ fn test_csd011_ac_8_1_a_duplicate_period_is_rejected() {
             period("2026-09"),
             balance("150000.00"),
             debt_note("First").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(
@@ -502,7 +510,6 @@ fn test_csd011_ac_12_1_edit_balance_and_note_and_clear_the_note() {
             period("2026-09"),
             balance("149000.00"),
             debt_note("Corrected").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(edited.balance.value().to_string(), "149000.00");
@@ -521,7 +528,6 @@ fn test_csd011_ac_12_3_a_statement_moves_to_another_month() {
             period("2026-09"),
             balance("150000.00"),
             debt_note("First").unwrap(),
-            today(),
         )
         .unwrap();
     debts
@@ -531,7 +537,6 @@ fn test_csd011_ac_12_3_a_statement_moves_to_another_month() {
             period("2026-08"),
             balance("150000.00"),
             debt_note("First").unwrap(),
-            today(),
         )
         .unwrap();
     let rows = debts.all_statements();
@@ -584,20 +589,16 @@ fn test_csd011_ac_12_8_keeping_the_period_is_not_a_duplicate() {
 }
 
 #[test]
-fn test_csd011_ac_13_1_a_new_period_in_the_future_is_rejected() {
+fn test_csd011_ac_13_1_a_period_in_the_future_is_accepted() {
     let mut debts = Debts::default();
     let monthly = debt(&mut debts, "Monthly", "Monthly");
     let yearly = debt(&mut debts, "Yearly", "Yearly");
     add(&mut debts, monthly, "2026-09", "1000.00");
     add(&mut debts, yearly, "2025", "1000.00");
-    assert_eq!(
-        code(update(&mut debts, monthly, "2026-09", "2026-11", "1.00")),
-        "DEBT_STATEMENT_IN_FUTURE"
-    );
-    assert_eq!(
-        code(update(&mut debts, yearly, "2025", "2027", "1.00")),
-        "DEBT_STATEMENT_IN_FUTURE"
-    );
+    let moved = update(&mut debts, monthly, "2026-09", "2026-11", "1.00").unwrap();
+    assert_eq!(moved.period.to_string(), "2026-11");
+    let moved = update(&mut debts, yearly, "2025", "2027", "1.00").unwrap();
+    assert_eq!(moved.period.to_string(), "2027");
 }
 
 #[test]
@@ -688,7 +689,6 @@ fn test_csd011_ac_15_copy_previous() {
             period("2026-08"),
             balance("150000.00"),
             debt_note("Paid extra").unwrap(),
-            today(),
         )
         .unwrap();
     // AC-15.1: the latest balance, and nothing is stored.

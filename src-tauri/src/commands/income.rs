@@ -150,14 +150,11 @@ pub fn add_paycheck(
     month: String,
     amounts: AmountsInput,
 ) -> Result<EntryView, AppError> {
-    let today = state.today();
     let job_id = JobId::parse(&job_id)?;
     let month = YearMonth::parse(&month)?;
     let amounts = amounts.parse()?;
     let mut project = state.project()?;
-    let paycheck = project
-        .income_mut()
-        .add_paycheck(job_id, month, amounts, today)?;
+    let paycheck = project.income_mut().add_paycheck(job_id, month, amounts)?;
     EntryView::of(project.income(), Entry::Paycheck(&paycheck))
 }
 
@@ -168,14 +165,11 @@ pub fn add_statement(
     year: String,
     amounts: AmountsInput,
 ) -> Result<EntryView, AppError> {
-    let today = state.today();
     let job_id = JobId::parse(&job_id)?;
     let year = Year::parse(&year)?;
     let amounts = amounts.parse()?;
     let mut project = state.project()?;
-    let statement = project
-        .income_mut()
-        .add_statement(job_id, year, amounts, today)?;
+    let statement = project.income_mut().add_statement(job_id, year, amounts)?;
     EntryView::of(project.income(), Entry::AnnualStatement(&statement))
 }
 
@@ -187,7 +181,6 @@ pub fn update_paycheck(
     new_month: String,
     amounts: AmountsInput,
 ) -> Result<EntryView, AppError> {
-    let today = state.today();
     let job_id = JobId::parse(&job_id)?;
     let month = YearMonth::parse(&month)?;
     let new_month = YearMonth::parse(&new_month)?;
@@ -195,7 +188,7 @@ pub fn update_paycheck(
     let mut project = state.project()?;
     let paycheck = project
         .income_mut()
-        .update_paycheck(job_id, month, new_month, amounts, today)?;
+        .update_paycheck(job_id, month, new_month, amounts)?;
     EntryView::of(project.income(), Entry::Paycheck(&paycheck))
 }
 
@@ -207,7 +200,6 @@ pub fn update_statement(
     new_year: String,
     amounts: AmountsInput,
 ) -> Result<EntryView, AppError> {
-    let today = state.today();
     let job_id = JobId::parse(&job_id)?;
     let year = Year::parse(&year)?;
     let new_year = Year::parse(&new_year)?;
@@ -215,7 +207,7 @@ pub fn update_statement(
     let mut project = state.project()?;
     let statement = project
         .income_mut()
-        .update_statement(job_id, year, new_year, amounts, today)?;
+        .update_statement(job_id, year, new_year, amounts)?;
     EntryView::of(project.income(), Entry::AnnualStatement(&statement))
 }
 

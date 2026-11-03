@@ -4,7 +4,7 @@ use tempfile::TempDir;
 
 use super::*;
 use crate::domain::debts::{debt_note, parse_period, DebtBalance, DebtInput};
-use crate::domain::{DebtId, YearMonth};
+use crate::domain::DebtId;
 
 fn debt(project: &mut Project, name: &str, period: &str) -> DebtId {
     project
@@ -30,7 +30,6 @@ fn test_csd011_ac_23_1_debts_survive_save_and_open_including_notes_and_slots() {
             parse_period("2025").unwrap(),
             DebtBalance::parse("8000.00").unwrap(),
             debt_note("Line one\nLine two").unwrap(),
-            YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
     let path = dir.path().join("example-a.varde");
@@ -65,7 +64,6 @@ fn test_csd011_ac_23_3_a_zero_balance_survives_the_round_trip() {
             parse_period("2026-09").unwrap(),
             DebtBalance::parse("0.00").unwrap(),
             debt_note("").unwrap(),
-            YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
     let path = dir.path().join("example-a.varde");

@@ -182,6 +182,6 @@ export default {
   'Study': 'Studie',
   'Appliances': 'Apparaten',
   'Hobby': 'Hobby',
-  'Use a dot for decimals, for example 4500.00. The amount must be above 0.00, and the date cannot be in the future. A note can be up to 2000 characters.': 'Gebruik een punt voor decimalen, bijvoorbeeld 4500.00. Het bedrag moet hoger zijn dan 0.00 en de datum mag niet in de toekomst liggen. Een notitie mag maximaal 2000 tekens bevatten.',
+  'Use a dot for decimals, for example 4500.00. The amount must be above 0.00. A note can be up to 2000 characters.': 'Gebruik een punt voor decimalen, bijvoorbeeld 4500.00. Het bedrag moet hoger zijn dan 0.00. Een notitie mag maximaal 2000 tekens bevatten.',
   'Save expense': 'Uitgave opslaan',
 };

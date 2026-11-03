@@ -30,7 +30,6 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::error::DomainError;
-use crate::domain::income::YearMonth;
 use crate::domain::investments::{Note, Period};
 
 use crate::domain::series::{self, COLOUR_SLOTS, MAX_NAME_CHARS};
@@ -128,21 +127,20 @@ impl Debts {
         self.statements.len()
     }
 
-    /// Adds the statement of a period. `today` is the current month; later
-    /// periods are rejected. Any earlier period is accepted (REQ-7 to REQ-9).
+    /// Adds the statement of a period. Any period is accepted, a later one
+    /// included (REQ-7 to REQ-9).
     ///
     /// # Errors
-    /// Returns `DebtNotFound`, `DebtPeriodMismatch`, `DebtStatementInFuture`
-    /// or `DebtStatementDuplicate`.
+    /// Returns `DebtNotFound`, `DebtPeriodMismatch` or
+    /// `DebtStatementDuplicate`.
     pub fn add_statement(
         &mut self,
         debt_id: DebtId,
         period: Period,
         balance: DebtBalance,
         note: Note,
-        today: YearMonth,
     ) -> Result<DebtStatement, DomainError> {
-        self.check_new_period(debt_id, period, today)?;
+        self.check_new_period(debt_id, period)?;
         self.check_unsettled_at(debt_id, period)?;
         let statement = DebtStatement {
             debt_id,
@@ -157,13 +155,13 @@ impl Debts {
 
     /// Changes the balance and note of a statement and, when `new_period` is a
     /// different period, moves it there. The new period follows the rules of
-    /// adding a statement: the kind of the debt, not after `today` and not
+    /// adding a statement: the kind of the debt, not
     /// taken by another statement of the debt. The edit is applied as a whole
     /// or not at all (REQ-12, REQ-13).
     ///
     /// # Errors
-    /// Returns `DebtNotFound`, `DebtStatementNotFound`, `DebtPeriodMismatch`,
-    /// `DebtStatementInFuture` or `DebtStatementDuplicate`.
+    /// Returns `DebtNotFound`, `DebtStatementNotFound`, `DebtPeriodMismatch`
+    /// or `DebtStatementDuplicate`.
     pub fn update_statement(
         &mut self,
         debt_id: DebtId,
@@ -171,7 +169,6 @@ impl Debts {
         new_period: Period,
         balance: DebtBalance,
         note: Note,
-        today: YearMonth,
     ) -> Result<DebtStatement, DomainError> {
         self.debt(debt_id)?;
         self.check_target_editable(debt_id, period)?;
@@ -179,7 +176,7 @@ impl Debts {
             return Err(DomainError::DebtStatementNotFound);
         }
         if new_period != period {
-            self.check_new_period(debt_id, new_period, today)?;
+            self.check_new_period(debt_id, new_period)?;
             self.check_unsettled_at(debt_id, new_period)?;
         }
         let statement = self
@@ -290,18 +287,10 @@ impl Debts {
     }
 
     /// The rules a period must follow for a debt to hold a statement for it:
-    /// the kind of the debt, not after `today`, not taken (REQ-7 to REQ-9).
-    fn check_new_period(
-        &self,
-        debt_id: DebtId,
-        period: Period,
-        today: YearMonth,
-    ) -> Result<(), DomainError> {
+    /// the kind of the debt, not taken (REQ-7 to REQ-9).
+    fn check_new_period(&self, debt_id: DebtId, period: Period) -> Result<(), DomainError> {
         if self.debt(debt_id)?.period != period.kind() {
             return Err(DomainError::DebtPeriodMismatch);
-        }
-        if period.is_after(today) {
-            return Err(DomainError::DebtStatementInFuture);
         }
         if self.statement(debt_id, period).is_some() {
             return Err(DomainError::DebtStatementDuplicate);

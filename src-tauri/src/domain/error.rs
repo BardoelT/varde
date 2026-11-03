@@ -33,16 +33,12 @@ pub enum DomainError {
     JobPeriodMismatch,
     #[error("Enter the year as YYYY.")]
     StatementYearInvalid,
-    #[error("An annual statement cannot be for a year that has not started yet.")]
-    StatementYearInFuture,
     #[error("This job already has an annual statement for that year.")]
     StatementDuplicateYear,
     #[error("There is no annual statement for that year.")]
     StatementNotFound,
     #[error("Enter the month as YYYY-MM.")]
     PaycheckMonthInvalid,
-    #[error("A paycheck cannot be for a month that has not started yet.")]
-    PaycheckMonthInFuture,
     #[error("This job already has a paycheck for that month.")]
     PaycheckDuplicateMonth,
     #[error("There is no paycheck for that month.")]
@@ -75,8 +71,6 @@ pub enum DomainError {
         "A monthly account has monthly statements and a yearly account has yearly statements."
     )]
     InvestmentPeriodMismatch,
-    #[error("A statement cannot be for a period that has not started yet.")]
-    InvestmentStatementInFuture,
     #[error("Enter the month as YYYY-MM or the year as YYYY.")]
     InvestmentStatementPeriodInvalid,
     #[error("This account already has a statement for that period.")]
@@ -121,8 +115,6 @@ pub enum DomainError {
     BankAccountPeriodLocked,
     #[error("A monthly account has monthly entries and a yearly account has yearly entries.")]
     BankEntryPeriodMismatch,
-    #[error("An entry cannot be for a period that has not started yet.")]
-    BankEntryInFuture,
     #[error("Enter the month as YYYY-MM or the year as YYYY.")]
     BankEntryPeriodInvalid,
     #[error("This account already has an entry for that period.")]
@@ -153,8 +145,6 @@ pub enum DomainError {
     DebtPeriodLocked,
     #[error("A monthly debt has monthly statements and a yearly debt has yearly statements.")]
     DebtPeriodMismatch,
-    #[error("A statement cannot be for a period that has not started yet.")]
-    DebtStatementInFuture,
     #[error("Enter the month as YYYY-MM or the year as YYYY.")]
     DebtStatementPeriodInvalid,
     #[error("This debt already has a statement for that period.")]
@@ -207,8 +197,6 @@ pub enum DomainError {
     HousePeriodLocked,
     #[error("A monthly house has monthly valuations and a yearly house has yearly valuations.")]
     HousePeriodMismatch,
-    #[error("A valuation cannot be for a period that has not started yet.")]
-    HouseValuationInFuture,
     #[error("Enter the month as YYYY-MM or the year as YYYY.")]
     HouseValuationPeriodInvalid,
     #[error("This house already has a valuation for that period.")]
@@ -231,10 +219,8 @@ pub enum DomainError {
     HousePurchaseDateRequired,
     #[error("Enter the purchase amount.")]
     HousePurchaseAmountRequired,
-    #[error("Enter the date as dd/mm/yyyy, from 01/01/1900.")]
+    #[error("Enter the date as dd/mm/yyyy, from 01/01/0001.")]
     HouseDateInvalid,
-    #[error("The date cannot be in the future.")]
-    HouseDateInFuture,
     #[error("The sell date cannot be before the purchase date.")]
     HouseSellBeforePurchase,
     #[error("Enter both the sell date and the sell amount, or neither.")]
@@ -257,10 +243,8 @@ pub enum DomainError {
     ExpenseNameTooLong,
     #[error("Choose Home, Vehicle, Holiday, Sport, Study, Appliances, Hobby or Other.")]
     ExpenseCategoryUnsupported,
-    #[error("Enter the date as dd/mm/yyyy, from 01/01/1900.")]
+    #[error("Enter the date as dd/mm/yyyy, from 01/01/0001.")]
     ExpenseDateInvalid,
-    #[error("An expense cannot be dated in the future.")]
-    ExpenseDateInFuture,
     #[error("Enter the amount as a number such as 4500.00.")]
     ExpenseAmountInvalid,
     #[error("The amount must be greater than 0.00.")]
@@ -299,11 +283,9 @@ impl DomainError {
             Self::JobPeriodLocked => "JOB_PERIOD_LOCKED",
             Self::JobPeriodMismatch => "JOB_PERIOD_MISMATCH",
             Self::StatementYearInvalid => "STATEMENT_YEAR_INVALID",
-            Self::StatementYearInFuture => "STATEMENT_YEAR_IN_FUTURE",
             Self::StatementDuplicateYear => "STATEMENT_DUPLICATE_YEAR",
             Self::StatementNotFound => "STATEMENT_NOT_FOUND",
             Self::PaycheckMonthInvalid => "PAYCHECK_MONTH_INVALID",
-            Self::PaycheckMonthInFuture => "PAYCHECK_MONTH_IN_FUTURE",
             Self::PaycheckDuplicateMonth => "PAYCHECK_DUPLICATE_MONTH",
             Self::PaycheckNotFound => "PAYCHECK_NOT_FOUND",
             Self::PaycheckGrossInvalid => "PAYCHECK_GROSS_INVALID",
@@ -319,7 +301,6 @@ impl DomainError {
             Self::InvestmentPeriodUnsupported => "INVESTMENT_PERIOD_UNSUPPORTED",
             Self::InvestmentPeriodLocked => "INVESTMENT_PERIOD_LOCKED",
             Self::InvestmentPeriodMismatch => "INVESTMENT_PERIOD_MISMATCH",
-            Self::InvestmentStatementInFuture => "INVESTMENT_STATEMENT_IN_FUTURE",
             Self::InvestmentStatementPeriodInvalid => "INVESTMENT_STATEMENT_PERIOD_INVALID",
             Self::InvestmentStatementDuplicate => "INVESTMENT_STATEMENT_DUPLICATE",
             Self::InvestmentStatementNotFound => "INVESTMENT_STATEMENT_NOT_FOUND",
@@ -342,7 +323,6 @@ impl DomainError {
             Self::BankAccountPeriodUnsupported => "BANK_ACCOUNT_PERIOD_UNSUPPORTED",
             Self::BankAccountPeriodLocked => "BANK_ACCOUNT_PERIOD_LOCKED",
             Self::BankEntryPeriodMismatch => "BANK_ENTRY_PERIOD_MISMATCH",
-            Self::BankEntryInFuture => "BANK_ENTRY_IN_FUTURE",
             Self::BankEntryPeriodInvalid => "BANK_ENTRY_PERIOD_INVALID",
             Self::BankEntryDuplicate => "BANK_ENTRY_DUPLICATE",
             Self::BankEntryNotFound => "BANK_ENTRY_NOT_FOUND",
@@ -358,7 +338,6 @@ impl DomainError {
             Self::DebtPeriodUnsupported => "DEBT_PERIOD_UNSUPPORTED",
             Self::DebtPeriodLocked => "DEBT_PERIOD_LOCKED",
             Self::DebtPeriodMismatch => "DEBT_PERIOD_MISMATCH",
-            Self::DebtStatementInFuture => "DEBT_STATEMENT_IN_FUTURE",
             Self::DebtStatementPeriodInvalid => "DEBT_STATEMENT_PERIOD_INVALID",
             Self::DebtStatementDuplicate => "DEBT_STATEMENT_DUPLICATE",
             Self::DebtStatementNotFound => "DEBT_STATEMENT_NOT_FOUND",
@@ -385,7 +364,6 @@ impl DomainError {
             Self::HousePeriodUnsupported => "HOUSE_PERIOD_UNSUPPORTED",
             Self::HousePeriodLocked => "HOUSE_PERIOD_LOCKED",
             Self::HousePeriodMismatch => "HOUSE_PERIOD_MISMATCH",
-            Self::HouseValuationInFuture => "HOUSE_VALUATION_IN_FUTURE",
             Self::HouseValuationPeriodInvalid => "HOUSE_VALUATION_PERIOD_INVALID",
             Self::HouseValuationDuplicate => "HOUSE_VALUATION_DUPLICATE",
             Self::HouseValuationNotFound => "HOUSE_VALUATION_NOT_FOUND",
@@ -398,7 +376,6 @@ impl DomainError {
             Self::HousePurchaseDateRequired => "HOUSE_PURCHASE_DATE_REQUIRED",
             Self::HousePurchaseAmountRequired => "HOUSE_PURCHASE_AMOUNT_REQUIRED",
             Self::HouseDateInvalid => "HOUSE_DATE_INVALID",
-            Self::HouseDateInFuture => "HOUSE_DATE_IN_FUTURE",
             Self::HouseSellBeforePurchase => "HOUSE_SELL_BEFORE_PURCHASE",
             Self::HouseSaleIncomplete => "HOUSE_SALE_INCOMPLETE",
             Self::HouseAmountInvalid => "HOUSE_AMOUNT_INVALID",
@@ -411,7 +388,6 @@ impl DomainError {
             Self::ExpenseNameTooLong => "EXPENSE_NAME_TOO_LONG",
             Self::ExpenseCategoryUnsupported => "EXPENSE_CATEGORY_UNSUPPORTED",
             Self::ExpenseDateInvalid => "EXPENSE_DATE_INVALID",
-            Self::ExpenseDateInFuture => "EXPENSE_DATE_IN_FUTURE",
             Self::ExpenseAmountInvalid => "EXPENSE_AMOUNT_INVALID",
             Self::ExpenseAmountNotPositive => "EXPENSE_AMOUNT_NOT_POSITIVE",
             Self::ExpenseAmountPrecision => "EXPENSE_AMOUNT_PRECISION",

@@ -26,7 +26,6 @@ fn add_paycheck(project: &mut Project, job: JobId, month: &str, gross: &str) {
             job,
             YearMonth::parse(month).unwrap(),
             Amounts::parse(gross, "", "").unwrap(),
-            YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
 }
@@ -312,7 +311,6 @@ fn move_paycheck(project: &mut Project, job: JobId, from: &str, to: &str) -> boo
             month(from),
             month(to),
             Amounts::parse("3000.00", "", "").unwrap(),
-            month("2026-10"),
         )
         .is_ok()
 }
@@ -342,8 +340,7 @@ fn test_csd001_ac_30_4_a_rejected_move_is_not_an_unsaved_change() {
     add_paycheck(&mut project, job, "2026-05", "3000.00");
     project.save().unwrap();
 
-    // In the future, and already taken.
-    assert!(!move_paycheck(&mut project, job, "2026-05", "2026-11"));
+    // Already taken.
     assert!(!move_paycheck(&mut project, job, "2026-05", "2026-04"));
     assert!(!project.status().unsaved_changes);
 }
@@ -362,7 +359,6 @@ fn test_csd005_ac_28_8_a_move_is_an_unsaved_change() {
         .unwrap()
         .id;
     let period = |text: &str| Period::parse(text).unwrap();
-    let today = YearMonth::parse("2026-10").unwrap();
     project
         .investments_mut()
         .add_statement(
@@ -371,7 +367,6 @@ fn test_csd005_ac_28_8_a_move_is_an_unsaved_change() {
             Balance::parse("12500.00").unwrap(),
             NetDeposits::default(),
             Note::default(),
-            today,
         )
         .unwrap();
     project.save().unwrap();
@@ -386,7 +381,6 @@ fn test_csd005_ac_28_8_a_move_is_an_unsaved_change() {
             Balance::parse("12500.00").unwrap(),
             NetDeposits::default(),
             Note::default(),
-            today,
         )
         .unwrap();
     assert!(project.status().unsaved_changes);
@@ -907,7 +901,6 @@ fn test_csd002_ac_1_1_annual_statements_round_trip() {
                 yearly,
                 Year::parse(y).unwrap(),
                 Amounts::parse(gross, "", "3000").unwrap(),
-                YearMonth::parse("2026-10").unwrap(),
             )
             .unwrap();
     }
@@ -938,7 +931,6 @@ fn test_csd001_the_file_keeps_pay_periods_and_statements_in_their_own_list() {
             yearly,
             Year::parse("2025").unwrap(),
             Amounts::parse("40000.00", "", "").unwrap(),
-            YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
     let path = dir.path().join("example-a.varde");

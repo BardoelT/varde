@@ -5,21 +5,18 @@ use tempfile::TempDir;
 use super::*;
 use crate::domain::houses::linking::{self, DebtFormInput, DebtLinksInput, SettlementChoice};
 use crate::domain::houses::{house_note, parse_period, HouseInput, HouseValue};
-use crate::domain::{HouseId, YearMonth};
+use crate::domain::HouseId;
 
 fn house(project: &mut Project, name: &str, period: &str) -> HouseId {
     project
         .houses_mut()
-        .create_house(
-            &HouseInput {
-                name: name.to_owned(),
-                period: Some(period.to_owned()),
-                purchase_date: Some("01/01/1900".to_owned()),
-                purchase_amount: Some("0.00".to_owned()),
-                ..HouseInput::default()
-            },
-            time::macros::date!(2026 - 10 - 29),
-        )
+        .create_house(&HouseInput {
+            name: name.to_owned(),
+            period: Some(period.to_owned()),
+            purchase_date: Some("01/01/1900".to_owned()),
+            purchase_amount: Some("0.00".to_owned()),
+            ..HouseInput::default()
+        })
         .unwrap()
         .id
 }
@@ -37,7 +34,6 @@ fn test_csd015_ac_24_1_houses_survive_save_and_open_including_notes_and_slots() 
             parse_period("2025").unwrap(),
             HouseValue::parse("8000.00").unwrap(),
             house_note("Line one\nLine two").unwrap(),
-            YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
     let path = dir.path().join("example-a.varde");
@@ -72,7 +68,6 @@ fn test_csd015_ac_24_3_a_zero_value_survives_the_round_trip() {
             parse_period("2026-09").unwrap(),
             HouseValue::parse("0.00").unwrap(),
             house_note("").unwrap(),
-            YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
     let path = dir.path().join("example-a.varde");
@@ -132,8 +127,6 @@ fn test_csd015_ac_24_5_a_damaged_section_is_an_invalid_file() {
 fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
-    let today = time::macros::date!(2026 - 10 - 29);
-    let month = YearMonth::parse("2026-10").unwrap();
     let loan = project
         .debts_mut()
         .create_debt(&crate::domain::debts::DebtInput {
@@ -149,7 +142,6 @@ fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
             crate::domain::debts::parse_period("2026-06").unwrap(),
             crate::domain::debts::DebtBalance::parse("3500.00").unwrap(),
             crate::domain::debts::debt_note("Mid-June").unwrap(),
-            month,
         )
         .unwrap();
     let input = HouseInput {
@@ -159,7 +151,7 @@ fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
         ..HouseInput::default()
     };
     let (houses, debts) = project.houses_and_debts_mut();
-    let house = linking::create_house(houses, debts, &input, &DebtLinksInput::default(), today)
+    let house = linking::create_house(houses, debts, &input, &DebtLinksInput::default())
         .unwrap()
         .id;
     let (houses, debts) = project.houses_and_debts_mut();
@@ -191,7 +183,7 @@ fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
         ..DebtLinksInput::default()
     };
     let (houses, debts) = project.houses_and_debts_mut();
-    linking::update_house(houses, debts, house, &sold, &settle, today).unwrap();
+    linking::update_house(houses, debts, house, &sold, &settle).unwrap();
     let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
     let mut reopened = Project::new();

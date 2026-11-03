@@ -3,7 +3,6 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use time::Date;
 use uuid::Uuid;
 
 use crate::domain::error::DomainError;
@@ -78,8 +77,8 @@ pub(super) struct ValidExpense {
 
 impl ExpenseInput {
     /// Checks every field, in the order name, amount, date, category and note,
-    /// and returns the first violated rule. `today` is the local date.
-    pub(super) fn validate(&self, today: Date) -> Result<ValidExpense, DomainError> {
+    /// and returns the first violated rule.
+    pub(super) fn validate(&self) -> Result<ValidExpense, DomainError> {
         let name = self.name.trim();
         if name.is_empty() {
             return Err(DomainError::ExpenseNameRequired);
@@ -90,7 +89,7 @@ impl ExpenseInput {
         Ok(ValidExpense {
             name: name.to_owned(),
             amount: ExpenseAmount::parse(&self.amount)?,
-            date: ExpenseDate::parse(&self.date, today)?,
+            date: ExpenseDate::parse(&self.date)?,
             category: Category::parse(&self.category)?,
             note: expense_note(self.note.as_deref().unwrap_or_default())?,
         })

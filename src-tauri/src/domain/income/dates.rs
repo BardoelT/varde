@@ -9,7 +9,7 @@ use time::Date;
 
 use crate::domain::error::DomainError;
 
-const FIRST_YEAR: i32 = 1900;
+const FIRST_YEAR: i32 = 1;
 
 const LAST_YEAR: i32 = 9999;
 
@@ -28,7 +28,7 @@ pub struct YearMonth {
 }
 
 impl YearMonth {
-    /// Builds a month if `month` is 1 to 12 and `year` is 1900 to 9999.
+    /// Builds a month if `month` is 1 to 12 and `year` is 1 to 9999.
     #[must_use]
     pub fn new(year: i32, month: u8) -> Option<Self> {
         ((FIRST_YEAR..=LAST_YEAR).contains(&year) && (1..=12).contains(&month))
@@ -117,7 +117,7 @@ impl<'de> Deserialize<'de> for YearMonth {
 pub struct Year(i32);
 
 impl Year {
-    /// Builds a year from 1900 to 9999.
+    /// Builds a year from 1 to 9999.
     #[must_use]
     pub fn new(year: i32) -> Option<Self> {
         (FIRST_YEAR..=LAST_YEAR)

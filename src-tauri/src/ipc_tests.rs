@@ -186,12 +186,6 @@ fn errors_reach_the_frontend_as_code_and_safe_message() {
     let job = app.ok("create_job", json!({ "input": job_input() }));
     let job_id = job["id"].as_str().unwrap().to_owned();
 
-    let future = app.err(
-        "add_paycheck",
-        json!({ "jobId": job_id, "month": "9999-12", "amounts": amounts("3000.00", "", "") }),
-    );
-    assert_eq!(future["code"], "PAYCHECK_MONTH_IN_FUTURE");
-
     app.ok(
         "add_paycheck",
         json!({ "jobId": job_id, "month": "2026-09", "amounts": amounts("3000.00", "", "") }),
@@ -517,14 +511,7 @@ fn test_csd001_annual_statement_errors_over_ipc() {
         ),
         "JOB_PERIOD_MISMATCH"
     );
-    assert_eq!(
-        code(
-            "add_statement",
-            json!({ "jobId": yearly_id, "year": "9999", "amounts": one })
-        ),
-        "STATEMENT_YEAR_IN_FUTURE"
-    );
-    for bad in ["26", "2026-05", "abcd", "1899"] {
+    for bad in ["26", "2026-05", "abcd", "0000"] {
         assert_eq!(
             code(
                 "add_statement",
@@ -758,10 +745,6 @@ fn test_csd005_investment_errors_reach_the_frontend_as_codes() {
     assert_eq!(
         add("2025", "1.00", "")["code"],
         "INVESTMENT_PERIOD_MISMATCH"
-    );
-    assert_eq!(
-        add("2999-01", "1.00", "")["code"],
-        "INVESTMENT_STATEMENT_IN_FUTURE"
     );
     assert_eq!(
         add("2026-09", "1.00", &"x".repeat(2001))["code"],
@@ -1263,15 +1246,6 @@ fn test_csd001_ac_30_a_rejected_edit_changes_nothing_over_ipc() {
     );
     let before = app.ok("list_entries", json!({}));
 
-    // AC-30.1: in the future. AC-30.2 is covered in the domain; here the codes cross IPC.
-    let error = app.err(
-        "update_paycheck",
-        json!({
-            "jobId": job_id, "month": "2026-05", "newMonth": "2099-01",
-            "amounts": amounts("3000.00", "", "")
-        }),
-    );
-    assert_eq!(error["code"], "PAYCHECK_MONTH_IN_FUTURE");
     // AC-30.4: an invalid amount together with a new month rejects the whole edit.
     let error = app.err(
         "update_paycheck",
@@ -1310,11 +1284,6 @@ fn test_csd001_ac_29_3_the_year_of_an_annual_statement_changes_over_ipc() {
         json!({ "jobId": job_id, "year": "2024", "newYear": "2023", "amounts": amounts("38000.00", "", "") }),
     );
     assert_eq!(error["code"], "STATEMENT_DUPLICATE_YEAR");
-    let error = app.err(
-        "update_statement",
-        json!({ "jobId": job_id, "year": "2024", "newYear": "2099", "amounts": amounts("38000.00", "", "") }),
-    );
-    assert_eq!(error["code"], "STATEMENT_YEAR_IN_FUTURE");
 }
 
 #[test]
@@ -1338,9 +1307,8 @@ fn test_csd005_ac_28_the_period_of_a_statement_changes_over_ipc() {
         json!({ "accountId": id, "period": "2026-08", "newPeriod": "2026-09", "balance": "-1.00" }),
     );
     assert_eq!(error["code"], "INVESTMENT_BALANCE_NEGATIVE");
-    // AC-29.1 to AC-29.3: the codes of the add rules cross IPC.
+    // AC-29.2 and AC-29.3: the codes of the add rules cross IPC.
     for (new_period, code) in [
-        ("2026-12", "INVESTMENT_STATEMENT_IN_FUTURE"),
         ("2026-07", "INVESTMENT_STATEMENT_DUPLICATE"),
         ("2026", "INVESTMENT_PERIOD_MISMATCH"),
     ] {
@@ -1434,7 +1402,6 @@ fn test_csd009_bank_errors_reach_the_frontend_as_codes() {
         ("2026-09", "1000000000.01", "BANK_ENTRY_BALANCE_TOO_LARGE"),
         ("2026-13", "1.00", "BANK_ENTRY_PERIOD_INVALID"),
         ("2025", "1.00", "BANK_ENTRY_PERIOD_MISMATCH"),
-        ("2999-01", "1.00", "BANK_ENTRY_IN_FUTURE"),
     ] {
         let error = app.err(
             "add_bank_entry",
@@ -1503,12 +1470,6 @@ fn test_csd009_bank_entries_can_be_copied_edited_moved_and_deleted_over_ipc() {
     );
     assert_eq!(moved["period"], "2026-08");
     assert_eq!(moved["balance"], "200.00");
-    // AC-13.1: a later period is rejected and nothing changes.
-    let error = app.err(
-        "update_bank_entry",
-        json!({ "accountId": id, "period": "2026-08", "newPeriod": "2999-01", "balance": "1.00" }),
-    );
-    assert_eq!(error["code"], "BANK_ENTRY_IN_FUTURE");
     assert_eq!(
         app.ok("list_bank_entries", json!({}))[0]["balance"],
         "200.00"
@@ -1675,7 +1636,6 @@ fn test_csd011_debt_errors_reach_the_frontend_as_codes() {
         ),
         ("2026-13", "1.00", "DEBT_STATEMENT_PERIOD_INVALID"),
         ("2025", "1.00", "DEBT_PERIOD_MISMATCH"),
-        ("2999-01", "1.00", "DEBT_STATEMENT_IN_FUTURE"),
     ] {
         let error = app.err(
             "add_debt_statement",
@@ -1743,12 +1703,6 @@ fn test_csd011_debt_statements_can_be_copied_edited_moved_and_deleted_over_ipc()
     );
     assert_eq!(moved["period"], "2026-08");
     assert_eq!(moved["balance"], "149000.00");
-    // AC-13.1: a later period is rejected and nothing changes.
-    let error = app.err(
-        "update_debt_statement",
-        json!({ "debtId": id, "period": "2026-08", "newPeriod": "2999-01", "balance": "1.00" }),
-    );
-    assert_eq!(error["code"], "DEBT_STATEMENT_IN_FUTURE");
     assert_eq!(
         app.ok("list_debt_statements", json!({}))[0]["balance"],
         "149000.00"
@@ -1928,7 +1882,6 @@ fn test_csd015_house_errors_reach_the_frontend_as_codes() {
         ),
         ("2026-13", "1.00", "HOUSE_VALUATION_PERIOD_INVALID"),
         ("2025", "1.00", "HOUSE_PERIOD_MISMATCH"),
-        ("2999-01", "1.00", "HOUSE_VALUATION_IN_FUTURE"),
     ] {
         let error = app.err(
             "add_house_valuation",
@@ -1996,12 +1949,6 @@ fn test_csd015_house_valuations_can_be_copied_edited_moved_and_deleted_over_ipc(
     );
     assert_eq!(moved["period"], "2026-08");
     assert_eq!(moved["value"], "149000.00");
-    // AC-13.1: a later period is rejected and nothing changes.
-    let error = app.err(
-        "update_house_valuation",
-        json!({ "houseId": id, "period": "2026-08", "newPeriod": "2999-01", "value": "1.00" }),
-    );
-    assert_eq!(error["code"], "HOUSE_VALUATION_IN_FUTURE");
     assert_eq!(
         app.ok("list_house_valuations", json!({}))[0]["value"],
         "149000.00"

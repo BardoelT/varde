@@ -1,11 +1,4 @@
-use time::macros::date;
-use time::Date;
-
 use super::*;
-
-fn today() -> Date {
-    date!(2026 - 10 - 29)
-}
 
 fn input(name: &str, amount: &str, date: &str, category: &str) -> ExpenseInput {
     ExpenseInput {
@@ -19,7 +12,7 @@ fn input(name: &str, amount: &str, date: &str, category: &str) -> ExpenseInput {
 
 fn add(expenses: &mut Expenses, name: &str, amount: &str, date: &str, category: &str) -> Expense {
     expenses
-        .add_expense(&input(name, amount, date, category), today())
+        .add_expense(&input(name, amount, date, category))
         .unwrap()
 }
 
@@ -46,13 +39,10 @@ fn with_note(mut input: ExpenseInput, note: &str) -> ExpenseInput {
 fn test_csd013_ac_1_1_expense_with_a_note() {
     let mut expenses = Expenses::default();
     let added = expenses
-        .add_expense(
-            &with_note(
-                input("Example Roof Repair", "4500.00", "15/09/2026", "Home"),
-                "Replaced tiles",
-            ),
-            today(),
-        )
+        .add_expense(&with_note(
+            input("Example Roof Repair", "4500.00", "15/09/2026", "Home"),
+            "Replaced tiles",
+        ))
         .unwrap();
     assert_eq!(added.name, "Example Roof Repair");
     assert_eq!(added.amount.value(), dec("4500.00"));
@@ -101,7 +91,7 @@ fn test_csd013_ac_1_4_two_expenses_on_one_day_with_one_name() {
 fn test_csd013_ac_2_1_invalid_names_are_rejected() {
     for name in ["", "   "] {
         let mut expenses = Expenses::default();
-        let result = expenses.add_expense(&input(name, "100.00", "15/09/2026", "Other"), today());
+        let result = expenses.add_expense(&input(name, "100.00", "15/09/2026", "Other"));
         assert_eq!(code(result), "EXPENSE_NAME_REQUIRED", "{name:?}");
         assert_eq!(expenses.total_count(), 0);
     }
@@ -110,20 +100,11 @@ fn test_csd013_ac_2_1_invalid_names_are_rejected() {
 #[test]
 fn test_csd013_ac_2_2_name_length_boundary() {
     let mut expenses = Expenses::default();
-    let ok = expenses.add_expense(
-        &input(&"a".repeat(100), "1.00", "15/09/2026", "Other"),
-        today(),
-    );
+    let ok = expenses.add_expense(&input(&"a".repeat(100), "1.00", "15/09/2026", "Other"));
     assert_eq!(code(ok), "OK");
-    let long = expenses.add_expense(
-        &input(&"a".repeat(101), "1.00", "15/09/2026", "Other"),
-        today(),
-    );
+    let long = expenses.add_expense(&input(&"a".repeat(101), "1.00", "15/09/2026", "Other"));
     assert_eq!(code(long), "EXPENSE_NAME_TOO_LONG");
-    let multibyte = expenses.add_expense(
-        &input(&"é".repeat(100), "1.00", "15/09/2026", "Other"),
-        today(),
-    );
+    let multibyte = expenses.add_expense(&input(&"é".repeat(100), "1.00", "15/09/2026", "Other"));
     assert_eq!(code(multibyte), "OK");
 }
 
@@ -164,8 +145,7 @@ fn test_csd013_ac_3_1_every_category_is_accepted() {
 fn test_csd013_ac_3_2_and_3_3_unknown_categories_are_rejected() {
     for category in ["Health", "home", "HOME", "", "Travel"] {
         let mut expenses = Expenses::default();
-        let result =
-            expenses.add_expense(&input("Example", "1.00", "15/09/2026", category), today());
+        let result = expenses.add_expense(&input("Example", "1.00", "15/09/2026", category));
         assert_eq!(code(result), "EXPENSE_CATEGORY_UNSUPPORTED", "{category:?}");
         assert_eq!(expenses.total_count(), 0);
     }
@@ -174,17 +154,22 @@ fn test_csd013_ac_3_2_and_3_3_unknown_categories_are_rejected() {
 // REQ-4: date rules
 
 #[test]
-fn test_csd013_ac_4_1_boundary_dates() {
-    for (text, expected) in [
-        ("29/10/2026", "OK"),
-        ("30/10/2026", "EXPENSE_DATE_IN_FUTURE"),
-        ("01/01/1900", "OK"),
-        ("31/12/1899", "EXPENSE_DATE_INVALID"),
+fn test_csd013_ac_4_1_any_real_date_is_accepted() {
+    for text in [
+        "29/10/2026",
+        "30/10/2040",
+        "01/01/1900",
+        "31/12/1850",
+        "01/01/0001",
     ] {
         let mut expenses = Expenses::default();
-        let result = expenses.add_expense(&input("Example", "1.00", text, "Other"), today());
-        assert_eq!(code(result), expected, "{text}");
+        let result = expenses.add_expense(&input("Example", "1.00", text, "Other"));
+        assert_eq!(code(result), "OK", "{text}");
+        assert_eq!(expenses.total_count(), 1);
     }
+    let mut expenses = Expenses::default();
+    let result = expenses.add_expense(&input("Example", "1.00", "31/12/0000", "Other"));
+    assert_eq!(code(result), "EXPENSE_DATE_INVALID");
 }
 
 #[test]
@@ -200,7 +185,7 @@ fn test_csd013_ac_4_2_invalid_dates_are_rejected() {
         "15/09/26",
     ] {
         let mut expenses = Expenses::default();
-        let result = expenses.add_expense(&input("Example", "1.00", text, "Other"), today());
+        let result = expenses.add_expense(&input("Example", "1.00", text, "Other"));
         assert_eq!(code(result), "EXPENSE_DATE_INVALID", "{text:?}");
         assert_eq!(expenses.total_count(), 0);
     }
@@ -228,8 +213,7 @@ fn test_csd013_ac_5_1_invalid_amounts_are_rejected() {
         ("1000000000.01", "EXPENSE_AMOUNT_TOO_LARGE"),
     ] {
         let mut expenses = Expenses::default();
-        let result =
-            expenses.add_expense(&input("Example", amount, "15/09/2026", "Other"), today());
+        let result = expenses.add_expense(&input("Example", amount, "15/09/2026", "Other"));
         assert_eq!(code(result), expected, "{amount:?}");
         assert_eq!(expenses.total_count(), 0);
     }
@@ -255,8 +239,7 @@ fn test_csd013_ac_5_2_an_amount_is_kept_with_two_decimals() {
 fn test_csd013_ac_5_3_an_invalid_amount_in_an_edit_changes_nothing() {
     let mut expenses = Expenses::default();
     let id = add(&mut expenses, "Example", "4500.00", "15/09/2026", "Home").id;
-    let result =
-        expenses.update_expense(id, &input("Example", "0.00", "15/09/2026", "Home"), today());
+    let result = expenses.update_expense(id, &input("Example", "0.00", "15/09/2026", "Home"));
     assert_eq!(code(result), "EXPENSE_AMOUNT_NOT_POSITIVE");
     assert_eq!(expenses.list().expenses[0].amount.value(), dec("4500.00"));
 }
@@ -266,15 +249,15 @@ fn test_csd013_ac_5_3_an_invalid_amount_in_an_edit_changes_nothing() {
 #[test]
 fn test_csd013_ac_6_1_note_length_boundary() {
     let mut expenses = Expenses::default();
-    let ok = expenses.add_expense(
-        &with_note(input("A", "1.00", "15/09/2026", "Other"), &"x".repeat(2000)),
-        today(),
-    );
+    let ok = expenses.add_expense(&with_note(
+        input("A", "1.00", "15/09/2026", "Other"),
+        &"x".repeat(2000),
+    ));
     assert_eq!(code(ok), "OK");
-    let long = expenses.add_expense(
-        &with_note(input("B", "1.00", "16/09/2026", "Other"), &"x".repeat(2001)),
-        today(),
-    );
+    let long = expenses.add_expense(&with_note(
+        input("B", "1.00", "16/09/2026", "Other"),
+        &"x".repeat(2001),
+    ));
     assert_eq!(code(long), "EXPENSE_NOTE_TOO_LONG");
     assert_eq!(expenses.total_count(), 1);
 }
@@ -283,13 +266,10 @@ fn test_csd013_ac_6_1_note_length_boundary() {
 fn test_csd013_ac_6_2_line_breaks_are_kept() {
     let mut expenses = Expenses::default();
     let added = expenses
-        .add_expense(
-            &with_note(
-                input("A", "1.00", "15/09/2026", "Other"),
-                "line one\nline two",
-            ),
-            today(),
-        )
+        .add_expense(&with_note(
+            input("A", "1.00", "15/09/2026", "Other"),
+            "line one\nline two",
+        ))
         .unwrap();
     assert_eq!(added.note.as_str().lines().count(), 2);
 }
@@ -314,7 +294,6 @@ fn test_csd013_ac_7_1_edit_every_field() {
                 input("Example E-Bike", "1200.00", "12/09/2026", "Vehicle"),
                 "Upgraded",
             ),
-            today(),
         )
         .unwrap();
     assert_eq!(edited.id, id);
@@ -330,14 +309,14 @@ fn test_csd013_ac_7_1_edit_every_field() {
 fn test_csd013_ac_7_2_a_note_can_be_cleared() {
     let mut expenses = Expenses::default();
     let id = expenses
-        .add_expense(
-            &with_note(input("A", "1.00", "15/09/2026", "Other"), "First"),
-            today(),
-        )
+        .add_expense(&with_note(
+            input("A", "1.00", "15/09/2026", "Other"),
+            "First",
+        ))
         .unwrap()
         .id;
     let edited = expenses
-        .update_expense(id, &input("A", "1.00", "15/09/2026", "Other"), today())
+        .update_expense(id, &input("A", "1.00", "15/09/2026", "Other"))
         .unwrap();
     assert_eq!(edited.note.as_str(), "");
 }
@@ -354,11 +333,7 @@ fn test_csd013_ac_7_3_moving_an_expense_to_another_year() {
     )
     .id;
     expenses
-        .update_expense(
-            id,
-            &input("Example Bike", "900.00", "20/12/2025", "Hobby"),
-            today(),
-        )
+        .update_expense(id, &input("Example Bike", "900.00", "20/12/2025", "Hobby"))
         .unwrap();
     let totals = expenses.yearly_totals();
     assert_eq!(totals.len(), 1);
@@ -379,17 +354,14 @@ fn test_csd013_ac_7_4_an_invalid_value_rejects_the_whole_edit() {
     )
     .id;
     let before = expenses.clone();
-    let result = expenses.update_expense(
-        id,
-        &input("Example Bike", "-1.00", "11/09/2026", "Hobby"),
-        today(),
-    );
+    let result =
+        expenses.update_expense(id, &input("Example Bike", "-1.00", "11/09/2026", "Hobby"));
     assert_eq!(code(result), "EXPENSE_AMOUNT_NOT_POSITIVE");
     assert_eq!(expenses, before);
 }
 
 #[test]
-fn test_csd013_ac_7_5_a_date_in_the_future_is_rejected_in_an_edit() {
+fn test_csd013_ac_7_5_a_date_in_the_future_is_accepted_in_an_edit() {
     let mut expenses = Expenses::default();
     let id = add(
         &mut expenses,
@@ -399,14 +371,10 @@ fn test_csd013_ac_7_5_a_date_in_the_future_is_rejected_in_an_edit() {
         "Hobby",
     )
     .id;
-    let before = expenses.clone();
-    let result = expenses.update_expense(
-        id,
-        &input("Example Bike", "900.00", "30/10/2026", "Hobby"),
-        today(),
-    );
-    assert_eq!(code(result), "EXPENSE_DATE_IN_FUTURE");
-    assert_eq!(expenses, before);
+    let updated = expenses
+        .update_expense(id, &input("Example Bike", "900.00", "30/10/2040", "Hobby"))
+        .unwrap();
+    assert_eq!(updated.date.year(), 2040);
 }
 
 #[test]
@@ -421,11 +389,8 @@ fn test_csd013_ac_7_7_a_stale_screen_is_not_found() {
     )
     .id;
     expenses.delete_expense(id).unwrap();
-    let result = expenses.update_expense(
-        id,
-        &input("Example Bike", "900.00", "10/09/2026", "Hobby"),
-        today(),
-    );
+    let result =
+        expenses.update_expense(id, &input("Example Bike", "900.00", "10/09/2026", "Hobby"));
     assert_eq!(code(result), "EXPENSE_NOT_FOUND");
     assert_eq!(
         expenses.delete_expense(id).unwrap_err().code(),
@@ -476,13 +441,10 @@ fn test_csd013_ac_8_1_and_8_3_deleting_removes_only_that_expense() {
 fn test_csd013_ac_9_1_the_form_is_filled_from_the_previous_expense() {
     let mut expenses = Expenses::default();
     expenses
-        .add_expense(
-            &with_note(
-                input("Example Bike", "900.00", "10/09/2026", "Hobby"),
-                "First",
-            ),
-            today(),
-        )
+        .add_expense(&with_note(
+            input("Example Bike", "900.00", "10/09/2026", "Hobby"),
+            "First",
+        ))
         .unwrap();
     add(
         &mut expenses,
@@ -639,12 +601,12 @@ fn test_csd013_ac_12_6_totals_follow_changes() {
 }
 
 #[test]
-fn test_csd013_ac_12_7_the_first_and_the_current_year() {
+fn test_csd013_ac_12_7_early_and_future_years() {
     let mut expenses = Expenses::default();
-    add(&mut expenses, "A", "1.00", "01/01/1900", "Other");
-    add(&mut expenses, "B", "1.00", "29/10/2026", "Other");
+    add(&mut expenses, "A", "1.00", "31/12/1850", "Other");
+    add(&mut expenses, "B", "1.00", "30/10/2040", "Other");
     let years: Vec<i32> = expenses.yearly_totals().iter().map(|t| t.year).collect();
-    assert_eq!(years, [2026, 1900]);
+    assert_eq!(years, [2040, 1850]);
 }
 
 // REQ-16: the project file section
@@ -653,13 +615,10 @@ fn test_csd013_ac_12_7_the_first_and_the_current_year() {
 fn test_csd013_ac_16_1_serialisation_round_trip_keeps_everything() {
     let mut expenses = Expenses::default();
     expenses
-        .add_expense(
-            &with_note(
-                input("Example Roof Repair", "4500.00", "15/09/2026", "Home"),
-                "Line one\nLine two",
-            ),
-            today(),
-        )
+        .add_expense(&with_note(
+            input("Example Roof Repair", "4500.00", "15/09/2026", "Home"),
+            "Line one\nLine two",
+        ))
         .unwrap();
     let json = serde_json::to_value(&expenses).unwrap();
     assert_eq!(json["expenses"][0]["date"], "2026-09-15");
@@ -885,7 +844,7 @@ fn test_csd014_ac_4_7_an_edit_moves_the_segment() {
     let mut expenses = Expenses::default();
     let id = add(&mut expenses, "A", "900.00", "10/09/2026", "Hobby").id;
     expenses
-        .update_expense(id, &input("A", "900.00", "10/09/2026", "Sport"), today())
+        .update_expense(id, &input("A", "900.00", "10/09/2026", "Sport"))
         .unwrap();
     let year = &insights(&expenses).years[0];
     assert_eq!(year.segments.len(), 1);

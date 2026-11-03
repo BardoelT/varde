@@ -5,7 +5,6 @@ use std::fmt;
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use time::Date;
 use uuid::Uuid;
 
 use crate::domain::error::DomainError;
@@ -129,9 +128,8 @@ fn filled(text: Option<&str>) -> Option<&str> {
 }
 
 impl HouseInput {
-    /// Validates the input; `today` is the current date, the latest a purchase
-    /// or sell date may be (CSD-019 REQ-1 to REQ-5).
-    pub(super) fn validate(&self, today: Date) -> Result<ValidHouse, DomainError> {
+    /// Validates the input (CSD-019 REQ-1 to REQ-5).
+    pub(super) fn validate(&self) -> Result<ValidHouse, DomainError> {
         let name = self.name.trim();
         if name.is_empty() {
             return Err(DomainError::HouseNameRequired);
@@ -148,7 +146,7 @@ impl HouseInput {
             .transpose()?;
         let purchase_date = filled(self.purchase_date.as_deref())
             .ok_or(DomainError::HousePurchaseDateRequired)
-            .and_then(|text| HouseDate::parse(text, today))?;
+            .and_then(HouseDate::parse)?;
         let purchase_amount = filled(self.purchase_amount.as_deref())
             .ok_or(DomainError::HousePurchaseAmountRequired)
             .and_then(HouseValue::parse_amount)?;
@@ -158,7 +156,7 @@ impl HouseInput {
         ) {
             (None, None) => None,
             (Some(date), Some(amount)) => {
-                let date = HouseDate::parse(date, today)?;
+                let date = HouseDate::parse(date)?;
                 if date < purchase_date {
                     return Err(DomainError::HouseSellBeforePurchase);
                 }

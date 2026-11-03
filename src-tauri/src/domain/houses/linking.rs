@@ -6,7 +6,6 @@
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use time::Date;
 
 use crate::domain::debts::{
     Category, Debt, DebtId, DebtInput, DebtSummary, Debts, OpenDebt, Outcome, Settlement,
@@ -66,12 +65,11 @@ pub fn create_house(
     debts: &mut Debts,
     input: &HouseInput,
     links: &DebtLinksInput,
-    today: Date,
 ) -> Result<House, DomainError> {
     let parsed = links.parse()?;
     let mut new_houses = houses.clone();
     let mut new_debts = debts.clone();
-    let house = new_houses.create_house(input, today)?;
+    let house = new_houses.create_house(input)?;
     apply(&mut new_debts, None, &house, &parsed)?;
     *houses = new_houses;
     *debts = new_debts;
@@ -90,13 +88,12 @@ pub fn update_house(
     id: HouseId,
     input: &HouseInput,
     links: &DebtLinksInput,
-    today: Date,
 ) -> Result<House, DomainError> {
     let parsed = links.parse()?;
     let mut new_houses = houses.clone();
     let mut new_debts = debts.clone();
     let old = new_houses.house(id)?.clone();
-    let house = new_houses.update_house(id, input, today)?;
+    let house = new_houses.update_house(id, input)?;
     apply(&mut new_debts, Some(&old), &house, &parsed)?;
     *houses = new_houses;
     *debts = new_debts;
@@ -124,9 +121,8 @@ pub fn open_debts(
     debts: &Debts,
     house_id: HouseId,
     sell_date: &str,
-    today: Date,
 ) -> Result<Vec<OpenDebt>, DomainError> {
-    let date = HouseDate::parse(sell_date.trim(), today)?;
+    let date = HouseDate::parse(sell_date.trim())?;
     debts.open_debts(&debts.linked_to(house_id), date)
 }
 

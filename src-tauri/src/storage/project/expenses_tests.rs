@@ -1,7 +1,6 @@
 use std::fs;
 
 use tempfile::TempDir;
-use time::macros::date;
 
 use super::*;
 use crate::domain::expenses::ExpenseInput;
@@ -9,16 +8,13 @@ use crate::domain::expenses::ExpenseInput;
 fn add(project: &mut Project, name: &str, amount: &str, date: &str, note: &str) {
     project
         .expenses_mut()
-        .add_expense(
-            &ExpenseInput {
-                name: name.to_owned(),
-                amount: amount.to_owned(),
-                date: date.to_owned(),
-                category: "Home".to_owned(),
-                note: Some(note.to_owned()),
-            },
-            date!(2026 - 10 - 29),
-        )
+        .add_expense(&ExpenseInput {
+            name: name.to_owned(),
+            amount: amount.to_owned(),
+            date: date.to_owned(),
+            category: "Home".to_owned(),
+            note: Some(note.to_owned()),
+        })
         .unwrap();
 }
 

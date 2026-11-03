@@ -33,7 +33,6 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::error::DomainError;
-use crate::domain::income::YearMonth;
 
 use crate::domain::series::{self, MAX_NAME_CHARS};
 
@@ -128,12 +127,12 @@ impl Investments {
         self.statements.len()
     }
 
-    /// Adds the statement of a period. `today` is the current month; later
-    /// periods are rejected. Any earlier period is accepted (REQ-6).
+    /// Adds the statement of a period. Any period is accepted, a later one
+    /// included (REQ-6).
     ///
     /// # Errors
-    /// Returns `InvestmentAccountNotFound`, `InvestmentPeriodMismatch`,
-    /// `InvestmentStatementInFuture` or `InvestmentStatementDuplicate`.
+    /// Returns `InvestmentAccountNotFound`, `InvestmentPeriodMismatch`
+    /// or `InvestmentStatementDuplicate`.
     pub fn add_statement(
         &mut self,
         account_id: InvestmentAccountId,
@@ -141,13 +140,9 @@ impl Investments {
         balance: Balance,
         net_deposits: NetDeposits,
         note: Note,
-        today: YearMonth,
     ) -> Result<InvestmentStatement, DomainError> {
         if self.account(account_id)?.period != period.kind() {
             return Err(DomainError::InvestmentPeriodMismatch);
-        }
-        if period.is_after(today) {
-            return Err(DomainError::InvestmentStatementInFuture);
         }
         if self.statement(account_id, period).is_some() {
             return Err(DomainError::InvestmentStatementDuplicate);
@@ -166,16 +161,16 @@ impl Investments {
     /// Changes the balance, net deposits and note of a statement and, when
     /// `new_period` is a different period, moves it there. The new period
     /// follows the rules of adding a statement: the kind of the account, not
-    /// after `today` and not taken by another statement of the account. The
+    /// and not taken by another statement of the account. The
     /// edit is applied as a whole or not at all (REQ-11, REQ-28, REQ-29).
     ///
     /// # Errors
     /// Returns `InvestmentAccountNotFound`, `InvestmentStatementNotFound`,
-    /// `InvestmentPeriodMismatch`, `InvestmentStatementInFuture` or
+    /// `InvestmentPeriodMismatch` or
     /// `InvestmentStatementDuplicate`.
     #[allow(
         clippy::too_many_arguments,
-        reason = "add_statement's values, plus the statement's current period and `today`"
+        reason = "add_statement's values, plus the statement's current period"
     )]
     pub fn update_statement(
         &mut self,
@@ -185,7 +180,6 @@ impl Investments {
         balance: Balance,
         net_deposits: NetDeposits,
         note: Note,
-        today: YearMonth,
     ) -> Result<InvestmentStatement, DomainError> {
         let kind = self.account(account_id)?.period;
         if self.statement(account_id, period).is_none() {
@@ -194,9 +188,6 @@ impl Investments {
         if new_period != period {
             if kind != new_period.kind() {
                 return Err(DomainError::InvestmentPeriodMismatch);
-            }
-            if new_period.is_after(today) {
-                return Err(DomainError::InvestmentStatementInFuture);
             }
             if self.statement(account_id, new_period).is_some() {
                 return Err(DomainError::InvestmentStatementDuplicate);

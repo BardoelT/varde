@@ -97,7 +97,6 @@ pub fn add_bank_entry(
     balance: String,
     note: Option<String>,
 ) -> Result<EntryView, AppError> {
-    let today = state.today();
     let account_id = BankAccountId::parse(&account_id)?;
     let period = parse_period(&period)?;
     let balance = BankBalance::parse(&balance)?;
@@ -105,7 +104,7 @@ pub fn add_bank_entry(
     let mut project = state.project()?;
     let entry = project
         .bank_accounts_mut()
-        .add_entry(account_id, period, balance, note, today)?;
+        .add_entry(account_id, period, balance, note)?;
     entry_view(&project, &entry)
 }
 
@@ -118,7 +117,6 @@ pub fn update_bank_entry(
     balance: String,
     note: Option<String>,
 ) -> Result<EntryView, AppError> {
-    let today = state.today();
     let account_id = BankAccountId::parse(&account_id)?;
     let period = parse_period(&period)?;
     let new_period = parse_period(&new_period)?;
@@ -127,7 +125,7 @@ pub fn update_bank_entry(
     let mut project = state.project()?;
     let entry = project
         .bank_accounts_mut()
-        .update_entry(account_id, period, new_period, balance, note, today)?;
+        .update_entry(account_id, period, new_period, balance, note)?;
     entry_view(&project, &entry)
 }
 

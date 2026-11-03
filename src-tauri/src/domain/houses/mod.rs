@@ -33,10 +33,8 @@ pub use valuation::{parse_period, HouseValuation, ValuationPrefill};
 use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
-use time::Date;
 
 use crate::domain::error::DomainError;
-use crate::domain::income::YearMonth;
 use crate::domain::investments::{Note, Period};
 
 use crate::domain::series::{self, COLOUR_SLOTS, MAX_NAME_CHARS};
@@ -52,14 +50,14 @@ pub struct Houses {
 
 impl Houses {
     /// Creates a house, monthly unless the input says Yearly, with the colour
-    /// slot of REQ-3 (REQ-1, REQ-2). `today` is the current date, which bounds
-    /// the purchase and sell dates (CSD-019).
+    /// slot of REQ-3 (REQ-1, REQ-2). Any purchase and sell date
+    /// is accepted (CSD-019).
     ///
     /// # Errors
     /// Returns the name errors of REQ-2, `HousePeriodUnsupported` or the
     /// purchase and sale errors of CSD-019 REQ-1 to REQ-5.
-    pub fn create_house(&mut self, input: &HouseInput, today: Date) -> Result<House, DomainError> {
-        let valid = input.validate(today)?;
+    pub fn create_house(&mut self, input: &HouseInput) -> Result<House, DomainError> {
+        let valid = input.validate()?;
         if self.name_taken(&valid.name, None) {
             return Err(DomainError::HouseNameDuplicate);
         }
@@ -85,13 +83,8 @@ impl Houses {
     /// # Errors
     /// Returns a validation error, `HouseNotFound`, `HouseNameDuplicate`,
     /// `HousePeriodLocked` or `HouseDatesExcludeValuations`.
-    pub fn update_house(
-        &mut self,
-        id: HouseId,
-        input: &HouseInput,
-        today: Date,
-    ) -> Result<House, DomainError> {
-        let valid = input.validate(today)?;
+    pub fn update_house(&mut self, id: HouseId, input: &HouseInput) -> Result<House, DomainError> {
+        let valid = input.validate()?;
         let current = self.house(id)?.period;
         if self.name_taken(&valid.name, Some(id)) {
             return Err(DomainError::HouseNameDuplicate);
@@ -152,21 +145,20 @@ impl Houses {
         self.valuations.len()
     }
 
-    /// Adds the valuation of a period. `today` is the current month; later
-    /// periods are rejected. Any earlier period is accepted (REQ-7 to REQ-9).
+    /// Adds the valuation of a period. Any period is accepted, a later one
+    /// included (REQ-7 to REQ-9).
     ///
     /// # Errors
-    /// Returns `HouseNotFound`, `HousePeriodMismatch`, `HouseValuationInFuture`
-    /// or `HouseValuationDuplicate`.
+    /// Returns `HouseNotFound`, `HousePeriodMismatch` or
+    /// `HouseValuationDuplicate`.
     pub fn add_valuation(
         &mut self,
         house_id: HouseId,
         period: Period,
         value: HouseValue,
         note: Note,
-        today: YearMonth,
     ) -> Result<HouseValuation, DomainError> {
-        self.check_new_period(house_id, period, today)?;
+        self.check_new_period(house_id, period)?;
         let valuation = HouseValuation {
             house_id,
             period,
@@ -179,13 +171,13 @@ impl Houses {
 
     /// Changes the value and note of a valuation and, when `new_period` is a
     /// different period, moves it there. The new period follows the rules of
-    /// adding a valuation: the kind of the house, not after `today` and not
+    /// adding a valuation: the kind of the house, not
     /// taken by another valuation of the house. The edit is applied as a whole
     /// or not at all (REQ-12, REQ-13).
     ///
     /// # Errors
-    /// Returns `HouseNotFound`, `HouseValuationNotFound`, `HousePeriodMismatch`,
-    /// `HouseValuationInFuture` or `HouseValuationDuplicate`.
+    /// Returns `HouseNotFound`, `HouseValuationNotFound`, `HousePeriodMismatch`
+    /// or `HouseValuationDuplicate`.
     pub fn update_valuation(
         &mut self,
         house_id: HouseId,
@@ -193,14 +185,13 @@ impl Houses {
         new_period: Period,
         value: HouseValue,
         note: Note,
-        today: YearMonth,
     ) -> Result<HouseValuation, DomainError> {
         self.house(house_id)?;
         if self.valuation(house_id, period).is_none() {
             return Err(DomainError::HouseValuationNotFound);
         }
         if new_period != period {
-            self.check_new_period(house_id, new_period, today)?;
+            self.check_new_period(house_id, new_period)?;
         }
         let valuation = self
             .valuations
@@ -325,20 +316,12 @@ impl Houses {
     }
 
     /// The rules a period must follow for a house to hold a valuation for it:
-    /// the kind of the house, not after `today`, inside the holding window
+    /// the kind of the house, inside the holding window
     /// (CSD-019 REQ-7), not taken (REQ-7 to REQ-9).
-    fn check_new_period(
-        &self,
-        house_id: HouseId,
-        period: Period,
-        today: YearMonth,
-    ) -> Result<(), DomainError> {
+    fn check_new_period(&self, house_id: HouseId, period: Period) -> Result<(), DomainError> {
         let house = self.house(house_id)?;
         if house.period != period.kind() {
             return Err(DomainError::HousePeriodMismatch);
-        }
-        if period.is_after(today) {
-            return Err(DomainError::HouseValuationInFuture);
         }
         if !house.window_contains(period) {
             return Err(DomainError::HouseValuationOutsideHolding);

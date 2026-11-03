@@ -42,7 +42,6 @@ fn add_with_deposits(
             balance(amount),
             deposits(net_deposits),
             no_note(),
-            today(),
         )
         .unwrap();
 }
@@ -92,14 +91,7 @@ fn add_account(investments: &mut Investments, name: &str, period: &str) -> Inves
 
 fn add(investments: &mut Investments, id: InvestmentAccountId, period: &str, amount: &str) {
     investments
-        .add_statement(
-            id,
-            month(period),
-            balance(amount),
-            no_deposits(),
-            no_note(),
-            today(),
-        )
+        .add_statement(id, month(period), balance(amount), no_deposits(), no_note())
         .unwrap();
 }
 
@@ -290,7 +282,6 @@ fn test_csd005_ac_6_1_a_monthly_statement_with_a_note() {
             balance("12500.00"),
             no_deposits(),
             note,
-            today(),
         )
         .unwrap();
     assert_eq!(statement.balance.value().to_string(), "12500.00");
@@ -308,7 +299,6 @@ fn test_csd005_ac_6_2_a_yearly_statement_without_a_note() {
             balance("80000.00"),
             no_deposits(),
             no_note(),
-            today(),
         )
         .unwrap();
     assert_eq!(statement.balance.value().to_string(), "80000.00");
@@ -316,46 +306,27 @@ fn test_csd005_ac_6_2_a_yearly_statement_without_a_note() {
 }
 
 #[test]
-fn test_csd005_ac_6_3_old_periods_are_accepted() {
-    let mut investments = Investments::default();
-    let id = add_account(&mut investments, "Example Brokerage", "Monthly");
-    add(&mut investments, id, "2019-01", "1000.00");
-    assert_eq!(investments.statement_count(id), 1);
-}
-
-#[test]
-fn test_csd005_ac_6_4_the_current_period_is_accepted_and_later_ones_are_not() {
-    for (kind, period, ok) in [
-        ("Monthly", "2026-10", true),
-        ("Monthly", "2026-11", false),
-        ("Yearly", "2026", true),
-        ("Yearly", "2027", false),
+fn test_csd005_ac_6_3_any_valid_period_is_accepted() {
+    for (kind, periods) in [
+        (
+            "Monthly",
+            ["2019-01", "1899-12", "2026-10", "2026-11"].as_slice(),
+        ),
+        ("Yearly", ["2026", "2027"].as_slice()),
     ] {
         let mut investments = Investments::default();
         let id = add_account(&mut investments, "Example Account", kind);
-        let result = investments.add_statement(
-            id,
-            month(period),
-            balance("1000.00"),
-            no_deposits(),
-            no_note(),
-            today(),
-        );
-        match (ok, result) {
-            (true, Ok(_)) => {}
-            (false, Err(error)) => {
-                assert_eq!(error.code(), "INVESTMENT_STATEMENT_IN_FUTURE");
-                assert_eq!(investments.statement_count(id), 0);
-            }
-            (ok, result) => panic!("{kind} {period}: expected ok={ok}, got {result:?}"),
+        for period in periods {
+            add(&mut investments, id, period, "1000.00");
         }
+        assert_eq!(investments.statement_count(id), periods.len());
     }
 }
 
 #[test]
 fn test_csd005_ac_6_5_an_invalid_period_is_rejected() {
     for text in [
-        "2026-13", "2026-9", "abcd", "26", "1899", "", "2026-", "-2026",
+        "2026-13", "2026-9", "abcd", "26", "0000", "", "2026-", "-2026",
     ] {
         assert_eq!(
             Period::parse(text).unwrap_err().code(),
@@ -379,7 +350,6 @@ fn test_csd005_ac_7_1_a_duplicate_period_is_rejected_and_changes_nothing() {
             balance("12500.00"),
             no_deposits(),
             first,
-            today(),
         )
         .unwrap();
     let error = investments
@@ -389,7 +359,6 @@ fn test_csd005_ac_7_1_a_duplicate_period_is_rejected_and_changes_nothing() {
             balance("13000.00"),
             no_deposits(),
             no_note(),
-            today(),
         )
         .unwrap_err();
     assert_eq!(error.code(), "INVESTMENT_STATEMENT_DUPLICATE");
@@ -420,7 +389,6 @@ fn test_csd005_ac_8_1_a_monthly_statement_for_a_yearly_account_is_rejected() {
             balance("1000.00"),
             no_deposits(),
             no_note(),
-            today(),
         )
         .unwrap_err();
     assert_eq!(error.code(), "INVESTMENT_PERIOD_MISMATCH");
@@ -437,7 +405,6 @@ fn test_csd005_ac_8_2_a_yearly_statement_for_a_monthly_account_is_rejected() {
             balance("1000.00"),
             no_deposits(),
             no_note(),
-            today(),
         )
         .unwrap_err();
     assert_eq!(error.code(), "INVESTMENT_PERIOD_MISMATCH");
@@ -530,7 +497,6 @@ fn test_csd005_ac_11_1_editing_changes_balance_and_note() {
             balance("12500.00"),
             no_deposits(),
             first,
-            today(),
         )
         .unwrap();
     let corrected = Note::new("Corrected").unwrap();
@@ -542,7 +508,6 @@ fn test_csd005_ac_11_1_editing_changes_balance_and_note() {
             balance("12750.00"),
             no_deposits(),
             corrected,
-            today(),
         )
         .unwrap();
     assert_eq!(statement.balance.value().to_string(), "12750.00");
@@ -562,7 +527,6 @@ fn test_csd005_ac_11_2_a_note_can_be_cleared() {
             balance("12500.00"),
             no_deposits(),
             first,
-            today(),
         )
         .unwrap();
     let statement = investments
@@ -573,7 +537,6 @@ fn test_csd005_ac_11_2_a_note_can_be_cleared() {
             balance("12500.00"),
             no_deposits(),
             no_note(),
-            today(),
         )
         .unwrap();
     assert_eq!(statement.note.as_str(), "");
@@ -591,7 +554,6 @@ fn test_csd005_ac_11_4_editing_a_missing_statement_is_an_error() {
             balance("1.00"),
             no_deposits(),
             no_note(),
-            today(),
         )
         .unwrap_err();
     assert_eq!(error.code(), "INVESTMENT_STATEMENT_NOT_FOUND");
@@ -627,7 +589,6 @@ fn test_csd005_ac_13_1_copy_previous_takes_the_latest_balance_and_no_note() {
             balance("12500.00"),
             no_deposits(),
             note,
-            today(),
         )
         .unwrap();
     let prefill = investments.prefill_from_latest(id).unwrap();
@@ -784,14 +745,7 @@ fn test_csd005_ac_19_1_serialising_and_reading_back_gives_the_same_data() {
     let id = add_account(&mut investments, "Example Pension", "Yearly");
     let note = Note::new("Line one\nLine two").unwrap();
     investments
-        .add_statement(
-            id,
-            month("2025"),
-            balance("80000.00"),
-            no_deposits(),
-            note,
-            today(),
-        )
+        .add_statement(id, month("2025"), balance("80000.00"), no_deposits(), note)
         .unwrap();
     let json = serde_json::to_string(&investments).unwrap();
     assert!(json.contains("\"balance\":\"80000.00\""), "{json}");
@@ -854,7 +808,6 @@ fn test_csd005_ac_21_1_net_deposits_default_to_zero() {
             balance("12500.00"),
             NetDeposits::parse("").unwrap(),
             no_note(),
-            today(),
         )
         .unwrap();
     assert_eq!(statement.net_deposits.value().to_string(), "0.00");
@@ -895,7 +848,6 @@ fn test_csd005_ac_21_4_editing_changes_the_net_deposits() {
             balance("12500.00"),
             deposits("0.00"),
             no_note(),
-            today(),
         )
         .unwrap();
     assert_eq!(statement.balance.value().to_string(), "12500.00");
@@ -1025,7 +977,6 @@ fn test_csd005_ac_23_6_editing_an_earlier_balance_changes_the_later_growth() {
             balance("12100.00"),
             no_deposits(),
             no_note(),
-            today(),
         )
         .unwrap();
     assert_eq!(growth(&investments, id, "2026-09"), "100.00");
@@ -1950,7 +1901,6 @@ fn edit_period(
         balance(amount),
         no_deposits(),
         no_note(),
-        today(),
     )
 }
 
@@ -1975,7 +1925,6 @@ fn test_csd005_ac_28_1_a_statement_moves_to_another_month() {
             balance("12500.00"),
             no_deposits(),
             first,
-            today(),
         )
         .unwrap();
     let moved = investments
@@ -1986,7 +1935,6 @@ fn test_csd005_ac_28_1_a_statement_moves_to_another_month() {
             balance("12500.00"),
             no_deposits(),
             Note::new("First").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(moved.period.to_string(), "2026-08");
@@ -2043,7 +1991,6 @@ fn test_csd005_ac_28_5_the_yearly_totals_follow_the_move() {
             balance("11500.00"),
             deposits("200.00"),
             no_note(),
-            today(),
         )
         .unwrap();
     assert_eq!(
@@ -2063,33 +2010,6 @@ fn test_csd005_ac_28_7_keeping_the_period_changes_only_the_values() {
     let updated = edit_period(&mut investments, id, "2026-09", "2026-09", "12750.00").unwrap();
     assert_eq!(updated.balance.value().to_string(), "12750.00");
     assert_eq!(periods_of(&investments, id), ["2026-09"]);
-}
-
-#[test]
-fn test_csd005_ac_29_1_a_period_in_the_future_is_rejected() {
-    let mut investments = Investments::default();
-    let monthly = add_account(&mut investments, "Example Brokerage", "Monthly");
-    let yearly_id = add_account(&mut investments, "Example Pension", "Yearly");
-    add(&mut investments, monthly, "2026-09", "12500.00");
-    add(&mut investments, yearly_id, "2025", "12500.00");
-
-    let error = edit_period(&mut investments, monthly, "2026-09", "2026-11", "9.00").unwrap_err();
-    assert_eq!(error.code(), "INVESTMENT_STATEMENT_IN_FUTURE");
-    let error = edit_period(&mut investments, yearly_id, "2025", "2027", "9.00").unwrap_err();
-    assert_eq!(error.code(), "INVESTMENT_STATEMENT_IN_FUTURE");
-    // Nothing changed, balances included.
-    assert_eq!(periods_of(&investments, monthly), ["2026-09"]);
-    assert_eq!(periods_of(&investments, yearly_id), ["2025"]);
-    let balances: Vec<String> = investments
-        .all_statements()
-        .into_iter()
-        .map(|(_, s)| s.balance.value().to_string())
-        .collect();
-    assert_eq!(balances, ["12500.00", "12500.00"]);
-
-    // The current month and the current year are allowed.
-    edit_period(&mut investments, monthly, "2026-09", "2026-10", "12500.00").unwrap();
-    edit_period(&mut investments, yearly_id, "2025", "2026", "12500.00").unwrap();
 }
 
 #[test]

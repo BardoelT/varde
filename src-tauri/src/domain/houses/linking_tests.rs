@@ -1,7 +1,6 @@
 //! Tests for CSD-020: debts linked to a house and settled on its sale.
 
 use rust_decimal::Decimal;
-use time::macros::date;
 
 use crate::domain::debts::{
     debt_note, parse_period, Category, DebtBalance, DebtId, DebtInput, Outcome,
@@ -13,10 +12,6 @@ use crate::domain::investments::Note;
 use crate::domain::net_worth::net_worth_insights;
 use crate::domain::ratios::{ratios, RatioSources};
 use crate::domain::ProjectData;
-
-fn today_date() -> time::Date {
-    date!(2026 - 10 - 29)
-}
 
 fn today() -> YearMonth {
     YearMonth::parse("2026-10").unwrap()
@@ -43,7 +38,6 @@ fn statement(data: &mut ProjectData, id: DebtId, at: &str, balance: &str, note: 
             parse_period(at).unwrap(),
             DebtBalance::parse(balance).unwrap(),
             debt_note(note).unwrap(),
-            today(),
         )
         .unwrap();
 }
@@ -136,7 +130,6 @@ fn add_house(data: &mut ProjectData, name: &str, ids: &[DebtId]) -> HouseId {
         &mut data.debts,
         &input(name, ("", "")),
         &links(&[], false),
-        today_date(),
     )
     .unwrap()
     .id;
@@ -159,7 +152,6 @@ fn save(
         id,
         &input(name, sold),
         links,
-        today_date(),
     )
     .map(|_| ())
 }
@@ -410,7 +402,7 @@ fn test_csd020_ac_4_1_which_debts_need_a_choice() {
             statement(&mut data, loan, at, balance, "");
         }
         let house = add_house(&mut data, "Example House", &[loan]);
-        let open = linking::open_debts(&data.debts, house, "10/06/2026", today_date()).unwrap();
+        let open = linking::open_debts(&data.debts, house, "10/06/2026").unwrap();
         assert_eq!(
             open.first().map(|row| row.amount.to_string()).as_deref(),
             expected
@@ -646,7 +638,6 @@ fn test_csd020_ac_8_1_a_settled_debt_is_locked() {
         parse_period("2026-07").unwrap(),
         DebtBalance::parse("0.00").unwrap(),
         Note::default(),
-        today(),
     );
     assert_eq!(add.unwrap_err().code(), "DEBT_SETTLED_LOCKED");
     let edit = data.debts.update_statement(
@@ -655,7 +646,6 @@ fn test_csd020_ac_8_1_a_settled_debt_is_locked() {
         parse_period("2026-06").unwrap(),
         DebtBalance::parse("5.00").unwrap(),
         Note::default(),
-        today(),
     );
     assert_eq!(edit.unwrap_err().code(), "DEBT_SETTLED_LOCKED");
     let delete = data
@@ -683,7 +673,6 @@ fn test_csd020_ac_8_2_earlier_statements_stay_editable() {
             parse_period("2026-03").unwrap(),
             DebtBalance::parse("189000.00").unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
     assert_eq!(
@@ -725,7 +714,6 @@ fn test_csd020_ac_10_1_both_outcomes_drop_to_zero() {
                 crate::domain::houses::parse_period("2026-03").unwrap(),
                 HouseValue::parse("300000.00").unwrap(),
                 Note::default(),
-                today(),
             )
             .unwrap();
         save(
@@ -1102,7 +1090,6 @@ fn test_csd020_ac_8_3_the_regular_statement_of_the_settlement_period_stays_edita
             parse_period("2026-06").unwrap(),
             DebtBalance::parse("3400.00").unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
     let rows = statements_of(&data, loan, "2026-06");

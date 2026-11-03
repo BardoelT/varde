@@ -1,5 +1,3 @@
-use time::macros::date;
-
 use super::*;
 use crate::domain::bank_accounts::{AccountInput as BankInput, BankBalance};
 use crate::domain::debts::{DebtBalance, DebtInput};
@@ -41,23 +39,19 @@ fn add_income(data: &mut ProjectData, year: &str, gross: &str) {
             job,
             crate::domain::income::Year::parse(year).unwrap(),
             Amounts::parse(gross, "", "").unwrap(),
-            today(),
         )
         .unwrap();
 }
 
 fn add_expense(data: &mut ProjectData, on: &str, amount: &str) {
     data.expenses
-        .add_expense(
-            &ExpenseInput {
-                name: "Example Bike".to_owned(),
-                amount: amount.to_owned(),
-                date: on.to_owned(),
-                category: "Other".to_owned(),
-                note: None,
-            },
-            date!(2026 - 10 - 29),
-        )
+        .add_expense(&ExpenseInput {
+            name: "Example Bike".to_owned(),
+            amount: amount.to_owned(),
+            date: on.to_owned(),
+            category: "Other".to_owned(),
+            note: None,
+        })
         .unwrap();
 }
 
@@ -78,7 +72,6 @@ fn add_bank(data: &mut ProjectData, name: &str, entries: &[(&str, &str)]) {
                 crate::domain::bank_accounts::parse_period(at).unwrap(),
                 BankBalance::parse(balance).unwrap(),
                 Note::default(),
-                today(),
             )
             .unwrap();
     }
@@ -102,7 +95,6 @@ fn add_investment(data: &mut ProjectData, statements: &[(&str, &str, &str)]) {
                 Balance::parse(balance).unwrap(),
                 NetDeposits::parse(deposits).unwrap(),
                 Note::default(),
-                today(),
             )
             .unwrap();
     }
@@ -125,7 +117,6 @@ fn add_debt(data: &mut ProjectData, statements: &[(&str, &str)]) {
                 crate::domain::debts::parse_period(at).unwrap(),
                 DebtBalance::parse(balance).unwrap(),
                 Note::default(),
-                today(),
             )
             .unwrap();
     }
@@ -134,16 +125,13 @@ fn add_debt(data: &mut ProjectData, statements: &[(&str, &str)]) {
 fn add_house(data: &mut ProjectData, at: &str, value: &str) {
     let id = data
         .houses
-        .create_house(
-            &HouseInput {
-                name: "Example House".to_owned(),
-                period: Some("Yearly".to_owned()),
-                purchase_date: Some("01/01/1900".to_owned()),
-                purchase_amount: Some("0.00".to_owned()),
-                ..HouseInput::default()
-            },
-            time::macros::date!(2026 - 10 - 29),
-        )
+        .create_house(&HouseInput {
+            name: "Example House".to_owned(),
+            period: Some("Yearly".to_owned()),
+            purchase_date: Some("01/01/1900".to_owned()),
+            purchase_amount: Some("0.00".to_owned()),
+            ..HouseInput::default()
+        })
         .unwrap()
         .id;
     data.houses
@@ -152,7 +140,6 @@ fn add_house(data: &mut ProjectData, at: &str, value: &str) {
             crate::domain::houses::parse_period(at).unwrap(),
             HouseValue::parse(value).unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
 }
@@ -386,7 +373,6 @@ fn net_worth_of(first: &str, second: &str) -> ProjectData {
             crate::domain::houses::parse_period("2026").unwrap(),
             HouseValue::parse(second).unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
     data

@@ -132,7 +132,6 @@ pub fn add_debt_statement(
     balance: String,
     note: Option<String>,
 ) -> Result<StatementView, AppError> {
-    let today = state.today();
     let debt_id = DebtId::parse(&debt_id)?;
     let period = parse_period(&period)?;
     let balance = DebtBalance::parse(&balance)?;
@@ -140,7 +139,7 @@ pub fn add_debt_statement(
     let mut project = state.project()?;
     let statement = project
         .debts_mut()
-        .add_statement(debt_id, period, balance, note, today)?;
+        .add_statement(debt_id, period, balance, note)?;
     statement_view(&project, &statement)
 }
 
@@ -153,7 +152,6 @@ pub fn update_debt_statement(
     balance: String,
     note: Option<String>,
 ) -> Result<StatementView, AppError> {
-    let today = state.today();
     let debt_id = DebtId::parse(&debt_id)?;
     let period = parse_period(&period)?;
     let new_period = parse_period(&new_period)?;
@@ -162,7 +160,7 @@ pub fn update_debt_statement(
     let mut project = state.project()?;
     let statement = project
         .debts_mut()
-        .update_statement(debt_id, period, new_period, balance, note, today)?;
+        .update_statement(debt_id, period, new_period, balance, note)?;
     statement_view(&project, &statement)
 }
 
