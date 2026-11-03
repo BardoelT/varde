@@ -3,8 +3,8 @@
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
+use crate::domain::common::{Note, Period};
 use crate::domain::error::DomainError;
-use crate::domain::investments::{Note, Period};
 
 use super::{BankAccountId, BankAccounts, BankBalance};
 

@@ -31,7 +31,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::error::DomainError;
 
-use crate::domain::series::MAX_NAME_CHARS;
+use crate::domain::common::MAX_NAME_CHARS;
 
 /// All expenses, in the order they were added (CSD-013 section 5).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -50,7 +50,7 @@ impl Expenses {
     pub fn add_expense(&mut self, input: &ExpenseInput) -> Result<Expense, DomainError> {
         let valid = input.validate()?;
         let expense = Expense {
-            id: ExpenseId::generate(),
+            id: ExpenseId::new(),
             name: valid.name,
             amount: valid.amount,
             date: valid.date,

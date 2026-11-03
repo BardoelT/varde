@@ -1,41 +1,21 @@
 //! Debts: their id, name, statement period and colour slot (CSD-011 REQ-1 to REQ-6).
 
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
+use crate::domain::common::PayPeriod;
+use crate::domain::common::MAX_NAME_CHARS;
+use crate::domain::common::{Id, IdKind};
 use crate::domain::error::DomainError;
 use crate::domain::houses::HouseId;
-use crate::domain::income::PayPeriod;
-use crate::domain::series::MAX_NAME_CHARS;
 
 use super::settlement::Settlement;
 
-/// Identifies a debt.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct DebtId(Uuid);
+/// Identifies a Debt.
+pub type DebtId = Id<Debt>;
 
-impl DebtId {
-    pub(super) fn generate() -> Self {
-        Self(Uuid::new_v4())
-    }
-
-    /// Parses the text form returned to the frontend.
-    ///
-    /// # Errors
-    /// Returns `DebtNotFound` for text that is not a debt id.
-    pub fn parse(text: &str) -> Result<Self, DomainError> {
-        Uuid::parse_str(text.trim())
-            .map(Self)
-            .map_err(|_| DomainError::DebtNotFound)
-    }
-}
-
-impl fmt::Display for DebtId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, f)
+impl IdKind for Debt {
+    fn not_found() -> DomainError {
+        DomainError::DebtNotFound
     }
 }
 

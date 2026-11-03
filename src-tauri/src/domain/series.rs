@@ -5,11 +5,7 @@
 
 use std::fmt::Display;
 
-/// The longest name, in characters.
-pub(crate) const MAX_NAME_CHARS: usize = 100;
-
-/// How many colours the Insights charts have.
-pub(crate) const COLOUR_SLOTS: u8 = 8;
+use super::common::COLOUR_SLOTS;
 
 /// The lowest colour slot used by the fewest series.
 pub(crate) fn next_colour_slot(used: impl IntoIterator<Item = u8>) -> u8 {

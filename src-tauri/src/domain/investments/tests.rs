@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
 use super::*;
-use crate::domain::income::{PayPeriod, YearMonth};
+use crate::domain::common::{PayPeriod, YearMonth};
 use crate::domain::money::Money;
 
 fn month(text: &str) -> Period {

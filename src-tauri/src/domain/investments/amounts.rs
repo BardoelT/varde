@@ -6,8 +6,6 @@ use serde::{Deserialize, Serialize};
 use crate::domain::error::DomainError;
 use crate::domain::money::{bounded, plain_decimal, Money};
 
-const MAX_NOTE_CHARS: usize = 2000;
-
 /// The closing balance of a statement, in the project currency, with exactly
 /// two decimals (CSD-005 REQ-9).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -113,29 +111,4 @@ pub(super) fn parse_growth(text: &str) -> Result<Money, DomainError> {
         DomainError::InvestmentGrowthPrecision,
         DomainError::InvestmentGrowthTooLarge,
     )
-}
-
-/// The optional plain-text note of a statement, at most 2,000 characters
-/// (CSD-005 REQ-10). It is kept exactly as typed.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct Note(String);
-
-impl Note {
-    /// Builds a note.
-    ///
-    /// # Errors
-    /// Returns `InvestmentNoteTooLong` above 2,000 characters (CON-8).
-    pub fn new(text: &str) -> Result<Self, DomainError> {
-        if text.chars().count() > MAX_NOTE_CHARS {
-            return Err(DomainError::InvestmentNoteTooLong);
-        }
-        Ok(Self(text.to_owned()))
-    }
-
-    /// The note text.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
 }

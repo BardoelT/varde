@@ -1,12 +1,11 @@
 use super::*;
 use crate::domain::bank_accounts::{AccountInput as BankInput, BankBalance};
+use crate::domain::common::{Note, Period};
 use crate::domain::debts::{DebtBalance, DebtInput};
 use crate::domain::expenses::ExpenseInput;
 use crate::domain::houses::{HouseInput, HouseValue};
 use crate::domain::income::JobInput;
-use crate::domain::investments::{
-    AccountInput as InvestmentInput, Balance, NetDeposits, Note, Period,
-};
+use crate::domain::investments::{AccountInput as InvestmentInput, Balance, NetDeposits};
 use crate::domain::money::Amounts;
 use crate::domain::ProjectData;
 
@@ -37,7 +36,7 @@ fn add_income(data: &mut ProjectData, year: &str, gross: &str) {
     data.income
         .add_statement(
             job,
-            crate::domain::income::Year::parse(year).unwrap(),
+            crate::domain::common::Year::parse(year).unwrap(),
             Amounts::parse(gross, "", "").unwrap(),
         )
         .unwrap();

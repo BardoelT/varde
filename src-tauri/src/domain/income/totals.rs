@@ -7,7 +7,8 @@ use serde::Serialize;
 
 use crate::domain::money::{zero, Amounts};
 
-use super::{Entry, Income, Job, YearMonth};
+use super::{Entry, Income, Job};
+use crate::domain::common::YearMonth;
 
 /// The sums of some entries, or `None` if there are none.
 fn totals_of<'a>(amounts: impl Iterator<Item = &'a Amounts>) -> Option<IncomePeriodTotals> {

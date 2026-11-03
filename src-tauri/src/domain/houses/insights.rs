@@ -3,7 +3,7 @@
 use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::income::YearMonth;
+use crate::domain::common::YearMonth;
 use crate::domain::money::zero;
 
 use super::{HouseId, Houses};

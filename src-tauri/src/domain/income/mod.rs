@@ -5,7 +5,6 @@
 //! the value types (`dates`, `job`, `entry`) and the figures derived from it
 //! (`totals`, `insights`).
 
-mod dates;
 mod entry;
 mod insights;
 mod job;
@@ -14,14 +13,14 @@ mod totals;
 #[cfg(test)]
 mod tests;
 
-pub use dates::{Year, YearMonth};
 pub use entry::{AnnualStatement, Entry, Paycheck, PaycheckPrefill};
 pub use insights::IncomeInsightsYear;
-pub use job::{Job, JobId, JobInput, PayPeriod};
+pub use job::{Job, JobId, JobInput};
 pub use totals::{IncomeOverview, IncomeYearlyTotal};
 
 use serde::{Deserialize, Serialize};
 
+use crate::domain::common::{PayPeriod, Year, YearMonth};
 use crate::domain::error::DomainError;
 use crate::domain::money::{zero, Amounts};
 
@@ -43,7 +42,7 @@ impl Income {
     pub fn create_job(&mut self, input: &JobInput) -> Result<Job, DomainError> {
         let valid = input.validate()?;
         let job = Job {
-            id: JobId::generate(),
+            id: JobId::new(),
             employer: valid.employer,
             title: valid.title,
             start_date: valid.start_date,

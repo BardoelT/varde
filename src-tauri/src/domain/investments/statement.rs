@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 use crate::domain::error::DomainError;
 use crate::domain::money::zero;
 
-use super::{Balance, InvestmentAccountId, Investments, NetDeposits, Note, Period};
+use super::{Balance, InvestmentAccountId, Investments, NetDeposits};
+use crate::domain::common::{Note, Period};
 
 /// The record of one account for one period (CSD-005 REQ-6).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

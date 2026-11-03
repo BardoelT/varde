@@ -1,40 +1,20 @@
 //! One expense and the fields the user types for it (CSD-013 REQ-1 to REQ-7).
 
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
+use crate::domain::common::Note;
+use crate::domain::common::MAX_NAME_CHARS;
+use crate::domain::common::{Id, IdKind};
 use crate::domain::error::DomainError;
-use crate::domain::investments::Note;
-use crate::domain::series::MAX_NAME_CHARS;
 
 use super::{expense_note, Category, ExpenseAmount, ExpenseDate};
 
-/// Identifies an expense.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct ExpenseId(Uuid);
+/// Identifies a Expense.
+pub type ExpenseId = Id<Expense>;
 
-impl ExpenseId {
-    pub(super) fn generate() -> Self {
-        Self(Uuid::new_v4())
-    }
-
-    /// Parses the text form returned to the frontend.
-    ///
-    /// # Errors
-    /// Returns `ExpenseNotFound` for text that is not an expense id.
-    pub fn parse(text: &str) -> Result<Self, DomainError> {
-        Uuid::parse_str(text.trim())
-            .map(Self)
-            .map_err(|_| DomainError::ExpenseNotFound)
-    }
-}
-
-impl fmt::Display for ExpenseId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, f)
+impl IdKind for Expense {
+    fn not_found() -> DomainError {
+        DomainError::ExpenseNotFound
     }
 }
 

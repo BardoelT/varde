@@ -27,10 +27,11 @@ use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
+use crate::domain::common::{Note, Period};
 use crate::domain::error::DomainError;
-use crate::domain::investments::{Note, Period};
 
-use crate::domain::series::{self, COLOUR_SLOTS, MAX_NAME_CHARS};
+use crate::domain::common::{COLOUR_SLOTS, MAX_NAME_CHARS};
+use crate::domain::series;
 
 /// All bank accounts with their entries. Accounts are kept in the order they
 /// were created (CSD-009 section 5).
@@ -53,7 +54,7 @@ impl BankAccounts {
             return Err(DomainError::BankAccountNameDuplicate);
         }
         let account = BankAccount {
-            id: BankAccountId::generate(),
+            id: BankAccountId::new(),
             name: valid.name,
             period: valid.period.unwrap_or_default(),
             colour_slot: self.next_colour_slot(),

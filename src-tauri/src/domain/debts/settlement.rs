@@ -3,10 +3,10 @@
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
+use crate::domain::common::PayPeriod;
+use crate::domain::common::Period;
 use crate::domain::error::DomainError;
 use crate::domain::houses::{HouseDate, HouseId, Houses};
-use crate::domain::income::PayPeriod;
-use crate::domain::investments::Period;
 
 use super::{Category, Debt, DebtBalance, DebtId, DebtStatement, Debts};
 

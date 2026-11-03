@@ -137,10 +137,7 @@ fn test_csd001_ac_2_2_end_before_start_is_rejected_on_edit() {
 fn editing_an_unknown_job_is_rejected() {
     let mut income = Income::default();
     let error = income
-        .update_job(
-            JobId::generate(),
-            &input("Example Employer", "01/03/2024", ""),
-        )
+        .update_job(JobId::new(), &input("Example Employer", "01/03/2024", ""))
         .unwrap_err();
     assert_eq!(error, DomainError::JobNotFound);
 }
@@ -216,7 +213,7 @@ fn test_csd001_ac_5_7_a_month_in_the_future_is_accepted() {
 fn adding_a_paycheck_to_an_unknown_job_is_rejected() {
     let mut income = Income::default();
     let error = income
-        .add_paycheck(JobId::generate(), month("2026-09"), amounts("1.00", "", ""))
+        .add_paycheck(JobId::new(), month("2026-09"), amounts("1.00", "", ""))
         .unwrap_err();
     assert_eq!(error, DomainError::JobNotFound);
 }
@@ -1197,7 +1194,7 @@ fn test_csd001_ac_27_2_a_statement_for_a_monthly_job_is_rejected() {
 fn adding_a_statement_to_an_unknown_job_is_rejected() {
     let mut income = Income::default();
     let error = income
-        .add_statement(JobId::generate(), year("2025"), amounts("1.00", "", ""))
+        .add_statement(JobId::new(), year("2025"), amounts("1.00", "", ""))
         .unwrap_err();
     assert_eq!(error, DomainError::JobNotFound);
 }
@@ -1466,7 +1463,7 @@ fn validate_rejects_entries_that_do_not_match_the_pay_period() {
     assert_eq!(duplicate.validate().unwrap_err(), DomainError::DataInvalid);
 
     let mut orphan = income.clone();
-    orphan.statements[0].job_id = JobId::generate();
+    orphan.statements[0].job_id = JobId::new();
     assert_eq!(orphan.validate().unwrap_err(), DomainError::DataInvalid);
 }
 
@@ -1507,7 +1504,7 @@ fn validate_rejects_inconsistent_data() {
     assert!(income.validate().is_ok());
 
     let mut orphan = income.clone();
-    orphan.paychecks[0].job_id = JobId::generate();
+    orphan.paychecks[0].job_id = JobId::new();
     assert_eq!(orphan.validate().unwrap_err(), DomainError::DataInvalid);
 
     let mut duplicate = income.clone();

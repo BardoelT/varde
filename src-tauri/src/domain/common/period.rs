@@ -4,8 +4,8 @@ use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use super::{PayPeriod, Year, YearMonth};
 use crate::domain::error::DomainError;
-use crate::domain::income::{PayPeriod, Year, YearMonth};
 
 /// The period of one statement: a calendar month (`YYYY-MM`) or a calendar
 /// year (`YYYY`).

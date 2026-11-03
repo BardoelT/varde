@@ -3,7 +3,8 @@
 use rust_decimal::Decimal;
 use serde::Serialize;
 
-use super::{InvestmentAccount, Investments, Period};
+use super::{InvestmentAccount, Investments};
+use crate::domain::common::Period;
 
 /// One account row of the Investments view: its latest balance and period
 /// (CSD-005 REQ-15).

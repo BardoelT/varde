@@ -34,10 +34,11 @@ use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
+use crate::domain::common::{Note, Period};
 use crate::domain::error::DomainError;
-use crate::domain::investments::{Note, Period};
 
-use crate::domain::series::{self, COLOUR_SLOTS, MAX_NAME_CHARS};
+use crate::domain::common::{COLOUR_SLOTS, MAX_NAME_CHARS};
+use crate::domain::series;
 
 /// All houses with their valuations. Houses are kept in the order they were
 /// created (CSD-015 section 5).
@@ -62,7 +63,7 @@ impl Houses {
             return Err(DomainError::HouseNameDuplicate);
         }
         let house = House {
-            id: HouseId::generate(),
+            id: HouseId::new(),
             name: valid.name,
             period: valid.period.unwrap_or_default(),
             colour_slot: self.next_colour_slot(),

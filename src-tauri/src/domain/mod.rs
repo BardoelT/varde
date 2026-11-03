@@ -1,6 +1,7 @@
 //! Pure business logic: no Tauri, no IO.
 
 pub mod bank_accounts;
+pub mod common;
 pub mod debts;
 pub mod error;
 pub mod expenses;
@@ -19,6 +20,7 @@ pub use bank_accounts::{
     BankAccount, BankAccountId, BankAccounts, BankBalance, BankEntry, BankInsights, BankOverview,
     BankYearlyTotal, EntryPrefill,
 };
+pub use common::{Note, Period, Year, YearMonth};
 pub use debts::{
     Debt, DebtId, DebtInsights, DebtStatement, DebtYearlyTotal, Debts,
     StatementPrefill as DebtStatementPrefill,
@@ -33,12 +35,12 @@ pub use houses::{
 };
 pub use income::{
     Entry, Income, IncomeInsightsYear, IncomeOverview, IncomeYearlyTotal, Job, JobId, JobInput,
-    PaycheckPrefill, Year, YearMonth,
+    PaycheckPrefill,
 };
 pub use investments::{
     AccountInput, Balance, CalculationInput, InvestmentAccount, InvestmentAccountId,
     InvestmentInsightsYear, InvestmentStatement, InvestmentYearlyTotal, Investments,
-    InvestmentsOverview, NetDeposits, Note, Period, StatementCalculation, StatementPrefill,
+    InvestmentsOverview, NetDeposits, StatementCalculation, StatementPrefill,
 };
 pub use money::{Amounts, Currency};
 pub use net_worth::NetWorthInsights;

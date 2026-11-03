@@ -4,8 +4,8 @@ use proptest::prelude::*;
 use rust_decimal::Decimal;
 
 use super::*;
-use crate::domain::income::YearMonth;
-use crate::domain::investments::Period;
+use crate::domain::common::Period;
+use crate::domain::common::YearMonth;
 
 fn dec(text: &str) -> Decimal {
     Decimal::from_str(text).unwrap()

@@ -7,7 +7,8 @@ use crate::domain::error::DomainError;
 use crate::domain::money::{zero, Money, MoneyError};
 
 use super::amounts::parse_growth;
-use super::{Balance, InvestmentAccountId, InvestmentStatement, Investments, NetDeposits, Period};
+use super::{Balance, InvestmentAccountId, InvestmentStatement, Investments, NetDeposits};
+use crate::domain::common::Period;
 
 /// Which of balance and capital growth the user typed in the statement form
 /// (CSD-005 REQ-24).

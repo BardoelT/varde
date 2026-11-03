@@ -3,7 +3,7 @@
 use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::investments::Period;
+use crate::domain::common::Period;
 
 use super::{BankAccount, BankAccounts};
 

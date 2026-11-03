@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::money::Amounts;
 
-use super::{JobId, Year, YearMonth};
+use super::JobId;
+use crate::domain::common::{Year, YearMonth};
 
 /// The monthly pay record of one job (CSD-001 REQ-5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

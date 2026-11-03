@@ -10,7 +10,6 @@ mod amounts;
 mod growth;
 mod insights;
 mod overview;
-mod period;
 mod statement;
 mod totals;
 
@@ -18,11 +17,10 @@ mod totals;
 mod tests;
 
 pub use account::{AccountInput, InvestmentAccount, InvestmentAccountId};
-pub use amounts::{Balance, NetDeposits, Note};
+pub use amounts::{Balance, NetDeposits};
 pub use growth::{CalculationInput, StatementCalculation};
 pub use insights::InvestmentInsightsYear;
 pub use overview::InvestmentsOverview;
-pub use period::Period;
 pub use statement::{InvestmentStatement, StatementPrefill};
 pub use totals::InvestmentYearlyTotal;
 
@@ -33,7 +31,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::error::DomainError;
 
-use crate::domain::series::{self, MAX_NAME_CHARS};
+use crate::domain::common::{Note, Period, MAX_NAME_CHARS};
+use crate::domain::series;
 
 /// All investment accounts with their statements.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,7 +56,7 @@ impl Investments {
             return Err(DomainError::InvestmentAccountNameDuplicate);
         }
         let account = InvestmentAccount {
-            id: InvestmentAccountId::generate(),
+            id: InvestmentAccountId::new(),
             name: valid.name,
             period: valid.period.unwrap_or_default(),
         };

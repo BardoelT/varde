@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::income::YearMonth;
+use crate::domain::common::YearMonth;
 use crate::domain::money::{percent_of, zero};
 
 use super::{InvestmentYearlyTotal, Investments};

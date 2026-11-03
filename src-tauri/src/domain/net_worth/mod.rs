@@ -6,9 +6,9 @@ use rust_decimal::Decimal;
 use serde::Serialize;
 
 use crate::domain::bank_accounts::BankAccounts;
+use crate::domain::common::YearMonth;
 use crate::domain::debts::Debts;
 use crate::domain::houses::Houses;
-use crate::domain::income::YearMonth;
 use crate::domain::investments::Investments;
 use crate::domain::money::zero;
 

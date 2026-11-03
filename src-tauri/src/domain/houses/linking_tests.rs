@@ -2,13 +2,13 @@
 
 use rust_decimal::Decimal;
 
+use crate::domain::common::Note;
+use crate::domain::common::YearMonth;
 use crate::domain::debts::{
     debt_note, parse_period, Category, DebtBalance, DebtId, DebtInput, Outcome,
 };
 use crate::domain::houses::linking::{self, DebtFormInput, DebtLinksInput, SettlementChoice};
 use crate::domain::houses::{HouseId, HouseInput, HouseValue};
-use crate::domain::income::YearMonth;
-use crate::domain::investments::Note;
 use crate::domain::net_worth::net_worth_insights;
 use crate::domain::ratios::{ratios, RatioSources};
 use crate::domain::ProjectData;

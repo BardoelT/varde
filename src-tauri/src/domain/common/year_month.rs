@@ -1,10 +1,9 @@
-//! Calendar months (`YYYY-MM`), years (`YYYY`) and dates, as the income and investments domains use them.
+//! Calendar months (`YYYY-MM`) and years (`YYYY`), as every area uses them.
 
 use std::fmt;
 use std::str::FromStr;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use time::macros::format_description;
 use time::Date;
 
 use crate::domain::error::DomainError;
@@ -12,13 +11,6 @@ use crate::domain::error::DomainError;
 const FIRST_YEAR: i32 = 1;
 
 const LAST_YEAR: i32 = 9999;
-
-/// Parses a date as the user types it: `dd/mm/yyyy` with a two-digit day and
-/// month (CSD-001 REQ-22). Other formats and impossible dates are rejected.
-pub(super) fn parse_date(text: &str) -> Result<Date, DomainError> {
-    Date::parse(text.trim(), format_description!("[day]/[month]/[year]"))
-        .map_err(|_| DomainError::JobDateInvalid)
-}
 
 /// A calendar month, written `YYYY-MM`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

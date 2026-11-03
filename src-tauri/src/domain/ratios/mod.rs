@@ -6,10 +6,11 @@ use rust_decimal::Decimal;
 use serde::Serialize;
 
 use crate::domain::bank_accounts::BankAccounts;
+use crate::domain::common::YearMonth;
 use crate::domain::debts::Debts;
 use crate::domain::expenses::Expenses;
 use crate::domain::houses::Houses;
-use crate::domain::income::{Income, YearMonth};
+use crate::domain::income::Income;
 use crate::domain::investments::Investments;
 use crate::domain::money::{percent_of, zero};
 use crate::domain::net_worth::net_worth_insights;

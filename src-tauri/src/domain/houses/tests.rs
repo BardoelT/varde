@@ -1,6 +1,6 @@
 use super::*;
-use crate::domain::income::PayPeriod;
-use crate::domain::series::COLOUR_SLOTS;
+use crate::domain::common::PayPeriod;
+use crate::domain::common::COLOUR_SLOTS;
 use crate::domain::YearMonth;
 
 fn period(text: &str) -> Period {

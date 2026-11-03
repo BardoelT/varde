@@ -1,38 +1,18 @@
 //! Investment accounts: their id, name and statement period (CSD-005 REQ-1 to REQ-5).
 
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
+use crate::domain::common::PayPeriod;
+use crate::domain::common::MAX_NAME_CHARS;
+use crate::domain::common::{Id, IdKind};
 use crate::domain::error::DomainError;
-use crate::domain::income::PayPeriod;
-use crate::domain::series::MAX_NAME_CHARS;
 
-/// Identifies an investment account.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct InvestmentAccountId(Uuid);
+/// Identifies a `InvestmentAccount`.
+pub type InvestmentAccountId = Id<InvestmentAccount>;
 
-impl InvestmentAccountId {
-    pub(super) fn generate() -> Self {
-        Self(Uuid::new_v4())
-    }
-
-    /// Parses the text form returned to the frontend.
-    ///
-    /// # Errors
-    /// Returns `InvestmentAccountNotFound` for text that is not an account id.
-    pub fn parse(text: &str) -> Result<Self, DomainError> {
-        Uuid::parse_str(text.trim())
-            .map(Self)
-            .map_err(|_| DomainError::InvestmentAccountNotFound)
-    }
-}
-
-impl fmt::Display for InvestmentAccountId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, f)
+impl IdKind for InvestmentAccount {
+    fn not_found() -> DomainError {
+        DomainError::InvestmentAccountNotFound
     }
 }
 

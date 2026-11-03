@@ -3,8 +3,8 @@
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
+use crate::domain::common::Note;
 use crate::domain::error::DomainError;
-use crate::domain::investments::Note;
 use crate::domain::money::{bounded, plain_decimal, Money};
 
 /// What is still owed at the end of a period, in the project currency, from

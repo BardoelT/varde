@@ -7,7 +7,8 @@ use serde::Serialize;
 
 use crate::domain::money::{percent_of, zero};
 
-use super::{Income, IncomeYearlyTotal, YearMonth};
+use super::{Income, IncomeYearlyTotal};
+use crate::domain::common::YearMonth;
 
 /// One year of the insights chart: sums over all jobs, whether the year is
 /// still running, and its growth against the year before (CSD-006).

@@ -347,7 +347,8 @@ fn test_csd001_ac_30_4_a_rejected_move_is_not_an_unsaved_change() {
 
 #[test]
 fn test_csd005_ac_28_8_a_move_is_an_unsaved_change() {
-    use crate::domain::investments::{AccountInput, Balance, NetDeposits, Note, Period};
+    use crate::domain::common::{Note, Period};
+    use crate::domain::investments::{AccountInput, Balance, NetDeposits};
     let dir = TempDir::new().unwrap();
     let (mut project, _) = saved_project(&dir, "example-a.varde");
     let account = project

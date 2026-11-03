@@ -1,43 +1,23 @@
 //! Houses: their id, name, valuation period, colour slot (CSD-015 REQ-1 to
 //! REQ-6) and purchase and sale (CSD-020 REQ-1 to REQ-5).
 
-use std::fmt;
-
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
+use crate::domain::common::PayPeriod;
+use crate::domain::common::Period;
+use crate::domain::common::MAX_NAME_CHARS;
+use crate::domain::common::{Id, IdKind};
 use crate::domain::error::DomainError;
-use crate::domain::income::PayPeriod;
-use crate::domain::investments::Period;
-use crate::domain::series::MAX_NAME_CHARS;
 
 use super::{HouseDate, HouseValue};
 
-/// Identifies a house.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct HouseId(Uuid);
+/// Identifies a House.
+pub type HouseId = Id<House>;
 
-impl HouseId {
-    pub(super) fn generate() -> Self {
-        Self(Uuid::new_v4())
-    }
-
-    /// Parses the text form returned to the frontend.
-    ///
-    /// # Errors
-    /// Returns `HouseNotFound` for text that is not a house id.
-    pub fn parse(text: &str) -> Result<Self, DomainError> {
-        Uuid::parse_str(text.trim())
-            .map(Self)
-            .map_err(|_| DomainError::HouseNotFound)
-    }
-}
-
-impl fmt::Display for HouseId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, f)
+impl IdKind for House {
+    fn not_found() -> DomainError {
+        DomainError::HouseNotFound
     }
 }
 
