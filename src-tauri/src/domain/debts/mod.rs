@@ -33,7 +33,7 @@ use crate::domain::series::{self, SeriesData, SeriesError};
 
 /// All debts with their statements. Debts are kept in the order they were
 /// created (CSD-011 section 5). The rules every series shares are those of
-/// [`SeriesData`]; the settlement of a debt (CSD-020) is added in `settlement`.
+/// [`SeriesData`]; the settlement of a debt (CSD-026) is added in `settlement`.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Debts {

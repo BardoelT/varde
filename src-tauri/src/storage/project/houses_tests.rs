@@ -261,7 +261,7 @@ fn test_csd020_ac_33_2_a_settlement_statement_without_a_settlement_is_an_invalid
 }
 
 #[test]
-fn test_csd020_ac_13_4_a_house_without_a_purchase_is_an_invalid_file() {
+fn test_csd019_ac_13_4_a_house_without_a_purchase_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
     house(&mut project, "Example House", "Monthly");
@@ -307,7 +307,7 @@ fn open_changed_house_file(
 }
 
 #[test]
-fn test_csd020_ac_5_1_a_file_with_only_a_sell_date_or_only_a_sell_amount_is_invalid() {
+fn test_csd019_ac_5_1_a_file_with_only_a_sell_date_or_only_a_sell_amount_is_invalid() {
     for (field, value) in [
         ("sell_date", serde_json::json!("2026-06-10")),
         ("sell_amount", serde_json::json!("300000.00")),
@@ -322,7 +322,7 @@ fn test_csd020_ac_5_1_a_file_with_only_a_sell_date_or_only_a_sell_amount_is_inva
 }
 
 #[test]
-fn test_csd020_ac_5_1_a_file_with_both_sale_fields_or_none_opens() {
+fn test_csd019_ac_5_1_a_file_with_both_sale_fields_or_none_opens() {
     assert!(open_changed_house_file(|_| {}).is_ok());
     assert!(open_changed_house_file(|file| {
         file["houses"]["houses"][0]["sell_date"] = serde_json::json!("2026-06-10");

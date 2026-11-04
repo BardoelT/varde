@@ -96,7 +96,7 @@ pub fn ratios(sources: &RatioSources<'_>, today: YearMonth) -> Ratios {
         .yearly_totals()
         .into_iter()
         .map(|total| {
-            // A Cancelled debt was not paid with cash (CSD-020 REQ-27).
+            // A Cancelled debt was not paid with cash (CSD-026 REQ-10).
             let cancelled = sources.debts.cancelled_in(total.year);
             (total.year, total.repaid.map(|repaid| repaid - cancelled))
         })

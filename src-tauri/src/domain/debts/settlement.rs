@@ -1,4 +1,4 @@
-//! A debt linked to a house is settled when the house is sold (CSD-020).
+//! A debt linked to a house is settled when the house is sold (CSD-026).
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -12,7 +12,7 @@ use crate::domain::series::{SeriesData, SeriesRecord};
 
 use super::{Debt, DebtBalance, DebtCategory, DebtId, DebtStatement, Debts, StatementKind};
 
-/// How a debt ended on the sale of its house (CSD-020 section 3).
+/// How a debt ended on the sale of its house (CSD-026 section 3).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Outcome {
     /// The debt was paid off. It counts in full in the wealth accumulation.
@@ -31,7 +31,7 @@ impl Outcome {
     }
 }
 
-/// The outcome, date and settled amount of a settled debt (CSD-020 section 3).
+/// The outcome, date and settled amount of a settled debt (CSD-026 section 3).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Settlement {
@@ -55,7 +55,7 @@ pub struct OpenDebt {
 }
 
 /// The period of a debt that holds `date`: the month of a monthly debt, the
-/// year of a yearly one (CSD-020 section 3).
+/// year of a yearly one (CSD-026 section 3).
 pub(crate) fn sale_period(kind: PayPeriod, date: HouseDate) -> Result<Period, DomainError> {
     let invalid = || DomainError::DebtDataInvalid;
     match kind {
@@ -123,7 +123,7 @@ impl Debts {
 
     /// The open balance of a debt at a sale on `date`: the balance of its
     /// latest statement up to and including the sale period, `None` when there
-    /// is none or it is 0.00 (CSD-020 REQ-19).
+    /// is none or it is 0.00 (CSD-026 REQ-2).
     ///
     /// # Errors
     /// Returns `DebtNotFound`.
@@ -143,7 +143,7 @@ impl Debts {
     }
 
     /// The linked debts with an open balance at a sale on `date`, in debt
-    /// order, for the settlement prompt (CSD-020 REQ-18, REQ-31).
+    /// order, for the settlement prompt (CSD-026 REQ-1, REQ-13).
     ///
     /// # Errors
     /// Returns `DebtNotFound` for an unknown id.
@@ -170,7 +170,7 @@ impl Debts {
 
     /// Settles a debt on the sale of the house `house_name` on `date`: stores
     /// the settlement and adds the settlement statement of 0.00 in the sale
-    /// period, next to any regular statement of that period (CSD-020 REQ-20).
+    /// period, next to any regular statement of that period (CSD-026 REQ-3).
     /// The debt must have an open balance at `date`.
     ///
     /// # Errors
@@ -215,7 +215,7 @@ impl Debts {
     }
 
     /// Undoes the settlement of a debt: removes its settlement statement and
-    /// leaves the regular statements as they are (CSD-020 REQ-21).
+    /// leaves the regular statements as they are (CSD-026 REQ-4).
     ///
     /// # Errors
     /// Returns `DebtNotFound`.
@@ -232,7 +232,7 @@ impl Debts {
     }
 
     /// Rejects a regular statement for `period` when the debt is settled and
-    /// `period` is after the settlement period (CSD-020 REQ-23). The
+    /// `period` is after the settlement period (CSD-026 REQ-6). The
     /// settlement period itself stays open for a regular statement.
     pub(super) fn check_unsettled_at(&self, id: DebtId, period: Period) -> Result<(), DomainError> {
         if self.is_after_settlement(id, period)? {
@@ -244,7 +244,7 @@ impl Debts {
     /// Rejects changing or deleting the statement of `period` when the debt is
     /// settled and that statement is after the settlement period, or is the
     /// settlement statement itself, the only one in the settlement period
-    /// (CSD-020 REQ-23).
+    /// (CSD-026 REQ-6).
     pub(super) fn check_target_editable(
         &self,
         id: DebtId,
@@ -272,8 +272,8 @@ impl Debts {
     }
 
     /// Whether a statement can no longer change: the settlement statement, and
-    /// the statements after the settlement period of a settled debt (CSD-020
-    /// REQ-23, REQ-32).
+    /// the statements after the settlement period of a settled debt (CSD-026
+    /// REQ-6, REQ-14).
     #[must_use]
     pub fn statement_locked(&self, statement: &DebtStatement) -> bool {
         statement.is_settlement()
@@ -282,8 +282,8 @@ impl Debts {
                 .unwrap_or(false)
     }
 
-    /// Checks that the links and settlements read from a file follow CSD-020, so
-    /// a damaged file cannot break them.
+    /// Checks that the links and settlements read from a file follow CSD-020
+    /// and CSD-026, so a damaged file cannot break them.
     ///
     /// # Errors
     /// Returns `DebtDataInvalid` for the first inconsistency found.
@@ -335,7 +335,7 @@ impl Debts {
 
     /// The settled amount of the debts Cancelled in `year` that have an opening
     /// balance in it, which the wealth accumulation takes out of the repaid
-    /// amount (CSD-020 REQ-27).
+    /// amount (CSD-026 REQ-10).
     #[must_use]
     pub fn cancelled_in(&self, year: i32) -> Decimal {
         self.debts

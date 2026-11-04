@@ -21,14 +21,14 @@ pub struct HouseSummary {
     pub latest_period: Option<Period>,
     /// The latest value, `None` without valuations.
     pub latest_value: Option<Decimal>,
-    /// Whether the house has no sale (CSD-020 REQ-8).
+    /// Whether the house has no sale (CSD-019 REQ-8).
     pub held: bool,
     /// The sell amount minus the purchase amount of a sold house.
     pub result: Option<Decimal>,
 }
 
 /// The houses with the total of the latest values of the held houses (CSD-015
-/// REQ-17, CSD-020 REQ-9). The total is `None` while no held house has a
+/// REQ-17, CSD-019 REQ-9). The total is `None` while no held house has a
 /// valuation.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HousesOverview {

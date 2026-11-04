@@ -69,7 +69,7 @@ pub struct Debt {
     /// The house this debt is linked to (CSD-020 REQ-15).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub house_id: Option<HouseId>,
-    /// How the debt was settled on the sale of its house (CSD-020 REQ-20).
+    /// How the debt was settled on the sale of its house (CSD-026 REQ-3).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub settlement: Option<Settlement>,
 }

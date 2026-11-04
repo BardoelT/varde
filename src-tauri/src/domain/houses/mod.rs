@@ -38,7 +38,7 @@ use crate::domain::series::{self, SeriesData, SeriesError};
 
 /// All houses with their valuations. Houses are kept in the order they were
 /// created (CSD-015 section 5). The rules every series shares are those of
-/// [`SeriesData`]; a house adds its holding window (CSD-020).
+/// [`SeriesData`]; a house adds its holding window (CSD-019).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Houses {
@@ -49,11 +49,11 @@ pub struct Houses {
 impl Houses {
     /// Creates a house, monthly unless the input says Yearly, with the colour
     /// slot of REQ-3 (REQ-1, REQ-2). Any purchase and sell date
-    /// is accepted (CSD-020 REQ-3).
+    /// is accepted (CSD-019 REQ-3).
     ///
     /// # Errors
     /// Returns the name errors of REQ-2, `HousePeriodUnsupported` or the
-    /// purchase and sale errors of CSD-020 REQ-1 to REQ-5.
+    /// purchase and sale errors of CSD-019 REQ-1 to REQ-5.
     pub fn create_house(&mut self, input: &HouseInput) -> Result<House, DomainError> {
         let valid = input.validate()?;
         self.check_name_free(&valid.name, None)?;
@@ -75,7 +75,7 @@ impl Houses {
     /// Changes the name, valuation period, purchase and sale of a house. The
     /// valuations and the colour slot stay; the period is locked once the house
     /// has any valuation, and the dates may not leave a valuation outside the
-    /// holding window (REQ-4, REQ-5, CSD-020 REQ-6, REQ-7).
+    /// holding window (REQ-4, REQ-5, CSD-019 REQ-6, REQ-7).
     ///
     /// # Errors
     /// Returns a validation error, `HouseNotFound`, `HouseNameDuplicate`,
@@ -248,7 +248,7 @@ impl SeriesData for Houses {
     }
 
     /// The sale is not before the purchase and the amounts are valid
-    /// (CSD-020 REQ-5, REQ-13). That the sale has both a date and an amount is
+    /// (CSD-019 REQ-5, REQ-13). That the sale has both a date and an amount is
     /// the type `Sale`.
     fn account_is_consistent(&self, house: &House) -> bool {
         let amounts_valid = [
@@ -268,7 +268,7 @@ impl SeriesData for Houses {
         house.window_contains(period)
     }
 
-    /// A valuation lies inside the holding window (CSD-020 REQ-6).
+    /// A valuation lies inside the holding window (CSD-019 REQ-6).
     fn check_period_allowed(&self, id: HouseId, period: Period) -> Result<(), DomainError> {
         if !self.account(id)?.window_contains(period) {
             return Err(DomainError::HouseValuationOutsideHolding);
@@ -276,7 +276,7 @@ impl SeriesData for Houses {
         Ok(())
     }
 
-    /// Only the houses held at the end of a year count in it (CSD-020 REQ-10).
+    /// Only the houses held at the end of a year count in it (CSD-019 REQ-10).
     fn counts_in_year(&self, house: &House, year: i32) -> bool {
         house.held_at_end_of(year)
     }

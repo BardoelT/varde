@@ -1,4 +1,4 @@
-//! Yearly values over all houses (CSD-015 REQ-20, CSD-020 REQ-10).
+//! Yearly values over all houses (CSD-015 REQ-20, CSD-019 REQ-10).
 
 use rust_decimal::Decimal;
 use serde::Serialize;
@@ -26,7 +26,7 @@ impl Houses {
     /// Totals per calendar year over all houses, newest year first, without
     /// extrapolating partial years or carrying values forward (REQ-20). A
     /// valuation counts in the year of its own period only, and only when its
-    /// house is held at the end of that year (CSD-020 REQ-10).
+    /// house is held at the end of that year (CSD-019 REQ-10).
     #[must_use]
     pub fn yearly_values(&self) -> Vec<HouseYearlyValue> {
         self.yearly_closings()

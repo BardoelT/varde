@@ -123,7 +123,7 @@ impl Project {
     }
 
     /// The houses and the debts together, for the changes that touch both
-    /// (CSD-020).
+    /// (CSD-019, CSD-020, CSD-026).
     pub fn houses_and_debts_mut(&mut self) -> (&mut Houses, &mut Debts) {
         (&mut self.data.houses, &mut self.data.debts)
     }

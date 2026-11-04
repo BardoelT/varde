@@ -1,5 +1,5 @@
 //! Houses: their id, name, valuation period, colour slot (CSD-015 REQ-1 to
-//! REQ-6) and purchase and sale (CSD-020 REQ-1 to REQ-5).
+//! REQ-6) and purchase and sale (CSD-019 REQ-1 to REQ-5).
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -21,7 +21,7 @@ impl IdKind for House {
     }
 }
 
-/// The sale of a house: the date and the amount together (CSD-020 REQ-5).
+/// The sale of a house: the date and the amount together (CSD-019 REQ-5).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Sale {
     pub date: HouseDate,
@@ -42,11 +42,11 @@ pub struct House {
     pub period: PayPeriod,
     /// 0 to 7, fixed when the house is created (CSD-015 REQ-3).
     pub colour_slot: ColourSlot,
-    /// Every house has a purchase (CSD-020 REQ-1).
+    /// Every house has a purchase (CSD-019 REQ-1).
     pub purchase_date: HouseDate,
     /// Purchase price.
     pub purchase_amount: HouseValue,
-    /// The sale, with its date and amount together or none (CSD-020 REQ-5).
+    /// The sale, with its date and amount together or none (CSD-019 REQ-5).
     pub sale: Option<Sale>,
 }
 
@@ -119,13 +119,13 @@ impl SeriesAccount for House {
 }
 
 impl House {
-    /// Whether the house has no sale (CSD-020 section 3).
+    /// Whether the house has no sale (CSD-019 section 3).
     #[must_use]
     pub fn is_held(&self) -> bool {
         self.sale.is_none()
     }
 
-    /// The sell amount minus the purchase amount of a sold house (CSD-020
+    /// The sell amount minus the purchase amount of a sold house (CSD-019
     /// REQ-8). It is derived and never stored.
     #[must_use]
     pub fn result(&self) -> Option<Decimal> {
@@ -133,14 +133,14 @@ impl House {
     }
 
     /// Whether the house was purchased on or before 31/12 of `year` and not
-    /// sold on or before it (CSD-020 REQ-10).
+    /// sold on or before it (CSD-019 REQ-10).
     pub(super) fn held_at_end_of(&self, year: i32) -> bool {
         self.purchase_date.year() <= year && self.sale.is_none_or(|sale| sale.date.year() > year)
     }
 
     /// Whether `period` lies in the holding window: not before the period of
     /// the purchase date and not after the period of the sell date, compared
-    /// in the month or year of the period (CSD-020 REQ-6).
+    /// in the month or year of the period (CSD-019 REQ-6).
     pub(super) fn window_contains(&self, period: Period) -> bool {
         let key = |date: HouseDate| match period {
             Period::Month(_) => (date.year(), date.month()),
@@ -163,13 +163,13 @@ pub struct HouseInput {
     /// `None` means Monthly when creating and "unchanged" when editing.
     #[serde(default)]
     pub period: Option<String>,
-    /// `dd/mm/yyyy`; required (CSD-020 REQ-1).
+    /// `dd/mm/yyyy`; required (CSD-019 REQ-1).
     #[serde(default)]
     pub purchase_date: Option<String>,
     /// Purchase price.
     #[serde(default)]
     pub purchase_amount: Option<String>,
-    /// Both or neither (CSD-020 REQ-5).
+    /// Both or neither (CSD-019 REQ-5).
     #[serde(default)]
     pub sell_date: Option<String>,
     /// Sale price.
@@ -191,7 +191,7 @@ fn filled(text: Option<&str>) -> Option<&str> {
 }
 
 impl HouseInput {
-    /// Validates the input (CSD-020 REQ-1 to REQ-5).
+    /// Validates the input (CSD-019 REQ-1 to REQ-5).
     pub(super) fn validate(&self) -> Result<ValidHouse, DomainError> {
         let identity = series::validate_identity::<Houses>(&self.name, self.period.as_deref())?;
         let purchase_date = filled(self.purchase_date.as_deref())

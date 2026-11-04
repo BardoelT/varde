@@ -43,7 +43,7 @@ impl HouseValue {
     }
 
     /// Parses a purchase or sell amount typed by the user. The rules are those
-    /// of a value, with the error codes of CSD-020 REQ-4.
+    /// of a value, with the error codes of CSD-019 REQ-4.
     ///
     /// # Errors
     /// Returns `HouseAmountInvalid`, `HouseAmountNegative`,

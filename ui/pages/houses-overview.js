@@ -1,5 +1,5 @@
 // Houses: things the user owns with a monthly or yearly valuation, each a value and a note (CSD-015),
-// bought once and possibly sold (CSD-020 REQ-1, REQ-2).
+// bought once and possibly sold (CSD-019 REQ-1, REQ-2).
 import { invoke } from '../shared/ipc.js';
 import { $, h, confirmAction, showError, setHint, submitOnce } from '../shared/dom.js';
 import { formatAmount, formatDate, noteSummary } from '../shared/format.js';
@@ -19,7 +19,7 @@ function optionalAmount(value) {
 
 // ---- Rendering ----
 
-/** Only the valuation period and Held or Sold; the purchase and sale are in the edit form (CSD-020 REQ-8). */
+/** Only the valuation period and Held or Sold; the purchase and sale are in the edit form (CSD-019 REQ-8). */
 function holdingText(house) {
   return `${t(house.period)} · ${house.held ? t('Held') : t('Sold')}`;
 }
@@ -92,7 +92,7 @@ async function changed() {
 
 let editingHouse = null;
 
-/** The debts linked to the house as a read-only table: they are linked in the debt form (CSD-020 REQ-29). */
+/** The debts linked to the house as a read-only table: they are linked in the debt form (CSD-026 REQ-12). */
 function fillLinkedDebts(house) {
   const linked = house ? house.linked_debts : [];
   $('house-debts').hidden = linked.length === 0;
@@ -158,7 +158,7 @@ function submitHouse() {
       const sellDate = input.sell_date.trim();
       const sold = editingHouse !== null && !editingHouse.held;
       if (sellDate && !sold) {
-        // A new sale: linked debts with an open balance need Repaid or Cancelled (CSD-020 REQ-18).
+        // A new sale: linked debts with an open balance need Repaid or Cancelled (CSD-026 REQ-1).
         const open = editingHouse ? await invoke('list_open_debts', { houseId: editingHouse.id, sellDate }) : [];
         if (open.length > 0) {
           const choices = await askSettlements(open);
@@ -166,7 +166,7 @@ function submitHouse() {
           links.settlements = choices;
         }
       } else if (!sellDate && sold && editingHouse.linked_debts.some((debt) => debt.settlement)) {
-        // Undoing the sale also undoes the settled debts (CSD-020 REQ-21).
+        // Undoing the sale also undoes the settled debts (CSD-026 REQ-4).
         const confirmed = await confirmAction({
           title: t('Undo the sale?'),
           message: t('The debts settled on this sale go back to their earlier balances.'),

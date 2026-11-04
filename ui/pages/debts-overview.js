@@ -71,7 +71,7 @@ function renderStatements(statements) {
         noteSummary(s.note),
         s.settlement && s.outcome ? h('span', { class: 'badge' }, t(s.outcome)) : '',
       ),
-      // A statement of a settled debt, from its settlement period on, cannot change (CSD-020 REQ-32).
+      // A statement of a settled debt, from its settlement period on, cannot change (CSD-026 REQ-14).
       recordActions({
         locked: s.locked,
         edit: { label: t('Edit {name} {period}', { name: s.debt_name, period: s.period }), onClick: () => statementForm.open(s) },
@@ -110,7 +110,7 @@ function fillHouseChoices(debt) {
     ...houses.map((house) => h('option', { value: house.id }, house.held ? house.name : t('{name} (sold)', { name: house.name }))),
   );
   select.value = debt?.house_id ?? '';
-  // The link of a settled debt, or of a debt whose house is sold, cannot change (CSD-020 REQ-16, REQ-23).
+  // The link of a settled debt, or of a debt whose house is sold, cannot change (CSD-020 REQ-16, CSD-026 REQ-6).
   const locked = Boolean(debt && (debt.settlement || (debt.house_id && !houses.find((house) => house.id === debt.house_id)?.held)));
   select.disabled = locked;
   form.elements.category.disabled = locked && Boolean(debt.house_id);

@@ -1,5 +1,5 @@
 // The cheap UI bugs of refactoring step 11: double submit, reload errors, one failing page,
-// the Dutch coverage and the wording of the settle dialog (CSD-011 REQ-27/28, CSD-020 REQ-31).
+// the Dutch coverage and the wording of the settle dialog (CSD-011 REQ-27/28, CSD-026 REQ-13).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -279,7 +279,7 @@ test('test_csd022_every_translatable_text_has_a_dutch_version', async () => {
 
 const openDebts = [{ debt_id: 'debt-1', debt_name: 'Example Mortgage', amount: '190000.00' }];
 
-test('test_csd020_ac_31_1_the_settle_hint_says_repaid_counts_in_full_and_cancelled_nets_to_zero', async () => {
+test('test_csd026_ac_13_1_the_settle_hint_says_repaid_counts_in_full_and_cancelled_nets_to_zero', async () => {
   const app = await openApp();
   const { askSettlements } = await app.load('shared/settle.js');
   const answer = askSettlements(openDebts);
@@ -292,7 +292,7 @@ test('test_csd020_ac_31_1_the_settle_hint_says_repaid_counts_in_full_and_cancell
   app.close();
 });
 
-test('test_csd020_ac_31_1_the_settle_hint_in_dutch', async () => {
+test('test_csd026_ac_13_1_the_settle_hint_in_dutch', async () => {
   const reads = exampleReads();
   reads.get_preferences = { theme: 'system', language: 'nl' };
   const app = await openApp({ reads });

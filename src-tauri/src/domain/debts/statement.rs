@@ -18,7 +18,7 @@ pub enum StatementKind {
     /// A statement the user entered.
     #[default]
     Regular,
-    /// The final statement a settlement adds (CSD-020 REQ-20); it may share its
+    /// The final statement a settlement adds (CSD-026 REQ-3); it may share its
     /// period with a regular statement.
     Settlement,
 }
