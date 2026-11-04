@@ -1174,7 +1174,7 @@ Domain and command ACs are proven by `cargo test`, with domain logic tested in `
 | Display ACs (REQ-20 to REQ-22, REQ-27, REQ-28, form labels, section order and contents, no counts anywhere, delete confirmation text, titles without a currency, button placement, left-pane item, empty states, note cut-off, plain-text note, dashes for none, the settle dialog) | `npm test`: `ui/tests/ac-c1-debts.test.js` (jsdom, canned Rust answers). jsdom has no layout, so the look (right-edge placement in pixels, icon drawing, tooltip appearance) is checked by hand. There are no `test_csd011_ac_20_` tests in Rust |
 | The currency confirmation for debt statements | Governed by CSD-003 REQ-5 (AC-5.9, AC-5.10), verified there |
 
-Not covered by a named test yet (1 of 123 ACs; no test carries the AC id): AC-19.12 (finding: the yearly totals of the Debts overview show repaid 200000.00, not the Cancelled-adjusted 10000.00 that CSD-026 REQ-11 asks for; only the ratios apply `cancelled_in`).
+Every AC is covered by a named test.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

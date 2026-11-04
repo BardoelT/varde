@@ -441,7 +441,7 @@ The figures are proven by `cargo test`. Tests are named `test_csd006_ac_<n>_<m>_
 | Rust tests (data) | `cargo test test_csd006_` |
 | Display ACs (REQ-7 to REQ-18 and AC-1.1 to AC-1.3) | `npm test`: `ac-a-income-insights.test.js` (AC-1.1 to AC-1.3, AC-7.1 to AC-7.4, AC-8.2, AC-9.1 to AC-9.3, AC-11.1, AC-11.2, AC-12.1, AC-12.5, AC-12.6, AC-17.3, AC-18.1). Manual checklist (jsdom has no layout: AC-12.2 to AC-12.4, the placement and centring of the tooltip; and the look and motion): motion of the tooltip and the dimming, reduced motion, bar shape, gridlines, labels, tooltip look and colours in both modes, tabs, bars and legend, axis, gap and YTD years, growth labels and colours, tooltip by mouse and keyboard, swatches and placement of the tooltip, chart size (plot height scaling with the window, 64 px slots) and legend, tooltip row order and "No entries" note without counts, legend and segment highlight on hover and legend-item focus across all years, no highlight on keyboard focus, empty note, refresh after a change, light and dark mode. The shared chart behaviour has DOM tests under CSD-025 |
 
-Not covered by a named test yet (4 of 36 ACs; no test carries the AC id): AC-9.4 (the income tooltip of a year without entries shows no "No entries" note: open finding), AC-12.2 to AC-12.4 (placement of the tooltip, needs layout: checked by hand).
+Not covered by a named test yet (3 of 36 ACs; no test carries the AC id): AC-12.2 to AC-12.4 (placement of the tooltip, needs layout: checked by hand).
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

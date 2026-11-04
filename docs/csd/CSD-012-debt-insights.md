@@ -574,7 +574,7 @@ The series is computed in Rust, so REQ-2 to REQ-5 are proven by `cargo test`. Te
 | REQ-2 and REQ-4 (the test names carry the requirement but no AC number) | `cargo test test_csd012_ac_2_` and `cargo test test_csd012_ac_4_` |
 | Display ACs (tabs, stacking, axis range, markers, colours of both modes and of the ninth debt, legend order, wrapping and ellipsis, tooltip placement and row order, no counts, the repaid row, highlight from a segment and from the legend, accessible labels, the empty note) | `npm test`: `ui/tests/ac-c1-debt-insights.test.js` (jsdom, canned Rust answers). By hand, because jsdom has no layout: the placement of the tooltip beside the bar and centred over a gap year (AC-10.6, and the placement half of AC-10.7), the real wrapping of a long legend on a narrow window (AC-9.3) and the look of the shared size (AC-13.1; the plot and slot geometry are compared with the Bank accounts chart in the test) |
 
-Not covered by a named test yet (2 of 56 ACs; no test carries the AC id; AC-13.2, AC-13.3 and AC-13.5 are removed): AC-5.6 (finding: the repaid amount of the insights and of the yearly totals is not Cancelled-adjusted, 200000.00 instead of 10000.00), AC-10.6 (tooltip placement, checked by hand).
+Not covered by a named test yet (1 of 56 ACs; no test carries the AC id; AC-13.2, AC-13.3 and AC-13.5 are removed): AC-10.6 (tooltip placement, checked by hand).
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

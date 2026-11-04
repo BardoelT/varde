@@ -431,7 +431,7 @@ Tests are named `test_csd018_ac_<n>_<m>_<description>` (CSD-000 REQ-6) and run w
 | Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-11.1, empty project), `ratios.test.js` (AC-10.1, AC-10.2) and `ac-c2-ratios.test.js` (the page without tabs, the rows and sub-headings, the sticky row labels, fresh figures, the info tooltips) |
 | Display ACs without a DOM test (the real sideways scrolling of the table: jsdom has no layout, so only the sticky rule of the stylesheet is checked) | Checked by hand |
 
-Not covered by a named test yet (1 of 41 ACs; no test carries the AC id): AC-5.9 (the Debts overview does not apply the Cancelled adjustment of CSD-026 REQ-11 yet).
+Every AC is covered by a named test.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
