@@ -12,6 +12,9 @@ use serde::{Deserialize, Deserializer, Serialize};
 use thiserror::Error;
 
 /// Longest accepted amount text, a bound on untrusted input.
+/// The most fraction digits a `Decimal` holds exactly.
+const MAX_DECIMAL_FRACTION_DIGITS: usize = 28;
+
 const MAX_TEXT_LEN: usize = 32;
 
 /// The number of decimals every amount has.
@@ -99,6 +102,12 @@ impl Money {
             && (fraction.is_empty() != unsigned.contains('.'));
         if !well_formed {
             return Err(MoneyError::Invalid);
+        }
+        // `Decimal` rounds a fraction of more than 28 digits instead of failing,
+        // which would turn `1.00000000000000000000000000004` into `1.00`:
+        // significant digits that far out are over-precise input.
+        if fraction.trim_end_matches('0').len() > MAX_DECIMAL_FRACTION_DIGITS {
+            return Err(MoneyError::Precision);
         }
         Decimal::from_str(text).map_err(|_| MoneyError::Invalid)
     }

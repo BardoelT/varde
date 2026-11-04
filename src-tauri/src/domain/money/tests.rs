@@ -270,3 +270,22 @@ proptest! {
         prop_assert_eq!(YearMonth::new(a.0, a.1).unwrap().cmp(&YearMonth::new(b.0, b.1).unwrap()), a.cmp(&b));
     }
 }
+
+#[test]
+fn a_fraction_longer_than_a_decimal_holds_is_rejected_not_rounded() {
+    for text in [
+        "1.00000000000000000000000000004",
+        "0.00000000000000000000000000001",
+        "-1.00000000000000000000000000004",
+    ] {
+        assert_eq!(Money::parse(text), Err(MoneyError::Precision), "{text}");
+    }
+    // Trailing zeros carry no value and stay accepted, however many there are.
+    assert_eq!(
+        Money::parse("1.00000000000000000000000000000")
+            .unwrap()
+            .value()
+            .to_string(),
+        "1.00"
+    );
+}
