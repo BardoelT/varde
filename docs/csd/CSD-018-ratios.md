@@ -3,7 +3,7 @@ id: CSD-018
 title: Ratios
 status: approved
 owner: Thijs Bardoel
-version: 1.4
+version: 1.5
 last_updated: 04/11/2026
 related: [CSD-000, CSD-001, CSD-005, CSD-007, CSD-009, CSD-011, CSD-013, CSD-017, CSD-024, CSD-026]
 ---
@@ -38,7 +38,7 @@ The charts show how each area develops, but not how the owner's income relates t
 | **Net worth** | As in CSD-017 section 3. |
 | **Bank increase (in a year)** | The sum, over the bank accounts that have an entry in that year and an earlier entry, of the balance of its latest entry in that year minus the balance of its latest entry before that year. It is negative when those accounts shrank. A bank account without an earlier entry adds nothing, because it is not known what it grew from. It is none when no bank account has both. |
 | **Net deposits (in a year)** | The net deposits of the year over all investment accounts (CSD-005 REQ-26). |
-| **Repaid (in a year)** | As in CSD-011 section 3, minus the settled amount of every debt that was Cancelled on the sale of its house in that year and that is part of that sum (CSD-026 REQ-10). Only a Cancelled debt nets to zero: a debt that was Repaid counts in full, as any drop in balance does (CSD-026 REQ-9). It is the repaid amount the Debts overview shows in its yearly totals (CSD-026 REQ-11). It is negative when debts grew or when more was cancelled than repaid, and none when no debt has an opening balance in the year. |
+| **Repaid (in a year)** | As in CSD-011 section 3, minus the settled amount of every debt that was Cancelled on the sale of its house in that year and that is part of that sum (CSD-026 REQ-10). Only a Cancelled debt nets to zero: a debt that was Repaid counts in full, as any drop in balance does (CSD-026 REQ-9). It is the repaid amount the Debts overview shows in its yearly totals (CSD-026 REQ-11). It is negative when debts grew or when more was cancelled than repaid, and none when no debt has a statement in the year. |
 | **Wealth accumulation from cash** | Bank increase plus net deposits plus repaid, where a part that is none counts as 0.00. |
 | **Disposable income** | Wealth accumulation from cash plus expenses: what was set aside and what was spent. |
 
@@ -194,7 +194,7 @@ Scenario: A cancelled mortgage does not count as cash repaid
 Scenario: A debt cancelled in the year it started adds nothing
   Given debt "Example Loan" has its first statement in 2026-02 with balance 5000.00 and was Cancelled on 10/06/2026 (settled amount 5000.00)
   When the series is computed
-  Then the repaid amount of 2026 is none, as the debt has no opening balance in 2026
+  Then the repaid amount of 2026 is 0.00, as the debt starts from its opening amount 5000.00 (CSD-011 shorthand) and the Cancelled amount nets out
 
 @AC-5.9
 Scenario: Same repaid amount as the Debts overview
@@ -439,6 +439,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 1.5 (04/11/2026): The repaid amount follows CSD-011 v3.3: a debt with no earlier statement starts from its opening amount, so the repaid amount is none only in a year without a debt statement (definition of Repaid, AC-5.8: a debt cancelled in the year it started gives 0.00). The wealth accumulation from cash follows through the repaid amount. The scenarios use the shorthand of CSD-011. Back to `draft` until re-approved.
 - 1.4 (04/11/2026): Rust delivers the percentage labels of the table (`wealth_percent_label`, `investment_growth_percent_label`, `wealth_growth_percent_label`, `disposable_percent_label`; REQ-10 and section 5), so the frontend formats nothing and the sign is "-" like the charts. Back to `draft` until re-approved.
 - 1.3 (04/11/2026): Live references follow the split of the former CSD-020: the Cancelled and Repaid treatment is CSD-026 REQ-9, REQ-10 and REQ-11 (definition of Repaid, REQ-5); no behaviour change. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.

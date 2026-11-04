@@ -3,7 +3,7 @@ id: CSD-026
 title: Sale settlement of linked debts
 status: approved
 owner: Thijs Bardoel
-version: 3.0
+version: 3.1
 last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-011, CSD-012, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020]
 ---
@@ -335,7 +335,7 @@ Scenario: Repaid
 ```
 
 **REQ-10: A Cancelled debt nets to zero** *(ubiquitous)*
-The app shall subtract the settled amount of a Cancelled debt from the repaid amount of the year of its settlement in the wealth accumulation from cash, so that the cancelled part nets to zero, only when the debt has an opening balance in that year (CSD-011 section 3), and the result may be negative.
+The app shall subtract the settled amount of a Cancelled debt from the repaid amount of the year of its settlement in the wealth accumulation from cash, so that the cancelled part nets to zero, and the result may be negative.
 
 ```gherkin
 @AC-10.1
@@ -345,10 +345,10 @@ Scenario: Cancelled
   Then the repaid amount of 2026 is 10000.00
 
 @AC-10.2
-Scenario: No opening balance
-  Given "Example Loan" with its first statement 2026-02 (5000.00) and Cancelled on 10/06/2026 (settled amount 5000.00)
+Scenario: Cancelled in the year it started
+  Given "Example Loan" with opening 15/01/2026 and 5000.00, its first statement 2026-02 (5000.00) and Cancelled on 10/06/2026 (settled amount 5000.00)
   When the ratios are computed
-  Then the repaid amount of 2026 is none
+  Then the repaid amount of 2026 is 0.00
 
 @AC-10.3
 Scenario: More cancelled than repaid
@@ -368,10 +368,10 @@ Scenario: Cancelled debt in the yearly totals
   Then the yearly total of 2026 shows repaid 10000.00
 
 @AC-11.2
-Scenario: No opening balance in the yearly totals
-  Given "Example Loan" with its first statement 2026-02 (5000.00) and Cancelled on 10/06/2026 (settled amount 5000.00)
+Scenario: Cancelled in the year it started, in the yearly totals
+  Given "Example Loan" with opening 15/01/2026 and 5000.00, its first statement 2026-02 (5000.00) and Cancelled on 10/06/2026 (settled amount 5000.00)
   When the user opens the Debts overview
-  Then the yearly total of 2026 shows no repaid amount
+  Then the yearly total of 2026 shows repaid 0.00
 ```
 
 ### 4.4 Display
@@ -641,6 +641,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None of its own. CSD-011 OQ-1 (the typed closing amount) is resolved and shapes REQ-15, and CSD-011 OQ-2 (closing a linked debt by hand) is resolved the other way in v3.0 (REQ-15). The former OQ-1 of CSD-020 (Cancelled-adjusted repaid amount in the Debts overview) is answered by REQ-11.
 
 ## 9. Changelog
+- 3.1 (04/11/2026): The Cancelled subtraction no longer needs an opening balance of the year, because every debt starts from its opening amount (CSD-011 v3.3): REQ-10 reworded, AC-10.2 and AC-11.2 give 0.00 for a debt cancelled in the year it started instead of none. Back to `draft` until re-approved.
 - 3.0 (04/11/2026): A loan or a mortgage can be repaid or cancelled without selling its house, and the debts of a sold house can be edited. Every settlement carries an `origin` (Sale or Manual; new definitions Origin, Closing by sale, Open debt). A debt with a house link, held or sold, can be closed by hand (REQ-15, AC-15.2 reversed, new AC-15.6, AC-15.7; `DEBT_CLOSING_LINKED` removed; NG-2 removed). A closing is edited in place without the clear-and-re-enter step, and a closing by sale that the user edits becomes manual (new REQ-17; NG-3 removed). Any closing can be cleared with the confirmation, a closing by sale too (REQ-16, AC-16.3 reversed, new AC-16.4). The house link of a closed debt can change without losing the closing (new REQ-18); REQ-6 no longer locks the link and the category of a settled debt. A sale skips debts that are closed already (REQ-1, new AC-1.5, AC-1.6), undoing a sale removes only closings by sale (REQ-4, new AC-4.4, AC-4.5), and only a closing by sale locks the sell date (REQ-5, new AC-5.3, AC-5.4). Section 5, the error codes and section 7 updated. The file schema change is in CSD-002 v2.0 (`format_version` 2). Owner decisions from the grill-me interview of 04/11/2026. Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A debt without a house link can be closed by hand: new REQ-15 (manual closing, settlement statement note "Repaid on closing" or "Cancelled on closing") and REQ-16 (clearing it after confirmation); NG-2 and NG-3 narrowed, REQ-6 amended (adding a link to a closed debt is locked, the name and the opening stay editable), new definition Manual closing, CON-6 amended, section 5 and the error codes extended (GitHub issue 51, with CSD-011 v3.0). Owner decisions from the grill-me interview of 04/11/2026. Back to `draft` until re-approved.
 - 1.1 (04/11/2026): Wording follows the UI; no behaviour change: the linked-debts table in the Edit house form shows grouped amounts and "—" for no outcome (AC-12.2). Back to `draft` until re-approved.
