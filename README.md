@@ -74,8 +74,9 @@ The app has no frontend build step and no runtime npm dependency. `ui/` is serve
 - **Project actions** live in the native macOS **File** menu: New (⌘N), Open… (⌘O), Save (⌘S) and Save As… (⇧⌘S). An indicator at the bottom of the left pane shows unsaved changes, and the app asks before you quit or replace a project with unsaved edits. On start, the app reopens the last project you used.
 - **Settings** open from the Settings item at the bottom of the left pane, or from the app menu with ⌘,.
 - **Dates** are shown and typed as `dd/mm/yyyy`, and months as `YYYY-MM`.
+- **Try it:** open [`examples/example.varde`](examples/example.varde) with File > Open… to see every page filled with synthetic data (income, investments, bank accounts, expenses, houses, debts, net worth and ratios). Save it under another name before you edit it.
 
-> **Project files hold real financial data** and are plain, unencrypted JSON. `*.varde` is git-ignored. Never commit one.
+> **Project files hold real financial data** and are plain, unencrypted JSON. `*.varde` is git-ignored, with one exception: the synthetic example above. Never commit any other one.
 
 ## Development
 
@@ -85,6 +86,7 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all-features
 cargo deny check
 GOLDEN_UPDATE=1 cargo test golden        # only for a deliberate change of behaviour: rewrites src-tauri/golden/
+EXAMPLE_UPDATE=1 cargo test example      # rewrites examples/example.varde from its generator; review the diff
 npm ci                                   # once: installs jsdom, the tests-only dev dependency
 npm test                                 # DOM tests of ui/ (Node 26)
 ```
