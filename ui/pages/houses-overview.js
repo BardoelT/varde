@@ -1,7 +1,7 @@
 // Houses: things the user owns with a monthly or yearly valuation, each a value and a note (CSD-015),
 // bought once and possibly sold (CSD-020 REQ-1, REQ-2).
 import { invoke } from '../shared/ipc.js';
-import { $, h, confirmAction, showError, submitOnce } from '../shared/dom.js';
+import { $, h, confirmAction, showError, setHint, submitOnce } from '../shared/dom.js';
 import { formatAmount, formatDate, noteSummary } from '../shared/format.js';
 import { askSettlements } from '../shared/settle.js';
 import { t } from '../shared/i18n.js';
@@ -123,7 +123,7 @@ function openHouseDialog(house) {
       // The valuation period is locked once the house has valuations (CSD-015 REQ-5).
       const locked = Boolean(house && house.valuation_count > 0);
       form.elements.period.disabled = locked;
-      $('house-period-hint').hidden = !locked;
+      setHint('house-period-hint', locked);
       if (house) {
         form.elements.name.value = house.name;
         form.elements.period.value = house.period;

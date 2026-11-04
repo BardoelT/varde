@@ -1,6 +1,6 @@
 // Employment income: jobs, yearly totals over all jobs, and the paychecks and annual statements of all jobs (CSD-001).
 import { invoke } from '../shared/ipc.js';
-import { $, h, showError, submitOnce } from '../shared/dom.js';
+import { $, h, showError, setHint, submitOnce } from '../shared/dom.js';
 import { formatAmount, formatDate, currentYear, currentMonth } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
@@ -107,7 +107,7 @@ function openJobDialog(job) {
       // The pay period is locked once the job has entries (CSD-001 REQ-24).
       const locked = Boolean(job && job.entry_count > 0);
       form.elements.period.disabled = locked;
-      $('job-period-hint').hidden = !locked;
+      setHint('job-period-hint', locked);
       if (job) {
         form.elements.period.value = job.period;
         form.elements.employer.value = job.employer;

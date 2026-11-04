@@ -1,6 +1,6 @@
 // Debts: debts with a monthly or yearly statement, each a remaining balance and a note (CSD-011).
 import { invoke } from '../shared/ipc.js';
-import { $, h, showError, submitOnce } from '../shared/dom.js';
+import { $, h, showError, setHint, submitOnce } from '../shared/dom.js';
 import { formatAmount, noteSummary } from '../shared/format.js';
 import { askSettlements } from '../shared/settle.js';
 import { t } from '../shared/i18n.js';
@@ -114,7 +114,7 @@ function fillHouseChoices(debt) {
   const locked = Boolean(debt && (debt.settlement || (debt.house_id && !houses.find((house) => house.id === debt.house_id)?.held)));
   select.disabled = locked;
   form.elements.category.disabled = locked && Boolean(debt.house_id);
-  $('debt-house-hint').hidden = !locked;
+  setHint('debt-house-hint', locked);
   applyCategory();
 }
 
@@ -139,7 +139,7 @@ function openDebtDialog(debt) {
       // The statement period is locked once the debt has statements (CSD-011 REQ-5).
       const locked = Boolean(debt && debt.statement_count > 0);
       form.elements.period.disabled = locked;
-      $('debt-period-hint').hidden = !locked;
+      setHint('debt-period-hint', locked);
       if (debt) {
         form.elements.name.value = debt.name;
         form.elements.period.value = debt.period;

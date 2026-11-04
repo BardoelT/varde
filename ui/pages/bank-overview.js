@@ -1,6 +1,6 @@
 // Bank accounts: accounts with a monthly or yearly entry, each a closing balance and a note (CSD-009).
 import { invoke } from '../shared/ipc.js';
-import { $, h, showError, submitOnce } from '../shared/dom.js';
+import { $, h, showError, setHint, submitOnce } from '../shared/dom.js';
 import { formatAmount, noteSummary } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
@@ -86,7 +86,7 @@ function openAccountDialog(account) {
       // The entry period is locked once the account has entries (CSD-009 REQ-5).
       const locked = Boolean(account && account.entry_count > 0);
       form.elements.period.disabled = locked;
-      $('bank-account-period-hint').hidden = !locked;
+      setHint('bank-account-period-hint', locked);
       if (account) {
         form.elements.name.value = account.name;
         form.elements.period.value = account.period;

@@ -1,6 +1,6 @@
 // Investments: accounts with a monthly or yearly statement, each a balance, net deposits and a note (CSD-005).
 import { invoke } from '../shared/ipc.js';
-import { $, h, showError, submitOnce } from '../shared/dom.js';
+import { $, h, showError, setHint, submitOnce } from '../shared/dom.js';
 import { formatAmount, noteSummary } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
@@ -104,7 +104,7 @@ function openAccountDialog(account) {
       // The statement period is locked once the account has statements (CSD-005 REQ-4).
       const locked = Boolean(account && account.statement_count > 0);
       form.elements.period.disabled = locked;
-      $('account-period-hint').hidden = !locked;
+      setHint('account-period-hint', locked);
       if (account) {
         form.elements.name.value = account.name;
         form.elements.period.value = account.period;
@@ -189,7 +189,7 @@ function updateEarlierNote() {
   const hasEarlier = periodLooksComplete(period)
     ? others.some((s) => s.period < period)
     : others.length > 0;
-  $('statement-growth-hint').hidden = hasEarlier;
+  setHint('statement-growth-hint', !hasEarlier);
 }
 
 function markCalculated(field) {

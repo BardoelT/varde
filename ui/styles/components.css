@@ -273,3 +273,5 @@ dialog p { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
   z-index: 1000;
 }
 .note-cell .badge { margin-left: 8px; }
+/* A hint that follows its field's label (not inside it, so it stays out of the field's name). */
+.field-hint-attached { margin: -7px 0 12px; }
