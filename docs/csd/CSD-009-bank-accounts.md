@@ -959,10 +959,10 @@ Rust-side behaviour is proven by `cargo test`, with domain logic tested in `doma
 |---|---|
 | Rust tests | `cargo test test_csd009_`. One requirement, e.g. REQ-7: `cargo test test_csd009_ac_7_` |
 | Data of the accounts and entries tables (AC-17.1 to AC-17.5) | `cargo test test_csd009_ac_17_` |
-| Display ACs (REQ-20 to REQ-22, form labels, period field in the edit form, section order and contents, titles without a currency, button placement, empty states, note cut-off, plain-text note, no entry counts anywhere, delete confirmations, negative balance display) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. There are no `test_csd009_ac_20_` tests |
-| AC-24.1, AC-24.2 | Governed by CSD-003 REQ-5 (AC-5.7, AC-5.8), verified there; there is no test for them in this CSD |
+| Display ACs (REQ-20 to REQ-22, form labels, period field in the edit form, section order and contents, titles without a currency, button placement, empty states, note cut-off, plain-text note, no entry counts anywhere, delete confirmations, negative balance display) | DOM tests in `ui/tests/ac-b-bank.test.js` (`npm test`; `cargo test test_csd009_ac_20_` finds none, they are not Rust tests). Checked by hand: none |
+| AC-24.1, AC-24.2 | Governed by CSD-003 REQ-5 (AC-5.7, AC-5.8). The confirmation is proven by DOM tests in `ui/tests/ac-b-bank.test.js`, the count by `cargo test test_csd009_ac_24_` |
 
-Not covered by a named test yet (27 of 96 ACs; no test carries the AC id): AC-6.2, AC-6.3, AC-12.2, AC-12.7, AC-12.9, AC-13.4, AC-14.2, AC-16.1 to AC-16.3, AC-17.6, AC-18.3, AC-20.1 to AC-20.9, AC-21.1 to AC-21.3, AC-22.1, AC-24.1, AC-24.2.
+Not covered by a named test yet (0 of 96 ACs; no test carries the AC id): none.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

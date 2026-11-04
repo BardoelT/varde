@@ -124,6 +124,62 @@ fn test_csd009_a_bank_change_is_an_unsaved_change() {
     assert!(project.status().unsaved_changes);
 }
 
+/// A saved project with a monthly entry for 2026-09 with balance 2500.00.
+fn saved_project_with_september(dir: &TempDir) -> (Project, BankAccountId) {
+    let mut project = Project::new();
+    let id = account(&mut project, "Example Current Account", "Monthly");
+    project
+        .bank_accounts_mut()
+        .add_entry(
+            id,
+            parse_period("2026-09").unwrap(),
+            BankBalance::parse("2500.00").unwrap(),
+            bank_note("").unwrap(),
+        )
+        .unwrap();
+    project.save_as(dir.path().join("example-a.varde")).unwrap();
+    assert!(!project.status().unsaved_changes);
+    (project, id)
+}
+
+#[test]
+fn test_csd009_ac_12_9_an_edit_of_the_period_is_an_unsaved_change() {
+    let dir = TempDir::new().unwrap();
+    let (mut project, id) = saved_project_with_september(&dir);
+    project
+        .bank_accounts_mut()
+        .update_entry(
+            id,
+            parse_period("2026-09").unwrap(),
+            parse_period("2026-08").unwrap(),
+            BankBalance::parse("2500.00").unwrap(),
+            bank_note("").unwrap(),
+        )
+        .unwrap();
+    assert!(
+        project.status().unsaved_changes,
+        "the unsaved indicator is shown"
+    );
+}
+
+#[test]
+fn test_csd009_ac_13_4_an_invalid_value_rejects_the_whole_edit() {
+    let dir = TempDir::new().unwrap();
+    let (project, _) = saved_project_with_september(&dir);
+    // The period moves to 2026-08 and the balance is "abc": the balance is rejected before the
+    // data is touched, as the command does.
+    let error = BankBalance::parse("abc").unwrap_err();
+    assert_eq!(error.code(), "BANK_ENTRY_BALANCE_INVALID");
+    let entries = project.bank_accounts().all_entries();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].1.period.to_string(), "2026-09");
+    assert_eq!(entries[0].1.balance.value().to_string(), "2500.00");
+    assert!(
+        !project.status().unsaved_changes,
+        "the unsaved indicator is not shown"
+    );
+}
+
 #[test]
 fn test_csd009_ac_3_1_a_bank_account_colour_slot_of_8_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
