@@ -1886,7 +1886,7 @@ fn test_csd007_ac_7_3_the_current_year_has_a_percentage() {
 }
 
 #[test]
-fn test_csd007_a_year_with_only_new_accounts_has_no_percentage() {
+fn test_csd007_ac_7_4_a_year_with_only_new_accounts_has_no_percentage() {
     let mut investments = Investments::default();
     let brokerage = add_account(&mut investments, "Example Brokerage", "Monthly");
     let crypto = add_account(&mut investments, "Example Crypto", "Monthly");

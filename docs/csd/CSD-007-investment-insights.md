@@ -1,9 +1,9 @@
 ---
 id: CSD-007
 title: Investment insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.3
+version: 1.4
 last_updated: 03/11/2026
 related: [CSD-000, CSD-003, CSD-005, CSD-006, CSD-025]
 ---
@@ -280,6 +280,15 @@ Scenario: The current year has a percentage
   When the insights are requested
   Then the growth percentage of 2026 is "2.00"
   And 2026 is marked partial
+
+@AC-7.4
+Scenario: A year in which only new accounts have statements has no percentage
+  Given today is 26/10/2026
+  And account "Example Brokerage" with a statement for 2025-12 (balance 12000.00) and no statement in 2026
+  And account "Example Crypto" with a first statement 2026-03 (balance 500.00)
+  When the insights are requested
+  Then the opening balance of 2026 is 0.00
+  And the year 2026 has no growth percentage
 ```
 
 **REQ-8: Chart** *(ubiquitous)*
@@ -599,6 +608,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 1.4 (04/11/2026): New AC-7.4: a year in which only new accounts have statements has an opening balance of 0.00 and therefore no growth percentage (REQ-7). The behaviour was already built and tested; the AC states it. Back to `draft` until re-approved.
 - 1.3 (03/11/2026): The copies of the look, size and motion text are gone; this CSD points to CSD-025 (REQ-15 reduced to the marker thickening and the gain and loss legend items, REQ-16 and REQ-17 removed in favour of CSD-025 REQ-10, REQ-18 reduced to the colour roles and the withdrawal segment). Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 1.1 (03/11/2026): The series runs to the later of the current year and the latest year with a statement, so future years get a slot, and spans at most 50 years back from its last year, older statements still count in the opening balance and the yearly totals (REQ-2, new AC-2.4, AC-2.5; owner decision, CSD-005 OQ-4 resolved). A future year is not partial (REQ-4, new AC-4.3). Back to `draft` until re-approved.
