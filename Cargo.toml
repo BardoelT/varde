@@ -1,3 +1,10 @@
 [workspace]
 members = ["src-tauri"]
 resolver = "2"
+
+# Smaller release binary. panic stays at the default "unwind": abort would turn any
+# panic on a Tauri worker thread into a crash of the whole app.
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
