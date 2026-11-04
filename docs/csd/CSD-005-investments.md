@@ -3,7 +3,7 @@ id: CSD-005
 title: Investments
 status: draft
 owner: Thijs Bardoel
-version: 2.0
+version: 2.1
 last_updated: 04/11/2026
 related: [CSD-000, CSD-001, CSD-002, CSD-003, CSD-007, CSD-025]
 ---
@@ -546,14 +546,14 @@ When the user chooses an account in the add form, the app shall ask for a month 
 Scenario: Monthly account
   Given a "Monthly" account
   When the user chooses it in the add form
-  Then the form asks for "Month (YYYY-MM)"
+  Then the form asks for "Month" with the placeholder "yyyy-mm" (maximum length 7)
   And the copy button reads "Copy previous month"
 
 @AC-14.2
 Scenario: Yearly account
   Given a "Yearly" account
   When the user chooses it in the add form
-  Then the form asks for "Year (YYYY)"
+  Then the form asks for "Year" with a four-digit year as placeholder (maximum length 4)
   And the copy button reads "Copy previous year"
 
 @AC-14.3
@@ -640,11 +640,11 @@ Scenario: Sections in order
 Scenario: Account rows carry their period, latest balance and actions
   Given monthly account "Example Brokerage" with 2 statements, the latest for 2026-09 with balance 12500.00
   And yearly account "Example Pension" with 1 statement for 2025 with balance 80000.00
-  Then the row of "Example Brokerage" shows "Monthly" and "12500.00" for 2026-09
-  And the row of "Example Pension" shows "Yearly" and "80000.00" for 2025
+  Then the row of "Example Brokerage" shows "Monthly" and "12,500.00" for 2026-09
+  And the row of "Example Pension" shows "Yearly" and "80,000.00" for 2025
   And no row shows a number of statements
   And each row has the icon buttons Edit (pencil) and Delete (trash) at its right edge, each named for screen readers and in a tooltip, such as "Edit Example Employer"
-  And the footer row shows the total "92500.00"
+  And the footer row shows the total "92,500.00"
 
 @AC-17.3
 Scenario: Statements of all accounts with their period and account
@@ -682,7 +682,7 @@ Scenario: Net deposits and capital growth columns
   Given a monthly account "Example Brokerage" with a statement for 2026-08 (balance 12000.00, net deposits 12000.00) and one for 2026-09 (balance 12500.00, net deposits 300.00)
   Then the Statements section shows the columns Period, Account, Balance, Net deposits, Capital growth and Note in that order
   And the row for 2026-09 shows net deposits "300.00" and capital growth "200.00"
-  And the row for 2026-08 shows net deposits "12000.00" and capital growth "0.00"
+  And the row for 2026-08 shows net deposits "12,000.00" and capital growth "0.00"
   And the Accounts section shows no total of net deposits or capital growth
 
 @AC-17.9
@@ -707,7 +707,7 @@ Scenario: No accounts
 @AC-18.2
 Scenario: Account without statements
   Given an account with no statements
-  Then its row shows a dash as latest balance and only its period as meta, without "No statements yet"
+  Then its row shows a dash ("—") as latest balance and only its period as meta, without "No statements yet"
   And the Statements section shows "No statements yet"
   And no error is shown
 
@@ -1270,6 +1270,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-4: (resolved 03/11/2026) The Insights series of CSD-007 runs from the earliest year with a statement to the later of the current year and the latest year with a statement, so a statement after the current year gets a slot, and spans at most 50 years back from its last year. A statement older than that gets no slot but still counts in the yearly totals of REQ-26 and in every total and ratio (CSD-007 REQ-2).
 
 ## 9. Changelog
+- 2.1 (04/11/2026): Wording follows the UI; no behaviour change: period field label and placeholder (AC-14.1, AC-14.2), amounts grouped as in CSD-022 AC-10.1 and the dash written as "—" (AC-17.2, AC-17.8, AC-18.2). Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A typed balance, net deposits or capital growth with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-30 (AC-30.1 to AC-30.5), REQ-9, REQ-22 and REQ-25 apply to the rounded amount, the rows with more than two decimals of AC-9.1, AC-22.1 and AC-25.2 and the codes `INVESTMENT_BALANCE_PRECISION`, `INVESTMENT_NET_DEPOSITS_PRECISION` and `INVESTMENT_GROWTH_PRECISION` are removed, AC-22.3 and AC-25.4 use "abc" (`INVESTMENT_NET_DEPOSITS_INVALID`), CON-12 updated. Owner decision. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. AC-5.2 and AC-12.2 are listed as not covered (the old table said all of REQ-1 to REQ-13 except AC-5.3). NG-4 and the intro no longer call the net-worth integration future work: it is specified in CSD-017. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Resolved OQ-4: the year series of CSD-007 runs to the latest year with a statement, at most 50 years back (CSD-007 v1.1). No requirement of this CSD changes. Back to `draft` until re-approved.

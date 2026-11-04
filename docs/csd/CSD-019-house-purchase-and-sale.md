@@ -3,7 +3,7 @@ id: CSD-019
 title: House purchase and sale
 status: draft
 owner: Thijs Bardoel
-version: 2.0
+version: 2.1
 last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-015, CSD-016, CSD-017, CSD-018, CSD-020, CSD-026]
 ---
@@ -391,7 +391,7 @@ When the user opens the add or edit house form, the app shall offer the purchase
 @AC-12.1
 Scenario: Fields in the form
   When the user opens the add house form
-  Then it asks for Name, Valuation period, "Purchase date (dd/mm/yyyy)", "Purchase amount", "Sell date (dd/mm/yyyy)" and "Sell amount"
+  Then it asks for "House name", "Valuation period", "Purchase date" (placeholder "dd/mm/yyyy"), "Purchase amount", "Sell date (optional)" (placeholder "dd/mm/yyyy") and "Sell amount (optional)"
   And the sell fields are marked optional
 
 @AC-12.2
@@ -493,5 +493,6 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 2.1 (04/11/2026): Wording follows the UI; no behaviour change: the add house form labels are "House name", "Valuation period", "Purchase date", "Purchase amount", "Sell date (optional)" and "Sell amount (optional)", with the dates typed as dd/mm/yyyy (AC-12.1). Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A typed purchase or sell amount with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0, CSD-015 REQ-28): new REQ-15 (AC-15.1 to AC-15.3), REQ-4 applies to the rounded amount, the AC-4.1 row for 1000.999 and the code `HOUSE_AMOUNT_PRECISION` are removed. Owner decision. Back to `draft` until re-approved.
 - 1.0 (04/11/2026): New CSD, split off from CSD-020 v1.1 (house purchase, sale and linked debts), reusing the free number 019. It holds the former REQ-1 to REQ-14 with their ACs, and the numbers are unchanged: REQ-1 to REQ-14 and AC-1.1 to AC-14.1 are the same as in CSD-020 v1.1. NG-1 to NG-6 and CON-1 to CON-5 keep their numbers (CON-1, CON-2, CON-4 and CON-5 are shortened to what this CSD covers), NG-7 is new. REQ-2 now points to CSD-026 REQ-1 and REQ-4 for the settlement of linked debts. Draft until approved.

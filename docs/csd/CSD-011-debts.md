@@ -3,7 +3,7 @@ id: CSD-011
 title: Debts
 status: draft
 owner: Thijs Bardoel
-version: 2.0
+version: 2.1
 last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-004, CSD-005, CSD-009, CSD-012, CSD-018, CSD-020, CSD-024, CSD-026]
 ---
@@ -654,14 +654,14 @@ When the user chooses a debt in the add form, the app shall ask for a month if t
 Scenario: Monthly debt
   Given a "Monthly" debt
   When the user chooses it in the add form
-  Then the form asks for "Month (YYYY-MM)"
+  Then the form asks for "Month" with the placeholder "yyyy-mm" (maximum length 7)
   And the copy button reads "Copy previous month"
 
 @AC-16.2
 Scenario: Yearly debt
   Given a "Yearly" debt
   When the user chooses it in the add form
-  Then the form asks for "Year (YYYY)"
+  Then the form asks for "Year" with a four-digit year as placeholder (maximum length 4)
   And the copy button reads "Copy previous year"
 
 @AC-16.3
@@ -889,18 +889,18 @@ Scenario: Sections in order
 Scenario: Debt rows carry their period, latest balance and actions
   Given monthly debt "Example Mortgage" with 2 statements, the latest for 2026-09 with balance 150000.00
   And yearly debt "Example Student Loan" with 1 statement for 2025 with balance 8000.00
-  Then the row of "Example Mortgage" shows "Monthly" and "150000.00" for 2026-09
-  And the row of "Example Student Loan" shows "Yearly" and "8000.00" for 2025
+  Then the row of "Example Mortgage" shows "Monthly" and "150,000.00" for 2026-09
+  And the row of "Example Student Loan" shows "Yearly" and "8,000.00" for 2025
   And no row shows a number of statements
   And each row has the icon buttons Edit (pencil) and Delete (trash) at its right edge, each named for screen readers and in a tooltip, such as "Edit Example Student Loan"
-  And the footer row reads "Total debt" with "158000.00"
+  And the footer row reads "Total debt" with "158,000.00"
 
 @AC-20.3
 Scenario: Statements of all debts with their period, debt and change
   Given monthly debt "Example Mortgage" with statements for 2026-08 (balance 150500.00) and 2026-09 (balance 150000.00)
   Then the Statements section shows the columns Period, Debt, Balance, Change and Note in that order
   And the row for 2026-09 shows change "500.00"
-  And the row for 2026-08 shows a dash as change
+  And the row for 2026-08 shows a dash ("—") as change
 
 @AC-20.4
 Scenario: Long note cut to one line
@@ -931,7 +931,7 @@ Scenario: Yearly totals section
   Given a monthly debt "Example Mortgage" with statements for 2025-12 and 2026-09
   Then the Yearly totals section shows the columns Year, Closing balance and Repaid in that order
   And the section has no column with a number of statements
-  And a year with repaid none shows a dash
+  And a year with repaid none shows a dash ("—")
   And its header holds no button and its rows hold no Edit or Delete button
   And the section is not shown while no debts exist
 ```
@@ -949,7 +949,7 @@ Scenario: No debts
 @AC-21.2
 Scenario: Debt without statements
   Given a debt with no statements
-  Then its row shows a dash as latest balance
+  Then its row shows a dash ("—") as latest balance
   And its row shows its statement period and no "No statements yet"
   And the Statements section shows "No statements yet."
   And no error is shown
@@ -997,7 +997,7 @@ Scenario: A debt without statements has no mark
 Scenario: A settled debt shows its settlement badge
   Given "Example Loan" settled as Cancelled on the sale of "Example House" (settled amount 10000.00, latest balance 0.00)
   When the user opens the Debts overview
-  Then its row shows the badge "Cancelled 10000.00" and not the mark "Repaid"
+  Then its row shows the badge "Cancelled 10,000.00" and not the mark "Repaid"
 ```
 
 **REQ-27: Settle dialog rows** *(event-driven)*
@@ -1008,7 +1008,7 @@ When the settle dialog opens (CSD-026 REQ-13, CSD-020 REQ-17), the app shall sho
 Scenario: One row per open debt, no choice preselected
   Given a sale with the open debts "Example Mortgage" (190000.00) and "Example Loan" (10000.00)
   When the settle dialog opens
-  Then it lists the rows "Example Mortgage 190000.00" and "Example Loan 10000.00"
+  Then it lists the rows "Example Mortgage 190,000.00" and "Example Loan 10,000.00"
   And each row offers the choices Repaid and Cancelled, with none selected
   And "Save sale" is disabled
 
@@ -1182,6 +1182,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 2.1 (04/11/2026): Wording follows the UI; no behaviour change: period field label and placeholder (AC-16.1, AC-16.2), amounts grouped as in CSD-022 AC-10.1 and the table dash written as "—" (AC-20.2, AC-20.3, AC-20.8, AC-21.2, AC-26.4, AC-27.1). Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A typed balance with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-29 (AC-29.1 to AC-29.3), REQ-10 applies to the rounded balance, the AC-10.1 row for 1000.999 and the code `DEBT_STATEMENT_BALANCE_PRECISION` are removed, CON-11 updated. Owner decision. Back to `draft` until re-approved.
 - 1.2 (04/11/2026): Live references follow the split of the former CSD-020: the settlement, the settle dialog and the Cancelled-adjusted repaid amount are CSD-026 (REQ-3, REQ-9, REQ-10, REQ-11, REQ-13), the debt link stays CSD-020. The definitions and the requirements and ACs that cite CSD-020 name the new CSD and numbers; no behaviour change. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed `test_csd011_ac_20_` and `ac_21_` coverage and the REQ-24 and REQ-25 coverage (they belong to CSD-003) are removed. NG-4 and the intro point to CSD-017 for net worth. Back to `draft` until re-approved.

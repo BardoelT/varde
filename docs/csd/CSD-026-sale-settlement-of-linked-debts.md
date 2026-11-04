@@ -1,9 +1,9 @@
 ---
 id: CSD-026
 title: Sale settlement of linked debts
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 1.1
 last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-011, CSD-012, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020]
 ---
@@ -335,7 +335,7 @@ Scenario: The Edit house form lists the linked debts read-only
   Given "Example House" with linked "Example Mortgage" (category Mortgage, latest balance 190000.00) and "Example Loan" (category Loan, settled as Cancelled), and an unlinked debt "Example Card"
   When the user opens the Edit house form of "Example House"
   Then it shows a table with the columns Debt, Category, Balance and Outcome
-  And the rows "Example Mortgage", "Mortgage", 190000.00, a dash and "Example Loan", "Loan", 0.00, "Cancelled 10000.00"
+  And the rows "Example Mortgage", "Mortgage", "190,000.00", a dash ("—") and "Example Loan", "Loan", "0.00", "Cancelled 10,000.00"
   And no row for "Example Card"
   And the table has no checkbox, button or field to add or remove a debt
 
@@ -424,4 +424,5 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None. The former OQ-1 of CSD-020 (Cancelled-adjusted repaid amount in the Debts overview) is answered by REQ-11.
 
 ## 9. Changelog
+- 1.1 (04/11/2026): Wording follows the UI; no behaviour change: the linked-debts table in the Edit house form shows grouped amounts and "—" for no outcome (AC-12.2). Back to `draft` until re-approved.
 - 1.0 (04/11/2026): New CSD, split off from CSD-020 v1.1 (house purchase, sale and linked debts), which keeps the debt link (REQ-15, REQ-16, REQ-17, REQ-30, REQ-33) and whose house part is now CSD-019. The numbering is fresh. Mapping from CSD-020 v1.1: REQ-18 to REQ-24 are REQ-1 to REQ-7, REQ-25 to REQ-28 are REQ-8 to REQ-11, REQ-29 is REQ-12, REQ-31 is REQ-13 and REQ-32 is REQ-14; their ACs follow (AC-18.x to AC-1.x, AC-19.x to AC-2.x, AC-20.x to AC-3.x, AC-21.x to AC-4.x, AC-22.x to AC-5.x, AC-23.x to AC-6.x, AC-24.x to AC-7.x, AC-25.x to AC-8.x, AC-26.x to AC-9.x, AC-27.x to AC-10.x, AC-28.x to AC-11.x, AC-29.x to AC-12.x, AC-31.x to AC-13.x, AC-32.x to AC-14.x, the second number unchanged). NG-10 to NG-13 are NG-1 to NG-4. CON-1 and CON-2 stay CON-1 and CON-2 (shortened), CON-4 and CON-5 are CON-3 and CON-4, CON-6 is CON-5 and CON-7 is CON-6. The former OQ-1 is answered by REQ-11. Cross-references inside the text now name the CSD (CSD-019 NG-4, CSD-020 REQ-17). Behaviour is unchanged. Draft until approved.

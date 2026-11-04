@@ -3,7 +3,7 @@ id: CSD-013
 title: Expenses
 status: draft
 owner: Thijs Bardoel
-version: 2.0
+version: 2.1
 last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-014]
 ---
@@ -511,7 +511,7 @@ Scenario: Sections in order
 Scenario: Expense rows
   Given an expense "Example Roof Repair" with amount 4500.00, date 15/09/2026, category "Home" and note "Replaced tiles"
   Then the Expenses section shows the columns Date, Name, Category, Amount and Note in that order
-  And the row shows "15/09/2026", "Example Roof Repair", "Home", "4500.00" and "Replaced tiles"
+  And the row shows "15/09/2026", "Example Roof Repair", "Home", "4,500.00" and "Replaced tiles"
   And the row has the icon buttons Edit (pencil) and Delete (trash) at its right edge, each named for screen readers and in a tooltip, such as "Edit Example Roof Repair"
 
 @AC-13.4
@@ -695,6 +695,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 2.1 (04/11/2026): Wording follows the UI; no behaviour change: the amount shown in a list row is grouped as in CSD-022 AC-10.1 (AC-13.3). Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A typed amount with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-18 (AC-18.1 to AC-18.3), REQ-5 applies to the rounded amount (an amount that rounds to 0.00 is not above zero), the AC-5.1 row for 100.999 and the code `EXPENSE_AMOUNT_PRECISION` are removed, CON-1 updated. Owner decision. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed REQ-17 coverage is removed (there are no `ac_17_` tests); NG-3 refers to CSD-017 NG-6 for net worth. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): No date bounds: the year-1900 lower bound and the rejection of dates in the future are removed (REQ-4, AC-4.1, AC-7.5, AC-12.7, REQ-16, section 5, NG-8, CON-11 removed; error code `EXPENSE_DATE_IN_FUTURE` removed; the "Today" definition removed). First release, no legacy: a file without the `expenses` section or with an unknown field is invalid (REQ-16, AC-16.2, AC-16.4). Money amounts reference CSD-000 CON-8 (CON-1). Verification table rewritten to what is actually covered (the claim of REQ-17 coverage and of REQ-1 to REQ-12 coverage is corrected; display ACs are covered by DOM tests). Back to `draft` for re-approval.

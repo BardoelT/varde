@@ -1,9 +1,9 @@
 ---
 id: CSD-012
 title: Debt insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.3
+version: 1.4
 last_updated: 04/11/2026
 related: [CSD-000, CSD-010, CSD-011, CSD-025, CSD-026]
 ---
@@ -391,7 +391,7 @@ Scenario: Partial year
 Scenario: Repaid none is a dash
   Given 2025 is the first year of the series and has repaid none
   When the user hovers over the 2025 bar
-  Then the tooltip shows a dash as repaid
+  Then the tooltip shows a dash ("–") as repaid
 
 @AC-10.6
 Scenario: Tooltip beside the bar
@@ -582,6 +582,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 1.4 (04/11/2026): Wording follows the UI; no behaviour change: the tooltip dash for repaid none is "–" (en dash). Back to `draft` until re-approved.
 - 1.3 (04/11/2026): Live references follow the split of the former CSD-020: the Cancelled-adjusted repaid amount is CSD-026 REQ-10 and REQ-11 (definition of Repaid, AC-5.6); no behaviour change. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed REQ-1 to REQ-14 DOM coverage is removed.
 - 1.1 (03/11/2026): The series follows the series-range rule of CSD-010 (REQ-2: AC-2.4, AC-2.5 added; AC-4.3 added): it runs to the later of the current year and the latest statement, at most 50 years back, and a future year is not partial. Back to `draft` until re-approved.

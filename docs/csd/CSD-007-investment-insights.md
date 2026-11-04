@@ -3,8 +3,8 @@ id: CSD-007
 title: Investment insights
 status: draft
 owner: Thijs Bardoel
-version: 1.4
-last_updated: 03/11/2026
+version: 1.5
+last_updated: 04/11/2026
 related: [CSD-000, CSD-003, CSD-005, CSD-006, CSD-025]
 ---
 
@@ -450,7 +450,7 @@ Scenario: Last statement deleted
 ### 4.1 Legend and highlight
 
 **REQ-14: Legend with the selected year** *(event-driven)*
-When the user hovers over or moves keyboard focus to a year, the Insights tab shall show in the tooltip of that year the colour swatch of the legend on the rows of opening balance, net deposits, capital growth and closing balance, with, on the capital growth row, the swatch of a gain when the capital growth is not negative and the swatch of a loss when it is, and shall list the rows of the tooltip in the order the bar shows them, top to bottom: Capital growth, Net deposits, Opening balance, then Closing balance, then Growth (%), and shall place the tooltip beside the year's bar, to its right with its top aligned to the top of the bar, to its left when there is no room on the right, and inside the chart area, or centred over its slot when the year has no bar, where it shows the note "No statements" in place of the rows. The legend in the panel header stays.
+When the user hovers over or moves keyboard focus to a year, the Insights tab shall show in the tooltip of that year the colour swatch of the legend on the rows of opening balance, net deposits, capital growth and closing balance, with, on the capital growth row, the swatch of a gain when the capital growth is not negative and the swatch of a loss when it is, and shall list the rows of the tooltip in the order the bar shows them, top to bottom: Capital growth, Net deposits, Opening balance, then Closing balance, then Growth, and shall place the tooltip beside the year's bar, to its right with its top aligned to the top of the bar, to its left when there is no room on the right, and inside the chart area, or centred over its slot when the year has no bar, where it shows the note "No statements" in place of the rows. The legend in the panel header stays.
 
 ```gherkin
 @AC-14.1
@@ -459,7 +459,7 @@ Scenario: Swatches match the legend
   When the user hovers over the 2025 bar
   Then the tooltip rows Opening balance, Net deposits, Capital growth and Closing balance each show the swatch of the same colour or line as in the legend
   And the Capital growth row shows the gain swatch
-  And the row Growth (%) shows no swatch
+  And the row Growth shows no swatch
 
 @AC-14.2
 Scenario: A loss shows the loss swatch
@@ -491,7 +491,7 @@ Scenario: Tooltip flips near the right edge
 Scenario: Rows follow the bar from top to bottom
   Given 2025 has opening balance 10700.00, net deposits 500.00, capital growth 3800.00, closing balance 15000.00 and growth percentage 35.51
   When the user hovers over the 2025 bar
-  Then the tooltip rows are listed Capital growth, Net deposits, Opening balance, Closing balance, Growth (%) in that order
+  Then the tooltip rows are listed Capital growth, Net deposits, Opening balance, Closing balance, Growth in that order
   And no row is listed above Capital growth
 
 @AC-14.6
@@ -600,7 +600,7 @@ The figures are proven by `cargo test`. Tests are named `test_csd007_ac_<n>_<m>_
 | Rust tests (data) | `cargo test test_csd007_` |
 | Display ACs (REQ-8 to REQ-18 and AC-1.1 to AC-1.3) | DOM tests in `ui/tests/ac-b-investment-insights.test.js` (`npm test`). Checked by hand: where the tooltip sits beside a bar and its flip near the right edge (AC-14.4, AC-14.5) and its centring over the slot of a year without a bar (AC-14.6, the other steps are tested), because jsdom has no layout. The shared chart behaviour has DOM tests under CSD-025 |
 
-Not covered by a named test yet (4 of 55 ACs; no test carries the AC id): AC-14.1, AC-14.4, AC-14.5, AC-14.9. AC-14.4 and AC-14.5 are checked by hand (layout). AC-14.1 and AC-14.9 name the tooltip row "Growth (%)" while the screen shows "Growth"; the test waits for that to be settled.
+Not covered by a named test yet (4 of 55 ACs; no test carries the AC id): AC-14.1, AC-14.4, AC-14.5, AC-14.9. AC-14.4 and AC-14.5 are checked by hand (layout). AC-14.1 and AC-14.9 now name the tooltip row "Growth" as the screen shows it; no test carries their id yet.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
@@ -608,6 +608,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 1.5 (04/11/2026): Wording follows the UI; no behaviour change: the last tooltip row is called "Growth", not "Growth (%)" (REQ-14, AC-14.1, AC-14.9); its value carries the sign and the percent sign. Back to `draft` until re-approved.
 - 1.4 (04/11/2026): New AC-7.4: a year in which only new accounts have statements has an opening balance of 0.00 and therefore no growth percentage (REQ-7). The behaviour was already built and tested; the AC states it. Back to `draft` until re-approved.
 - 1.3 (03/11/2026): The copies of the look, size and motion text are gone; this CSD points to CSD-025 (REQ-15 reduced to the marker thickening and the gain and loss legend items, REQ-16 and REQ-17 removed in favour of CSD-025 REQ-10, REQ-18 reduced to the colour roles and the withdrawal segment). Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.

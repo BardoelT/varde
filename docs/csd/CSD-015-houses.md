@@ -3,7 +3,7 @@ id: CSD-015
 title: Houses
 status: draft
 owner: Thijs Bardoel
-version: 2.0
+version: 2.1
 last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-016, CSD-019, CSD-020, CSD-026]
 ---
@@ -625,14 +625,14 @@ When the user chooses a house in the add form, the app shall ask for a month if 
 Scenario: Monthly house
   Given a "Monthly" house
   When the user chooses it in the add form
-  Then the form asks for "Month (YYYY-MM)"
+  Then the form asks for "Month" with the placeholder "yyyy-mm" (maximum length 7)
   And the copy button reads "Copy previous month"
 
 @AC-16.2
 Scenario: Yearly house
   Given a "Yearly" house
   When the user chooses it in the add form
-  Then the form asks for "Year (YYYY)"
+  Then the form asks for "Year" with a four-digit year as placeholder (maximum length 4)
   And the copy button reads "Copy previous year"
 
 @AC-16.3
@@ -848,19 +848,19 @@ Scenario: Sections in order
 Scenario: House rows carry their period, latest value and actions
   Given monthly house "Example House" with 2 valuations, the latest for 2026-09 with value 300000.00
   And yearly house "Example Lodge" with 1 valuation for 2025 with value 80000.00
-  Then the row of "Example House" shows "Monthly" and "300000.00" for 2026-09
-  And the row of "Example Lodge" shows "Yearly" and "80000.00" for 2025
+  Then the row of "Example House" shows "Monthly" and "300,000.00" for 2026-09
+  And the row of "Example Lodge" shows "Yearly" and "80,000.00" for 2025
   And in each row the value is followed by its period in smaller muted text
   And no row shows a number of valuations
   And each row has the icon buttons Edit (pencil) and Delete (trash) at its right edge, each named for screen readers and in a tooltip, such as "Edit Example Lodge"
-  And the footer row reads "Total value" with "380000.00"
+  And the footer row reads "Total value" with "380,000.00"
 
 @AC-21.3
 Scenario: Valuations of all houses with their period, house and change
   Given monthly house "Example House" with valuations for 2026-08 (value 299500.00) and 2026-09 (value 300000.00)
   Then the Valuations section shows the columns Period, House, Value, Change and Note in that order
   And the row for 2026-09 shows change "500.00"
-  And the row for 2026-08 shows a dash as change
+  And the row for 2026-08 shows a dash ("—") as change
 
 @AC-21.4
 Scenario: Long note cut to one line
@@ -891,7 +891,7 @@ Scenario: Yearly values section
   Given a monthly house "Example House" with valuations for 2025-12 and 2026-09
   Then the Yearly values section shows the columns Year, Closing value and Change in that order
   And the section has no column with a number of valuations
-  And a year with change none shows a dash
+  And a year with change none shows a dash ("—")
   And its header holds no button and its rows hold no Edit or Delete button
   And the section is not shown while no houses exist
 ```
@@ -909,7 +909,7 @@ Scenario: No houses
 @AC-22.2
 Scenario: House without valuations
   Given a house with no valuations
-  Then its row shows a dash as latest value
+  Then its row shows a dash ("—") as latest value
   And its row shows its valuation period and no "No valuations yet"
   And the Valuations section shows "No valuations yet."
   And no error is shown
@@ -1075,7 +1075,7 @@ The data and the domain logic are proven by `cargo test`, with domain logic test
 | AC-25.1, AC-25.2 (currency confirmation) | Governed by CSD-003 REQ-5; the DOM tests `test_csd015_ac_25_` in `ac-c2-houses.test.js` check the confirmation, and the count of house valuations is checked over IPC in `test_csd003_ac_5_13_` |
 | Unsaved indicator, invalid edits and invalid files (AC-12.9, AC-13.4, AC-27.1, AC-27.2, AC-27.4) | `cargo test ipc_ac_tests_c2` |
 
-Not covered by a named test yet (2 of 111 ACs; no test carries the AC id): AC-16.1, AC-16.2 (the add form labels the period field "Month" or "Year" with the format as its placeholder, not "Month (YYYY-MM)" or "Year (YYYY)" as the scenarios read; to be settled).
+Not covered by a named test yet (2 of 111 ACs; no test carries the AC id): AC-16.1, AC-16.2 (the scenarios now match the add form: label "Month" or "Year" with the format as its placeholder; no test carries their id yet).
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
@@ -1084,6 +1084,7 @@ None open. (OQ-1, the position in the left pane, is settled by REQ-26 and CSD-02
 - OQ-2: (resolved 03/11/2026) The sale fields keep the names `sell_date` and `sell_amount` in the data model, IPC and the project file (section 5, CSD-002, CSD-019).
 
 ## 9. Changelog
+- 2.1 (04/11/2026): Wording follows the UI; no behaviour change: period field label and placeholder (AC-16.1, AC-16.2), amounts grouped as in CSD-022 AC-10.1 and the table dash written as "—" (AC-21.2, AC-21.3, AC-21.8, AC-22.2). Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A typed value with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-28 (AC-28.1 to AC-28.3), REQ-10 applies to the rounded value, the AC-10.1 row for 1000.999 and the code `HOUSE_VALUATION_VALUE_PRECISION` are removed, CON-11 updated. CSD-019 REQ-15 does the same for purchase and sell amounts. Owner decision. Back to `draft` until re-approved.
 - 1.3 (04/11/2026): Live references follow the split of the former CSD-020: the purchase, the sale, the holding window and the house totals are CSD-019 (REQ-1 to REQ-14, numbers unchanged), the debt link is CSD-020 (REQ-15) and linked debts in the view and the delete rule are CSD-026 (REQ-7, REQ-12); no behaviour change. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed `ac_21_` and `ac_25_` coverage is removed; the intro and NG-4 point to CSD-017 for net worth. Back to `draft` until re-approved.

@@ -3,7 +3,7 @@ id: CSD-001
 title: Employment income tracking
 status: draft
 owner: Thijs Bardoel
-version: 2.0
+version: 2.1
 last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-006]
 ---
@@ -632,14 +632,14 @@ When the user chooses a job in the add form, the app shall ask for a month if th
 Scenario: Monthly job
   Given a "Monthly" job
   When the user chooses it in the add form
-  Then the form is titled "Add paycheck" and asks for "Month (YYYY-MM)"
+  Then the form is titled "Add paycheck" and asks for "Month" with the placeholder "yyyy-mm" (maximum length 7)
   And the copy button reads "Copy previous month"
 
 @AC-28.2
 Scenario: Yearly job
   Given a "Yearly" job
   When the user chooses it in the add form
-  Then the form is titled "Add annual statement" and asks for "Year (YYYY)"
+  Then the form is titled "Add annual statement" and asks for "Year" with a four-digit year as placeholder (maximum length 4)
   And the copy button reads "Copy previous year"
 
 @AC-28.3
@@ -921,6 +921,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-7: (reversed in v1.1) Deleting a paycheck or an annual statement asks for confirmation, see REQ-31.
 
 ## 9. Changelog
+- 2.1 (04/11/2026): Wording follows the UI; no behaviour change: the add form labels the period field "Month" or "Year" with the placeholder "yyyy-mm" (maximum length 7) or a four-digit year (maximum length 4) (AC-28.1, AC-28.2). Back to `draft` until re-approved.
 - 2.0 (04/11/2026): Typed amounts with more than two decimals are rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-32 (AC-32.1 to AC-32.5), REQ-7 applies to the rounded amount, the AC-7.1 row for 3000.999 and the code `PAYCHECK_AMOUNT_PRECISION` are removed, CON-1 updated. Owner decision. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. NG-5 now says income is not part of the net worth (CSD-017 NG-6) instead of forbidding an integration that CSD-017 specifies; the intro points to CSD-004 and CSD-006. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Deleting a paycheck or an annual statement asks for confirmation, like every other delete in the app (new REQ-31, AC-31.1 to AC-31.4; REQ-8 now covers editing only, AC-8.3 removed, AC-8.5 without the delete step; OQ-7 reversed). Decided by the owner. Back to `draft` until re-approved.

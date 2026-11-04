@@ -3,7 +3,7 @@ id: CSD-009
 title: Bank accounts
 status: draft
 owner: Thijs Bardoel
-version: 2.0
+version: 2.1
 last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-005, CSD-010, CSD-025]
 ---
@@ -605,14 +605,14 @@ When the user chooses an account in the add form, the app shall ask for a month 
 Scenario: Monthly account
   Given a "Monthly" account
   When the user chooses it in the add form
-  Then the form asks for "Month (YYYY-MM)"
+  Then the form asks for "Month" with the placeholder "yyyy-mm" (maximum length 7)
   And the copy button reads "Copy previous month"
 
 @AC-16.2
 Scenario: Yearly account
   Given a "Yearly" account
   When the user chooses it in the add form
-  Then the form asks for "Year (YYYY)"
+  Then the form asks for "Year" with a four-digit year as placeholder (maximum length 4)
   And the copy button reads "Copy previous year"
 
 @AC-16.3
@@ -780,11 +780,11 @@ Scenario: Sections in order
 Scenario: Account rows carry their period, latest balance and actions
   Given monthly account "Example Current Account" with 2 entries, the latest for 2026-09 with balance 2500.00
   And yearly account "Example Savings" with 1 entry for 2025 with balance 8000.00
-  Then the row of "Example Current Account" shows "Monthly" and "2500.00" for 2026-09
-  And the row of "Example Savings" shows "Yearly" and "8000.00" for 2025
+  Then the row of "Example Current Account" shows "Monthly" and "2,500.00" for 2026-09
+  And the row of "Example Savings" shows "Yearly" and "8,000.00" for 2025
   And no row shows a number of entries
   And each row has the icon buttons Edit (pencil) and Delete (trash) at its right edge, each named for screen readers and in a tooltip, such as "Edit Example Savings"
-  And the footer row shows the total "10500.00"
+  And the footer row shows the total "10,500.00"
 
 @AC-20.3
 Scenario: Entries of all accounts with their period and account
@@ -845,7 +845,7 @@ Scenario: No accounts
 @AC-21.2
 Scenario: Account without entries
   Given an account with no entries
-  Then its row shows a dash as latest balance and only its period as meta, without "No entries yet"
+  Then its row shows a dash ("—") as latest balance and only its period as meta, without "No entries yet"
   And the Entries section shows "No entries yet"
   And no error is shown
 
@@ -971,6 +971,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-2: Whether `docs/architecture.md` and the layout line of `CLAUDE.md` ("money, income, investments") get a bank accounts mention when this CSD is implemented. Owner: Thijs. Blocks: none.
 
 ## 9. Changelog
+- 2.1 (04/11/2026): Wording follows the UI; no behaviour change: period field label and placeholder (AC-16.1, AC-16.2), amounts grouped as in CSD-022 AC-10.1 and the dash written as "—" (AC-20.2, AC-21.2). Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A typed balance with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-25 (AC-25.1 to AC-25.3), REQ-10 applies to the rounded balance, the AC-10.1 rows for 1000.999 and -1000.999 and the code `BANK_ENTRY_BALANCE_PRECISION` are removed, AC-10.3 and AC-13.4 use "abc" (`BANK_ENTRY_BALANCE_INVALID`), CON-11 updated. Owner decision. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed `test_csd009_ac_20_` coverage is removed (no such tests exist). NG-7 and the intro point to CSD-017 for net worth. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): New AC-19.10: a year after the current year has a yearly totals row and equals the Insights series of CSD-010, which now runs to the latest year with an entry (CSD-010 v1.1). No other change. Back to `draft` until re-approved.

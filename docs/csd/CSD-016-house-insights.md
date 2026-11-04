@@ -1,9 +1,9 @@
 ---
 id: CSD-016
 title: House insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.4
+version: 1.5
 last_updated: 04/11/2026
 related: [CSD-000, CSD-010, CSD-012, CSD-015, CSD-019, CSD-025]
 ---
@@ -372,7 +372,7 @@ When the user hovers over or moves keyboard focus to a year, the Insights tab sh
 Scenario: Tooltip on hover
   Given 2026 has the segments "Example House" 300000.00 and "Example Lodge" 50000.00, total value 350000.00, and change 10000.00
   When the user hovers over the 2026 bar
-  Then a tooltip shows both houses with their swatch and value, the total value 350000.00 and change 10000.00
+  Then a tooltip shows both houses with their swatch and value, the total value 350,000.00 and change 10,000.00
   And it shows no number of valuations
 
 @AC-10.2
@@ -399,7 +399,7 @@ Scenario: Partial year
 Scenario: Change none is a dash
   Given 2025 is the first year of the series and has change none
   When the user hovers over the 2025 bar
-  Then the tooltip shows a dash as change
+  Then the tooltip shows a dash ("–") as change
 
 @AC-10.6
 Scenario: Tooltip beside the bar
@@ -500,7 +500,7 @@ AC-13.1 to AC-13.3 and AC-13.5 (removed in v1.0): the look and the size are spec
 Scenario: Segment labels
   Given 2026 has a segment of "Example Lodge" with value 50000.00
   When a screen reader reads that segment
-  Then it announces "Example Lodge", 2026 and 50000.00
+  Then it announces "Example Lodge", 2026 and 50,000.00
 ```
 
 **REQ-14: No valuations yet** *(state-driven)*
@@ -588,6 +588,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-1: (resolved 03/11/2026) A year after the current year (a valuation in the future, CSD-015 REQ-7) is not marked and looks like any other year (REQ-4, AC-4.3). The series runs to the latest year with a valuation, at most 50 years back from its last year (REQ-2, AC-2.4, AC-2.5).
 
 ## 9. Changelog
+- 1.5 (04/11/2026): Wording follows the UI; no behaviour change: the tooltip dash for change none is "–" (AC-10.5), and the tooltip and the accessible label show grouped amounts (AC-10.1, AC-13.4). Back to `draft` until re-approved.
 - 1.4 (04/11/2026): Live reference follows the split of the former CSD-020: houses held at the end of the year are CSD-019 REQ-10 (REQ-2); no behaviour change. Back to `draft` until re-approved.
 - 1.3 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 1.2 (03/11/2026): AC-6.6 uses the whole-number axis label "50k", as CSD-025 REQ-17 says. Back to `draft` until re-approved.
