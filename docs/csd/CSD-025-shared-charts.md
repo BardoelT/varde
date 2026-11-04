@@ -545,9 +545,10 @@ The ticks, pieces, markers and short labels are built in Rust, so REQ-3 and REQ-
 | What | How |
 |---|---|
 | Rust tests (REQ-3, REQ-4) | `cargo test test_csd025_`. One requirement, e.g. REQ-4: `cargo test test_csd025_ac_4_` |
-| DOM tests | `npm test`: `charts.test.js` (AC-1.x, AC-2.x, AC-5.x to AC-14.x), `tabs.test.js` (AC-15.1 to AC-15.3), `empty-states.test.js` (AC-16.1, AC-16.2) |
+| DOM tests | `npm test`: `charts.test.js` (AC-1.x, AC-2.x, AC-5.x to AC-14.x), `tabs.test.js` (AC-15.1 to AC-15.3), `empty-states.test.js` (AC-16.1, AC-16.2), `ac-d-charts.test.js` (AC-8.2, AC-8.3, AC-10.1, AC-11.1, AC-12.1 to AC-12.3, AC-13.1, AC-14.2: jsdom has no layout, so placement is tested with boxes the test sets and the look on the numbers in `charts.css` and `base.css`) |
+| Manual checklist (what only a real browser paints) | The tooltip really moving and fading (AC-10.1), the chart ending at the bottom of a real window (AC-11.1), the painted bars, lines and tooltip (AC-12.x), the legend wrapping in a narrow window (AC-13.1) and the palette on screen in both modes (AC-14.2) |
 
-Not covered by a named test yet (9 of 49 ACs; no test carries the AC id): AC-8.2, AC-8.3, AC-10.1, AC-11.1, AC-12.1 to AC-12.3, AC-13.1, AC-14.2.
+Not covered by a named test yet (0 of 49 ACs): none. The look and motion ACs have tests on the style sheets and the placement rule; their painted result is on the manual list above.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
