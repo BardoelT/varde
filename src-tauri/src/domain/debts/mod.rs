@@ -15,6 +15,8 @@ mod statement;
 mod totals;
 
 #[cfg(test)]
+mod ac_tests_debts;
+#[cfg(test)]
 mod tests;
 
 pub use amounts::{debt_note, DebtBalance};
