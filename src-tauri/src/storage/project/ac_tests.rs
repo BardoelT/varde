@@ -30,7 +30,7 @@ fn test_csd002_ac_16_1_a_saved_empty_project_has_every_section() {
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
     let object = value.as_object().unwrap();
-    assert_eq!(object["format_version"], 1);
+    assert_eq!(object["format_version"], 2);
     for section in [
         "income",
         "investments",
@@ -44,6 +44,24 @@ fn test_csd002_ac_16_1_a_saved_empty_project_has_every_section() {
     }
     // Only the version and the seven sections are in the file.
     assert_eq!(object.len(), 8);
+}
+
+#[test]
+fn test_csd002_ac_18_3_a_version_1_file_is_invalid_until_the_script_has_upgraded_it() {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("example-a.varde");
+    let mut project = Project::new();
+    project.save_as(path.clone()).unwrap();
+    let mut value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+    value["format_version"] = serde_json::json!(1);
+    let old = dir.path().join("version-1.varde");
+    fs::write(&old, value.to_string()).unwrap();
+    add_job(&mut project);
+    let before: Income = project.income().clone();
+    let error = project.open(&old).unwrap_err();
+    assert_eq!(error.code(), "PROJECT_INVALID_FILE");
+    assert_eq!(project.income(), &before);
 }
 
 #[test]

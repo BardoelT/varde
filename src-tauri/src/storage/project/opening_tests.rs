@@ -53,7 +53,7 @@ fn test_csd011_ac_23_7_the_opening_survives_the_round_trip() {
     fresh.open(&path).unwrap();
     assert_eq!(fresh.debts(), project.debts());
     let value: Value = serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
-    assert_eq!(value["format_version"], 1);
+    assert_eq!(value["format_version"], 2);
     assert_eq!(value["debts"]["debts"][0]["opening_date"], "2020-03-15");
     assert_eq!(value["debts"]["debts"][0]["opening_amount"], "200000.00");
 }

@@ -46,7 +46,7 @@ fn test_csd005_ac_19_1_investments_survive_save_and_open_including_notes() {
     // The section sits next to income and settings; the version stays 1.
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
-    assert_eq!(value["format_version"], 1);
+    assert_eq!(value["format_version"], 2);
     assert_eq!(
         value["investments"]["accounts"][0]["name"],
         "Example Pension"
@@ -61,7 +61,7 @@ fn test_csd005_an_inconsistent_investments_section_is_an_invalid_file() {
     // A statement of an account that does not exist.
     fs::write(
         &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
+        r#"{"format_version":2,"income":{"jobs":[],"paychecks":[]},
             "investments":{"accounts":[],"statements":[
             {"account_id":"671166f4-5827-4794-bcdc-54d7824fb650","period":"2026-09","balance":"1.00"}]}}"#,
     )

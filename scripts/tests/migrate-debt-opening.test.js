@@ -13,9 +13,9 @@ function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'varde-migrate-'));
 }
 
-function project(debts, statements) {
+function project(debts, statements, version = 1) {
   return {
-    format_version: 1,
+    format_version: version,
     income: { jobs: [] },
     debts: { debts, statements },
     settings: { currency: 'EUR' },
@@ -86,7 +86,7 @@ test('test_csd002_ac_20_3_debt_without_statements', () => {
 test('test_csd002_ac_20_4_nothing_to_do', () => {
   const dir = tempDir();
   const done = { ...mortgage, opening_date: '2025-03-01', opening_amount: '190000.00' };
-  const file = write(dir, project([done], []));
+  const file = write(dir, project([done], [], 2));
   const old = new Date('2020-01-01T00:00:00Z');
   fs.utimesSync(file, old, old);
   const before = fs.readFileSync(file);
@@ -160,4 +160,55 @@ test('test_csd002_ac_20_4_second_run_says_nothing_to_upgrade', () => {
   assert.equal(second.status, 0);
   assert.match(second.stdout, /Nothing to upgrade/);
   assert.deepEqual(fs.readFileSync(file), after);
+});
+
+test('test_csd002_ac_20_6_settlements_get_an_origin_and_the_version_is_raised', () => {
+  const dir = tempDir();
+  const done = { opening_date: '2025-01-01', opening_amount: '10000.00' };
+  const linked = {
+    ...loan,
+    ...done,
+    house_id: 'house-1',
+    settlement: { outcome: 'Cancelled', date: '2026-06-10', amount: '4000.00' },
+  };
+  const unlinked = {
+    ...card,
+    ...done,
+    settlement: { outcome: 'Repaid', date: '2026-06-10', amount: '800.00' },
+  };
+  const file = write(dir, project([linked, unlinked], []));
+  const before = fs.readFileSync(file);
+  const result = run(file);
+  assert.equal(result.status, 0, result.stderr);
+  const upgraded = JSON.parse(fs.readFileSync(file, 'utf8'));
+  assert.equal(upgraded.format_version, 2);
+  assert.equal(upgraded.debts.debts[0].settlement.origin, 'Sale');
+  assert.equal(upgraded.debts.debts[1].settlement.origin, 'Manual');
+  // Keys in the order the app writes them.
+  assert.deepEqual(Object.keys(upgraded.debts.debts[0].settlement), ['outcome', 'origin', 'date', 'amount']);
+  assert.deepEqual(fs.readFileSync(`${file}.bak`), before);
+  assert.ok(!result.stdout.includes('4000'), 'no amounts in the output');
+  assert.equal(fs.readFileSync(file, 'utf8'), JSON.stringify(upgraded, null, 2));
+  const second = run(file);
+  assert.match(second.stdout, /Nothing to upgrade/);
+});
+
+test('test_csd002_ac_20_6_a_version_1_file_with_openings_only_gets_the_new_version', () => {
+  const dir = tempDir();
+  const done = { ...mortgage, opening_date: '2025-03-01', opening_amount: '190000.00' };
+  const file = write(dir, project([done], []));
+  const result = run(file);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).format_version, 2);
+  assert.ok(fs.existsSync(`${file}.bak`));
+});
+
+test('test_csd002_ac_20_5_a_file_from_a_newer_version_fails_and_changes_nothing', () => {
+  const dir = tempDir();
+  const file = write(dir, project([], [], 3));
+  const before = fs.readFileSync(file);
+  const result = run(file);
+  assert.equal(result.status, 1);
+  assert.deepEqual(fs.readFileSync(file), before);
+  assert.ok(!fs.existsSync(`${file}.bak`));
 });

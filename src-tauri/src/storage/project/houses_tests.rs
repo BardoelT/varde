@@ -50,7 +50,7 @@ fn test_csd015_ac_24_1_houses_survive_save_and_open_including_notes_and_slots() 
     // The section sits next to the others; the version stays 1.
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
-    assert_eq!(value["format_version"], 1);
+    assert_eq!(value["format_version"], 2);
     assert_eq!(value["houses"]["houses"][1]["name"], "Example Lodge");
     assert_eq!(value["houses"]["houses"][1]["colour_slot"], 1);
     assert_eq!(value["houses"]["valuations"][0]["value"], "8000.00");
@@ -113,7 +113,7 @@ fn test_csd015_ac_27_3_a_damaged_section_is_an_invalid_file() {
     // A valuation of a house that does not exist.
     fs::write(
         &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
+        r#"{"format_version":2,"income":{"jobs":[],"paychecks":[]},
             "houses":{"houses":[],"valuations":[
             {"house_id":"671166f4-5827-4794-bcdc-54d7824fb650","period":"2026-09","value":"1.00"}]}}"#,
     )
@@ -202,7 +202,7 @@ fn test_csd020_ac_33_2_a_damaged_link_is_an_invalid_file() {
     let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
+        r#"{"format_version":2,"income":{"jobs":[],"paychecks":[]},
             "debts":{"debts":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
             "name":"Example Loan","period":"Monthly","colour_slot":0,
             "house_id":"11111111-1111-4111-8111-111111111111"}],
@@ -220,7 +220,7 @@ fn test_csd020_ac_33_2_a_link_on_a_debt_of_category_other_is_an_invalid_file() {
     let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
+        r#"{"format_version":2,"income":{"jobs":[],"paychecks":[]},
             "houses":{"houses":[{"id":"11111111-1111-4111-8111-111111111111",
             "name":"Example House","period":"Monthly","colour_slot":0}],
             "valuations":[]},
@@ -251,7 +251,7 @@ fn test_csd020_ac_33_2_a_settlement_statement_without_a_settlement_is_an_invalid
     let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
+        r#"{"format_version":2,"income":{"jobs":[],"paychecks":[]},
             "debts":{"debts":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
             "name":"Example Loan","period":"Monthly","colour_slot":0}],
             "statements":[{"debt_id":"671166f4-5827-4794-bcdc-54d7824fb650",

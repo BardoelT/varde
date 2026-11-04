@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-// One-off migration (CSD-002 REQ-20): gives every debt of a project file an
-// `opening_date` and `opening_amount`. Outside the app, no dependencies.
+// One-off migration (CSD-002 REQ-20): upgrades a project file to format_version 2.
+// Gives every debt an `opening_date` and `opening_amount`, and every settlement an
+// `origin` (Sale for a debt with a house link, Manual otherwise). Outside the app,
+// no dependencies.
 //
 // Usage: node scripts/migrate-debt-opening.mjs <file.varde>
 //
@@ -11,6 +13,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+
+/** The format_version this script upgrades to (CSD-002 REQ-20). */
+const TARGET_VERSION = 2;
 
 class MigrationError extends Error {}
 
@@ -102,7 +107,12 @@ function run(file) {
   if (!Array.isArray(debts) || !Array.isArray(statements)) fail('the debts section has an unknown shape');
   if (!debts.every(isObject) || !statements.every(isObject)) fail('the debts section has an unknown shape');
 
+  const version = project.format_version;
+  if (!Number.isInteger(version) || version < 1) fail('the file has no valid format_version');
+  if (version > TARGET_VERSION) fail('the file is from a newer version of the app');
+
   const todo = [];
+  const needOrigin = [];
   for (const debt of debts) {
     const hasDate = Object.hasOwn(debt, 'opening_date');
     const hasAmount = Object.hasOwn(debt, 'opening_amount');
@@ -111,8 +121,14 @@ function run(file) {
       if (typeof debt.id !== 'string' || typeof debt.name !== 'string') fail('a debt has an unknown shape');
       todo.push(debt);
     }
+    if (debt.settlement !== undefined && debt.settlement !== null) {
+      if (!isObject(debt.settlement)) fail('a debt has an unknown shape');
+      if (!Object.hasOwn(debt.settlement, 'origin')) needOrigin.push(debt);
+    }
   }
-  if (todo.length === 0) return console.log('Nothing to upgrade');
+  if (todo.length === 0 && needOrigin.length === 0 && version === TARGET_VERSION) {
+    return console.log('Nothing to upgrade');
+  }
 
   const uncorrected = [];
   for (const debt of todo) {
@@ -126,6 +142,14 @@ function run(file) {
       debt.opening_amount = first.statement.balance;
     }
   }
+  // A settlement made by a sale sits on a linked debt, a manual one does not
+  // (CSD-026 v3.0). Keys in the order the app writes them.
+  for (const debt of needOrigin) {
+    const { outcome, date, amount, ...rest } = debt.settlement;
+    const linked = debt.house_id !== undefined && debt.house_id !== null;
+    debt.settlement = { outcome, origin: linked ? 'Sale' : 'Manual', date, amount, ...rest };
+  }
+  project.format_version = TARGET_VERSION;
   // Same layout as the app writes: 2-space indent, no trailing newline.
   const text = JSON.stringify(project, null, 2);
 
@@ -136,7 +160,7 @@ function run(file) {
   }
   writeAtomic(file, text);
 
-  console.log(`Upgraded ${todo.length} debt(s). Backup written next to the file with the extension .bak.`);
+  console.log(`Upgraded to format_version ${TARGET_VERSION}: ${todo.length} opening(s), ${needOrigin.length} settlement origin(s). Backup written next to the file with the extension .bak.`);
   if (uncorrected.length > 0) {
     console.log('Debts without statements (opening date today, amount 0.00), correct these in the app:');
     for (const name of uncorrected) console.log(`- ${name}`);
