@@ -492,3 +492,124 @@ fn test_csd018_ac_2_5_a_very_old_record_gets_no_column() {
     assert_eq!(years.len(), 50);
     assert_eq!((years[0], years[49]), (1977, 2026));
 }
+
+// REQ-10: the percentage labels are built in Rust
+
+#[test]
+fn test_csd018_ac_10_1_a_positive_percentage_has_a_plus_and_none_a_dash() {
+    let mut data = saving_year();
+    add_expense(&mut data, "10/05/2025", "4000.00");
+    add_income(&mut data, "2025", "48000.00");
+    let row = year(&data, 2025);
+    assert_eq!(row.wealth_percent_label, "+12.50%");
+    assert_eq!(row.disposable_percent_label, "+20.83%");
+    assert_eq!(row.wealth_growth_percent, None);
+    assert_eq!(row.wealth_growth_percent_label, "–");
+    assert_eq!(row.investment_growth_percent_label, "–");
+    let first = year(&data, 2024);
+    assert_eq!(
+        first.wealth_percent_label, "–",
+        "2024 has no wealth accumulation"
+    );
+}
+
+#[test]
+fn test_csd018_ac_10_1_a_negative_percentage_has_a_hyphen_minus() {
+    let mut data = ProjectData::default();
+    add_bank(
+        &mut data,
+        "Example Bank",
+        &[("2024", "1000.00"), ("2025", "500.00")],
+    );
+    add_investment(&mut data, &[("2025", "1000.00", "-1000.00")]);
+    add_debt(&mut data, &[("2024", "5000.00"), ("2025", "5200.00")]);
+    add_income(&mut data, "2025", "48000.00");
+    assert_eq!(year(&data, 2025).wealth_percent_label, "-3.54%");
+    let shrinking = net_worth_of("100000.00", "95000.00");
+    assert_eq!(year(&shrinking, 2026).wealth_growth_percent_label, "-5.00%");
+    let growing = net_worth_of("100000.00", "110000.00");
+    assert_eq!(year(&growing, 2026).wealth_growth_percent_label, "+10.00%");
+}
+
+#[test]
+fn test_csd018_ac_10_1_no_change_is_0_00_without_a_sign() {
+    let mut data = ProjectData::default();
+    add_bank(
+        &mut data,
+        "Example Bank",
+        &[("2024", "1000.00"), ("2025", "1000.00")],
+    );
+    add_income(&mut data, "2025", "48000.00");
+    let row = year(&data, 2025);
+    assert_eq!(row.wealth_percent.unwrap().to_string(), "0.00");
+    assert_eq!(row.wealth_percent_label, "0.00%");
+}
+
+#[test]
+fn test_csd018_ac_10_1_a_decrease_that_rounds_to_0_00_has_no_sign() {
+    let mut data = ProjectData::default();
+    add_bank(
+        &mut data,
+        "Example Bank",
+        &[("2024", "1000.00"), ("2025", "999.99")],
+    );
+    add_income(&mut data, "2025", "48000.00");
+    let row = year(&data, 2025);
+    assert_eq!(row.wealth_accumulation.unwrap().to_string(), "-0.01");
+    assert_eq!(row.wealth_percent.unwrap().to_string(), "0.00");
+    assert_eq!(row.wealth_percent_label, "0.00%");
+}
+
+#[test]
+fn test_csd018_section_5_labels_cross_ipc_next_to_the_percentages() {
+    let mut data = saving_year();
+    add_income(&mut data, "2025", "48000.00");
+    let json = serde_json::to_value(Ratios {
+        years: series(&data),
+    })
+    .unwrap();
+    let row = json["years"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["year"] == 2025)
+        .unwrap();
+    assert_eq!(row["wealth_percent_label"], "+12.50%");
+    assert_eq!(row["wealth_growth_percent_label"], "–");
+    assert_eq!(row["investment_growth_percent_label"], "–");
+    assert_eq!(row["disposable_percent_label"], "+12.50%");
+}
+
+/// Every file under `dir`, so a scan sees the whole tree.
+fn files_under(dir: &std::path::Path, found: &mut Vec<std::path::PathBuf>) {
+    for entry in std::fs::read_dir(dir).unwrap() {
+        let path = entry.unwrap().path();
+        if path.is_dir() {
+            if path.file_name().is_some_and(|name| name != "node_modules") {
+                files_under(&path, found);
+            }
+        } else {
+            found.push(path);
+        }
+    }
+}
+
+#[test]
+fn test_csd018_ac_10_1_no_unicode_minus_sign_is_written_anywhere_in_the_sources() {
+    // The minus sign of a figure is the hyphen-minus Rust writes (CSD-007
+    // REQ-10); U+2212 is built from its number so this file does not contain it.
+    let unicode_minus = char::from_u32(0x2212).unwrap();
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut files = Vec::new();
+    files_under(&root.join("src"), &mut files);
+    files_under(&root.join("../ui"), &mut files);
+    let mut checked = 0;
+    for file in files {
+        let Ok(text) = std::fs::read_to_string(&file) else {
+            continue;
+        };
+        checked += 1;
+        assert!(!text.contains(unicode_minus), "{}", file.display());
+    }
+    assert!(checked > 100, "the scan saw {checked} files");
+}

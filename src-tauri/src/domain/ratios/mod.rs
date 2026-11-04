@@ -6,6 +6,7 @@ use rust_decimal::Decimal;
 use serde::Serialize;
 
 use crate::domain::bank_accounts::BankAccounts;
+use crate::domain::charts::percent_label;
 use crate::domain::common::{series_years, YearMonth};
 use crate::domain::debts::Debts;
 use crate::domain::expenses::Expenses;
@@ -32,14 +33,23 @@ pub struct RatiosYear {
     pub wealth_accumulation: Option<Money>,
     /// The wealth accumulation in percent of the total income (REQ-6).
     pub wealth_percent: Option<Decimal>,
+    /// [`Self::wealth_percent`] as the table shows it: "+6.09%", "-2.50%",
+    /// "0.00%" or a dash (CSD-018 REQ-10).
+    pub wealth_percent_label: String,
     /// The growth percentage of the Investments chart (REQ-7).
     pub investment_growth_percent: Option<Decimal>,
+    /// [`Self::investment_growth_percent`] as the table shows it.
+    pub investment_growth_percent_label: String,
     /// The net worth against that of the year before, in percent (REQ-8).
     pub wealth_growth_percent: Option<Decimal>,
+    /// [`Self::wealth_growth_percent`] as the table shows it.
+    pub wealth_growth_percent_label: String,
     /// Wealth accumulation plus expenses (REQ-9).
     pub disposable_income: Option<Money>,
     /// The disposable income in percent of the total income (REQ-9).
     pub disposable_percent: Option<Decimal>,
+    /// [`Self::disposable_percent`] as the table shows it.
+    pub disposable_percent_label: String,
 }
 
 /// The payload of `get_ratios` (CSD-018 section 5).
@@ -140,18 +150,26 @@ pub fn ratios(sources: &RatioSources<'_>, today: YearMonth) -> Ratios {
             let disposable_income = wealth_accumulation.map(|wealth| {
                 wealth.saturating_add(expenses.get(&year).copied().unwrap_or_default())
             });
+            let wealth_percent =
+                wealth_accumulation.and_then(|wealth| percent_of(wealth, total_income));
+            let investment_growth_percent = investment_growth.get(&year).copied().flatten();
+            let wealth_growth_percent = wealth_growth(&net_worth, year);
+            let disposable_percent =
+                disposable_income.and_then(|disposable| percent_of(disposable, total_income));
             RatiosYear {
                 year,
                 is_partial: year == today.year(),
                 total_income,
                 wealth_accumulation,
-                wealth_percent: wealth_accumulation
-                    .and_then(|wealth| percent_of(wealth, total_income)),
-                investment_growth_percent: investment_growth.get(&year).copied().flatten(),
-                wealth_growth_percent: wealth_growth(&net_worth, year),
+                wealth_percent,
+                wealth_percent_label: percent_label(wealth_percent),
+                investment_growth_percent,
+                investment_growth_percent_label: percent_label(investment_growth_percent),
+                wealth_growth_percent,
+                wealth_growth_percent_label: percent_label(wealth_growth_percent),
                 disposable_income,
-                disposable_percent: disposable_income
-                    .and_then(|disposable| percent_of(disposable, total_income)),
+                disposable_percent,
+                disposable_percent_label: percent_label(disposable_percent),
             }
         })
         .collect();

@@ -4,12 +4,12 @@ import { invoke, errorText } from '../shared/ipc.js';
 import { $, h, iconButton, showToast } from '../shared/dom.js';
 import { formatAmount } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
-import { percentLabel, isNegative, yearLabel } from '../shared/yearly-chart.js';
+import { isNegative, yearLabel } from '../shared/yearly-chart.js';
 
 /** An amount, or a dash when Rust has none (CSD-018 REQ-10). */
 const amountCell = (value) => (value === null ? '–' : formatAmount(value));
-/** A percentage with its sign, or a dash. */
-const percentCell = (value) => percentLabel(value);
+/** A percentage as Rust labels it ("+6.09%", "-2.50%", "0.00%" or a dash): the `<field>_label` of the row, shown as received. */
+const percentCell = (_value, row, field) => row[`${field}_label`];
 
 /** The rows of the table under their sub-headings: label, field, how to show it and how it is calculated (CSD-018 REQ-3, REQ-13). The texts are English; they are shown through `t`. */
 const GROUPS = [
@@ -88,7 +88,7 @@ function renderTable(years) {
         ...years.map((row) => {
           const value = row[field];
           const negative = value !== null && isNegative(value);
-          return h('td', { class: `num${negative ? ' negative' : ''}` }, show(value));
+          return h('td', { class: `num${negative ? ' negative' : ''}` }, show(value, row, field));
         }),
       ),
     ),

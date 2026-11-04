@@ -13,13 +13,6 @@ const MARGIN = { top: 28, right: 16, left: 48 };
 const MIN_PLOT_WIDTH = 560;
 const MAX_BAR_WIDTH = 44;
 
-/** "6.42" -> "+6.42%", "-2.50" -> "−2.50%", "0.00" -> "0.00%", null -> "–". Only the Ratios table uses it; charts get `growth_label` from Rust. */
-export function percentLabel(percent) {
-  if (percent === null) return '–';
-  if (percent.startsWith('-')) return `−${percent.slice(1)}%`;
-  return percent === '0.00' ? '0.00%' : `+${percent}%`;
-}
-
 /** Whether a received decimal string or label carries a minus sign (display only: it styles a negative figure). */
 export const isNegative = (text) => text.startsWith('-');
 
