@@ -535,9 +535,10 @@ The series is computed in Rust, so the data ACs are proven by `cargo test`. Test
 | What | How |
 |---|---|
 | Rust tests (the data) | `cargo test test_csd014_`. One requirement, e.g. REQ-4: `cargo test test_csd014_ac_4_` |
-| Display ACs (REQ-5, REQ-7 to REQ-9, REQ-12, REQ-13 and the others in the list below) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. |
+| Display ACs (REQ-5 to REQ-14) | `npm test`: `ac-a-expense-insights.test.js` (all display ACs except AC-8.5). The palette (AC-6.3) is checked on the tokens of `base.css`, the wrapping of the legend (AC-7.2) on its style rule |
+| Placement of the tooltip beside the bar and its flip near the right edge (AC-8.5, the centring of AC-8.6) | Checked by hand: jsdom has no layout |
 
-Not covered by a named test yet (33 of 51 ACs; no test carries the AC id): AC-3.2, AC-5.1 to AC-5.6, AC-6.1, AC-6.3, AC-7.1, AC-7.2, AC-8.1 to AC-8.8, AC-9.1 to AC-9.7, AC-10.1, AC-11.4, AC-12.1, AC-13.1 to AC-13.3, AC-14.1.
+Not covered by a named test yet (1 of 51 ACs; no test carries the AC id): AC-8.5 (checked by hand, see above).
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
