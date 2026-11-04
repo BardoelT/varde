@@ -1071,10 +1071,11 @@ The data and the domain logic are proven by `cargo test`, with domain logic test
 | Rust tests | `cargo test test_csd015_`. One requirement, e.g. REQ-7: `cargo test test_csd015_ac_7_` |
 | REQ-9, REQ-11 and REQ-15 (the test names carry the requirement but no AC number) | `cargo test test_csd015_ac_9_`, `test_csd015_ac_11_` and `test_csd015_ac_15_` |
 | Yearly values (AC-20.1 to AC-20.11) | `cargo test test_csd015_ac_20_` |
-| Display ACs (REQ-21 to REQ-23, REQ-26, the rows of the tables, the dialogs) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. There are no `test_csd015_ac_21_` tests |
-| AC-25.1, AC-25.2 (currency confirmation) | Governed by CSD-003 REQ-5 and verified there. There are no `test_csd015_ac_25_` tests |
+| Display ACs (REQ-21 to REQ-23, REQ-26, the rows of the tables, the dialogs) | `npm test`: `ac-c2-houses.test.js` (sections, rows, tables, empty states, the delete confirmations, the valuation form, the left pane) and `empty-states.test.js` (AC-22.1) |
+| AC-25.1, AC-25.2 (currency confirmation) | Governed by CSD-003 REQ-5; the DOM tests `test_csd015_ac_25_` in `ac-c2-houses.test.js` check the confirmation, and the count of house valuations is checked over IPC in `test_csd003_ac_5_13_` |
+| Unsaved indicator, invalid edits and invalid files (AC-12.9, AC-13.4, AC-27.1, AC-27.2, AC-27.4) | `cargo test ipc_ac_tests_c2` |
 
-Not covered by a named test yet (35 of 111 ACs; no test carries the AC id): AC-1.4, AC-6.2, AC-6.4, AC-9.2, AC-11.2, AC-12.2, AC-12.7, AC-12.9, AC-13.4, AC-14.2, AC-15.2, AC-15.3, AC-16.1 to AC-16.3, AC-17.6, AC-18.3, AC-21.1 to AC-21.8, AC-22.1 to AC-22.3, AC-23.1, AC-25.1, AC-25.2, AC-26.1, AC-27.1, AC-27.2, AC-27.4.
+Not covered by a named test yet (2 of 111 ACs; no test carries the AC id): AC-16.1, AC-16.2 (the add form labels the period field "Month" or "Year" with the format as its placeholder, not "Month (YYYY-MM)" or "Year (YYYY)" as the scenarios read; to be settled).
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
