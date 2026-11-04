@@ -14,6 +14,8 @@ build.keychain
 
 # Project files hold real financial data — never commit
 *.varde
+# ...except the synthetic example project (CSD-002 REQ-21)
+!examples/example.varde
 
 # npm: dev-only DOM test tooling (CSD-021 CON-5)
 node_modules/

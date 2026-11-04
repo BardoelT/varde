@@ -195,6 +195,8 @@ pub fn run() {
 }
 
 #[cfg(test)]
+mod example_project_tests;
+#[cfg(test)]
 mod golden_tests;
 #[cfg(test)]
 mod ipc_ac_tests_a;

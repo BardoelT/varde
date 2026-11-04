@@ -283,7 +283,7 @@ fn add_houses_and_debts(app: &Harness) {
 }
 
 /// Every read command the UI calls, in a fixed order.
-fn read_everything(app: &Harness) -> Value {
+pub(crate) fn read_everything(app: &Harness) -> Value {
     let reads = [
         "project_status",
         "get_settings",
