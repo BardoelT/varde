@@ -241,15 +241,15 @@ fn add_houses_and_debts(app: &Harness) {
     }
     let mortgage = app.ok(
         "create_debt",
-        json!({ "input": { "name": "Example Mortgage", "period": "Monthly", "category": "Mortgage", "house_id": sold["id"] } }),
+        json!({ "input": { "opening_date": "01/01/2000", "opening_amount": "200000.00", "name": "Example Mortgage", "period": "Monthly", "category": "Mortgage", "house_id": sold["id"] } }),
     );
     let loan = app.ok(
         "create_debt",
-        json!({ "input": { "name": "Example Home Loan", "period": "Monthly", "category": "Loan", "house_id": sold["id"] } }),
+        json!({ "input": { "opening_date": "01/01/2000", "opening_amount": "200000.00", "name": "Example Home Loan", "period": "Monthly", "category": "Loan", "house_id": sold["id"] } }),
     );
     let student = app.ok(
         "create_debt",
-        json!({ "input": { "name": "Example Student Loan", "period": "Yearly", "category": "Other" } }),
+        json!({ "input": { "opening_date": "01/01/2000", "opening_amount": "200000.00", "name": "Example Student Loan", "period": "Yearly", "category": "Other" } }),
     );
     for (debt, period, balance) in [
         (&mortgage, "2025-12", "150000.00"),

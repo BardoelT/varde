@@ -8,7 +8,8 @@ use crate::domain::money::Money;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::debts::{
-    Debt, DebtCategory, DebtId, DebtInput, DebtSummary, Debts, OpenDebt, Outcome, Settlement,
+    ClosingInput, Debt, DebtCategory, DebtId, DebtInput, DebtSummary, Debts, OpenDebt, Outcome,
+    Settlement,
 };
 use crate::domain::error::DomainError;
 use crate::domain::series::SeriesData;
@@ -145,6 +146,14 @@ pub struct DebtFormInput {
     /// already sold and has an open balance (CSD-020 REQ-17).
     #[serde(default)]
     pub settlement: Option<String>,
+    /// The closing fields of the form: a manual closing of a debt without a
+    /// house link, or all empty to clear one (CSD-026 REQ-15, REQ-16).
+    #[serde(default)]
+    pub closing: ClosingInput,
+    /// Confirms that clearing a manual closing removes its settlement
+    /// statement (CSD-026 REQ-16).
+    #[serde(default)]
+    pub confirm_undo: bool,
 }
 
 /// Creates a debt with its category and optional house (CSD-020 REQ-15,
@@ -161,6 +170,7 @@ pub fn create_debt(
     let mut new_debts = debts.clone();
     let id = new_debts.create_debt(&input.debt)?.id;
     apply_category_and_link(houses, &mut new_debts, id, input)?;
+    apply_closing(&mut new_debts, id, input, false)?;
     *debts = new_debts;
     debts.get(id).cloned().ok_or(DomainError::DebtNotFound)
 }
@@ -178,10 +188,54 @@ pub fn update_debt(
     input: &DebtFormInput,
 ) -> Result<Debt, DomainError> {
     let mut new_debts = debts.clone();
+    let was_settled = new_debts.is_settled(id);
     new_debts.update_debt(id, &input.debt)?;
     apply_category_and_link(houses, &mut new_debts, id, input)?;
+    apply_closing(&mut new_debts, id, input, was_settled)?;
     *debts = new_debts;
     debts.get(id).cloned().ok_or(DomainError::DebtNotFound)
+}
+
+/// Applies the closing fields of the debt form (CSD-026 REQ-15, REQ-16).
+/// `was_settled` says whether the debt had a settlement before this save. A
+/// closing by the sale of a house is never changed here, and a debt linked to a
+/// house cannot be closed by hand.
+fn apply_closing(
+    debts: &mut Debts,
+    id: DebtId,
+    input: &DebtFormInput,
+    was_settled: bool,
+) -> Result<(), DomainError> {
+    let closing = input.closing.parse()?;
+    let linked = debts.house_of(id).is_some();
+    match (was_settled, closing) {
+        // Nothing typed and nothing stored.
+        (false, None) => Ok(()),
+        (false, Some(_)) if linked => Err(DomainError::DebtClosingLinked),
+        (false, Some(closing)) => debts.close_manually(id, &closing),
+        // Nothing typed on a closed debt: a closing by sale cannot be cleared
+        // here, a manual closing is cleared on confirmation.
+        (true, None) if linked => Err(DomainError::DebtSettledLocked),
+        (true, None) if !input.confirm_undo => Err(DomainError::DebtClosingUndoUnconfirmed),
+        (true, None) => debts.unsettle(id),
+        // The stored closing typed again is unchanged; any other is refused,
+        // the user clears it first (CSD-026 NG-3).
+        (true, Some(closing)) => {
+            let same = debts
+                .get(id)
+                .and_then(Debt::settlement)
+                .is_some_and(|stored| {
+                    stored.outcome == closing.outcome
+                        && stored.date == closing.date
+                        && stored.amount == closing.amount
+                });
+            if same {
+                Ok(())
+            } else {
+                Err(DomainError::DebtSettledLocked)
+            }
+        }
+    }
 }
 
 fn apply_category_and_link(

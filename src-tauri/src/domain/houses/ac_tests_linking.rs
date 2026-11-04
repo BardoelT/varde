@@ -23,6 +23,7 @@ fn debt(data: &mut ProjectData, name: &str, kind: &str) -> DebtId {
         .create_debt(&DebtInput {
             name: name.to_owned(),
             period: Some(kind.to_owned()),
+            ..DebtInput::example()
         })
         .unwrap()
         .id
@@ -80,10 +81,15 @@ fn held_house(data: &mut ProjectData, linked: &[DebtId]) -> HouseId {
             &mut data.debts,
             *id,
             &DebtFormInput {
-                debt: DebtInput { name, period: None },
+                debt: DebtInput {
+                    name,
+                    period: None,
+                    ..DebtInput::example()
+                },
                 category: Some("Loan".to_owned()),
                 house_id: Some(house.to_string()),
                 settlement: None,
+                ..Default::default()
             },
         )
         .unwrap();

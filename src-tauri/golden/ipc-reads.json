@@ -3186,6 +3186,7 @@
       "debt_name": "Example Student Loan",
       "locked": false,
       "note": "",
+      "opening": false,
       "outcome": null,
       "period": "2026",
       "settlement": false
@@ -3197,6 +3198,7 @@
       "debt_name": "Example Home Loan",
       "locked": true,
       "note": "Cancelled on sale of Example House",
+      "opening": false,
       "outcome": "Cancelled",
       "period": "2026-06",
       "settlement": true
@@ -3208,6 +3210,7 @@
       "debt_name": "Example Mortgage",
       "locked": true,
       "note": "Repaid on sale of Example House",
+      "opening": false,
       "outcome": "Repaid",
       "period": "2026-06",
       "settlement": true
@@ -3219,6 +3222,7 @@
       "debt_name": "Example Home Loan",
       "locked": false,
       "note": "",
+      "opening": false,
       "outcome": null,
       "period": "2026-04",
       "settlement": false
@@ -3230,6 +3234,7 @@
       "debt_name": "Example Mortgage",
       "locked": false,
       "note": "",
+      "opening": false,
       "outcome": null,
       "period": "2026-04",
       "settlement": false
@@ -3241,6 +3246,7 @@
       "debt_name": "Example Mortgage",
       "locked": false,
       "note": "",
+      "opening": false,
       "outcome": null,
       "period": "2025-12",
       "settlement": false
@@ -3252,8 +3258,45 @@
       "debt_name": "Example Student Loan",
       "locked": false,
       "note": "",
+      "opening": false,
       "outcome": null,
       "period": "2025",
+      "settlement": false
+    },
+    {
+      "balance": "200000.00",
+      "change": null,
+      "debt_id": "id-5",
+      "debt_name": "Example Student Loan",
+      "locked": true,
+      "note": "",
+      "opening": true,
+      "outcome": null,
+      "period": "2000-01-01",
+      "settlement": false
+    },
+    {
+      "balance": "200000.00",
+      "change": null,
+      "debt_id": "id-4",
+      "debt_name": "Example Home Loan",
+      "locked": true,
+      "note": "",
+      "opening": true,
+      "outcome": null,
+      "period": "2000-01-01",
+      "settlement": false
+    },
+    {
+      "balance": "200000.00",
+      "change": null,
+      "debt_id": "id-3",
+      "debt_name": "Example Mortgage",
+      "locked": true,
+      "note": "",
+      "opening": true,
+      "outcome": null,
+      "period": "2000-01-01",
       "settlement": false
     }
   ],
@@ -3268,6 +3311,8 @@
         "latest_balance": "0.00",
         "latest_period": "2026-06",
         "name": "Example Home Loan",
+        "opening_amount": "200000.00",
+        "opening_date": "2000-01-01",
         "period": "Monthly",
         "repaid": true,
         "settlement": {
@@ -3286,6 +3331,8 @@
         "latest_balance": "0.00",
         "latest_period": "2026-06",
         "name": "Example Mortgage",
+        "opening_amount": "200000.00",
+        "opening_date": "2000-01-01",
         "period": "Monthly",
         "repaid": true,
         "settlement": {
@@ -3303,6 +3350,8 @@
         "latest_balance": "7000.00",
         "latest_period": "2026",
         "name": "Example Student Loan",
+        "opening_amount": "200000.00",
+        "opening_date": "2000-01-01",
         "period": "Yearly",
         "repaid": false,
         "statement_count": 2

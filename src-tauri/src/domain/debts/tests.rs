@@ -19,11 +19,25 @@ fn input(name: &str, period: &str) -> DebtInput {
     DebtInput {
         name: name.to_owned(),
         period: Some(period.to_owned()),
+        ..DebtInput::example()
     }
 }
 
 fn debt(debts: &mut Debts, name: &str, period: &str) -> DebtId {
     debts.create_debt(&input(name, period)).unwrap().id
+}
+
+/// A debt that started long ago, for statements of any period.
+fn old_debt(debts: &mut Debts, name: &str, kind: &str) -> DebtId {
+    debts
+        .create_debt(&DebtInput {
+            name: name.to_owned(),
+            period: Some(kind.to_owned()),
+            opening_date: "01/01/1800".to_owned(),
+            ..DebtInput::example()
+        })
+        .unwrap()
+        .id
 }
 
 fn add(debts: &mut Debts, id: DebtId, at: &str, amount: &str) {
@@ -83,6 +97,7 @@ fn test_csd011_ac_1_1_a_debt_is_monthly_by_default() {
         .create_debt(&DebtInput {
             name: "Example Mortgage".to_owned(),
             period: None,
+            ..DebtInput::example()
         })
         .unwrap();
     assert_eq!(created.period, PayPeriod::Monthly);
@@ -373,8 +388,8 @@ fn test_csd011_ac_7_4_current_and_future_periods_are_accepted() {
 #[test]
 fn test_csd011_ac_7_6_a_period_has_no_date_bounds() {
     let mut debts = Debts::default();
-    let monthly = debt(&mut debts, "Monthly", "Monthly");
-    let yearly = debt(&mut debts, "Yearly", "Yearly");
+    let monthly = old_debt(&mut debts, "Monthly", "Monthly");
+    let yearly = old_debt(&mut debts, "Yearly", "Yearly");
     add(&mut debts, monthly, "1850-03", "1000.00");
     add(&mut debts, yearly, "1899", "1000.00");
     assert_eq!(debts.statement_count(monthly), 1);
@@ -1314,7 +1329,7 @@ fn test_csd017_ac_15_2_a_debt_statement_after_the_current_year_extends_the_serie
 #[test]
 fn test_csd017_ac_2_4_a_very_old_debt_statement_gets_no_slot() {
     let mut debts = Debts::default();
-    let id = debt(&mut debts, "Example Loan", "Monthly");
+    let id = old_debt(&mut debts, "Example Loan", "Monthly");
     add(&mut debts, id, "1950-01", "100.00");
     add(&mut debts, id, "2026-03", "50.00");
     let years = debts.insights(today()).years;

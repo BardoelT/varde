@@ -191,6 +191,8 @@
         "name": "Example Mortgage",
         "period": "Monthly",
         "colour_slot": 0,
+        "opening_date": "2000-01-01",
+        "opening_amount": "200000.00",
         "category": "Mortgage",
         "house_id": "id-9",
         "settlement": {
@@ -204,6 +206,8 @@
         "name": "Example Home Loan",
         "period": "Monthly",
         "colour_slot": 1,
+        "opening_date": "2000-01-01",
+        "opening_amount": "200000.00",
         "category": "Loan",
         "house_id": "id-9",
         "settlement": {
@@ -217,6 +221,8 @@
         "name": "Example Student Loan",
         "period": "Yearly",
         "colour_slot": 2,
+        "opening_date": "2000-01-01",
+        "opening_amount": "200000.00",
         "category": "Other"
       }
     ],

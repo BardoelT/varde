@@ -9,6 +9,7 @@
 mod amounts;
 mod debt;
 mod insights;
+mod opening;
 mod overview;
 mod settlement;
 mod statement;
@@ -17,11 +18,14 @@ mod totals;
 #[cfg(test)]
 mod ac_tests_debts;
 #[cfg(test)]
+mod ac_tests_opening;
+#[cfg(test)]
 mod tests;
 
 pub use amounts::{debt_note, DebtBalance};
 pub use debt::{Debt, DebtCategory, DebtId, DebtInput};
 pub use insights::DebtInsights;
+pub use opening::{ClosingInput, StatementRow};
 pub use overview::DebtSummary;
 pub use settlement::{OpenDebt, Outcome, Settlement};
 pub use statement::{parse_period, DebtStatement, DebtStatementPrefill};
@@ -48,29 +52,38 @@ impl Debts {
     /// slot of REQ-3 (REQ-1, REQ-2).
     ///
     /// # Errors
-    /// Returns the name errors of REQ-2 or `DebtPeriodUnsupported`.
+    /// Returns the name errors of REQ-2, `DebtPeriodUnsupported` or the
+    /// `DebtOpening*` errors of REQ-30 and REQ-31.
     pub fn create_debt(&mut self, input: &DebtInput) -> Result<Debt, DomainError> {
         let valid = series::validate_identity::<Self>(&input.name, input.period.as_deref())?;
         self.check_name_free(&valid.name, None)?;
+        let (opening_date, opening_amount) =
+            opening::parse_opening(&input.opening_date, &input.opening_amount)?;
         let debt = Debt::new(
             DebtId::new(),
             valid.name,
             valid.period.unwrap_or_default(),
             series::next_colour_slot(self.debts.iter().map(|debt| debt.colour_slot)),
+            opening_date,
+            opening_amount,
         );
         self.debts.push(debt.clone());
         Ok(debt)
     }
 
-    /// Changes the name and statement period of a debt. The statements and the
-    /// colour slot stay; the period is locked once the debt has any statement
-    /// (REQ-4, REQ-5).
+    /// Changes the name, statement period and opening of a debt. The statements
+    /// and the colour slot stay; the period is locked once the debt has any
+    /// statement, and the opening cannot leave a statement outside the window
+    /// (REQ-4, REQ-5, REQ-30 to REQ-32).
     ///
     /// # Errors
     /// Returns a validation error, `DebtNotFound`, `DebtNameDuplicate`,
-    /// `DebtSettledLocked` or `DebtPeriodLocked`.
+    /// `DebtSettledLocked`, `DebtPeriodLocked`, the `DebtOpening*` errors,
+    /// `DebtClosingBeforeOpening` or `DebtDatesExcludeStatements`.
     pub fn update_debt(&mut self, id: DebtId, input: &DebtInput) -> Result<Debt, DomainError> {
         let valid = series::validate_identity::<Self>(&input.name, input.period.as_deref())?;
+        let (opening_date, opening_amount) =
+            opening::parse_opening(&input.opening_date, &input.opening_amount)?;
         let current = self.account(id)?.period;
         self.check_name_free(&valid.name, Some(id))?;
         let period = valid.period.unwrap_or(current);
@@ -78,6 +91,7 @@ impl Debts {
             return Err(DomainError::DebtSettledLocked);
         }
         self.check_period_unlocked(id, current, period)?;
+        self.set_opening(id, opening_date, opening_amount)?;
         let debt = self.account_mut(id)?;
         debt.name = valid.name;
         debt.period = period;
@@ -213,9 +227,29 @@ impl SeriesData for Debts {
         &mut self.statements
     }
 
-    /// A settled debt takes no regular statement after its settlement period.
+    /// A statement lies in the window of the debt: not before the period of
+    /// its opening (CSD-011 REQ-32), and a settled debt takes no regular
+    /// statement after its settlement period (CSD-026 REQ-6).
     fn check_period_allowed(&self, id: DebtId, period: Period) -> Result<(), DomainError> {
+        if Self::is_before_opening(self.account(id)?, period)? {
+            return Err(DomainError::DebtStatementOutsideWindow);
+        }
         self.check_unsettled_at(id, period)
+    }
+
+    /// An opening that is not a valid amount, or a closing before it, in data
+    /// read from a file.
+    fn account_is_consistent(&self, account: &Debt) -> bool {
+        DebtBalance::new(account.opening_amount.value()).is_ok()
+            && account
+                .settlement
+                .as_ref()
+                .is_none_or(|settlement| settlement.date >= account.opening_date)
+    }
+
+    /// A statement of a file is not before the opening of its debt.
+    fn period_fits(&self, account: &Debt, period: Period) -> bool {
+        !Self::is_before_opening(account, period).unwrap_or(true)
     }
 
     /// The settlement statement and the statements after the settlement period

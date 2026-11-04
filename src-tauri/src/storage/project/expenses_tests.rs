@@ -57,6 +57,7 @@ fn test_csd013_ac_16_3_the_other_sections_are_untouched() {
         .create_debt(&crate::domain::debts::DebtInput {
             name: "Example Mortgage".to_owned(),
             period: None,
+            ..crate::domain::debts::DebtInput::example()
         })
         .unwrap();
     project

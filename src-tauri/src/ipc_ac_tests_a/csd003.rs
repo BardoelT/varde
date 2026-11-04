@@ -79,7 +79,7 @@ fn test_csd003_ac_5_10_a_debt_without_statements_needs_no_confirmation() {
     let app = harness();
     app.ok(
         "create_debt",
-        json!({ "input": named("Example Loan", "Monthly") }),
+        json!({ "input": { "name": "Example Loan", "period": "Monthly", "opening_date": "01/01/2000", "opening_amount": "200000.00" } }),
     );
     assert_eq!(app.ok("get_settings", json!({}))["entry_count"], 0);
     let changed = app.ok("set_currency", json!({ "currency": "USD" }));

@@ -132,6 +132,7 @@ fn test_csd020_ac_33_1_links_and_settlements_survive_the_round_trip() {
         .create_debt(&crate::domain::debts::DebtInput {
             name: "Example Loan".to_owned(),
             period: None,
+            ..crate::domain::debts::DebtInput::example()
         })
         .unwrap()
         .id;
@@ -163,10 +164,12 @@ fn test_csd020_ac_33_1_links_and_settlements_survive_the_round_trip() {
             debt: crate::domain::debts::DebtInput {
                 name: "Example Loan".to_owned(),
                 period: None,
+                ..crate::domain::debts::DebtInput::example()
             },
             category: Some("Loan".to_owned()),
             house_id: Some(house.to_string()),
             settlement: None,
+            ..Default::default()
         },
     )
     .unwrap();

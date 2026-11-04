@@ -12,6 +12,7 @@ fn debt(project: &mut Project, name: &str, period: &str) -> DebtId {
         .create_debt(&DebtInput {
             name: name.to_owned(),
             period: Some(period.to_owned()),
+            ..DebtInput::example()
         })
         .unwrap()
         .id

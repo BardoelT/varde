@@ -641,7 +641,7 @@ fn test_csd001_annual_statements_can_be_copied_edited_and_deleted_over_ipc() {
 }
 
 fn account_input(name: &str, period: &str) -> Value {
-    json!({ "name": name, "period": period })
+    json!({ "name": name, "period": period, "opening_date": "01/01/2000", "opening_amount": "200000.00" })
 }
 
 #[test]
@@ -1400,7 +1400,7 @@ fn test_csd005_ac_28_1_the_period_of_a_statement_changes_over_ipc() {
 }
 
 fn bank_input(name: &str, period: &str) -> Value {
-    json!({ "name": name, "period": period })
+    json!({ "name": name, "period": period, "opening_date": "01/01/2000", "opening_amount": "200000.00" })
 }
 
 #[test]
@@ -1636,7 +1636,7 @@ fn test_csd009_new_project_clears_the_bank_accounts() {
 }
 
 fn debt_input(name: &str, period: &str) -> Value {
-    json!({ "name": name, "period": period })
+    json!({ "name": name, "period": period, "opening_date": "01/01/2000", "opening_amount": "200000.00" })
 }
 
 #[test]
@@ -1784,7 +1784,10 @@ fn test_csd011_debt_statements_can_be_copied_edited_moved_and_deleted_over_ipc()
         "delete_debt_statement",
         json!({ "debtId": id, "period": "2026-08" }),
     );
-    assert_eq!(app.ok("list_debt_statements", json!({})), json!([]));
+    // Only the Opening row of the debt is left (CSD-011 REQ-33).
+    let rows = app.ok("list_debt_statements", json!({}));
+    assert_eq!(rows.as_array().unwrap().len(), 1);
+    assert_eq!(rows[0]["opening"], true);
     let error = app.err(
         "delete_debt_statement",
         json!({ "debtId": id, "period": "2026-08" }),

@@ -34,6 +34,14 @@ impl HouseDate {
             .and_then(Self::new)
     }
 
+    /// The date as `YYYY-MM-DD`, as the project file and IPC hold it.
+    #[must_use]
+    pub fn iso(self) -> String {
+        self.0
+            .format(format_description!("[year]-[month]-[day]"))
+            .unwrap_or_default()
+    }
+
     /// The calendar year.
     #[must_use]
     pub fn year(self) -> i32 {

@@ -169,6 +169,7 @@ fn debt(data: &mut ProjectData) -> DebtId {
         .create_debt(&DebtInput {
             name: "Example Mortgage".to_owned(),
             period: Some("Monthly".to_owned()),
+            ..DebtInput::example()
         })
         .unwrap()
         .id
@@ -224,10 +225,15 @@ fn sold_with(outcome: &str, statements: &[(&str, &str)]) -> ProjectData {
         &mut data.debts,
         mortgage,
         &DebtFormInput {
-            debt: DebtInput { name, period: None },
+            debt: DebtInput {
+                name,
+                period: None,
+                ..DebtInput::example()
+            },
             category: Some("Mortgage".to_owned()),
             house_id: Some(house.to_string()),
             settlement: None,
+            ..Default::default()
         },
     )
     .unwrap();

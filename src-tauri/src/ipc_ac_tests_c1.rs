@@ -13,7 +13,7 @@ use crate::ipc_tests::{harness, Harness};
 use crate::storage::Project;
 
 fn debt_input(name: &str, period: &str) -> Value {
-    json!({ "name": name, "period": period })
+    json!({ "name": name, "period": period, "opening_date": "01/01/2000", "opening_amount": "200000.00" })
 }
 
 /// A saved project with "Example Mortgage" (monthly) and its statement for 2026-09 of
@@ -70,9 +70,11 @@ fn test_csd011_ac_13_4_an_invalid_value_rejects_the_whole_edit() {
         .expect_err("a negative balance is rejected");
     assert_eq!(error["code"], "DEBT_STATEMENT_BALANCE_NEGATIVE");
     let rows = app.ok("list_debt_statements", json!({}));
-    assert_eq!(rows.as_array().unwrap().len(), 1);
+    // The statement and the Opening row of the debt (CSD-011 REQ-33).
+    assert_eq!(rows.as_array().unwrap().len(), 2);
     assert_eq!(rows[0]["period"], "2026-09");
     assert_eq!(rows[0]["balance"], "150000.00");
+    assert_eq!(rows[1]["opening"], true);
     assert_eq!(
         app.ok("project_status", json!({}))["unsaved_changes"],
         false
@@ -158,7 +160,7 @@ fn sold_mortgage(outcome: &str) -> Harness {
     );
     let mortgage = app.ok(
         "create_debt",
-        json!({ "input": { "name": "Example Mortgage", "period": "Monthly", "category": "Mortgage", "house_id": house["id"] } }),
+        json!({ "input": { "opening_date": "01/01/2000", "opening_amount": "200000.00", "name": "Example Mortgage", "period": "Monthly", "category": "Mortgage", "house_id": house["id"] } }),
     );
     for (period, balance) in [("2025-12", "200000.00"), ("2026-03", "190000.00")] {
         app.ok(

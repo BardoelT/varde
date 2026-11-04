@@ -294,7 +294,7 @@ impl Debts {
     }
 
     /// Whether a statement of the debt stands in a period after `period`.
-    fn has_statement_after(&self, id: DebtId, period: Period) -> bool {
+    pub(super) fn has_statement_after(&self, id: DebtId, period: Period) -> bool {
         self.statements
             .iter()
             .any(|s| s.debt_id == id && s.period.sort_key() > period.sort_key())
@@ -354,8 +354,10 @@ impl Debts {
         house: Option<&House>,
     ) -> Result<(), DomainError> {
         let period = sale_period(debt.period, settlement.date)?;
+        // A closing by sale carries the sell date of its house; a manual
+        // closing has no house (CSD-026 REQ-15).
         let sold_on_date =
-            house.is_some_and(|house| house.sale.map(|sale| sale.date) == Some(settlement.date));
+            house.is_none_or(|house| house.sale.map(|sale| sale.date) == Some(settlement.date));
         let zero_statement = self.statements.iter().any(|s| {
             s.debt_id == debt.id
                 && s.is_settlement()

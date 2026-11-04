@@ -22,6 +22,20 @@ fn debt(debts: &mut Debts, name: &str, kind: &str) -> DebtId {
         .create_debt(&DebtInput {
             name: name.to_owned(),
             period: Some(kind.to_owned()),
+            ..DebtInput::example()
+        })
+        .unwrap()
+        .id
+}
+
+/// A debt that started long ago, for statements of any period.
+fn old_debt(debts: &mut Debts, name: &str, kind: &str) -> DebtId {
+    debts
+        .create_debt(&DebtInput {
+            name: name.to_owned(),
+            period: Some(kind.to_owned()),
+            opening_date: "01/01/1800".to_owned(),
+            ..DebtInput::example()
         })
         .unwrap()
         .id
@@ -190,8 +204,8 @@ fn test_csd012_ac_2_4_a_statement_after_the_current_year_extends_the_series() {
 #[test]
 fn test_csd012_ac_2_5_a_very_old_statement_gets_no_slot_but_still_counts() {
     let mut debts = Debts::default();
-    let mortgage = debt(&mut debts, "Example Mortgage", "Monthly");
-    let loan = debt(&mut debts, "Example Loan", "Monthly");
+    let mortgage = old_debt(&mut debts, "Example Mortgage", "Monthly");
+    let loan = old_debt(&mut debts, "Example Loan", "Monthly");
     add(&mut debts, mortgage, "1950-01", "1000.00");
     add(&mut debts, loan, "2026-03", "500.00");
     let insights = debts.insights(today());
