@@ -51,7 +51,7 @@ impl StatementView {
             settlement: statement.is_settlement(),
             outcome: statement
                 .is_settlement()
-                .then(|| debt.settlement.as_ref().map(|settled| settled.outcome))
+                .then(|| debt.settlement().map(|settled| settled.outcome))
                 .flatten(),
             locked: debts.statement_locked(statement),
         }

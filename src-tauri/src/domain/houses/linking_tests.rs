@@ -177,14 +177,14 @@ fn settlement_of(data: &ProjectData, id: DebtId) -> Option<(Outcome, String)> {
         .debts()
         .into_iter()
         .find(|d| d.id == id)
-        .and_then(|d| d.settlement.as_ref())
+        .and_then(|d| d.settlement())
         .map(|s| (s.outcome, s.amount.value().to_string()))
 }
 
 // REQ-1: link a debt in the debt form
 
 fn category_of(data: &ProjectData, id: DebtId) -> crate::domain::debts::DebtCategory {
-    data.debts.get(id).unwrap().category
+    data.debts.get(id).unwrap().category()
 }
 
 #[test]
@@ -232,8 +232,8 @@ fn test_csd020_ac_15_4_link_while_adding_a_debt() {
         },
     )
     .unwrap();
-    assert_eq!(created.house_id, Some(house));
-    assert_eq!(created.category, DebtCategory::Mortgage);
+    assert_eq!(created.house_id(), Some(house));
+    assert_eq!(created.category(), DebtCategory::Mortgage);
 }
 
 #[test]
@@ -251,8 +251,8 @@ fn test_csd020_ac_15_5_the_category_defaults_to_other() {
         },
     )
     .unwrap();
-    assert_eq!(created.category, DebtCategory::Other);
-    assert_eq!(created.house_id, None);
+    assert_eq!(created.category(), DebtCategory::Other);
+    assert_eq!(created.house_id(), None);
 }
 
 // REQ-2: category and link rules
@@ -1164,4 +1164,96 @@ fn test_csd020_ac_33_2_a_settlement_without_a_settlement_statement_is_invalid() 
         .unwrap()
         .remove("settlement");
     assert_eq!(links_valid(&data, json), Err("DEBT_DATA_INVALID"));
+}
+
+// A settlement and its statement only come to be together (CSD-026 REQ-3,
+// REQ-6; CSD-020 REQ-33): `Debts::settle` is the only way to make either, and
+// it takes the date and the period from the sold house itself.
+
+/// The sold house of `sold_house_and_mortgage` with the mortgage linked to it
+/// by the lowest-level calls, not yet settled.
+fn linked_unsettled() -> (ProjectData, HouseId, DebtId) {
+    let (mut data, house, mortgage) = sold_house_and_mortgage(&[("2026-03", "190000.00")]);
+    data.debts
+        .set_category(mortgage, DebtCategory::Mortgage)
+        .unwrap();
+    data.debts.set_house(mortgage, Some(house)).unwrap();
+    (data, house, mortgage)
+}
+
+#[test]
+fn test_csd026_ac_3_1_settle_takes_the_date_and_the_period_from_the_sold_house() {
+    let (mut data, house, mortgage) = linked_unsettled();
+    let sold = data.houses.get(house).unwrap().clone();
+    data.debts.settle(mortgage, Outcome::Repaid, &sold).unwrap();
+    let settlement = data.debts.get(mortgage).unwrap().settlement().unwrap();
+    assert_eq!(Some(settlement.date), sold.sale.map(|sale| sale.date));
+    assert_eq!(settlement.amount.value().to_string(), "190000.00");
+    assert_eq!(
+        statements_of(&data, mortgage, "2026-06"),
+        [(
+            "0.00".to_owned(),
+            "Repaid on sale of Example House".to_owned(),
+            true
+        )]
+    );
+    assert!(data.debts.validate_links(&data.houses).is_ok());
+}
+
+#[test]
+fn test_csd026_ac_3_1_a_debt_is_settled_once_and_gets_one_settlement_statement() {
+    let (mut data, house, mortgage) = linked_unsettled();
+    let sold = data.houses.get(house).unwrap().clone();
+    data.debts.settle(mortgage, Outcome::Repaid, &sold).unwrap();
+    let again = data.debts.settle(mortgage, Outcome::Cancelled, &sold);
+    assert_eq!(again.unwrap_err().code(), "HOUSE_SETTLEMENT_INVALID");
+    assert_eq!(statements_of(&data, mortgage, "2026-06").len(), 1);
+    assert_eq!(
+        settlement_of(&data, mortgage),
+        Some((Outcome::Repaid, "190000.00".to_owned()))
+    );
+}
+
+#[test]
+fn test_csd026_ac_3_1_only_a_debt_linked_to_a_sold_house_is_settled() {
+    let (mut data, house, mortgage) = sold_house_and_mortgage(&[("2026-03", "190000.00")]);
+    let sold = data.houses.get(house).unwrap().clone();
+    // Not linked to the house.
+    let unlinked = data.debts.settle(mortgage, Outcome::Repaid, &sold);
+    assert_eq!(unlinked.unwrap_err().code(), "HOUSE_SETTLEMENT_INVALID");
+    // Linked, but the house is held.
+    let held = add_house(&mut data, "Held House", &[]);
+    data.debts
+        .set_category(mortgage, DebtCategory::Mortgage)
+        .unwrap();
+    data.debts.set_house(mortgage, Some(held)).unwrap();
+    let held_house = data.houses.get(held).unwrap().clone();
+    let result = data.debts.settle(mortgage, Outcome::Repaid, &held_house);
+    assert_eq!(result.unwrap_err().code(), "HOUSE_SETTLEMENT_INVALID");
+    assert!(data.debts.get(mortgage).unwrap().settlement().is_none());
+    assert!(data
+        .debts
+        .all_statements()
+        .iter()
+        .all(|(_, s)| !s.is_settlement()));
+}
+
+#[test]
+fn test_csd026_ac_6_1_a_settled_debt_cannot_be_unlinked_or_relinked() {
+    let (mut data, house, mortgage) = sold_house();
+    let other = add_house(&mut data, "Other House", &[]);
+    for wanted in [None, Some(other)] {
+        let result = data.debts.set_house(mortgage, wanted);
+        assert_eq!(result.unwrap_err().code(), "DEBT_SETTLED_LOCKED");
+    }
+    assert_eq!(data.debts.house_of(mortgage), Some(house));
+    assert!(data.debts.validate_links(&data.houses).is_ok());
+}
+
+#[test]
+fn test_csd020_ac_15_6_the_link_itself_refuses_a_debt_that_is_not_a_mortgage_or_a_loan() {
+    let (mut data, house, mortgage) = sold_house_and_mortgage(&[("2026-03", "190000.00")]);
+    let result = data.debts.set_house(mortgage, Some(house));
+    assert_eq!(result.unwrap_err().code(), "DEBT_LINK_CATEGORY_INVALID");
+    assert_eq!(data.debts.house_of(mortgage), None);
 }

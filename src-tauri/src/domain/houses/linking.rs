@@ -192,7 +192,7 @@ fn apply_category_and_link(
 ) -> Result<(), DomainError> {
     let category = match input.category.as_deref().map(str::trim) {
         Some(text) if !text.is_empty() => DebtCategory::parse(text)?,
-        _ => debts.get(id).map(|debt| debt.category).unwrap_or_default(),
+        _ => debts.get(id).map(Debt::category).unwrap_or_default(),
     };
     let wanted = match input.house_id.as_deref().map(str::trim) {
         Some(text) if !text.is_empty() => Some(HouseId::parse(text)?),
@@ -247,7 +247,7 @@ fn settle_on_link(
     outcome: Option<Outcome>,
 ) -> Result<(), DomainError> {
     match (debts.open_balance(id, date)?, outcome) {
-        (Some(_), Some(outcome)) => debts.settle(id, outcome, &house.name, date),
+        (Some(_), Some(outcome)) => debts.settle(id, outcome, house),
         (Some(_), None) => Err(DomainError::HouseSettlementRequired),
         (None, Some(_)) => Err(DomainError::HouseSettlementInvalid),
         (None, None) => Ok(()),
@@ -339,7 +339,7 @@ fn settle_all(
             .iter()
             .find(|(id, _)| *id == debt.debt_id)
             .ok_or(DomainError::HouseSettlementRequired)?;
-        debts.settle(debt.debt_id, *outcome, &house.name, date)?;
+        debts.settle(debt.debt_id, *outcome, house)?;
     }
     Ok(())
 }
@@ -409,13 +409,13 @@ pub fn houses_view(houses: &Houses, debts: &Debts) -> HousesView {
         .map(|summary| {
             let linked_debts = summaries
                 .iter()
-                .filter(|row| row.debt.house_id == Some(summary.house.id))
+                .filter(|row| row.debt.house_id() == Some(summary.house.id))
                 .map(|row| LinkedDebt {
                     debt_id: row.debt.id,
                     debt_name: row.debt.name.clone(),
-                    category: row.debt.category,
+                    category: row.debt.category(),
                     latest_balance: row.latest_balance,
-                    settlement: row.debt.settlement.clone(),
+                    settlement: row.debt.settlement().cloned(),
                 })
                 .collect();
             HouseRow {
@@ -440,7 +440,7 @@ pub fn debts_view(debts: &Debts, houses: &Houses) -> DebtsView {
         .map(|summary| {
             let house_name = summary
                 .debt
-                .house_id
+                .house_id()
                 .and_then(|id| houses.get(id))
                 .map(|house| house.name.clone());
             DebtRow {

@@ -60,18 +60,62 @@ pub struct Debt {
     pub id: DebtId,
     /// Name of the debt.
     pub name: String,
-    /// Whether the debt is kept per month or per year.
-    pub period: PayPeriod,
+    /// Whether the debt is kept per month or per year. Read through
+    /// [`SeriesAccount::period`]; only the debts module changes it, so a
+    /// settled debt keeps the period its settlement was made in.
+    pub(super) period: PayPeriod,
     /// 0 to 7, fixed when the debt is created (CSD-011 REQ-3).
     pub colour_slot: ColourSlot,
-    /// Mortgage, Loan or Other (CSD-020 REQ-15).
-    pub category: DebtCategory,
-    /// The house this debt is linked to (CSD-020 REQ-15).
+    /// Mortgage, Loan or Other (CSD-020 REQ-15). Only `Debts::set_category`
+    /// changes it.
+    pub(super) category: DebtCategory,
+    /// The house this debt is linked to (CSD-020 REQ-15). Only
+    /// `Debts::set_house` changes it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub house_id: Option<HouseId>,
-    /// How the debt was settled on the sale of its house (CSD-026 REQ-3).
+    pub(super) house_id: Option<HouseId>,
+    /// How the debt was settled on the sale of its house (CSD-026 REQ-3). Only
+    /// `Debts::settle` and `Debts::unsettle` change it, and they change it
+    /// together with the settlement statement.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub settlement: Option<Settlement>,
+    pub(super) settlement: Option<Settlement>,
+}
+
+impl Debt {
+    /// A new debt: unlinked, unsettled and of the default category.
+    pub(super) fn new(
+        id: DebtId,
+        name: String,
+        period: PayPeriod,
+        colour_slot: ColourSlot,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            period,
+            colour_slot,
+            category: DebtCategory::default(),
+            house_id: None,
+            settlement: None,
+        }
+    }
+
+    /// The kind of the debt.
+    #[must_use]
+    pub fn category(&self) -> DebtCategory {
+        self.category
+    }
+
+    /// The house the debt is linked to.
+    #[must_use]
+    pub fn house_id(&self) -> Option<HouseId> {
+        self.house_id
+    }
+
+    /// How the debt was settled on the sale of its house, `None` while open.
+    #[must_use]
+    pub fn settlement(&self) -> Option<&Settlement> {
+        self.settlement.as_ref()
+    }
 }
 
 /// Debt fields as typed by the user, before validation.

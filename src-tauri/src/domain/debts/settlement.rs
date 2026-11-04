@@ -6,11 +6,11 @@ use serde::{Deserialize, Serialize};
 use crate::domain::common::PayPeriod;
 use crate::domain::common::{parse_wire_name, wire_name, Period, Year, YearMonth};
 use crate::domain::error::DomainError;
-use crate::domain::houses::{HouseDate, HouseId, Houses};
+use crate::domain::houses::{House, HouseDate, HouseId, Houses};
 
 use crate::domain::series::{SeriesData, SeriesRecord};
 
-use super::{Debt, DebtBalance, DebtCategory, DebtId, DebtStatement, Debts, StatementKind};
+use super::{Debt, DebtBalance, DebtCategory, DebtId, DebtStatement, Debts};
 
 /// How a debt ended on the sale of its house (CSD-026 section 3).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -112,12 +112,25 @@ impl Debts {
         Ok(())
     }
 
+    /// Links a debt to a house, or unlinks it. A settled debt keeps its house,
+    /// and only a Mortgage or a Loan can be linked (CSD-020 REQ-15, CSD-026
+    /// REQ-6).
+    ///
+    /// # Errors
+    /// Returns `DebtNotFound`, `DebtSettledLocked` or `DebtLinkCategoryInvalid`.
     pub(crate) fn set_house(
         &mut self,
         id: DebtId,
         house_id: Option<HouseId>,
     ) -> Result<(), DomainError> {
-        self.account_mut(id)?.house_id = house_id;
+        let debt = self.account_mut(id)?;
+        if debt.house_id != house_id && debt.settlement.is_some() {
+            return Err(DomainError::DebtSettledLocked);
+        }
+        if house_id.is_some() && !debt.category.can_link() {
+            return Err(DomainError::DebtLinkCategoryInvalid);
+        }
+        debt.house_id = house_id;
         Ok(())
     }
 
@@ -164,49 +177,51 @@ impl Debts {
         Ok(open)
     }
 
-    /// Settles a debt on the sale of the house `house_name` on `date`: stores
-    /// the settlement and adds the settlement statement of 0.00 in the sale
-    /// period, next to any regular statement of that period (CSD-026 REQ-3).
-    /// The debt must have an open balance at `date`.
+    /// Settles a debt on the sale of the house it is linked to: stores the
+    /// settlement and adds the settlement statement of 0.00 in the sale period,
+    /// next to any regular statement of that period (CSD-026 REQ-3). This is
+    /// the only way a settlement or a settlement statement comes to be, so the
+    /// two always exist together and agree: the settlement carries the sell
+    /// date of `house`, the statement stands in the period of that date, and
+    /// no statement follows it. The debt must be linked to `house`, which must
+    /// be sold, and have an open balance at the sell date.
     ///
     /// # Errors
-    /// Returns `DebtNotFound`, `HouseSettlementInvalid` for a debt without an
-    /// open balance, or `DebtStatementAfterSale` when a statement follows the
-    /// sale period.
+    /// Returns `DebtNotFound`, `HouseSettlementInvalid` for a debt that is not
+    /// linked to a sold `house`, is settled already or has no open balance,
+    /// or `DebtStatementAfterSale` when a statement follows the sale period.
     pub fn settle(
         &mut self,
         id: DebtId,
         outcome: Outcome,
-        house_name: &str,
-        date: HouseDate,
+        house: &House,
     ) -> Result<(), DomainError> {
-        let period = sale_period(self.account(id)?.period, date)?;
+        let date = house.sale.ok_or(DomainError::HouseSettlementInvalid)?.date;
+        let debt = self.account(id)?;
+        if debt.house_id != Some(house.id) || debt.settlement.is_some() {
+            return Err(DomainError::HouseSettlementInvalid);
+        }
+        let period = sale_period(debt.period, date)?;
         let amount = self
             .open_balance(id, date)?
             .ok_or(DomainError::HouseSettlementInvalid)?;
-        if self
-            .statements
-            .iter()
-            .any(|s| s.debt_id == id && s.period.sort_key() > period.sort_key())
-        {
+        if self.has_statement_after(id, period) {
             return Err(DomainError::DebtStatementAfterSale);
         }
         let note = crate::domain::debts::debt_note(&format!(
-            "{} on sale of {house_name}",
-            wire_name(&outcome)
+            "{} on sale of {}",
+            wire_name(&outcome),
+            house.name
         ))?;
-        self.statements.push(DebtStatement {
-            debt_id: id,
-            period,
-            balance: DebtBalance::new(Money::ZERO)?,
-            note,
-            kind: StatementKind::Settlement,
-        });
-        self.account_mut(id)?.settlement = Some(Settlement {
+        let statement = DebtStatement::settlement(id, period, DebtBalance::new(Money::ZERO)?, note);
+        let settlement = Settlement {
             outcome,
             date,
             amount: DebtBalance::new(amount)?,
-        });
+        };
+        // Everything that can fail is done: the two changes go in together.
+        self.account_mut(id)?.settlement = Some(settlement);
+        self.statements.push(statement);
         Ok(())
     }
 
@@ -278,15 +293,44 @@ impl Debts {
                 .unwrap_or(false)
     }
 
+    /// Whether a statement of the debt stands in a period after `period`.
+    fn has_statement_after(&self, id: DebtId, period: Period) -> bool {
+        self.statements
+            .iter()
+            .any(|s| s.debt_id == id && s.period.sort_key() > period.sort_key())
+    }
+
     /// Checks that the links and settlements read from a file follow CSD-020
-    /// and CSD-026, so a damaged file cannot break them.
+    /// and CSD-026, so a damaged file cannot break them. This is the only
+    /// place that checks a file for them: what the rules of `settle`,
+    /// `unsettle`, `set_house` and `set_category` make impossible in memory
+    /// (a settlement without its statement or the other way round, a
+    /// settlement date that is not the sell date of the house, a statement
+    /// after the sale, a house that is not sold or does not exist) can only
+    /// come from a file whose two lists were edited apart.
     ///
     /// # Errors
     /// Returns `DebtDataInvalid` for the first inconsistency found.
     pub fn validate_links(&self, houses: &Houses) -> Result<(), DomainError> {
-        let invalid = DomainError::DebtDataInvalid;
-        // A settlement statement belongs to a settled debt, in its settlement
-        // period (CSD-020 REQ-33).
+        self.check_settlement_statements()?;
+        for debt in &self.debts {
+            let house = match debt.house_id {
+                Some(house_id) => Some(houses.get(house_id).ok_or(DomainError::DebtDataInvalid)?),
+                None => None,
+            };
+            if house.is_some() && !debt.category.can_link() {
+                return Err(DomainError::DebtDataInvalid);
+            }
+            if let Some(settlement) = &debt.settlement {
+                self.check_settled(debt, settlement, house)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// A settlement statement belongs to a settled debt, in its settlement
+    /// period (CSD-020 REQ-33).
+    fn check_settlement_statements(&self) -> Result<(), DomainError> {
         for statement in self.statements.iter().filter(|s| s.is_settlement()) {
             let debt = self.account(statement.debt_id)?;
             let belongs = match &debt.settlement {
@@ -294,37 +338,32 @@ impl Debts {
                 None => false,
             };
             if !belongs {
-                return Err(invalid);
+                return Err(DomainError::DebtDataInvalid);
             }
         }
-        for debt in &self.debts {
-            let house = match debt.house_id {
-                Some(house_id) => Some(houses.get(house_id).ok_or(invalid.clone())?),
-                None => None,
-            };
-            if house.is_some() && !debt.category.can_link() {
-                return Err(invalid);
-            }
-            let Some(settlement) = &debt.settlement else {
-                continue;
-            };
-            let period = sale_period(debt.period, settlement.date)?;
-            let zero_statement = self.statements.iter().any(|s| {
-                s.debt_id == debt.id
-                    && s.is_settlement()
-                    && s.period == period
-                    && s.balance.value().is_zero()
-            });
-            let later = self
-                .statements
-                .iter()
-                .any(|s| s.debt_id == debt.id && s.period.sort_key() > period.sort_key());
-            if house.is_none_or(|house| house.sale.map(|sale| sale.date) != Some(settlement.date))
-                || !zero_statement
-                || later
-            {
-                return Err(invalid);
-            }
+        Ok(())
+    }
+
+    /// A settled debt is linked to a house sold on the settlement date, has its
+    /// settlement statement of 0.00 in the sale period and no statement after
+    /// it (CSD-026 REQ-3, REQ-6).
+    fn check_settled(
+        &self,
+        debt: &Debt,
+        settlement: &Settlement,
+        house: Option<&House>,
+    ) -> Result<(), DomainError> {
+        let period = sale_period(debt.period, settlement.date)?;
+        let sold_on_date =
+            house.is_some_and(|house| house.sale.map(|sale| sale.date) == Some(settlement.date));
+        let zero_statement = self.statements.iter().any(|s| {
+            s.debt_id == debt.id
+                && s.is_settlement()
+                && s.period == period
+                && s.balance.value().is_zero()
+        });
+        if !sold_on_date || !zero_statement || self.has_statement_after(debt.id, period) {
+            return Err(DomainError::DebtDataInvalid);
         }
         Ok(())
     }

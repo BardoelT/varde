@@ -22,7 +22,7 @@ pub use debt::{Debt, DebtCategory, DebtId, DebtInput};
 pub use insights::DebtInsights;
 pub use overview::DebtSummary;
 pub use settlement::{OpenDebt, Outcome, Settlement};
-pub use statement::{parse_period, DebtStatement, DebtStatementPrefill, StatementKind};
+pub use statement::{parse_period, DebtStatement, DebtStatementPrefill};
 pub use totals::DebtYearlyTotal;
 
 use serde::{Deserialize, Serialize};
@@ -50,15 +50,12 @@ impl Debts {
     pub fn create_debt(&mut self, input: &DebtInput) -> Result<Debt, DomainError> {
         let valid = series::validate_identity::<Self>(&input.name, input.period.as_deref())?;
         self.check_name_free(&valid.name, None)?;
-        let debt = Debt {
-            id: DebtId::new(),
-            name: valid.name,
-            period: valid.period.unwrap_or_default(),
-            colour_slot: series::next_colour_slot(self.debts.iter().map(|debt| debt.colour_slot)),
-            category: DebtCategory::default(),
-            house_id: None,
-            settlement: None,
-        };
+        let debt = Debt::new(
+            DebtId::new(),
+            valid.name,
+            valid.period.unwrap_or_default(),
+            series::next_colour_slot(self.debts.iter().map(|debt| debt.colour_slot)),
+        );
         self.debts.push(debt.clone());
         Ok(debt)
     }
@@ -124,13 +121,7 @@ impl Debts {
         balance: DebtBalance,
         note: Note,
     ) -> Result<DebtStatement, DomainError> {
-        self.add_record(DebtStatement {
-            debt_id,
-            period,
-            balance,
-            note,
-            kind: StatementKind::Regular,
-        })
+        self.add_record(DebtStatement::regular(debt_id, period, balance, note))
     }
 
     /// Changes the balance and note of a statement and, when `new_period` is a

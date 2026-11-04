@@ -14,7 +14,7 @@ use super::{debt_note, DebtBalance, DebtId, Debts};
 /// added. The variants are in statement order: within a period the settlement
 /// statement comes after the regular one (CSD-011 REQ-8).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum StatementKind {
+pub(crate) enum StatementKind {
     /// A statement the user entered.
     #[default]
     Regular,
@@ -36,8 +36,10 @@ pub struct DebtStatement {
     pub balance: DebtBalance,
     /// Free-text note, possibly empty.
     pub note: Note,
-    /// Whether the statement is a regular one or part of a settlement.
-    pub kind: StatementKind,
+    /// Whether the statement is a regular one or part of a settlement. Only
+    /// `Debts::settle` makes a settlement statement, together with the
+    /// settlement of its debt.
+    kind: StatementKind,
 }
 
 /// The flat shape of a statement in the project file and IPC.
@@ -82,6 +84,37 @@ impl From<DebtStatement> for DebtStatementRaw {
 }
 
 impl DebtStatement {
+    /// A statement the user enters.
+    pub(super) fn regular(
+        debt_id: DebtId,
+        period: Period,
+        balance: DebtBalance,
+        note: Note,
+    ) -> Self {
+        Self {
+            debt_id,
+            period,
+            balance,
+            note,
+            kind: StatementKind::Regular,
+        }
+    }
+
+    /// The final statement of a settlement: a balance of 0.00 in the period of
+    /// the sale. Only `Debts::settle` calls this, in the same step in which it
+    /// sets the settlement of the debt.
+    pub(super) fn settlement(
+        debt_id: DebtId,
+        period: Period,
+        balance: DebtBalance,
+        note: Note,
+    ) -> Self {
+        Self {
+            kind: StatementKind::Settlement,
+            ..Self::regular(debt_id, period, balance, note)
+        }
+    }
+
     /// Whether this is the settlement statement of a sale.
     #[must_use]
     pub fn is_settlement(&self) -> bool {

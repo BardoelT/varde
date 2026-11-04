@@ -75,12 +75,14 @@ impl Houses {
     /// Changes the name, valuation period, purchase and sale of a house. The
     /// valuations and the colour slot stay; the period is locked once the house
     /// has any valuation, and the dates may not leave a valuation outside the
-    /// holding window (REQ-4, REQ-5, CSD-019 REQ-6, REQ-7).
+    /// holding window (REQ-4, REQ-5, CSD-019 REQ-6, REQ-7). It does not touch
+    /// the debts linked to the house, so only `linking::update_house` calls it,
+    /// which settles or unsettles them in the same step.
     ///
     /// # Errors
     /// Returns a validation error, `HouseNotFound`, `HouseNameDuplicate`,
     /// `HousePeriodLocked` or `HouseDatesExcludeValuations`.
-    pub fn update_house(&mut self, id: HouseId, input: &HouseInput) -> Result<House, DomainError> {
+    fn update_house(&mut self, id: HouseId, input: &HouseInput) -> Result<House, DomainError> {
         let valid = input.validate()?;
         let current = self.account(id)?.period;
         self.check_name_free(&valid.name, Some(id))?;
@@ -103,11 +105,12 @@ impl Houses {
         Ok(updated)
     }
 
-    /// Removes a house and all its valuations (REQ-6).
+    /// Removes a house and all its valuations (REQ-6). Only
+    /// `linking::delete_house` calls it, after checking that no debt is linked.
     ///
     /// # Errors
     /// Returns `HouseNotFound`.
-    pub fn delete_house(&mut self, id: HouseId) -> Result<(), DomainError> {
+    fn delete_house(&mut self, id: HouseId) -> Result<(), DomainError> {
         self.remove_account(id)
     }
 
