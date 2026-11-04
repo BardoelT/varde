@@ -3,7 +3,7 @@ id: CSD-025
 title: Shared charts
 status: approved
 owner: Thijs Bardoel
-version: 0.4
+version: 0.5
 last_updated: 03/11/2026
 related: [CSD-000, CSD-006, CSD-007, CSD-010, CSD-012, CSD-014, CSD-016, CSD-017]
 ---
@@ -555,9 +555,10 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-1: (resolved 03/11/2026) Rust chooses the axis ticks (REQ-3).
 - OQ-2: (resolved 03/11/2026) Axis labels never show decimals (REQ-17); the short labels of markers and growth figures keep 2 decimals (REQ-4).
 - OQ-3: (resolved 03/11/2026) The sign is "-" everywhere, in labels and in tables.
-- OQ-4: CSD-006, CSD-007 and CSD-010 still hold copies of the look, size and motion text of this CSD. They shall point here when they are re-approved. Owner: Thijs. Blocks: none.
+- OQ-4: (resolved 03/11/2026) CSD-006 and CSD-007 now point here instead of holding copies of the look, size and motion text (CSD-010 already did).
 
 ## 9. Changelog
+- 0.5 (03/11/2026): OQ-4 resolved: CSD-006 1.3 and CSD-007 1.3 point to this CSD. No requirement changes.
 - 0.4 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 0.3 (03/11/2026): The section 5 example shows the whole-number axis label "5k" (REQ-17). Back to `draft` until re-approved.
 - 0.2 (03/11/2026): axis ticks use a whole round step and axis labels never show decimals (REQ-3: AC-3.4 added; new REQ-17, AC-17.1, AC-17.2); REQ-4 applies to markers and growth figures; the minus sign is "-" everywhere; OQ-1 to OQ-3 resolved.

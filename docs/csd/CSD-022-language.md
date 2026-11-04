@@ -3,7 +3,7 @@ id: CSD-022
 title: Language (English and Dutch)
 status: approved
 owner: Thijs Bardoel
-version: 0.4
+version: 0.5
 last_updated: 03/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-008]
 ---
@@ -313,9 +313,10 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 
 ## 8. Open questions
 - OQ-1: (resolved 03/11/2026) A DOM test checks that every translatable text has a Dutch version (`test_csd022_every_translatable_text_has_a_dutch_version` in `ui/tests/ui-bugs.test.js`), not a Rust test, so `cargo test` reads no files in `ui/`.
-- OQ-2: Who writes and reviews the Dutch texts? Claude can draft them, and the owner reviews the wording before approval. Owner: Thijs. Blocks: none (the feature is built; the owner still reviews the wording).
+- OQ-2: (resolved 03/11/2026) Claude drafted the Dutch texts and the owner has reviewed the wording.
 
 ## 9. Changelog
+- 0.5 (03/11/2026): OQ-2 resolved: the owner has reviewed the Dutch texts. No requirement changes.
 - 0.4 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. OQ-1 resolved (a DOM test checks the Dutch dictionary) and OQ-2 no longer blocks REQ-5, since the feature is built. Back to `draft` until re-approved.
 - 0.3 (03/11/2026): Formatting does not follow the language: new REQ-10 (AC-10.1, AC-10.2), dates stay dd/mm/yyyy and amounts stay 1,234.50 in Dutch too, NG-3 and CSD-000 CON-8 referenced. The native menu stays in English, which is accepted (NG-6). Display ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.1 (02/11/2026): initial draft, from GitHub issue 22 and the interview. Beyond the interview: the macOS language is not followed (NG-4), the native menu and file dialogs stay as they are (NG-6), and a text without a translation falls back to English (REQ-6).
