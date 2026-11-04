@@ -3,7 +3,7 @@ id: CSD-011
 title: Debts
 status: approved
 owner: Thijs Bardoel
-version: 3.1
+version: 3.2
 last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-004, CSD-005, CSD-009, CSD-012, CSD-018, CSD-020, CSD-024, CSD-026]
 ---
@@ -17,7 +17,7 @@ The app tracks wealth, but has no view of what the user owes: a mortgage, a stud
 ### 2.1 In scope
 - Create, edit and delete debts, each with a name, a statement period (Monthly or Yearly) and an opening: the opening date and the opening amount (REQ-30, REQ-31).
 - The window between the opening and the closing of a debt, inside which its statements lie (REQ-32), and the Opening row of the Statements table (REQ-33).
-- The debt form with the opening fields, and the closing fields that enter or clear a manual closing (REQ-34; the closing itself is CSD-026 REQ-15 and REQ-16).
+- The debt form with the opening fields, and the closing fields that enter, edit or clear a closing, for every debt, also one linked to a house (REQ-34; the closing itself is CSD-026 REQ-15 to REQ-18).
 - Create, edit and delete one statement per debt per period: the remaining balance (0.00 or more) and an optional note.
 - Change the period of an existing statement (REQ-12).
 - Copy the previous statement into the add form.
@@ -1023,7 +1023,7 @@ Scenario: A settled debt shows its settlement badge
 ```
 
 **REQ-27: Settle dialog rows** *(event-driven)*
-When the settle dialog opens (CSD-026 REQ-13, CSD-020 REQ-17), the app shall show one row per open debt with the debt name and its settled amount and the choices Repaid and Cancelled, none selected, and shall keep the button "Save sale" disabled until every row has a choice.
+When the settle dialog opens (CSD-026 REQ-13, CSD-020 REQ-17), the app shall show one row per open debt, never one for a debt that is closed already (CSD-026 REQ-1), with the debt name and its settled amount and the choices Repaid and Cancelled, none selected, and shall keep the button "Save sale" disabled until every row has a choice.
 
 ```gherkin
 @AC-27.1
@@ -1327,7 +1327,7 @@ Scenario: The Opening row is not a statement
 ```
 
 **REQ-34: The debt form** *(ubiquitous)*
-The app shall show in the Add and Edit debt form, besides the fields of REQ-1 and CSD-020 REQ-30, the required fields Opening date and Opening amount and the optional fields Closing date, Closing amount and Outcome (Repaid or Cancelled), and shall make the closing fields read-only for a debt with a house link, naming the house ("Set by the sale of <house>"), while the opening fields stay editable.
+The app shall show in the Add and Edit debt form, besides the fields of REQ-1 and CSD-020 REQ-30, the required fields Opening date and Opening amount and the optional fields Closing date, Closing amount and Outcome (Repaid or Cancelled), and shall keep the closing fields editable for every debt, also one with a house link, held or sold. While the closing of a debt is a closing by sale (CSD-026 definitions), the form shall show under the closing fields the hint "Set by the sale of <house>. Changing it makes it a manual closing.", and clearing the closing fields asks "Undo the closing?" for any closing (CSD-026 REQ-16).
 
 ```gherkin
 @AC-34.1
@@ -1337,11 +1337,27 @@ Scenario: The form shows the opening and closing fields
   And the optional fields "Closing date", "Closing amount" and "Outcome"
 
 @AC-34.2
-Scenario: A linked debt has read-only closing fields
-  Given the debt "Example Mortgage" linked to "Example House"
+Scenario: A linked debt has editable closing fields
+  Given the debt "Example Mortgage" linked to the held house "Example House" and not closed
   When the user opens its Edit debt form
-  Then the closing fields are read-only and say "Set by the sale of Example House"
-  And the opening fields are editable
+  Then the closing fields and the opening fields are editable
+  And no hint about a sale is shown
+
+@AC-34.4
+Scenario: A closing by sale shows a hint and can be edited
+  Given the debt "Example Mortgage" settled by the sale of "Example House"
+  When the user opens its Edit debt form
+  Then the closing fields hold the closing and are editable
+  And under them it says "Set by the sale of Example House. Changing it makes it a manual closing."
+  When the user changes the closing date and saves
+  Then the closing is a manual closing (CSD-026 REQ-17)
+
+@AC-34.5
+Scenario: Clearing any closing asks for confirmation
+  Given the debt "Example Mortgage" settled by the sale of "Example House"
+  When the user empties the closing fields and presses Save
+  Then the dialog "Undo the closing?" is shown
+  And nothing is saved until the user confirms
 
 @AC-34.3
 Scenario: An unlinked debt can be closed in the form
@@ -1373,11 +1389,11 @@ erDiagram
     }
 ```
 
-The opening is stored on the debt as `opening_date` (`YYYY-MM-DD` in the file and over IPC, `dd/mm/yyyy` on screen) and `opening_amount` (a decimal string). The closing is the `settlement` of the debt (CSD-026), whose `date` is the closing date and `amount` the closing amount: no other key is added. In the project file `opening_date` and `opening_amount` are required for every debt (REQ-23, CSD-002), and `format_version` stays 1 (CSD-002 versioning policy). In the project file and in the commands both the debt and the statement use the one field name `period` (the debt's holds Monthly or Yearly, the statement's holds `YYYY-MM` or `YYYY`; CSD-002). The change per statement, the opening balance and the amount repaid are not part of the model: they are derived (REQ-25, REQ-19).
+The opening is stored on the debt as `opening_date` (`YYYY-MM-DD` in the file and over IPC, `dd/mm/yyyy` on screen) and `opening_amount` (a decimal string). The closing is the `settlement` of the debt (CSD-026), whose `date` is the closing date, `amount` the closing amount and `origin` (Sale or Manual) who made it; the closing adds no other key to the debt. In the project file `opening_date` and `opening_amount` are required for every debt (REQ-23, CSD-002), and `format_version` stays 1 (CSD-002 versioning policy). In the project file and in the commands both the debt and the statement use the one field name `period` (the debt's holds Monthly or Yearly, the statement's holds `YYYY-MM` or `YYYY`; CSD-002). The change per statement, the opening balance and the amount repaid are not part of the model: they are derived (REQ-25, REQ-19).
 
 The project file section `debts` has the lists `debts` and `statements`, debts in the order they were created. Balances are decimal strings. The section is required and unknown fields are rejected (CSD-002).
 
-Commands (all inputs validated in Rust; amounts cross IPC as decimal strings; dates as ISO 8601): `create_debt` and `update_debt` also take `opening_date`, `opening_amount` and, for a manual closing, `closing` (`{ date, amount, outcome }`, or empty to clear it; CSD-026 REQ-15, REQ-16). `list_debts()` (each debt with its opening, its settlement, its statement count, latest balance and period and colour slot, plus the total debt; the count is used to lock the period (REQ-5) and is not displayed), `create_debt`, `update_debt`, `delete_debt`, `list_debt_statements()` (statements of all debts, each with its debt name and its change, or null, and the Opening row of each debt, flagged `opening` and never editable, whose `period` holds the opening date as `YYYY-MM-DD`), `add_debt_statement`, `update_debt_statement` (keeps the period that identifies the statement as an argument and takes the new period as an extra one, equal to it when the period does not change, and applies the edit as a whole or not at all, REQ-13), `delete_debt_statement`, `copy_previous_debt_statement(debt_id)` and `yearly_debt_totals()` (over all debts; each row has the year, closing balance, repaid or null (Cancelled-adjusted, REQ-19) and statement count, newest year first; the count is not displayed). The insights command is in CSD-012. Project commands (save, open, new) are in CSD-002.
+Commands (all inputs validated in Rust; amounts cross IPC as decimal strings; dates as ISO 8601): `create_debt` and `update_debt` also take `opening_date`, `opening_amount` and, for a closing, `closing` (`{ date, amount, outcome }`, a new closing or an in-place edit, or empty to clear it; CSD-026 REQ-15 to REQ-17). `list_debts()` (each debt with its opening, its settlement, its statement count, latest balance and period and colour slot, plus the total debt; the count is used to lock the period (REQ-5) and is not displayed), `create_debt`, `update_debt`, `delete_debt`, `list_debt_statements()` (statements of all debts, each with its debt name and its change, or null, and the Opening row of each debt, flagged `opening` and never editable, whose `period` holds the opening date as `YYYY-MM-DD`), `add_debt_statement`, `update_debt_statement` (keeps the period that identifies the statement as an argument and takes the new period as an extra one, equal to it when the period does not change, and applies the edit as a whole or not at all, REQ-13), `delete_debt_statement`, `copy_previous_debt_statement(debt_id)` and `yearly_debt_totals()` (over all debts; each row has the year, closing balance, repaid or null (Cancelled-adjusted, REQ-19) and statement count, newest year first; the count is not displayed). The insights command is in CSD-012. Project commands (save, open, new) are in CSD-002.
 
 Error codes (returned as code plus safe message): `DEBT_NAME_REQUIRED`, `DEBT_NAME_TOO_LONG`, `DEBT_NAME_DUPLICATE`, `DEBT_NOT_FOUND`, `DEBT_PERIOD_UNSUPPORTED`, `DEBT_PERIOD_LOCKED`, `DEBT_PERIOD_MISMATCH`, `DEBT_STATEMENT_PERIOD_INVALID`, `DEBT_STATEMENT_DUPLICATE`, `DEBT_STATEMENT_NOT_FOUND`, `DEBT_STATEMENT_BALANCE_INVALID`, `DEBT_STATEMENT_BALANCE_NEGATIVE`, `DEBT_STATEMENT_BALANCE_PRECISION` (removed in v2.0), `DEBT_STATEMENT_BALANCE_TOO_LARGE`, `DEBT_STATEMENT_NOTE_TOO_LONG`, `DEBT_OPENING_DATE_REQUIRED`, `DEBT_OPENING_DATE_INVALID`, `DEBT_OPENING_AMOUNT_REQUIRED`, `DEBT_OPENING_AMOUNT_INVALID`, `DEBT_OPENING_AMOUNT_NEGATIVE`, `DEBT_OPENING_AMOUNT_TOO_LARGE`, `DEBT_CLOSING_INCOMPLETE`, `DEBT_CLOSING_BEFORE_OPENING`, `DEBT_CLOSING_DATE_INVALID`, `DEBT_CLOSING_OUTCOME_REQUIRED`, `DEBT_CLOSING_AMOUNT_INVALID`, `DEBT_CLOSING_AMOUNT_NEGATIVE`, `DEBT_CLOSING_AMOUNT_TOO_LARGE`, `DEBT_STATEMENT_OUTSIDE_WINDOW`, `DEBT_DATES_EXCLUDE_STATEMENTS`. `DEBT_NOT_FOUND` and `DEBT_STATEMENT_NOT_FOUND` are returned for a debt or a statement that does not exist (a stale screen). `DEBT_STATEMENT_IN_FUTURE` is removed (future periods are allowed). Project error codes are in CSD-002.
 
@@ -1414,10 +1430,11 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 
 ## 8. Open questions
 - OQ-1: (resolved 04/11/2026) A typed closing amount is not checked against the statements (NG-15). The closing carries the choice Repaid or Cancelled, which decides how the debt counts (CSD-026 REQ-9, REQ-10, REQ-11): Repaid counts in full, Cancelled nets to zero through the closing amount as the settled amount.
-- OQ-2: (resolved 04/11/2026) A debt with a house link cannot be closed by hand, while its house is held or sold; the user unlinks it first, or sells the house (REQ-34, CSD-026 REQ-15).
+- OQ-2: (resolved 04/11/2026, reversed in v3.2) A debt with a house link could not be closed by hand. Since v3.2 it can, because a mortgage or a loan can be repaid or cancelled without the house being sold; the closing keeps the link (REQ-34, CSD-026 REQ-15).
 - OQ-3: (resolved 04/11/2026) The Opening rows are listed in the Statements table below the statements, and count as entries of the table: "No statements yet." shows only while the table holds at most one row (REQ-21, REQ-33).
 
 ## 9. Changelog
+- 3.2 (04/11/2026): The closing fields of the debt form are editable for every debt, also one linked to a house or settled by the sale of its house (REQ-34, AC-34.2 reversed, new AC-34.4, AC-34.5; OQ-2 reversed), because a loan or a mortgage can be repaid or cancelled without selling the house and a closing can be edited in place (CSD-026 v3.0, REQ-15 to REQ-18). The settle dialog skips debts that are closed already (REQ-27). The closing carries an `origin` (section 5). Owner decisions from the grill-me interview of 04/11/2026. Back to `draft` until re-approved.
 - 3.1 (04/11/2026): Found while implementing v3.0: AC-32.1 and CSD-026 REQ-6 gave two codes for a statement after the closing; the existing lock `DEBT_SETTLED_LOCKED` wins (REQ-32 and AC-32.1 reworded), and an invalid closing date has its own code `DEBT_CLOSING_DATE_INVALID` (REQ-31, error list). No other behaviour change.
 - 3.0 (04/11/2026): A debt gets an opening, the opening date and the opening amount, both required (new REQ-30, REQ-31), and a closing, which is the settlement of CSD-026 entered by hand (CSD-026 REQ-15, REQ-16); houses are the model (GitHub issue 51). Statements must lie inside the window from the opening to the closing (new REQ-32; REQ-7, AC-7.3 amended: periods before the opening are no longer accepted). The Statements table shows a read-only Opening row per debt (new REQ-33; REQ-20, REQ-21 amended), and the debt form gets the opening and closing fields (new REQ-34). A debt in the project file must have an opening, otherwise the file is invalid (REQ-23, AC-23.6, AC-23.7); `format_version` stays 1 and a one-off script upgrades old files (CSD-002 REQ-20). NG-10 no longer excludes a stored original amount, new NG-15 to NG-17, new definitions Opening, Closing and Window, new CON-12, OQ-1 to OQ-3 raised and resolved the same day. AC-1.1 to AC-1.3 give an opening; new shorthand for scenarios without one. Owner decisions from the grill-me interview of 04/11/2026. Back to `draft` until re-approved.
 - 2.1 (04/11/2026): Wording follows the UI; no behaviour change: period field label and placeholder (AC-16.1, AC-16.2), amounts grouped as in CSD-022 AC-10.1 and the table dash written as "—" (AC-20.2, AC-20.3, AC-20.8, AC-21.2, AC-26.4, AC-27.1). Back to `draft` until re-approved.

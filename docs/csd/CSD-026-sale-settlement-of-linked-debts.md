@@ -3,7 +3,7 @@ id: CSD-026
 title: Sale settlement of linked debts
 status: approved
 owner: Thijs Bardoel
-version: 2.0
+version: 3.0
 last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-011, CSD-012, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020]
 ---
@@ -11,20 +11,21 @@ related: [CSD-000, CSD-002, CSD-011, CSD-012, CSD-015, CSD-017, CSD-018, CSD-019
 # CSD-026: Sale settlement of linked debts
 
 ## 1. Intent
-A mortgage or a loan linked to a house (CSD-020) is normally paid off or written off when that house is sold (CSD-019), and the app must record which. When a house with linked debts is sold, this capability asks per debt whether it was **Repaid** or **Cancelled**. Either way the debt drops to 0.00, through a settlement statement of balance 0.00. A Repaid debt counts in full in the wealth accumulation from cash (CSD-018), while a Cancelled debt nets to zero in it, because no cash paid it. The sale amount stays a record: it changes neither net worth nor cash (CSD-019 NG-4). The capability also covers undoing a sale, the locks that keep a settlement consistent, the delete rules, and what the Houses and Debts views show. It is for a single person keeping a private, local history. It follows GitHub issues 27 and 31 and the grill-me interviews, and was split off from the former CSD-020 (v1.1). Since v2.0 the same settlement can also be entered by hand on a debt that has no house link, as its **manual closing** (GitHub issue 51): the closing date, the closing amount and the outcome of CSD-011 REQ-34.
+A mortgage or a loan linked to a house (CSD-020) is normally paid off or written off when that house is sold (CSD-019), and the app must record which. When a house with linked debts is sold, this capability asks per debt whether it was **Repaid** or **Cancelled**. Either way the debt drops to 0.00, through a settlement statement of balance 0.00. A Repaid debt counts in full in the wealth accumulation from cash (CSD-018), while a Cancelled debt nets to zero in it, because no cash paid it. The sale amount stays a record: it changes neither net worth nor cash (CSD-019 NG-4). The capability also covers undoing a sale, the locks that keep a settlement consistent, the delete rules, and what the Houses and Debts views show. It is for a single person keeping a private, local history. It follows GitHub issues 27 and 31 and the grill-me interviews, and was split off from the former CSD-020 (v1.1). Since v2.0 the same settlement can also be entered by hand, as a **manual closing** (GitHub issue 51): the closing date, the closing amount and the outcome of CSD-011 REQ-34. Since v3.0 that holds for every debt, also one linked to a house, because a mortgage or a loan can be repaid or cancelled without the house being sold, and the user can edit or clear any closing, also one that a sale made. Each settlement carries its **origin**, Sale or Manual, so the sale only touches the closings it made itself.
 
 ## 2. Scope
 ### 2.1 In scope
 - The Repaid or Cancelled choice per linked debt when a house is sold (or when a debt is linked to a house that is already sold, CSD-020 REQ-17), and its effect on the debt (a settlement and its settlement statement).
 - Undoing a sale, the locks that keep a settlement consistent, and the delete rules.
-- A manual closing of a debt without a house link, and clearing it (REQ-15, REQ-16).
+- A manual closing of any debt, linked or not, editing it in place and clearing it (REQ-15, REQ-16, REQ-17), and changing the house link of a closed debt (REQ-18).
+- The origin of a settlement, Sale or Manual, and what each origin means for a sale, its undo and the sell-date lock (REQ-1, REQ-4, REQ-5).
 - The effect on total debt, net worth, the wealth accumulation from cash and the Debts overview.
 - Showing the linked debts and settlements in the Edit house form and the Statements table, and the settlement prompt.
 
 ### 2.2 Non-goals
 - NG-1: Partial repayment or partial cancellation: a settlement settles the whole open balance.
-- NG-2: Settling a debt that is linked to a house without selling that house. (A debt without a house link can be closed by hand, REQ-15; since v2.0 it is no longer excluded.)
-- NG-3: Changing the Repaid or Cancelled outcome, the date or the amount after the sale or the manual closing is saved. The user undoes the sale (REQ-4) or clears the closing (REQ-16) and enters it again.
+- NG-2: (removed in v3.0) A debt linked to a house can be closed by hand without selling the house (REQ-15).
+- NG-3: (removed in v3.0) The outcome, the date and the amount of a closing can be edited in place (REQ-17), also after a sale made it.
 - NG-4: Interest, fees and tax on the settlement.
 
 ## 3. Definitions
@@ -35,7 +36,10 @@ A mortgage or a loan linked to a house (CSD-020) is normally paid off or written
 | **Settlement** | What the sale does to a linked debt with an open balance: the outcome (**Repaid** or **Cancelled**), the settlement date (the sell date), and the settled amount (the open balance). |
 | **Settlement statement** | The final statement of balance 0.00 that the settlement adds in the sale period, flagged as a settlement statement, with the note "Repaid on sale of <house>" or "Cancelled on sale of <house>". A period may therefore hold two statements of a debt: a regular one, which stays as it is, and the settlement statement, which comes after it and which the user cannot edit or delete (only undoing the sale removes it, REQ-4). CSD-011 REQ-8 (one statement per period) is amended for this case. |
 | **Settled debt** | A debt with a settlement. |
-| **Manual closing** | A settlement entered in the debt form on a debt without a house link: the outcome (Repaid or Cancelled), the closing date as the settlement date, and the closing amount as the settled amount, both typed. Its settlement statement has the note "Repaid on closing" or "Cancelled on closing". A settlement made by selling a house is a closing by sale. |
+| **Origin** | Who made a settlement: **Sale** (the sale of the house the debt is linked to, REQ-3) or **Manual** (the user, in the debt form). Stored with the settlement. |
+| **Manual closing** | A settlement with the origin Manual, entered in the debt form on any debt, linked or not: the outcome (Repaid or Cancelled), the closing date as the settlement date, and the closing amount as the settled amount, all typed. Its settlement statement has the note "Repaid on closing" or "Cancelled on closing". |
+| **Closing by sale** | A settlement with the origin Sale: made by selling a house, with the sell date as its date and the open balance as its amount, until the user edits it (REQ-17), which makes it a manual closing. |
+| **Open debt (at a sale)** | A debt linked to the house with an open balance at the sale and no settlement. A debt that is closed already, by hand or otherwise, is never an open debt. |
 
 ## 4. Requirements
 
@@ -63,7 +67,7 @@ sequenceDiagram
 ### 4.1 Sale and settlement
 
 **REQ-1: A sale asks Repaid or Cancelled per open debt** *(event-driven)*
-When the user saves a house that gains a sale and has linked debts with an open balance, the app shall require an outcome, Repaid or Cancelled, for each of those debts, and shall save the sale and all settlements together or not at all.
+When the user saves a house that gains a sale and has linked debts with an open balance, the app shall require an outcome, Repaid or Cancelled, for each of those debts that is not closed yet, and shall save the sale and all settlements together or not at all. A linked debt that is closed already keeps its closing as it is and is not asked about.
 
 ```gherkin
 @AC-1.1
@@ -85,6 +89,22 @@ Scenario: A missing choice saves nothing
 Scenario: A choice for a debt that needs none is rejected
   Given a held house with a linked debt "Example Loan" that has no statements
   When the user saves a sale with the choice Repaid for "Example Loan"
+  Then it is rejected with error code "HOUSE_SETTLEMENT_INVALID"
+  And the house has no sale
+
+@AC-1.5
+Scenario: A debt that is closed already is skipped
+  Given the held house "Example House" with the linked debts "Example Mortgage" (latest statement 2026-03, balance 190000.00) and "Example Loan" (statement 2026-03, balance 10000.00), and "Example Loan" closed by hand as Repaid on 15/05/2026 with closing amount 10000.00
+  When the user sets sell date 10/06/2026 and sell amount 300000.00
+  Then the settle dialog asks about "Example Mortgage" only
+  When the user chooses Repaid for "Example Mortgage" and saves
+  Then "Example Mortgage" is settled with the origin Sale
+  And "Example Loan" is still closed on 15/05/2026 with the origin Manual and settled amount 10000.00
+
+@AC-1.6
+Scenario: A choice for a debt that is closed already is rejected
+  Given the same house and "Example Loan" closed by hand
+  When the user saves the sale with the choice Cancelled for "Example Loan"
   Then it is rejected with error code "HOUSE_SETTLEMENT_INVALID"
   And the house has no sale
 
@@ -122,7 +142,7 @@ Scenario: A statement after the sale period blocks the sale
 ```
 
 **REQ-3: A settlement drops the debt to 0.00** *(event-driven)*
-When a sale is saved with an outcome for a debt, the app shall store the settlement on the debt and add its settlement statement of 0.00 in the sale period after any regular statement of that period, which stays unchanged, so a debt can have two statements in the same month or year.
+When a sale is saved with an outcome for a debt, the app shall store the settlement on the debt with the origin Sale and add its settlement statement of 0.00 in the sale period after any regular statement of that period, which stays unchanged, so a debt can have two statements in the same month or year.
 
 ```gherkin
 @AC-3.1
@@ -157,7 +177,7 @@ Scenario: The settlement statement cannot be edited
 ```
 
 **REQ-4: Undo a sale** *(event-driven)*
-When the user saves a sold house with the sell date and the sell amount emptied and has confirmed it, the app shall remove the sale and every settlement of the house, shall remove each settlement statement and leave every regular statement as it is, and shall leave the debts linked.
+When the user saves a sold house with the sell date and the sell amount emptied and has confirmed it, the app shall remove the sale and every closing by sale of the house (a settlement with the origin Sale), shall remove each of their settlement statements and leave every regular statement as it is, shall leave every manual closing and its settlement statement as it is, and shall leave the debts linked.
 
 ```gherkin
 @AC-4.1
@@ -174,6 +194,20 @@ Scenario: Undo without confirmation
   Then it is rejected with error code "HOUSE_SALE_UNDO_UNCONFIRMED"
   And nothing changes
 
+@AC-4.4
+Scenario: Undo leaves a manual closing alone
+  Given "Example Mortgage" linked to "Example House" and settled by the sale on 10/06/2026 (origin Sale)
+  And "Example Loan" linked to "Example House" and closed by hand as Repaid on 15/05/2026 (origin Manual)
+  When the user empties the sell date and sell amount, confirms and saves
+  Then "Example Mortgage" has no settlement
+  And "Example Loan" is still closed on 15/05/2026 as Repaid, with its settlement statement
+
+@AC-4.5
+Scenario: Undo leaves an edited closing alone
+  Given "Example Loan" settled by the sale on 10/06/2026 and then edited by the user to closing date 20/05/2026 (REQ-17)
+  When the user undoes the sale of "Example House"
+  Then "Example Loan" is still closed on 20/05/2026 with the origin Manual
+
 @AC-4.3
 Scenario: The Debts overview follows the undo
   Given the Debts overview shows "Example Loan" with the badge Cancelled and its settlement statement
@@ -184,7 +218,7 @@ Scenario: The Debts overview follows the undo
 ### 4.2 Locks and deletes
 
 **REQ-5: The sell date is locked while debts are settled** *(unwanted behaviour)*
-If a house has a settled debt, then the app shall reject a change of its sell date with the error code `HOUSE_SELL_DATE_LOCKED`, and shall accept a change of its sell amount.
+If a house has a debt with a closing by sale (a settlement with the origin Sale), then the app shall reject a change of its sell date with the error code `HOUSE_SELL_DATE_LOCKED`, and shall accept a change of its sell amount. A manual closing never locks the sell date, and a closing by sale that the user edited is a manual closing (REQ-17).
 
 ```gherkin
 @AC-5.1
@@ -198,10 +232,24 @@ Scenario: Change the sell amount
   Given the same house
   When the user sets sell amount 310000.00 and saves
   Then the house is sold on 10/06/2026 for 310000.00 and the settlement is unchanged
+
+@AC-5.3
+Scenario: A manual closing does not lock the sell date
+  Given a house sold on 10/06/2026 for 300000.00 whose only settled debt "Example Loan" is closed by hand (origin Manual)
+  When the user sets sell date 11/06/2026 and saves
+  Then the house is sold on 11/06/2026
+
+@AC-5.4
+Scenario: Editing the closing by sale releases the lock
+  Given a house sold on 10/06/2026 with "Example Loan" settled by the sale
+  When the user edits the closing of "Example Loan" to date 10/06/2026, amount 3500.00 and outcome Repaid
+  And sets the sell date of the house to 11/06/2026 and saves
+  Then the house is sold on 11/06/2026
+  And "Example Loan" is still closed on 10/06/2026
 ```
 
 **REQ-6: Settled debts are locked** *(unwanted behaviour)*
-If a debt has a settlement, then the app shall reject, with the error code `DEBT_SETTLED_LOCKED`, adding a statement after the settlement period, changing or deleting a statement after it or the settlement statement, changing the statement period of the debt, removing its house link, adding a house link to a manually closed debt, changing its category, and changing a settlement other than by clearing a manual closing (REQ-16); statements before the settlement period, the regular statement of the settlement period itself, the name and the opening of the debt (CSD-011 REQ-30, REQ-32) stay editable.
+If a debt has a settlement, then the app shall reject, with the error code `DEBT_SETTLED_LOCKED`, adding a statement after the settlement period, changing or deleting a statement after it or the settlement statement, and changing the statement period of the debt; statements before the settlement period, the regular statement of the settlement period itself, the name and the opening of the debt (CSD-011 REQ-30, REQ-32), its category, its house link (REQ-18) and its closing (REQ-16, REQ-17) stay editable, also while the house it is linked to is sold.
 
 ```gherkin
 @AC-6.1
@@ -215,8 +263,13 @@ Scenario Outline: Locked operations
     | adds a statement for 2026-07                             |
     | edits the settlement statement for 2026-06               |
     | deletes the settlement statement for 2026-06             |
-    | unlinks it or changes its category in the Edit debt form |
-    | links the manually closed debt "Example Card" to a house   |
+    | changes its statement period in the Edit debt form       |
+
+@AC-6.4
+Scenario: Name, opening, category and link stay editable on a debt settled by a sale
+  Given "Example Mortgage" settled by the sale of the sold house "Example House"
+  When the user changes its name to "Example Home Loan", its opening to 01/03/2020 and 210000.00 and its category to Loan, and saves
+  Then the changes are saved and the settlement is unchanged
 
 @AC-6.2
 Scenario: Earlier statements stay editable
@@ -381,7 +434,7 @@ Scenario: The change of the settlement statement
 ### 4.5 Manual closing
 
 **REQ-15: Close a debt by hand** *(event-driven)*
-When the user saves a debt without a house link with a closing date, a closing amount and an outcome (CSD-011 REQ-34), the app shall store the settlement of the debt with that outcome, that date and that amount as the settled amount, and add its settlement statement of 0.00 in the period of the closing date after any regular statement of that period, with the note "Repaid on closing" or "Cancelled on closing", under the rules of CSD-011 REQ-31 and REQ-32, and the debt is then locked under REQ-6.
+When the user saves a debt that is not closed yet, with or without a house link, whether the house is held or sold, with a closing date, a closing amount and an outcome (CSD-011 REQ-34), the app shall store the settlement of the debt with the origin Manual, that outcome, that date and that amount as the settled amount, and add its settlement statement of 0.00 in the period of the closing date after any regular statement of that period, with the note "Repaid on closing" or "Cancelled on closing", under the rules of CSD-011 REQ-31 and REQ-32, and the debt is then locked under REQ-6. The debt keeps its house link, and no rule ties the closing date to the sell date of the house.
 
 ```gherkin
 @AC-15.1
@@ -393,11 +446,25 @@ Scenario: A manual closing
   And its latest balance is 0.00 and its row shows the badge Repaid
 
 @AC-15.2
-Scenario: A debt linked to a house cannot be closed by hand
-  Given "Example Mortgage" linked to the held house "Example House"
-  When the user saves it with closing date 10/06/2026, closing amount 0.00 and outcome Repaid
-  Then it is rejected with error code "DEBT_CLOSING_LINKED"
-  And the debt has no settlement
+Scenario: A debt linked to a held house can be closed by hand
+  Given "Example Loan" (monthly) linked to the held house "Example House", with opening 01/01/2025 and 10000.00 and a statement for 2026-03 with balance 4000.00
+  When the user saves it with closing date 10/06/2026, closing amount 4000.00 and outcome Repaid
+  Then its settlement is Repaid with the origin Manual, dated 10/06/2026, with settled amount 4000.00
+  And it has a settlement statement for 2026-06 with balance 0.00 and note "Repaid on closing"
+  And it is still linked to "Example House", which is still held
+
+@AC-15.6
+Scenario: A debt linked to a sold house can be closed by hand on any date
+  Given "Example Loan" linked to "Example House" sold on 10/06/2026, with no settlement (it had no open balance at the sale) and a statement for 2026-09 with balance 3000.00
+  When the user saves it with closing date 15/09/2026, closing amount 3000.00 and outcome Cancelled
+  Then its settlement is Cancelled with the origin Manual, dated 15/09/2026, with settled amount 3000.00
+
+@AC-15.7
+Scenario: A closed debt has one settlement
+  Given "Example Card" closed by hand on 10/06/2026
+  When the user saves it with the closing date 11/06/2026
+  Then the closing is edited under REQ-17
+  And the debt has exactly one settlement and exactly one settlement statement
 
 @AC-15.3
 Scenario: The closing rules apply
@@ -418,7 +485,7 @@ Scenario: The settled debt is locked
 ```
 
 **REQ-16: Clear a manual closing** *(event-driven)*
-When the user empties the closing date, the closing amount and the outcome of a manually closed debt, saves, and has confirmed with "Undo the closing?", the app shall remove the settlement and its settlement statement and leave every regular statement as it is.
+When the user empties the closing date, the closing amount and the outcome of a closed debt, whatever the origin of its closing, saves, and has confirmed with "Undo the closing?", the app shall remove the settlement and its settlement statement and leave every regular statement as it is. A debt linked to a sold house stays linked and sold, without a settlement.
 
 ```gherkin
 @AC-16.1
@@ -435,11 +502,92 @@ Scenario: Clearing without confirmation
   And the closing is unchanged
 
 @AC-16.3
-Scenario: A closing by sale cannot be cleared here
+Scenario: A closing by sale can be cleared in the debt form
+  Given "Example Loan" settled by the sale of "Example House" on 10/06/2026, with a regular statement for 2026-03 (balance 4000.00)
+  When the user empties its closing fields, confirms and saves
+  Then "Example Loan" has no settlement and exactly one statement, for 2026-03 with balance 4000.00
+  And it is still linked to "Example House", which is still sold
+  And the sell date of the house is no longer locked by it (REQ-5)
+
+@AC-16.4
+Scenario: Clearing a closing by sale without confirmation
   Given "Example Loan" settled by the sale of "Example House"
-  When the user tries to empty its closing fields in the Edit debt form
-  Then it is rejected with error code "DEBT_SETTLED_LOCKED"
+  When the user empties its closing fields and saves without confirming
+  Then it is rejected with error code "DEBT_CLOSING_UNDO_UNCONFIRMED"
   And the settlement is unchanged
+```
+
+**REQ-17: Edit a closing in place** *(event-driven)*
+When the user saves a closed debt with a changed closing date, closing amount or outcome, the app shall replace the settlement with the new values and the origin Manual, move its settlement statement to the period of the new closing date and give it the note of the new outcome ("Repaid on closing" or "Cancelled on closing"), without asking for the "Undo the closing?" confirmation and under the rules of CSD-011 REQ-31 and REQ-32. A closing by sale that the user edits is a manual closing from then on. Saving the debt with the closing fields unchanged leaves the settlement, its origin and its settlement statement as they are.
+
+```gherkin
+@AC-17.1
+Scenario: Edit a manual closing
+  Given "Example Card" closed by hand on 10/06/2026 as Repaid with closing amount 800.00 and a regular statement for 2026-03 (balance 800.00)
+  When the user changes the closing to date 15/07/2026, amount 790.00 and outcome Cancelled and saves
+  Then its settlement is Cancelled with the origin Manual, dated 15/07/2026, with settled amount 790.00
+  And its settlement statement is for 2026-07 with balance 0.00 and note "Cancelled on closing", and there is none for 2026-06
+
+@AC-17.2
+Scenario: Editing a closing by sale makes it manual
+  Given "Example Loan" settled by the sale of "Example House" on 10/06/2026 as Cancelled with settled amount 4000.00
+  When the user changes the closing to date 20/05/2026, amount 4000.00 and outcome Repaid and saves
+  Then its settlement is Repaid with the origin Manual, dated 20/05/2026
+  And its settlement statement is for 2026-05 with note "Repaid on closing"
+  And the house is still sold on 10/06/2026
+
+@AC-17.3
+Scenario: An unchanged closing keeps its origin
+  Given "Example Loan" settled by the sale of "Example House"
+  When the user changes only its name and saves
+  Then its settlement keeps the origin Sale and is unchanged
+
+@AC-17.4
+Scenario: A closing before a statement is rejected
+  Given "Example Card" closed by hand on 10/06/2026 with a statement for 2026-03
+  When the user changes the closing date to 01/02/2026 and saves
+  Then it is rejected with error code "DEBT_DATES_EXCLUDE_STATEMENTS"
+  And the closing is unchanged
+
+@AC-17.5
+Scenario: The edit keeps the debt consistent in the figures
+  Given "Example Card" with a statement for 2025-12 with balance 800.00 closed Cancelled on 10/06/2026 with closing amount 800.00
+  When the user changes the outcome to Repaid and saves
+  Then the repaid amount of 2026 in the Debts overview and in the wealth accumulation from cash counts the debt in full (REQ-9)
+```
+
+**REQ-18: Change the house link of a closed debt** *(event-driven)*
+When the user saves a closed debt with another house or with no house, or links a closed debt without a house to a house, held or sold, the app shall keep the closing and its settlement statement as they are, shall not show the settle prompt (REQ-13), and shall make the closing manual when the debt was linked and the link changes or goes. A change of the link never adds or removes a closing by itself. A category other than Mortgage or Loan with a house link is still rejected with `DEBT_LINK_CATEGORY_INVALID` (CSD-020 REQ-16).
+
+```gherkin
+@AC-18.1
+Scenario: Unlink a debt settled by a sale
+  Given "Example Loan" settled by the sale of "Example House" on 10/06/2026 as Cancelled with settled amount 4000.00
+  When the user saves it with no house
+  Then it has no house link
+  And its settlement is still Cancelled, dated 10/06/2026, with settled amount 4000.00 and the origin Manual
+  And the sell date of "Example House" is no longer locked by it (REQ-5)
+
+@AC-18.2
+Scenario: Link a closed debt to a house
+  Given "Example Card" closed by hand on 10/06/2026 and the held house "Example House"
+  When the user links "Example Card" to "Example House" and saves
+  Then it is linked to "Example House"
+  And its closing is unchanged and no dialog is shown
+
+@AC-18.3
+Scenario: Link a closed debt to a sold house
+  Given "Example Card" closed by hand on 10/06/2026 and "Example Guesthouse" sold on 10/09/2026
+  When the user links "Example Card" to "Example Guesthouse" and saves
+  Then it is linked and its closing is unchanged with the origin Manual
+  And no dialog is shown and no second settlement is made
+
+@AC-18.4
+Scenario: Move a debt settled by a sale to another house
+  Given "Example Loan" settled by the sale of "Example House" on 10/06/2026
+  When the user links it to "Example Lodge" and saves
+  Then it is linked to "Example Lodge"
+  And its settlement is unchanged and has the origin Manual, so undoing the sale of "Example House" leaves it
 ```
 
 ## 5. Interfaces and contracts
@@ -451,7 +599,8 @@ erDiagram
     DEBT ||--o{ DEBT_STATEMENT : has
     SETTLEMENT {
         Outcome outcome "Repaid or Cancelled"
-        Date date "the sell date, ISO 8601 in the file"
+        Origin origin "Sale or Manual (REQ-3, REQ-15, REQ-17)"
+        Date date "the sell date for origin Sale, the typed closing date for Manual, ISO 8601 in the file"
         Decimal amount "settled amount, two decimals"
     }
     DEBT_STATEMENT {
@@ -459,11 +608,11 @@ erDiagram
     }
 ```
 
-The settlement is stored on the debt (`settlement`). The settlement statement is a statement of the debt (CSD-011) with the flag `settlement`; it counts in the figures and sorts after the regular statement of its period. The link itself, the category and their file rules are CSD-020; the sale is CSD-019. A settlement does not need a house link: a settlement on a debt without one is a manual closing (REQ-15), and one on a linked debt must be made by the sale and carry the sell date of its house. In the project file the settlement is optional, and a settlement without its settlement statement, or a settlement statement without a settlement, is an invalid file (CSD-020 REQ-33).
+The settlement is stored on the debt (`settlement`). The settlement statement is a statement of the debt (CSD-011) with the flag `settlement`; it counts in the figures and sorts after the regular statement of its period. The link itself, the category and their file rules are CSD-020; the sale is CSD-019. A settlement does not need a house link. Its `origin` (`Sale` or `Manual`) says who made it: a settlement with the origin Sale must sit on a debt linked to a house sold on the date of the settlement, and one with the origin Manual may sit on any debt, linked or not, with any valid date (REQ-15, REQ-17, REQ-18). In the project file the settlement is optional and carries its `origin`, and a settlement without its settlement statement, or a settlement statement without a settlement, or a settlement with the origin Sale that does not match the sale of the house of its debt, is an invalid file (CSD-020 REQ-33, CSD-002).
 
-Commands: `create_house` and `update_house` take, besides the fields of CSD-019, `links` with `settlements` (a list of `{ debt_id, outcome }`) and `confirm_undo` (boolean) only. `create_debt` and `update_debt` take `settlement` (`Repaid` or `Cancelled`; for a link to a sold house, CSD-020 REQ-17) or `closing` (`{ date, amount, outcome }`, a manual closing for a debt without a house link, or empty to clear it with `confirm_undo`, REQ-15, REQ-16). `list_open_debts(house_id, sell_date)` returns the linked debts of that house with an open balance at a sale, for the prompt of REQ-13, and the commands still validate the choices (REQ-1). `list_houses()` adds, per house, the linked debts with latest balance and settlement. `list_debts()` returns the settlement of each debt. The ratios and Debts overview commands apply REQ-10 and REQ-11. All validation is in Rust.
+Commands: `create_house` and `update_house` take, besides the fields of CSD-019, `links` with `settlements` (a list of `{ debt_id, outcome }`) and `confirm_undo` (boolean) only. `create_debt` and `update_debt` take `settlement` (`Repaid` or `Cancelled`; for a link to a sold house, CSD-020 REQ-17) or `closing` (`{ date, amount, outcome }`: a manual closing of any debt, linked or not, or an in-place edit of an existing closing, or empty to clear it with `confirm_undo`, REQ-15, REQ-16, REQ-17). `list_open_debts` skips debts that are closed already (REQ-1). `list_open_debts(house_id, sell_date)` returns the linked debts of that house with an open balance at a sale, for the prompt of REQ-13, and the commands still validate the choices (REQ-1). `list_houses()` adds, per house, the linked debts with latest balance and settlement. `list_debts()` returns the settlement of each debt. The ratios and Debts overview commands apply REQ-10 and REQ-11. All validation is in Rust.
 
-Error codes (code plus safe message): `HOUSE_SETTLEMENT_REQUIRED`, `HOUSE_SETTLEMENT_INVALID`, `HOUSE_SALE_UNDO_UNCONFIRMED`, `HOUSE_SELL_DATE_LOCKED`, `HOUSE_HAS_LINKED_DEBTS`, `DEBT_STATEMENT_AFTER_SALE`, `DEBT_SETTLED_LOCKED`, `DEBT_CLOSING_LINKED`, `DEBT_CLOSING_UNDO_UNCONFIRMED`. The codes of the closing values are in CSD-011.
+Error codes (code plus safe message): `HOUSE_SETTLEMENT_REQUIRED`, `HOUSE_SETTLEMENT_INVALID`, `HOUSE_SALE_UNDO_UNCONFIRMED`, `HOUSE_SELL_DATE_LOCKED`, `HOUSE_HAS_LINKED_DEBTS`, `DEBT_STATEMENT_AFTER_SALE`, `DEBT_SETTLED_LOCKED`, `DEBT_CLOSING_LINKED` (removed in v3.0), `DEBT_CLOSING_UNDO_UNCONFIRMED`. The codes of the closing values are in CSD-011.
 
 ## 6. Constraints
 - CON-1: Amounts use `rust_decimal::Decimal` and reuse the value rules of CSD-015 REQ-10, and every figure, including the Cancelled subtraction, is computed in Rust. Rationale: `CLAUDE.md` money rules; the frontend only displays.
@@ -480,7 +629,7 @@ Domain logic is in `domain/houses` (`linking`), `domain/debts` (`settlement`) an
 |---|---|
 | Rust tests | `cargo test test_csd026_`. One requirement, e.g. REQ-3: `cargo test test_csd026_ac_3_` |
 | REQ-1, REQ-4, REQ-5 through the commands | `cargo test test_csd026_ac_1_`, `test_csd026_ac_4_`, `test_csd026_ac_5_` |
-| REQ-15, REQ-16 (manual closing) | `cargo test test_csd026_ac_15_`, `test_csd026_ac_16_` |
+| REQ-15 to REQ-18 (manual closing, editing and clearing it, the house link of a closed debt) | `cargo test test_csd026_ac_15_`, `test_csd026_ac_16_`, `test_csd026_ac_17_`, `test_csd026_ac_18_` |
 | Display ACs with a DOM test | `npm test`: `ui-bugs.test.js` (AC-13.1, the settle hint in English and in Dutch), `ac-c1-houses.test.js` (AC-4.3, AC-12.1, AC-12.3) and `ac-c1-debts.test.js` (the settle dialog, CSD-011 AC-27 and AC-28) |
 | Display ACs without a DOM test (look and layout of the dialog and the tables) | Checked by hand |
 
@@ -489,9 +638,10 @@ Every AC is covered by a named test.
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
-None of its own. CSD-011 OQ-1 (the typed closing amount) and OQ-2 (closing a linked debt by hand) are resolved and shape REQ-15. The former OQ-1 of CSD-020 (Cancelled-adjusted repaid amount in the Debts overview) is answered by REQ-11.
+None of its own. CSD-011 OQ-1 (the typed closing amount) is resolved and shapes REQ-15, and CSD-011 OQ-2 (closing a linked debt by hand) is resolved the other way in v3.0 (REQ-15). The former OQ-1 of CSD-020 (Cancelled-adjusted repaid amount in the Debts overview) is answered by REQ-11.
 
 ## 9. Changelog
+- 3.0 (04/11/2026): A loan or a mortgage can be repaid or cancelled without selling its house, and the debts of a sold house can be edited. Every settlement carries an `origin` (Sale or Manual; new definitions Origin, Closing by sale, Open debt). A debt with a house link, held or sold, can be closed by hand (REQ-15, AC-15.2 reversed, new AC-15.6, AC-15.7; `DEBT_CLOSING_LINKED` removed; NG-2 removed). A closing is edited in place without the clear-and-re-enter step, and a closing by sale that the user edits becomes manual (new REQ-17; NG-3 removed). Any closing can be cleared with the confirmation, a closing by sale too (REQ-16, AC-16.3 reversed, new AC-16.4). The house link of a closed debt can change without losing the closing (new REQ-18); REQ-6 no longer locks the link and the category of a settled debt. A sale skips debts that are closed already (REQ-1, new AC-1.5, AC-1.6), undoing a sale removes only closings by sale (REQ-4, new AC-4.4, AC-4.5), and only a closing by sale locks the sell date (REQ-5, new AC-5.3, AC-5.4). Section 5, the error codes and section 7 updated. The file schema change is in CSD-002 v2.0 (`format_version` 2). Owner decisions from the grill-me interview of 04/11/2026. Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A debt without a house link can be closed by hand: new REQ-15 (manual closing, settlement statement note "Repaid on closing" or "Cancelled on closing") and REQ-16 (clearing it after confirmation); NG-2 and NG-3 narrowed, REQ-6 amended (adding a link to a closed debt is locked, the name and the opening stay editable), new definition Manual closing, CON-6 amended, section 5 and the error codes extended (GitHub issue 51, with CSD-011 v3.0). Owner decisions from the grill-me interview of 04/11/2026. Back to `draft` until re-approved.
 - 1.1 (04/11/2026): Wording follows the UI; no behaviour change: the linked-debts table in the Edit house form shows grouped amounts and "—" for no outcome (AC-12.2). Back to `draft` until re-approved.
 - 1.0 (04/11/2026): New CSD, split off from CSD-020 v1.1 (house purchase, sale and linked debts), which keeps the debt link (REQ-15, REQ-16, REQ-17, REQ-30, REQ-33) and whose house part is now CSD-019. The numbering is fresh. Mapping from CSD-020 v1.1: REQ-18 to REQ-24 are REQ-1 to REQ-7, REQ-25 to REQ-28 are REQ-8 to REQ-11, REQ-29 is REQ-12, REQ-31 is REQ-13 and REQ-32 is REQ-14; their ACs follow (AC-18.x to AC-1.x, AC-19.x to AC-2.x, AC-20.x to AC-3.x, AC-21.x to AC-4.x, AC-22.x to AC-5.x, AC-23.x to AC-6.x, AC-24.x to AC-7.x, AC-25.x to AC-8.x, AC-26.x to AC-9.x, AC-27.x to AC-10.x, AC-28.x to AC-11.x, AC-29.x to AC-12.x, AC-31.x to AC-13.x, AC-32.x to AC-14.x, the second number unchanged). NG-10 to NG-13 are NG-1 to NG-4. CON-1 and CON-2 stay CON-1 and CON-2 (shortened), CON-4 and CON-5 are CON-3 and CON-4, CON-6 is CON-5 and CON-7 is CON-6. The former OQ-1 is answered by REQ-11. Cross-references inside the text now name the CSD (CSD-019 NG-4, CSD-020 REQ-17). Behaviour is unchanged. Draft until approved.
