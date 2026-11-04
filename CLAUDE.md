@@ -24,6 +24,7 @@ cargo test <name>                        # single test
 cargo deny check                         # licenses, advisories, banned crates
 npm ci                                   # once: installs jsdom (tests-only dev dependency)
 npm test                                 # DOM tests of ui/ (node:test + jsdom, Node 26)
+node scripts/migrate-debt-opening.mjs <file.varde>   # one-off: upgrade an older project file (CSD-002 REQ-20), writes <file>.bak
 GOLDEN_UPDATE=1 cargo test golden        # rewrite src-tauri/golden/ after a deliberate behaviour change; review the diff
 ```
 
@@ -54,6 +55,7 @@ src-tauri/
   capabilities/       # Tauri permission files
   golden/             # golden files for the golden tests (see Testing)
   tauri.conf.json
+scripts/               # one-off migration script (CSD-002 REQ-20), outside the app, not part of the build; tests in scripts/tests/
 docs/
   architecture.md     # how the code is organised and the conventions it follows
   csd/                # capability specifications
