@@ -598,9 +598,9 @@ The figures are proven by `cargo test`. Tests are named `test_csd007_ac_<n>_<m>_
 | What | How |
 |---|---|
 | Rust tests (data) | `cargo test test_csd007_` |
-| Display ACs (REQ-8 to REQ-18 and AC-1.1 to AC-1.3) | No DOM test carries an AC id of this CSD yet. Manual checklist: tooltip row order and no statement count, legend items and legend hover and focus highlight in every year, colour roles of the series in both modes, plot height scaling with the window, slot width of at least 64 px, zero line always drawn, motion of the tooltip and the dimming, reduced motion, bar shape, gridlines, labels, tooltip look and colours in both modes, tabs, stacked and hanging segments, dashed withdrawal tint, growth colours, axis, gap and YTD years, closing markers, growth percentage labels and colours, tooltip by mouse and keyboard, swatches and placement of the tooltip, legend, segment and marker highlight on hover, no highlight on keyboard focus, empty note, refresh after a change, light and dark mode, and the income chart unchanged. The shared chart behaviour has DOM tests under CSD-025 |
+| Display ACs (REQ-8 to REQ-18 and AC-1.1 to AC-1.3) | DOM tests in `ui/tests/ac-b-investment-insights.test.js` (`npm test`). Checked by hand: where the tooltip sits beside a bar and its flip near the right edge (AC-14.4, AC-14.5) and its centring over the slot of a year without a bar (AC-14.6, the other steps are tested), because jsdom has no layout. The shared chart behaviour has DOM tests under CSD-025 |
 
-Not covered by a named test yet (47 of 71 ACs; no test carries the AC id): AC-1.1 to AC-1.3, AC-8.2 to AC-8.6, AC-9.2, AC-9.3, AC-10.2, AC-11.1 to AC-11.3, AC-12.1, AC-13.1, AC-13.2, AC-14.1 to AC-14.9, AC-15.1 to AC-15.10, AC-16.1 to AC-16.3, AC-17.1, AC-18.1 to AC-18.7.
+Not covered by a named test yet (4 of 55 ACs; no test carries the AC id): AC-14.1, AC-14.4, AC-14.5, AC-14.9. AC-14.4 and AC-14.5 are checked by hand (layout). AC-14.1 and AC-14.9 name the tooltip row "Growth (%)" while the screen shows "Growth"; the test waits for that to be settled.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

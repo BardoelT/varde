@@ -14,6 +14,8 @@ mod statement;
 mod totals;
 
 #[cfg(test)]
+mod ac_tests;
+#[cfg(test)]
 mod tests;
 
 pub use account::{InvestmentAccount, InvestmentAccountId, InvestmentAccountInput};
