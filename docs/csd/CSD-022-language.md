@@ -1,7 +1,7 @@
 ---
 id: CSD-022
 title: Language (English and Dutch)
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 0.4
 last_updated: 03/11/2026

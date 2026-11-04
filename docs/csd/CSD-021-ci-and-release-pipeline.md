@@ -1,7 +1,7 @@
 ---
 id: CSD-021
 title: CI and release pipeline
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 0.6
 last_updated: 04/11/2026
