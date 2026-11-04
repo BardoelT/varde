@@ -174,18 +174,20 @@ function openDebtDialog(debt) {
 }
 
 /**
- * The closing fields show the settlement of the debt. For a debt linked to a house they are read-only: a
- * sale sets them (CSD-011 REQ-34, CSD-026 REQ-15).
+ * The closing fields show the settlement of the debt and are editable for every debt, linked or not. While
+ * the closing is one a sale made, a hint says that changing it makes it a manual closing (CSD-011 REQ-34,
+ * CSD-026 REQ-17).
  */
 function fillClosing(form, debt) {
   const settlement = debt?.settlement ?? null;
   form.elements.closing_date.value = settlement ? formatDate(settlement.date) : '';
   form.elements.closing_amount.value = settlement ? settlement.amount : '';
   form.elements.closing_outcome.value = settlement ? settlement.outcome : '';
-  const linked = Boolean(debt?.house_id);
-  for (const name of ['closing_date', 'closing_amount', 'closing_outcome']) form.elements[name].disabled = linked;
-  $('debt-closing-hint').textContent = linked ? t('Set by the sale of {name}', { name: debt.house_name ?? '' }) : '';
-  setHint('debt-closing-hint', linked);
+  const bySale = settlement?.origin === 'Sale' && Boolean(debt.house_id);
+  $('debt-closing-hint').textContent = bySale
+    ? t('Set by the sale of {name}. Changing it makes it a manual closing.', { name: debt.house_name ?? '' })
+    : '';
+  setHint('debt-closing-hint', bySale);
 }
 
 /** Whether the closing fields of the form are all empty. */
@@ -226,8 +228,8 @@ function submitDebt() {
           input.settlement = choices[0].outcome;
         }
       }
-      // Clearing a manual closing also removes its settlement statement (CSD-026 REQ-16).
-      if (editingDebt?.settlement && !editingDebt.house_id && closingEmpty(form)) {
+      // Clearing a closing, whoever made it, also removes its settlement statement (CSD-026 REQ-16).
+      if (editingDebt?.settlement && closingEmpty(form)) {
         const confirmed = await confirmAction({
           title: t('Undo the closing?'),
           message: t('The settlement statement of this closing will be removed.'),

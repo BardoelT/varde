@@ -83,22 +83,85 @@ test('test_csd011_ac_34_1_the_form_shows_the_opening_and_closing_fields', async 
   app.close();
 });
 
-test('test_csd011_ac_34_2_a_linked_debt_has_read_only_closing_fields', async () => {
-  const closed = debt({
-    category: 'Loan', house_id: 'id-6', house_name: 'Example House',
-    settlement: { outcome: 'Cancelled', date: '2026-06-10', amount: '3500.00' },
-  });
-  const app = await openDebts(reads([closed], [statement(), openingRow()]));
+test('test_csd011_ac_34_2_a_linked_debt_has_editable_closing_fields', async () => {
+  const linked = debt({ category: 'Mortgage', house_id: 'id-6', house_name: 'Example House' });
+  const app = await openDebts(reads([linked], [statement(), openingRow()]));
   await app.click(app.document.querySelector('#debt-list [aria-label="Edit Example Mortgage"]'));
   const form = app.$('debt-form');
-  for (const name of ['closing_date', 'closing_amount', 'closing_outcome']) assert.equal(form.elements[name].disabled, true, name);
+  for (const name of ['closing_date', 'closing_amount', 'closing_outcome', 'opening_date', 'opening_amount']) {
+    assert.equal(form.elements[name].disabled, false, name);
+  }
+  assert.equal(app.isShown(app.$('debt-closing-hint')), false, 'no hint about a sale');
+  app.close();
+});
+
+test('test_csd011_ac_34_4_a_closing_by_sale_shows_a_hint_and_can_be_edited', async () => {
+  const closed = debt({
+    category: 'Loan', house_id: 'id-6', house_name: 'Example House',
+    settlement: { outcome: 'Cancelled', origin: 'Sale', date: '2026-06-10', amount: '3500.00' },
+  });
+  const handlers = {
+    update_debt: ({ input }) => {
+      assert.deepEqual(input.closing, { date: '11/06/2026', amount: '3500.00', outcome: 'Cancelled' });
+      assert.equal(input.confirm_undo, undefined);
+      return { id: 'id-1' };
+    },
+  };
+  const app = await openDebts(reads([closed], [statement(), openingRow()]), handlers);
+  await app.click(app.document.querySelector('#debt-list [aria-label="Edit Example Mortgage"]'));
+  const form = app.$('debt-form');
+  for (const name of ['closing_date', 'closing_amount', 'closing_outcome']) assert.equal(form.elements[name].disabled, false, name);
   assert.equal(form.elements.closing_date.value, '10/06/2026');
   assert.equal(form.elements.closing_amount.value, '3500.00');
   assert.equal(form.elements.closing_outcome.value, 'Cancelled');
-  assert.equal(app.textOf('debt-closing-hint'), 'Set by the sale of Example House');
-  assert.equal(form.elements.opening_date.disabled, false);
-  assert.equal(form.elements.opening_amount.disabled, false);
-  assert.equal(form.elements.opening_date.value, '15/03/2020');
+  assert.equal(
+    app.textOf('debt-closing-hint'),
+    'Set by the sale of Example House. Changing it makes it a manual closing.',
+  );
+  form.elements.closing_date.value = '11/06/2026';
+  form.requestSubmit();
+  await app.settle();
+  assert.equal(app.callsOf('update_debt').length, 1);
+  assert.equal(app.$('debt-dialog').open, false, 'the closing is saved');
+  app.close();
+});
+
+test('test_csd011_ac_34_4_a_manual_closing_on_a_linked_debt_shows_no_hint', async () => {
+  const closed = debt({
+    category: 'Loan', house_id: 'id-6', house_name: 'Example House',
+    settlement: { outcome: 'Repaid', origin: 'Manual', date: '2026-05-15', amount: '3500.00' },
+  });
+  const app = await openDebts(reads([closed], [statement(), openingRow()]));
+  await app.click(app.document.querySelector('#debt-list [aria-label="Edit Example Mortgage"]'));
+  assert.equal(app.isShown(app.$('debt-closing-hint')), false);
+  assert.equal(app.$('debt-form').elements.closing_date.value, '15/05/2026');
+  app.close();
+});
+
+test('test_csd011_ac_34_5_clearing_any_closing_asks_for_confirmation', async () => {
+  const closed = debt({
+    category: 'Loan', house_id: 'id-6', house_name: 'Example House',
+    settlement: { outcome: 'Cancelled', origin: 'Sale', date: '2026-06-10', amount: '3500.00' },
+  });
+  const handlers = {
+    update_debt: ({ input }) => {
+      assert.equal(input.confirm_undo, true);
+      assert.deepEqual(input.closing, { date: '', amount: '', outcome: '' });
+      return { id: 'id-1' };
+    },
+  };
+  const app = await openDebts(reads([closed], [statement(), openingRow()]), handlers);
+  await app.click(app.document.querySelector('#debt-list [aria-label="Edit Example Mortgage"]'));
+  const form = app.$('debt-form');
+  form.elements.closing_date.value = '';
+  form.elements.closing_amount.value = '';
+  form.elements.closing_outcome.value = '';
+  form.requestSubmit();
+  await app.settle();
+  assert.equal(app.textOf('confirm-title'), 'Undo the closing?');
+  assert.equal(app.callsOf('update_debt').length, 0, 'nothing is saved before the confirmation');
+  await app.click(app.$('confirm-ok'));
+  assert.equal(app.callsOf('update_debt').length, 1);
   app.close();
 });
 
@@ -128,7 +191,7 @@ test('test_csd011_ac_34_3_an_unlinked_debt_can_be_closed_in_the_form', async () 
 });
 
 test('test_csd026_ac_16_1_clearing_a_manual_closing_asks_for_confirmation', async () => {
-  const closed = debt({ settlement: { outcome: 'Repaid', date: '2026-06-10', amount: '800.00' } });
+  const closed = debt({ settlement: { outcome: 'Repaid', origin: 'Manual', date: '2026-06-10', amount: '800.00' } });
   const handlers = {
     update_debt: ({ input }) => {
       assert.equal(input.confirm_undo, true);
@@ -152,7 +215,7 @@ test('test_csd026_ac_16_1_clearing_a_manual_closing_asks_for_confirmation', asyn
 });
 
 test('test_csd026_ac_16_2_declining_the_confirmation_saves_nothing', async () => {
-  const closed = debt({ settlement: { outcome: 'Repaid', date: '2026-06-10', amount: '800.00' } });
+  const closed = debt({ settlement: { outcome: 'Repaid', origin: 'Manual', date: '2026-06-10', amount: '800.00' } });
   const app = await openDebts(reads([closed], [statement(), openingRow()]));
   await app.click(app.document.querySelector('#debt-list [aria-label="Edit Example Mortgage"]'));
   const form = app.$('debt-form');

@@ -36,7 +36,8 @@ export default {
   'Add house': 'Woning toevoegen',
   'Undo the sale?': 'Verkoop ongedaan maken?',
   'Opening': 'Start',
-  'Set by the sale of {name}': 'Bepaald door de verkoop van {name}',
+  'Set by the sale of {name}. Changing it makes it a manual closing.':
+    'Bepaald door de verkoop van {name}. Wijzigen maakt er een handmatige afsluiting van.',
   'Undo the closing?': 'Afsluiting ongedaan maken?',
   'The settlement statement of this closing will be removed.': 'De afsluitende stand van deze afsluiting wordt verwijderd.',
   'Undo closing': 'Afsluiting ongedaan maken',
