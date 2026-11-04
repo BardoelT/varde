@@ -1,6 +1,6 @@
 //! One statement of a debt, its change, and the form values for "copy previous" (CSD-011 REQ-7, REQ-15, REQ-25).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::common::{Note, Period};
@@ -111,7 +111,7 @@ impl SeriesRecord for DebtStatement {
         (self.period.sort_key(), self.kind)
     }
 
-    fn amount(&self) -> Decimal {
+    fn amount(&self) -> Money {
         self.balance.value()
     }
 
@@ -137,7 +137,7 @@ pub fn parse_period(text: &str) -> Result<Period, DomainError> {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtStatementPrefill {
     /// Balance to prefill, `None` when there is nothing to copy.
-    pub balance: Option<Decimal>,
+    pub balance: Option<Money>,
 }
 
 impl Debts {
@@ -156,8 +156,12 @@ impl Debts {
     /// debt minus its own, or `None` for a first statement (REQ-25). Derived
     /// each time, never stored.
     #[must_use]
-    pub fn change(&self, statement: &DebtStatement) -> Option<Decimal> {
-        self.previous_record(statement)
-            .map(|previous| previous.balance.value() - statement.balance.value())
+    pub fn change(&self, statement: &DebtStatement) -> Option<Money> {
+        self.previous_record(statement).map(|previous| {
+            previous
+                .balance
+                .value()
+                .saturating_sub(statement.balance.value())
+        })
     }
 }

@@ -1,6 +1,6 @@
 //! Yearly values over all houses (CSD-015 REQ-20, CSD-019 REQ-10).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 
 use crate::domain::series::SeriesData;
@@ -14,10 +14,10 @@ pub struct HouseYearlyValue {
     pub year: i32,
     /// The sum, over the houses with a valuation this year, of the value of
     /// their latest valuation this year.
-    pub closing_value: Decimal,
+    pub closing_value: Money,
     /// Closing value minus opening value, over the houses that have both;
     /// `None` when no house has an opening value this year.
-    pub change: Option<Decimal>,
+    pub change: Option<Money>,
     /// Number of valuations in the year.
     pub valuation_count: usize,
 }

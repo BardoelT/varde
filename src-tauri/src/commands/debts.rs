@@ -3,7 +3,7 @@
     reason = "Tauri commands receive their arguments by value"
 )]
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 use tauri::State;
 
@@ -26,10 +26,10 @@ pub struct StatementView {
     debt_name: String,
     /// `YYYY-MM` for a monthly debt, `YYYY` for a yearly one.
     period: String,
-    balance: Decimal,
+    balance: Money,
     /// The previous statement's balance minus this one; `None` for a first
     /// statement (REQ-25).
-    change: Option<Decimal>,
+    change: Option<Money>,
     note: String,
     /// The settlement statement a sale added (CSD-026 REQ-3).
     settlement: bool,

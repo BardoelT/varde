@@ -1,6 +1,6 @@
 //! The accounts with their latest balances and the total (CSD-009 REQ-17).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 
 use crate::domain::common::Period;
@@ -16,7 +16,7 @@ pub struct BankAccountSummary {
     pub account: BankAccount,
     pub entry_count: usize,
     pub latest_period: Option<Period>,
-    pub latest_balance: Option<Decimal>,
+    pub latest_balance: Option<Money>,
 }
 
 /// The accounts with the total of their latest balances (CSD-009 REQ-17). The
@@ -26,7 +26,7 @@ pub struct BankOverview {
     /// The accounts of the overview.
     pub accounts: Vec<BankAccountSummary>,
     /// The total of the latest values, `None` when there is nothing to total.
-    pub total: Option<Decimal>,
+    pub total: Option<Money>,
 }
 
 impl BankAccounts {

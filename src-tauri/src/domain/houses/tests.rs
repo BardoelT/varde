@@ -1306,7 +1306,9 @@ fn test_csd016_ac_6_6_axis_labels_are_whole_numbers_built_by_rust() {
     add(&mut houses, a, "2025", "350000.00");
     let insights = houses.insights(today());
     let ticks = &insights.axis.ticks;
-    assert!(ticks.last().unwrap().value >= "350000.00".parse().unwrap());
+    assert!(
+        ticks.last().unwrap().value >= crate::domain::money::Money::parse("350000.00").unwrap()
+    );
     assert!(ticks.iter().all(|t| !t.label.contains('.')));
     assert!(ticks.iter().skip(1).all(|t| t.label.ends_with('k')));
     let gap = insights.years.iter().find(|y| y.year == 2026).unwrap();

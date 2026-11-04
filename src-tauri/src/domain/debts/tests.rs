@@ -1417,5 +1417,8 @@ fn test_csd012_ac_6_2_the_axis_covers_the_highest_level_and_a_repaid_debt_adds_n
     add(&mut debts, b, "2025", "0.00");
     let insights = debts.insights(today());
     assert_eq!(insights.years[0].pieces.len(), 1);
-    assert!(insights.axis.ticks.last().unwrap().value >= "158000.00".parse().unwrap());
+    assert!(
+        insights.axis.ticks.last().unwrap().value
+            >= crate::domain::money::Money::parse("158000.00").unwrap()
+    );
 }

@@ -2,10 +2,9 @@
 
 use std::collections::BTreeMap;
 
-use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::money::zero;
+use crate::domain::money::Money;
 
 use super::Expenses;
 
@@ -15,11 +14,11 @@ pub struct ExpenseYearlyTotal {
     /// The calendar year.
     pub year: i32,
     /// Total spent in the year.
-    pub total: Decimal,
+    pub total: Money,
     /// Number of expenses in the year.
     pub expense_count: usize,
     /// The highest amount of a single expense this year.
-    pub largest: Decimal,
+    pub largest: Money,
 }
 
 impl Expenses {
@@ -34,11 +33,11 @@ impl Expenses {
                 .entry(expense.date.year())
                 .or_insert_with(|| ExpenseYearlyTotal {
                     year: expense.date.year(),
-                    total: zero(),
+                    total: Money::ZERO,
                     expense_count: 0,
                     largest: amount,
                 });
-            row.total += amount;
+            row.total = row.total.saturating_add(amount);
             row.expense_count += 1;
             row.largest = row.largest.max(amount);
         }

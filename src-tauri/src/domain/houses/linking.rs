@@ -4,7 +4,7 @@
 //! A house and its debts live in two places of the project, so the operations
 //! work on both and change them together or not at all (CSD-026 CON-5).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::debts::{
@@ -354,7 +354,7 @@ pub struct LinkedDebt {
     /// The debt category.
     pub category: DebtCategory,
     /// The latest balance, `None` without statements.
-    pub latest_balance: Option<Decimal>,
+    pub latest_balance: Option<Money>,
     /// How the debt was settled, `None` while it is open.
     pub settlement: Option<Settlement>,
 }
@@ -375,7 +375,7 @@ pub struct HousesView {
     /// The houses of the overview.
     pub houses: Vec<HouseRow>,
     /// The total of the latest values, `None` when there is nothing to total.
-    pub total: Option<Decimal>,
+    pub total: Option<Money>,
 }
 
 /// A debt row with the name of its house, as the Debts view shows it
@@ -395,7 +395,7 @@ pub struct DebtsView {
     /// The debts of the overview.
     pub debts: Vec<DebtRow>,
     /// The total of the latest values, `None` when there is nothing to total.
-    pub total: Option<Decimal>,
+    pub total: Option<Money>,
 }
 
 /// The houses overview (CSD-015 REQ-17) with the debts linked to each house.

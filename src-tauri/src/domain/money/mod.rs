@@ -52,10 +52,12 @@ impl Amounts {
     /// Returns the first violated rule: negative, not a two-decimal
     /// amount, above 1,000,000.00, or gross salary not greater than zero.
     pub fn new(
-        gross_salary: Decimal,
-        holiday_pay: Decimal,
-        bonus: Decimal,
+        gross_salary: impl Into<Decimal>,
+        holiday_pay: impl Into<Decimal>,
+        bonus: impl Into<Decimal>,
     ) -> Result<Self, DomainError> {
+        let (gross_salary, holiday_pay, bonus) =
+            (gross_salary.into(), holiday_pay.into(), bonus.into());
         let all = [gross_salary, holiday_pay, bonus];
         if all.iter().any(|amount| *amount < Decimal::ZERO) {
             return Err(DomainError::PaycheckAmountNegative);
@@ -107,33 +109,27 @@ impl Amounts {
 
     /// Gross salary of the month.
     #[must_use]
-    pub fn gross_salary(&self) -> Decimal {
-        self.gross_salary.value()
+    pub fn gross_salary(&self) -> Money {
+        self.gross_salary
     }
 
     /// Holiday pay paid out in the month.
     #[must_use]
-    pub fn holiday_pay(&self) -> Decimal {
-        self.holiday_pay.value()
+    pub fn holiday_pay(&self) -> Money {
+        self.holiday_pay
     }
 
     /// Bonus paid out in the month.
     #[must_use]
-    pub fn bonus(&self) -> Decimal {
-        self.bonus.value()
+    pub fn bonus(&self) -> Money {
+        self.bonus
     }
 
     /// Gross salary + holiday pay + bonus (CSD-001 REQ-10).
     #[must_use]
-    pub fn total_gross(&self) -> Decimal {
-        self.gross_salary.value() + self.holiday_pay.value() + self.bonus.value()
+    pub fn total_gross(&self) -> Money {
+        Money::saturating_sum([self.gross_salary, self.holiday_pay, self.bonus])
     }
-}
-
-/// A zero amount with two decimals.
-#[must_use]
-pub fn zero() -> Decimal {
-    Money::ZERO.value()
 }
 
 /// Checks a decimal against two decimals at most and an absolute limit, giving
@@ -163,7 +159,7 @@ pub(crate) fn plain_decimal(text: &str, invalid: DomainError) -> Result<Decimal,
 
 fn parse_optional_decimal(text: &str) -> Result<Decimal, DomainError> {
     if text.trim().is_empty() {
-        Ok(zero())
+        Ok(Money::ZERO.value())
     } else {
         parse_decimal(text)
     }
@@ -178,7 +174,10 @@ fn parse_decimal(text: &str) -> Result<Decimal, DomainError> {
 /// zero is `0.00` without a sign (CSD-000 CON-8; CSD-006 REQ-5, CSD-007
 /// REQ-6). `None` when `whole` is zero or the result overflows.
 #[must_use]
-pub fn percent_of(part: Decimal, whole: Decimal) -> Option<Decimal> {
-    let percent = part.checked_mul(Decimal::ONE_HUNDRED)?.checked_div(whole)?;
+pub fn percent_of(part: Money, whole: Money) -> Option<Decimal> {
+    let percent = part
+        .value()
+        .checked_mul(Decimal::ONE_HUNDRED)?
+        .checked_div(whole.value())?;
     Money::round_half_up(percent).map(Money::value)
 }

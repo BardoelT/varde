@@ -3,7 +3,7 @@
     reason = "Tauri commands receive their arguments by value"
 )]
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 use tauri::State;
 
@@ -24,11 +24,11 @@ pub struct StatementView {
     account_name: String,
     /// `YYYY-MM` for a monthly account, `YYYY` for a yearly one.
     period: String,
-    balance: Decimal,
-    net_deposits: Decimal,
+    balance: Money,
+    net_deposits: Money,
     /// Derived from the previous statement, or from 0.00 for the first
     /// statement of an account (REQ-23).
-    capital_growth: Decimal,
+    capital_growth: Money,
     note: String,
 }
 

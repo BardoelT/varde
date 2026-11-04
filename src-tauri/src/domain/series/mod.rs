@@ -19,11 +19,11 @@ pub(crate) use store::{SeriesAccount, SeriesData, SeriesError, SeriesRecord};
 
 use std::fmt::Display;
 
-use rust_decimal::Decimal;
 use serde::Deserialize;
 
 use super::common::{ColourSlot, Note, PayPeriod, Period, MAX_NAME_CHARS};
 use super::error::DomainError;
+use super::money::Money;
 
 /// The lowest colour slot used by the fewest series.
 pub(crate) fn next_colour_slot(used: impl IntoIterator<Item = ColourSlot>) -> ColourSlot {
@@ -108,11 +108,11 @@ pub(crate) fn record_note(text: &str, too_long: DomainError) -> Result<Note, Dom
 }
 
 /// The sum of the amounts, `None` when there are none.
-pub(crate) fn total_of(amounts: impl IntoIterator<Item = Decimal>) -> Option<Decimal> {
+pub(crate) fn total_of(amounts: impl IntoIterator<Item = Money>) -> Option<Money> {
     let mut amounts = amounts.into_iter();
     amounts
         .next()
-        .map(|first| amounts.fold(first, |sum, amount| sum + amount))
+        .map(|first| amounts.fold(first, Money::saturating_add))
 }
 
 #[cfg(test)]

@@ -3,7 +3,7 @@
     reason = "Tauri commands receive their arguments by value"
 )]
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 use tauri::State;
 
@@ -25,10 +25,10 @@ pub struct ValuationView {
     house_name: String,
     /// `YYYY-MM` for a monthly house, `YYYY` for a yearly one.
     period: String,
-    value: Decimal,
+    value: Money,
     /// The previous valuation's value minus this one; `None` for a first
     /// valuation (REQ-19).
-    change: Option<Decimal>,
+    change: Option<Money>,
     note: String,
 }
 

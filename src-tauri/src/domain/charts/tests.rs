@@ -10,14 +10,18 @@ fn dec(text: &str) -> Decimal {
     text.parse().unwrap()
 }
 
-fn series(items: &[(&str, &str)]) -> Vec<(String, Decimal)> {
+fn money(text: &str) -> Money {
+    Money::round_half_up(dec(text)).unwrap()
+}
+
+fn series(items: &[(&str, &str)]) -> Vec<(String, Money)> {
     items
         .iter()
-        .map(|(name, value)| ((*name).to_owned(), dec(value)))
+        .map(|(name, value)| ((*name).to_owned(), money(value)))
         .collect()
 }
 
-fn ticks_of(axis: &Axis) -> Vec<Decimal> {
+fn ticks_of(axis: &Axis) -> Vec<Money> {
     axis.ticks.iter().map(|tick| tick.value).collect()
 }
 
@@ -49,15 +53,15 @@ fn axis_of(years: &[YearSpec<'_>]) -> Axis {
         .iter()
         .map(|(values, marker)| Year {
             pieces: stack_from_zero(series(values)),
-            marker: marker.map(|value| Marker::at(dec(value))),
+            marker: marker.map(|value| Marker::at(money(value))),
         })
         .collect();
     Axis::of_years(&years)
 }
 
 /// The step of an axis: the distance between its first two ticks.
-fn step_of(axis: &Axis) -> Decimal {
-    axis.ticks[1].value - axis.ticks[0].value
+fn step_of(axis: &Axis) -> Money {
+    axis.ticks[1].value.saturating_sub(axis.ticks[0].value)
 }
 
 // REQ-3: the axis
@@ -69,34 +73,36 @@ fn test_csd025_ac_3_1_axis_covers_the_highest_and_the_lowest_value() {
         (&[("a", "5000.00"), ("b", "-1000.00")], None),
     ]);
     let ticks = ticks_of(&axis);
-    assert!(ticks.first().unwrap() <= &dec("-1000.00"));
-    assert!(ticks.last().unwrap() >= &dec("13100.00"));
-    assert!(ticks.contains(&dec("0.00")));
+    assert!(ticks.first().unwrap() <= &money("-1000.00"));
+    assert!(ticks.last().unwrap() >= &money("13100.00"));
+    assert!(ticks.contains(&money("0.00")));
     let step = step_of(&axis);
-    assert!(ticks.windows(2).all(|pair| pair[1] - pair[0] == step));
+    assert!(ticks
+        .windows(2)
+        .all(|pair| pair[1].saturating_sub(pair[0]) == step));
 }
 
 #[test]
 fn test_csd025_ac_3_1_axis_covers_a_marker_above_the_bars() {
     let axis = axis_of(&[(&[("a", "1000.00")], Some("-4200.00"))]);
-    assert!(*ticks_of(&axis).first().unwrap() <= dec("-4200.00"));
+    assert!(*ticks_of(&axis).first().unwrap() <= money("-4200.00"));
     let axis = axis_of(&[(&[("a", "1000.00")], Some("9100.00"))]);
-    assert!(*ticks_of(&axis).last().unwrap() >= dec("9100.00"));
+    assert!(*ticks_of(&axis).last().unwrap() >= money("9100.00"));
 }
 
 #[test]
 fn test_csd025_ac_3_4_the_step_is_a_whole_round_amount() {
     let axis = axis_of(&[(&[("a", "13100.00")], None)]);
     let step = step_of(&axis);
-    assert!(step == dec("2000") || step == dec("5000"));
-    assert_eq!(step.fract(), Decimal::ZERO);
+    assert!(step == money("2000") || step == money("5000"));
+    assert_eq!(step.value().fract(), Decimal::ZERO);
     assert_eq!(
         ticks_of(&axis),
         [
-            dec("0.00"),
-            dec("5000.00"),
-            dec("10000.00"),
-            dec("15000.00")
+            money("0.00"),
+            money("5000.00"),
+            money("10000.00"),
+            money("15000.00")
         ]
     );
 }
@@ -104,7 +110,7 @@ fn test_csd025_ac_3_4_the_step_is_a_whole_round_amount() {
 #[test]
 fn test_csd025_ac_3_1_a_series_without_figures_has_the_axis_zero_to_one() {
     let axis = axis_of(&[(&[], None)]);
-    assert_eq!(ticks_of(&axis), [dec("0.00"), dec("1.00")]);
+    assert_eq!(ticks_of(&axis), [money("0.00"), money("1.00")]);
     assert_eq!(Axis::of_years::<Year>(&[]), axis);
 }
 
@@ -130,8 +136,8 @@ fn test_csd025_ac_3_2_pieces_and_marker_are_ready_made() {
             { "series": "bank-2", "low": "2000.00", "high": "10000.00", "hangs": false, "rounding": "top" },
         ])
     );
-    let marker = Marker::at(dec("10000.00"));
-    assert_eq!(marker.value, dec("10000.00"));
+    let marker = Marker::at(money("10000.00"));
+    assert_eq!(marker.value, money("10000.00"));
     assert_eq!(marker.label, "10.00k");
 }
 
@@ -234,7 +240,7 @@ fn test_csd025_ac_4_1_short_labels() {
         ("-2549.99", "-2.55k"),
         ("-0.004", "0.00"),
     ] {
-        assert_eq!(short_label(dec(amount)), label, "{amount}");
+        assert_eq!(short_label(money(amount)), label, "{amount}");
     }
 }
 
@@ -245,20 +251,20 @@ fn test_csd025_ac_4_2_the_boundary_rounds_up_into_the_next_unit() {
         ("999.995", "1.00k"),
         ("-999996.00", "-1.00M"),
     ] {
-        assert_eq!(short_label(dec(amount)), label, "{amount}");
+        assert_eq!(short_label(money(amount)), label, "{amount}");
     }
 }
 
 #[test]
 fn test_csd025_ac_4_3_above_the_millions() {
-    assert_eq!(short_label(dec("1000000000.00")), "1000.00M");
+    assert_eq!(short_label(money("1000000000.00")), "1000.00M");
 }
 
 #[test]
 fn test_csd025_ac_4_1_a_midpoint_goes_away_from_zero() {
-    assert_eq!(short_label(dec("0.005")), "0.01");
-    assert_eq!(short_label(dec("-0.005")), "-0.01");
-    assert_eq!(short_label(dec("-0.0049")), "0.00");
+    assert_eq!(short_label(money("0.005")), "0.01");
+    assert_eq!(short_label(money("-0.005")), "-0.01");
+    assert_eq!(short_label(money("-0.0049")), "0.00");
 }
 
 // REQ-17: axis labels
@@ -273,7 +279,11 @@ fn test_csd025_ac_17_1_axis_labels_have_no_decimals() {
         ("1000000.00", "3000000.00", "3M"),
         ("5000.00", "0.00", "0"),
     ] {
-        assert_eq!(axis_label(dec(tick), dec(step)), label, "{tick} at {step}");
+        assert_eq!(
+            axis_label(money(tick), money(step)),
+            label,
+            "{tick} at {step}"
+        );
     }
 }
 
@@ -281,7 +291,7 @@ fn test_csd025_ac_17_1_axis_labels_have_no_decimals() {
 fn test_csd025_ac_17_2_markers_keep_their_short_label() {
     let years = [Year {
         pieces: stack_from_zero(series(&[("a", "2549.99")])),
-        marker: Some(Marker::at(dec("2549.99"))),
+        marker: Some(Marker::at(money("2549.99"))),
     }];
     let axis = Axis::of_years(&years);
     assert_eq!(labels_of(&axis), ["0", "1k", "2k", "3k"]);
@@ -318,9 +328,15 @@ fn test_csd007_ac_10_1_growth_percentage_label() {
 // Properties of the axis
 
 /// The levels of a chart: whole cents up to 100 billion.
-fn levels() -> impl Strategy<Value = Vec<Decimal>> {
-    prop::collection::vec(-10_000_000_000_000_i64..=10_000_000_000_000_i64, 0..12)
-        .prop_map(|cents| cents.into_iter().map(|c| Decimal::new(c, 2)).collect())
+fn levels() -> impl Strategy<Value = Vec<Money>> {
+    prop::collection::vec(-10_000_000_000_000_i64..=10_000_000_000_000_i64, 0..12).prop_map(
+        |cents| {
+            cents
+                .into_iter()
+                .map(|c| Money::round_half_up(Decimal::new(c, 2)).unwrap())
+                .collect()
+        },
+    )
 }
 
 /// Whether `step` is 1, 2 or 5 times a power of ten.
@@ -341,10 +357,10 @@ proptest! {
         let axis = Axis::covering(levels);
         let ticks = ticks_of(&axis);
         prop_assert!(ticks.len() >= 2);
-        prop_assert!(ticks.contains(&Decimal::ZERO));
+        prop_assert!(ticks.contains(&Money::ZERO));
         prop_assert!(ticks.windows(2).all(|p| p[0] < p[1]));
         let step = step_of(&axis);
-        prop_assert!(ticks.windows(2).all(|p| p[1] - p[0] == step));
+        prop_assert!(ticks.windows(2).all(|p| p[1].saturating_sub(p[0]) == step));
     }
 
     #[test]
@@ -360,16 +376,16 @@ proptest! {
     #[test]
     fn test_csd025_prop_the_step_is_whole_and_one_two_or_five_times_a_power_of_ten(levels in levels()) {
         let step = step_of(&Axis::covering(levels));
-        prop_assert!(step >= Decimal::ONE);
-        prop_assert_eq!(step.fract(), Decimal::ZERO);
-        prop_assert!(is_round_step(step), "{step}");
+        prop_assert!(step.value() >= Decimal::ONE);
+        prop_assert_eq!(step.value().fract(), Decimal::ZERO);
+        prop_assert!(is_round_step(step.value()), "{step}");
     }
 
     #[test]
     fn test_csd025_prop_axis_labels_are_whole_numbers_in_one_unit(levels in levels()) {
         let axis = Axis::covering(levels);
         let step = step_of(&axis);
-        let unit = if step >= dec("1000000") { "M" } else if step >= dec("1000") { "k" } else { "" };
+        let unit = if step >= money("1000000") { "M" } else if step >= money("1000") { "k" } else { "" };
         for tick in &axis.ticks {
             prop_assert!(!tick.label.contains('.'), "{}", tick.label);
             prop_assert!(tick.label != "-0" && !tick.label.starts_with("-0"), "{}", tick.label);
@@ -385,7 +401,7 @@ proptest! {
 
     #[test]
     fn test_csd025_prop_short_labels_have_two_decimals_and_never_minus_zero(cents in -100_000_000_000_000_i64..=100_000_000_000_000_i64) {
-        let label = short_label(Decimal::new(cents, 2));
+        let label = short_label(Money::round_half_up(Decimal::new(cents, 2)).unwrap());
         prop_assert!(!label.starts_with("-0.00"), "{label}");
         prop_assert!(!label.contains("1000.00k"), "{label}");
         let number = label.trim_start_matches('-').trim_end_matches(['k', 'M']);

@@ -23,7 +23,8 @@ impl BankBalance {
     /// text, which is rounded) and
     /// `BankEntryBalanceTooLarge` above 1,000,000,000.00 in absolute value.
     /// Zero and negative values are valid.
-    pub fn new(value: Decimal) -> Result<Self, DomainError> {
+    pub fn new(value: impl Into<Decimal>) -> Result<Self, DomainError> {
+        let value = value.into();
         bounded(
             value,
             Money::MAX_BALANCE,
@@ -42,10 +43,10 @@ impl BankBalance {
         plain_decimal(text, DomainError::BankEntryBalanceInvalid).and_then(Self::new)
     }
 
-    /// The balance as a decimal.
+    /// The balance.
     #[must_use]
-    pub fn value(self) -> Decimal {
-        self.0.value()
+    pub fn value(self) -> Money {
+        self.0
     }
 }
 

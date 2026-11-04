@@ -226,7 +226,7 @@ fn money_compares_and_sums() {
 #[test]
 fn percent_of_rounds_to_two_decimals_half_up() {
     let percent =
-        |part: &str, whole: &str| percent_of(dec(part), dec(whole)).map(|p| p.to_string());
+        |part: &str, whole: &str| percent_of(money(part), money(whole)).map(|p| p.to_string());
     assert_eq!(percent("1", "8"), Some("12.50".to_owned()));
     assert_eq!(percent("1", "3"), Some("33.33".to_owned()));
     assert_eq!(percent("2", "3"), Some("66.67".to_owned()));
@@ -331,7 +331,11 @@ proptest! {
         part in -100_000_000_000_i64..=100_000_000_000,
         whole in prop_oneof![-100_000_000_000_i64..=-1, 1_i64..=100_000_000_000],
     ) {
-        let percent = percent_of(Decimal::new(part, 2), Decimal::new(whole, 2)).unwrap();
+        let percent = percent_of(
+            Money::from_decimal(Decimal::new(part, 2)).unwrap(),
+            Money::from_decimal(Decimal::new(whole, 2)).unwrap(),
+        )
+        .unwrap();
         prop_assert_eq!(percent.scale(), 2);
         prop_assert_ne!(percent.to_string(), "-0.00");
     }

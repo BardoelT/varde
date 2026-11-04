@@ -21,12 +21,11 @@ const MILLION: Decimal = Decimal::from_parts(1_000_000, 0, 0, false, 0);
 /// Amounts too large to hold with two decimals give a dash; the area guards
 /// keep every amount far below that.
 #[must_use]
-pub fn short_label(amount: Decimal) -> String {
+pub fn short_label(amount: Money) -> String {
     short_label_of(amount).unwrap_or_else(|| DASH.to_owned())
 }
 
-fn short_label_of(amount: Decimal) -> Option<String> {
-    let rounded = Money::round_half_up(amount)?;
+fn short_label_of(rounded: Money) -> Option<String> {
     let magnitude = rounded.abs().value();
     let sign = if rounded.is_negative() { "-" } else { "" };
     if magnitude < THOUSAND {
@@ -47,7 +46,8 @@ fn short_label_of(amount: Decimal) -> Option<String> {
 /// same one, and a step of 1, 2 or 5 times a power of ten keeps every tick
 /// whole in it. The sign is "-", and zero is "0".
 #[must_use]
-pub fn axis_label(tick: Decimal, step: Decimal) -> String {
+pub fn axis_label(tick: Money, step: Money) -> String {
+    let step = step.value();
     let (divisor, unit) = if step >= MILLION {
         (MILLION, "M")
     } else if step >= THOUSAND {
@@ -56,6 +56,7 @@ pub fn axis_label(tick: Decimal, step: Decimal) -> String {
         (Decimal::ONE, "")
     };
     let whole = tick
+        .value()
         .checked_div(divisor)
         .unwrap_or(Decimal::ZERO)
         .trunc()

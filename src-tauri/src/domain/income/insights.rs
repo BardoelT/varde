@@ -2,11 +2,12 @@
 
 use std::collections::BTreeMap;
 
+use crate::domain::money::Money;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
 use crate::domain::charts::{percent_label, stack_from_zero, ChartYear, Marker, Piece};
-use crate::domain::money::{percent_of, zero};
+use crate::domain::money::percent_of;
 
 use super::{Income, IncomeYearlyTotal};
 use crate::domain::common::{series_years, YearMonth};
@@ -18,13 +19,13 @@ pub struct IncomeInsightsYear {
     /// The calendar year.
     pub year: i32,
     /// Gross salary.
-    pub gross_salary: Decimal,
+    pub gross_salary: Money,
     /// Holiday pay.
-    pub holiday_pay: Decimal,
+    pub holiday_pay: Money,
     /// Bonus.
-    pub bonus: Decimal,
+    pub bonus: Money,
     /// Gross salary, holiday pay and bonus together.
-    pub total_gross: Decimal,
+    pub total_gross: Money,
     /// Number of entries in the year.
     pub entry_count: usize,
     /// Whether the year is still running, so its figures cover only part of it.
@@ -68,7 +69,7 @@ impl Income {
         for year in series_years(totals.keys().copied(), today.year()) {
             let (gross_salary, holiday_pay, bonus, total_gross, entry_count) =
                 totals.get(&year).map_or_else(
-                    || (zero(), zero(), zero(), zero(), 0),
+                    || (Money::ZERO, Money::ZERO, Money::ZERO, Money::ZERO, 0),
                     |t| {
                         (
                             t.gross_salary,

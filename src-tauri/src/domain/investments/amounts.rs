@@ -18,7 +18,8 @@ impl Balance {
     /// # Errors
     /// Returns the first violated rule: negative or
     /// above 1,000,000,000.00. Zero is valid.
-    pub fn new(value: Decimal) -> Result<Self, DomainError> {
+    pub fn new(value: impl Into<Decimal>) -> Result<Self, DomainError> {
+        let value = value.into();
         if value < Decimal::ZERO {
             return Err(DomainError::InvestmentBalanceNegative);
         }
@@ -40,10 +41,10 @@ impl Balance {
         plain_decimal(text, DomainError::InvestmentBalanceInvalid).and_then(Self::new)
     }
 
-    /// The balance as a decimal.
+    /// The balance.
     #[must_use]
-    pub fn value(self) -> Decimal {
-        self.0.value()
+    pub fn value(self) -> Money {
+        self.0
     }
 }
 
@@ -75,7 +76,8 @@ impl NetDeposits {
     /// # Errors
     /// Returns `InvestmentNetDepositsInvalid` for more than two decimals (never
     /// typed text, which is rounded) and `InvestmentNetDepositsTooLarge` above 1,000,000,000.00 in absolute value.
-    pub fn new(value: Decimal) -> Result<Self, DomainError> {
+    pub fn new(value: impl Into<Decimal>) -> Result<Self, DomainError> {
+        let value = value.into();
         signed_amount(
             value,
             DomainError::InvestmentNetDepositsInvalid,
@@ -96,10 +98,10 @@ impl NetDeposits {
         plain_decimal(text, DomainError::InvestmentNetDepositsInvalid).and_then(Self::new)
     }
 
-    /// The net deposits as a decimal.
+    /// The net deposits.
     #[must_use]
-    pub fn value(self) -> Decimal {
-        self.0.value()
+    pub fn value(self) -> Money {
+        self.0
     }
 }
 

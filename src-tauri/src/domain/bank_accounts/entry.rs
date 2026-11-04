@@ -1,6 +1,6 @@
 //! One entry of an account, and the form values for "copy previous" (CSD-009 REQ-7, REQ-15).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::common::{Note, Period};
@@ -43,7 +43,7 @@ impl SeriesRecord for BankEntry {
         self.period.sort_key()
     }
 
-    fn amount(&self) -> Decimal {
+    fn amount(&self) -> Money {
         self.balance.value()
     }
 
@@ -65,7 +65,7 @@ pub fn parse_period(text: &str) -> Result<Period, DomainError> {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct EntryPrefill {
     /// Balance to prefill, `None` when there is nothing to copy.
-    pub balance: Option<Decimal>,
+    pub balance: Option<Money>,
 }
 
 impl BankAccounts {

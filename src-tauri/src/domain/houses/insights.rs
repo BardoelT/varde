@@ -1,6 +1,6 @@
 //! The yearly series behind the Houses Insights chart (CSD-016).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 
 use crate::domain::charts::{Axis, ChartYear, Marker, Piece};
@@ -21,15 +21,15 @@ pub struct InsightsHouse {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct InsightsSegment {
     pub house_id: HouseId,
-    pub value: Decimal,
+    pub value: Money,
 }
 
 /// One year of the insights chart (CSD-016 REQ-2).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HouseInsightsYear {
     pub year: i32,
-    pub closing_value: Decimal,
-    pub change: Option<Decimal>,
+    pub closing_value: Money,
+    pub change: Option<Money>,
     pub valuation_count: usize,
     pub is_partial: bool,
     pub segments: Vec<InsightsSegment>,

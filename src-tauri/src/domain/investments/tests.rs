@@ -1597,7 +1597,7 @@ fn insight(investments: &Investments, year: i32) -> InvestmentInsightsYear {
 /// the parts add up to the closing balance (REQ-5).
 fn parts(row: &InvestmentInsightsYear) -> (String, String, String, String) {
     assert_eq!(
-        row.opening_balance + row.net_deposits + row.capital_growth,
+        Money::saturating_sum([row.opening_balance, row.net_deposits, row.capital_growth]),
         row.closing_balance,
         "the parts of {} do not add up",
         row.year

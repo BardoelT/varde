@@ -1,9 +1,8 @@
 //! Yearly totals over all debts (CSD-011 REQ-19).
 
-use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::money::zero;
+use crate::domain::money::Money;
 
 use crate::domain::series::SeriesData;
 
@@ -16,10 +15,10 @@ pub struct DebtYearlyTotal {
     pub year: i32,
     /// The sum, over the debts with a statement this year, of the balance of
     /// their latest statement this year.
-    pub closing_balance: Decimal,
+    pub closing_balance: Money,
     /// Opening balance minus closing balance, over the debts that have both;
     /// `None` when no debt has an opening balance this year.
-    pub repaid: Option<Decimal>,
+    pub repaid: Option<Money>,
     /// Number of statements in the year.
     pub statement_count: usize,
 }
@@ -44,7 +43,7 @@ impl Debts {
     /// The amount repaid in `year`: for each debt with a statement in the year
     /// and an earlier one, its opening balance minus its closing balance.
     /// `None` when no debt has an opening balance (CSD-011 section 3).
-    pub(super) fn repaid(&self, year: i32) -> Option<Decimal> {
-        self.year_change(year).map(|change| zero() - change)
+    pub(super) fn repaid(&self, year: i32) -> Option<Money> {
+        self.year_change(year).map(|change| -change)
     }
 }

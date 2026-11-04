@@ -1,6 +1,6 @@
 //! Paychecks, annual statements and the entries that cover both (CSD-001 REQ-5 to REQ-9).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::money::Amounts;
@@ -100,9 +100,9 @@ impl<'a> Entry<'a> {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct PaycheckPrefill {
     /// Gross salary.
-    pub gross_salary: Option<Decimal>,
+    pub gross_salary: Option<Money>,
     /// Holiday pay.
-    pub holiday_pay: Decimal,
+    pub holiday_pay: Money,
     /// Bonus.
-    pub bonus: Decimal,
+    pub bonus: Money,
 }

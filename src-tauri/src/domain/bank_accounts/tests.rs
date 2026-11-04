@@ -1252,8 +1252,10 @@ fn test_csd010_ac_6_3_the_axis_covers_the_highest_and_the_lowest_level() {
     add(&mut banks, b, "2026", "-1000.00");
     let insights = banks.insights(insights_today());
     let ticks = &insights.axis.ticks;
-    assert!(ticks.first().unwrap().value <= "-1000.00".parse().unwrap());
-    assert!(ticks.last().unwrap().value >= "13100.00".parse().unwrap());
+    assert!(
+        ticks.first().unwrap().value <= crate::domain::money::Money::parse("-1000.00").unwrap()
+    );
+    assert!(ticks.last().unwrap().value >= crate::domain::money::Money::parse("13100.00").unwrap());
     let pieces = &insights.years[0].pieces;
     assert!(pieces[1].hangs);
     assert_eq!(pieces[0].rounding, crate::domain::charts::Rounding::Top);

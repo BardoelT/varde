@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::common::{PayPeriod, Year, YearMonth};
 use crate::domain::error::DomainError;
-use crate::domain::money::{zero, Amounts};
+use crate::domain::money::{Amounts, Money};
 
 /// All employment income: jobs with their paychecks or annual statements.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -302,8 +302,8 @@ impl Income {
             .max_by_key(Entry::sort_key);
         Ok(PaycheckPrefill {
             gross_salary: latest.map(|entry| entry.amounts().gross_salary()),
-            holiday_pay: zero(),
-            bonus: zero(),
+            holiday_pay: Money::ZERO,
+            bonus: Money::ZERO,
         })
     }
 

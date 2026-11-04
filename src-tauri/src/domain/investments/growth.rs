@@ -1,10 +1,9 @@
 //! Capital growth of a statement and the balance-or-growth calculation of the form (CSD-005 REQ-23 to REQ-25).
 
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::error::DomainError;
-use crate::domain::money::{zero, Money, MoneyError};
+use crate::domain::money::Money;
 
 use super::amounts::parse_growth;
 use super::{Balance, InvestmentAccountId, InvestmentStatement, Investments, NetDeposits};
@@ -27,9 +26,9 @@ pub enum CalculationInput {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct StatementCalculation {
     /// The balance.
-    pub balance: Decimal,
+    pub balance: Money,
     /// Capital growth.
-    pub capital_growth: Decimal,
+    pub capital_growth: Money,
 }
 
 impl Investments {
@@ -38,10 +37,10 @@ impl Investments {
     /// taken to start at 0.00, so its first statement has no previous balance to
     /// subtract (CSD-005 REQ-23).
     #[must_use]
-    pub fn capital_growth(&self, statement: &InvestmentStatement) -> Decimal {
+    pub fn capital_growth(&self, statement: &InvestmentStatement) -> Money {
         let previous = self
             .previous_balance(statement.account_id, statement.period, None)
-            .unwrap_or_else(zero);
+            .unwrap_or(Money::ZERO);
         growth_of(
             statement.balance.value(),
             previous,
@@ -73,7 +72,7 @@ impl Investments {
         let net_deposits = NetDeposits::parse(net_deposits)?.value();
         let previous = self
             .previous_balance(account_id, period, ignore)
-            .unwrap_or_else(zero);
+            .unwrap_or(Money::ZERO);
         match input {
             CalculationInput::Balance => {
                 let balance = Balance::parse(value)?.value();
@@ -84,19 +83,14 @@ impl Investments {
             }
             CalculationInput::Growth => {
                 let growth = parse_growth(value)?;
-                let total = Money::from_decimal(previous)
-                    .and_then(|previous| {
-                        let net_deposits = Money::from_decimal(net_deposits)?;
-                        previous
-                            .checked_add(net_deposits)
-                            .and_then(|sum| sum.checked_add(growth))
-                            .ok_or(MoneyError::TooLarge)
-                    })
-                    .map_err(|_| DomainError::InvestmentBalanceTooLarge)?;
-                let balance = Balance::new(total.value())?;
+                let total = previous
+                    .checked_add(net_deposits)
+                    .and_then(|sum| sum.checked_add(growth))
+                    .ok_or(DomainError::InvestmentBalanceTooLarge)?;
+                let balance = Balance::new(total)?;
                 Ok(StatementCalculation {
                     balance: balance.value(),
-                    capital_growth: growth.value(),
+                    capital_growth: growth,
                 })
             }
         }
@@ -105,12 +99,9 @@ impl Investments {
 
 /// Balance minus the previous balance minus the net deposits, as one amount.
 /// Every operand is a stored amount of at most 1,000,000,000.00, so the
-/// checked arithmetic cannot overflow; the zero fallback is unreachable.
-fn growth_of(balance: Decimal, previous: Decimal, net_deposits: Decimal) -> Decimal {
-    let grown = Money::from_decimal(balance).ok().and_then(|balance| {
-        let previous = Money::from_decimal(previous).ok()?;
-        let net_deposits = Money::from_decimal(net_deposits).ok()?;
-        balance.checked_sub(previous)?.checked_sub(net_deposits)
-    });
-    grown.map_or_else(zero, Money::value)
+/// bounded subtraction never reaches its bound.
+fn growth_of(balance: Money, previous: Money, net_deposits: Money) -> Money {
+    balance
+        .saturating_sub(previous)
+        .saturating_sub(net_deposits)
 }

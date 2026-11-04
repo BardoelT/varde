@@ -24,7 +24,7 @@ pub use overview::InvestmentsOverview;
 pub use statement::{InvestmentStatement, InvestmentStatementPrefill};
 pub use totals::InvestmentYearlyTotal;
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::common::{Note, Period};
@@ -199,7 +199,7 @@ impl Investments {
         id: InvestmentAccountId,
         period: Period,
         ignore: Option<Period>,
-    ) -> Option<Decimal> {
+    ) -> Option<Money> {
         self.statements
             .iter()
             .filter(|s| {

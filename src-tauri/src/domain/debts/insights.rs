@@ -1,6 +1,6 @@
 //! The yearly series behind the Debts Insights chart (CSD-012).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 
 use crate::domain::charts::{Axis, ChartYear, Marker, Piece};
@@ -21,15 +21,15 @@ pub struct InsightsDebt {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct InsightsSegment {
     pub debt_id: DebtId,
-    pub balance: Decimal,
+    pub balance: Money,
 }
 
 /// One year of the insights chart (CSD-012 REQ-2).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtInsightsYear {
     pub year: i32,
-    pub closing_balance: Decimal,
-    pub repaid: Option<Decimal>,
+    pub closing_balance: Money,
+    pub repaid: Option<Money>,
     pub statement_count: usize,
     pub is_partial: bool,
     pub segments: Vec<InsightsSegment>,

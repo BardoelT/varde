@@ -20,7 +20,8 @@ impl HouseValue {
     /// # Errors
     /// Returns the first violated rule: negative or
     /// above 1,000,000,000.00. Zero is valid.
-    pub fn new(value: Decimal) -> Result<Self, DomainError> {
+    pub fn new(value: impl Into<Decimal>) -> Result<Self, DomainError> {
+        let value = value.into();
         if value < Decimal::ZERO {
             return Err(DomainError::HouseValuationValueNegative);
         }
@@ -56,10 +57,10 @@ impl HouseValue {
         })
     }
 
-    /// The value as a decimal.
+    /// The value.
     #[must_use]
-    pub fn value(self) -> Decimal {
-        self.0.value()
+    pub fn value(self) -> Money {
+        self.0
     }
 }
 

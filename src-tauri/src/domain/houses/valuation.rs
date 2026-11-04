@@ -1,6 +1,6 @@
 //! One valuation of a house, its change, and the form values for "copy previous" (CSD-015 REQ-7, REQ-15, REQ-19).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::common::{Note, Period};
@@ -44,7 +44,7 @@ impl SeriesRecord for HouseValuation {
         self.period.sort_key()
     }
 
-    fn amount(&self) -> Decimal {
+    fn amount(&self) -> Money {
         self.value.value()
     }
 
@@ -66,7 +66,7 @@ pub fn parse_period(text: &str) -> Result<Period, DomainError> {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HouseValuationPrefill {
     /// Value to prefill, `None` when there is nothing to copy.
-    pub value: Option<Decimal>,
+    pub value: Option<Money>,
 }
 
 impl Houses {
@@ -85,8 +85,12 @@ impl Houses {
     /// valuation of the house, or `None` for a first valuation (REQ-19). Derived
     /// each time, never stored.
     #[must_use]
-    pub fn change(&self, valuation: &HouseValuation) -> Option<Decimal> {
-        self.previous_record(valuation)
-            .map(|previous| valuation.value.value() - previous.value.value())
+    pub fn change(&self, valuation: &HouseValuation) -> Option<Money> {
+        self.previous_record(valuation).map(|previous| {
+            valuation
+                .value
+                .value()
+                .saturating_sub(previous.value.value())
+        })
     }
 }

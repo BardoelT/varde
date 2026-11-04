@@ -1,6 +1,6 @@
 //! The houses with their latest values and the total house (CSD-015 REQ-17).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 
 use crate::domain::common::Period;
@@ -20,11 +20,11 @@ pub struct HouseSummary {
     /// Period of the latest valuation, `None` without valuations.
     pub latest_period: Option<Period>,
     /// The latest value, `None` without valuations.
-    pub latest_value: Option<Decimal>,
+    pub latest_value: Option<Money>,
     /// Whether the house has no sale (CSD-019 REQ-8).
     pub held: bool,
     /// The sell amount minus the purchase amount of a sold house.
-    pub result: Option<Decimal>,
+    pub result: Option<Money>,
 }
 
 /// The houses with the total of the latest values of the held houses (CSD-015
@@ -33,7 +33,7 @@ pub struct HouseSummary {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HousesOverview {
     pub houses: Vec<HouseSummary>,
-    pub total: Option<Decimal>,
+    pub total: Option<Money>,
 }
 
 impl Houses {

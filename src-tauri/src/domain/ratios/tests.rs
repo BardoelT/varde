@@ -13,8 +13,8 @@ fn today() -> YearMonth {
     YearMonth::parse("2026-10").unwrap()
 }
 
-fn dec(text: &str) -> Decimal {
-    text.parse().unwrap()
+fn dec(text: &str) -> Money {
+    Money::parse(text).unwrap()
 }
 
 fn period(text: &str) -> Period {

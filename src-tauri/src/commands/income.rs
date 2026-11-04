@@ -3,7 +3,7 @@
     reason = "Tauri commands receive their arguments by value"
 )]
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
@@ -42,10 +42,10 @@ pub struct EntryView {
     kind: &'static str,
     /// `YYYY-MM` for a paycheck, `YYYY` for an annual statement.
     period: String,
-    gross_salary: Decimal,
-    holiday_pay: Decimal,
-    bonus: Decimal,
-    total_gross: Decimal,
+    gross_salary: Money,
+    holiday_pay: Money,
+    bonus: Money,
+    total_gross: Money,
 }
 
 impl EntryView {

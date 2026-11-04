@@ -8,6 +8,8 @@
 use rust_decimal::Decimal;
 use serde::Serialize;
 
+use crate::domain::money::Money;
+
 mod label;
 mod stack;
 #[cfg(test)]
@@ -18,12 +20,6 @@ pub use stack::{stack_from_zero, waterfall};
 
 /// The most intervals between the first and the last tick of an axis.
 const MAX_INTERVALS: i64 = 5;
-
-/// Gives an amount exactly two decimals, as every amount on the wire has.
-fn scale_two(mut value: Decimal) -> Decimal {
-    value.rescale(2);
-    value
-}
 
 /// How the outer corners of a piece are drawn (CSD-025 section 5).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -43,9 +39,9 @@ pub struct Piece {
     /// The legend key of the series the piece belongs to; the area decides it.
     pub series: String,
     /// The value where the piece starts.
-    pub low: Decimal,
+    pub low: Money,
     /// The value where the piece ends; never below `low`.
-    pub high: Decimal,
+    pub high: Money,
     /// Whether the piece hangs down instead of rising.
     pub hangs: bool,
     /// How its outer corners are drawn.
@@ -54,11 +50,11 @@ pub struct Piece {
 
 impl Piece {
     /// A piece with square corners.
-    fn new(series: String, low: Decimal, high: Decimal, hangs: bool) -> Self {
+    fn new(series: String, low: Money, high: Money, hangs: bool) -> Self {
         Self {
             series,
-            low: scale_two(low),
-            high: scale_two(high),
+            low,
+            high,
             hangs,
             rounding: Rounding::None,
         }
@@ -70,7 +66,7 @@ impl Piece {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct Marker {
     /// Where the line stands.
-    pub value: Decimal,
+    pub value: Money,
     /// The short label shown above the line, such as "2.55k".
     pub label: String,
 }
@@ -78,9 +74,9 @@ pub struct Marker {
 impl Marker {
     /// The marker at `value`, with its short label.
     #[must_use]
-    pub fn at(value: Decimal) -> Self {
+    pub fn at(value: Money) -> Self {
         Self {
-            value: scale_two(value),
+            value,
             label: short_label(value),
         }
     }
@@ -90,7 +86,7 @@ impl Marker {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct Tick {
     /// The value the gridline stands at.
-    pub value: Decimal,
+    pub value: Money,
     /// The whole-number label of the tick, such as "10k".
     pub label: String,
 }
@@ -130,9 +126,9 @@ impl Axis {
     /// zero it runs from 0.00 to 1.00. An amount too large to chart gives an
     /// axis without ticks; the area guards keep every amount far below that.
     #[must_use]
-    pub fn covering(levels: impl IntoIterator<Item = Decimal>) -> Self {
+    pub fn covering(levels: impl IntoIterator<Item = Money>) -> Self {
         let (mut low, mut high) = (Decimal::ZERO, Decimal::ZERO);
-        for level in levels {
+        for level in levels.into_iter().map(Money::value) {
             low = low.min(level);
             high = high.max(level);
         }
@@ -144,14 +140,17 @@ impl Axis {
 
     fn build(low: Decimal, high: Decimal) -> Option<Self> {
         let step = nice_step(low, high)?;
+        let step_amount = Money::round_half_up(step)?;
         let first = low.checked_div(step)?.floor().checked_mul(step)?;
         let last = high.checked_div(step)?.ceil().checked_mul(step)?;
         let mut ticks = Vec::new();
         let mut value = first;
         while value <= last {
+            // A tick is a multiple of a step of at least 1.00: always a valid amount.
+            let tick = Money::round_half_up(value)?;
             ticks.push(Tick {
-                value: scale_two(value),
-                label: axis_label(value, step),
+                value: tick,
+                label: axis_label(tick, step_amount),
             });
             value = value.checked_add(step)?;
         }

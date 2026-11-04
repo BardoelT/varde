@@ -15,12 +15,10 @@ use std::collections::{BTreeMap, HashSet};
 use std::fmt::Display;
 use std::hash::Hash;
 
-use rust_decimal::Decimal;
-
 use crate::domain::charts::{stack_from_zero, Marker, Piece};
 use crate::domain::common::{series_years, PayPeriod, Period, YearMonth, MAX_NAME_CHARS};
 use crate::domain::error::DomainError;
-use crate::domain::money::zero;
+use crate::domain::money::Money;
 
 use super::{name_order, name_taken};
 
@@ -67,7 +65,7 @@ pub(crate) trait SeriesRecord: Clone {
     fn set_period(&mut self, period: Period);
     fn order_key(&self) -> Self::Order;
     /// The balance or value, the figure that is summed.
-    fn amount(&self) -> Decimal;
+    fn amount(&self) -> Money;
     /// Whether the user entered the record. A record that is not regular (the
     /// settlement statement of a debt) is not found by period, not edited and
     /// not deleted by the rules here, and may share its period with a regular
@@ -89,9 +87,9 @@ pub(crate) struct YearFigures<'a, A> {
     pub(crate) year: i32,
     /// The accounts with a record in the year, in creation order, with the
     /// amount of their latest record that year.
-    pub(crate) segments: Vec<(&'a A, Decimal)>,
+    pub(crate) segments: Vec<(&'a A, Money)>,
     /// The sum of the segments.
-    pub(crate) closing: Decimal,
+    pub(crate) closing: Money,
     /// How many records count in the year.
     pub(crate) count: usize,
     /// Whether the year is the current one.
@@ -243,7 +241,7 @@ pub(crate) trait SeriesData {
     }
 
     /// The amount of the latest record of an account, for "copy previous".
-    fn latest_amount(&self, id: AccountId<Self>) -> Result<Option<Decimal>, DomainError> {
+    fn latest_amount(&self, id: AccountId<Self>) -> Result<Option<Money>, DomainError> {
         self.account(id)?;
         Ok(self.latest(id).map(SeriesRecord::amount))
     }
@@ -414,7 +412,7 @@ pub(crate) trait SeriesData {
 
     /// For each account that counts in `year` and has a record in it, in
     /// creation order, the amount of its latest record in that year.
-    fn year_segments(&self, year: i32) -> Vec<(&Self::Account, Decimal)> {
+    fn year_segments(&self, year: i32) -> Vec<(&Self::Account, Money)> {
         self.accounts_list()
             .iter()
             .filter(|account| self.counts_in_year(account, year))
@@ -441,14 +439,18 @@ pub(crate) trait SeriesData {
     /// The change in `year`: for each account with a record in the year and an
     /// earlier one, the amount of its latest record in the year minus that of
     /// its latest earlier record. `None` when no account has both.
-    fn year_change(&self, year: i32) -> Option<Decimal> {
-        let mut change: Option<Decimal> = None;
+    fn year_change(&self, year: i32) -> Option<Money> {
+        let mut change: Option<Money> = None;
         for (account, closing) in self.year_segments(year) {
             let opening = self
                 .latest_before_year(account.id(), year)
                 .map(SeriesRecord::amount);
             if let Some(opening) = opening {
-                change = Some(change.unwrap_or_else(zero) + closing - opening);
+                change = Some(
+                    change
+                        .unwrap_or(Money::ZERO)
+                        .saturating_add(closing.saturating_sub(opening)),
+                );
             }
         }
         change
@@ -456,15 +458,16 @@ pub(crate) trait SeriesData {
 
     /// For each calendar year with records, newest first: the year, how many
     /// records count and the sum of the amounts of the segments.
-    fn yearly_closings(&self) -> Vec<(i32, usize, Decimal)> {
+    fn yearly_closings(&self) -> Vec<(i32, usize, Money)> {
         self.records_per_year()
             .into_iter()
             .rev()
             .map(|(year, count)| {
-                let closing = self
-                    .year_segments(year)
-                    .into_iter()
-                    .fold(zero(), |sum, (_, amount)| sum + amount);
+                let closing = Money::saturating_sum(
+                    self.year_segments(year)
+                        .into_iter()
+                        .map(|(_, amount)| amount),
+                );
                 (year, count, closing)
             })
             .collect()
@@ -478,9 +481,7 @@ pub(crate) trait SeriesData {
             .into_iter()
             .map(|year| {
                 let segments = self.year_segments(year);
-                let closing = segments
-                    .iter()
-                    .fold(zero(), |sum, (_, amount)| sum + *amount);
+                let closing = Money::saturating_sum(segments.iter().map(|(_, amount)| *amount));
                 let count = counts.get(&year).copied().unwrap_or(0);
                 let pieces = stack_from_zero(segments.iter().map(|(account, amount)| {
                     (format!("{}-{}", Self::PIECE_PREFIX, account.id()), *amount)

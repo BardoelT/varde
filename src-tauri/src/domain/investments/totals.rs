@@ -1,9 +1,8 @@
 //! Yearly totals over all accounts (CSD-005 REQ-26).
 
-use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::money::zero;
+use crate::domain::money::Money;
 
 use crate::domain::series::SeriesData;
 
@@ -16,11 +15,11 @@ pub struct InvestmentYearlyTotal {
     pub year: i32,
     /// The sum, over the accounts with a statement this year, of the balance
     /// of their latest statement this year.
-    pub closing_balance: Decimal,
+    pub closing_balance: Money,
     /// Net deposits: money put in minus money taken out.
-    pub net_deposits: Decimal,
+    pub net_deposits: Money,
     /// Capital growth.
-    pub capital_growth: Decimal,
+    pub capital_growth: Money,
     /// Number of statements in the year.
     pub statement_count: usize,
 }
@@ -38,12 +37,12 @@ impl Investments {
                 InvestmentYearlyTotal {
                     year,
                     closing_balance,
-                    net_deposits: statements
-                        .iter()
-                        .fold(zero(), |sum, s| sum + s.net_deposits.value()),
-                    capital_growth: statements
-                        .iter()
-                        .fold(zero(), |sum, s| sum + self.capital_growth(s)),
+                    net_deposits: Money::saturating_sum(
+                        statements.iter().map(|s| s.net_deposits.value()),
+                    ),
+                    capital_growth: Money::saturating_sum(
+                        statements.iter().map(|s| self.capital_growth(s)),
+                    ),
                     statement_count,
                 }
             })

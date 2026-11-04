@@ -2,12 +2,11 @@
 
 use std::collections::BTreeMap;
 
-use rust_decimal::Decimal;
 use serde::Serialize;
 
 use crate::domain::charts::{stack_from_zero, Axis, ChartYear, Marker, Piece};
 use crate::domain::common::{series_years, wire_name, ColourSlot};
-use crate::domain::money::zero;
+use crate::domain::money::Money;
 
 use super::{ExpenseCategory, Expenses};
 
@@ -22,14 +21,14 @@ pub struct InsightsCategory {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct InsightsSegment {
     pub category: ExpenseCategory,
-    pub amount: Decimal,
+    pub amount: Money,
 }
 
 /// One year of the insights chart (CSD-014 REQ-1).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct ExpenseInsightsYear {
     pub year: i32,
-    pub total: Decimal,
+    pub total: Money,
     pub expense_count: usize,
     pub is_partial: bool,
     pub segments: Vec<InsightsSegment>,
@@ -76,7 +75,7 @@ impl Expenses {
                 colour_slot: name.colour_slot(),
             })
             .collect();
-        let mut sums: BTreeMap<(i32, usize), (Decimal, usize)> = BTreeMap::new();
+        let mut sums: BTreeMap<(i32, usize), (Money, usize)> = BTreeMap::new();
         for expense in &self.expenses {
             let Some(slot) = ExpenseCategory::ALL
                 .iter()
@@ -86,8 +85,8 @@ impl Expenses {
             };
             let entry = sums
                 .entry((expense.date.year(), slot))
-                .or_insert((zero(), 0));
-            entry.0 += expense.amount.value();
+                .or_insert((Money::ZERO, 0));
+            entry.0 = entry.0.saturating_add(expense.amount.value());
             entry.1 += 1;
         }
         let years: Vec<ExpenseInsightsYear> =
@@ -116,9 +115,7 @@ impl Expenses {
                     }));
                     ExpenseInsightsYear {
                         year,
-                        total: segments
-                            .iter()
-                            .fold(zero(), |sum, segment| sum + segment.amount),
+                        total: Money::saturating_sum(segments.iter().map(|s| s.amount)),
                         expense_count,
                         is_partial: year == current_year,
                         segments,

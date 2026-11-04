@@ -422,7 +422,10 @@ fn test_csd017_ac_7_2_a_negative_marker_and_the_axis_below_the_zero_line() {
     assert_eq!(row.marker.as_ref().unwrap().label, "-8.00k");
     assert_eq!(row.marker.as_ref().unwrap().value.to_string(), "-8000.00");
     // CSD-017 AC-6.4: the axis reaches below -9000.00.
-    assert!(insights.axis.ticks.first().unwrap().value <= "-9000.00".parse().unwrap());
+    assert!(
+        insights.axis.ticks.first().unwrap().value
+            <= crate::domain::money::Money::parse("-9000.00").unwrap()
+    );
     // Cash rises, debts hang below the zero line.
     let pieces: Vec<_> = row
         .pieces

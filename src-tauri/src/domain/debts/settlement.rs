@@ -1,6 +1,6 @@
 //! A debt linked to a house is settled when the house is sold (CSD-026).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::common::PayPeriod;
@@ -51,7 +51,7 @@ pub struct OpenDebt {
     /// Name of the debt.
     pub debt_name: String,
     /// The balance that was settled.
-    pub amount: Decimal,
+    pub amount: Money,
 }
 
 /// The period of a debt that holds `date`: the month of a monthly debt, the
@@ -127,11 +127,7 @@ impl Debts {
     ///
     /// # Errors
     /// Returns `DebtNotFound`.
-    pub fn open_balance(
-        &self,
-        id: DebtId,
-        date: HouseDate,
-    ) -> Result<Option<Decimal>, DomainError> {
+    pub fn open_balance(&self, id: DebtId, date: HouseDate) -> Result<Option<Money>, DomainError> {
         let period = sale_period(self.account(id)?.period, date)?;
         Ok(self
             .statements
@@ -202,7 +198,7 @@ impl Debts {
         self.statements.push(DebtStatement {
             debt_id: id,
             period,
-            balance: DebtBalance::new(Decimal::ZERO)?,
+            balance: DebtBalance::new(Money::ZERO)?,
             note,
             kind: StatementKind::Settlement,
         });
@@ -337,20 +333,17 @@ impl Debts {
     /// balance in it, which the wealth accumulation takes out of the repaid
     /// amount (CSD-026 REQ-10).
     #[must_use]
-    pub fn cancelled_in(&self, year: i32) -> Decimal {
-        self.debts
-            .iter()
-            .filter_map(|debt| {
-                let settlement = debt.settlement.as_ref()?;
-                let has_opening = self
-                    .statements
-                    .iter()
-                    .any(|s| s.debt_id == debt.id && s.period.year() < year);
-                (settlement.outcome == Outcome::Cancelled
-                    && settlement.date.year() == year
-                    && has_opening)
-                    .then(|| settlement.amount.value())
-            })
-            .fold(Decimal::ZERO, |sum, amount| sum + amount)
+    pub fn cancelled_in(&self, year: i32) -> Money {
+        Money::saturating_sum(self.debts.iter().filter_map(|debt| {
+            let settlement = debt.settlement.as_ref()?;
+            let has_opening = self
+                .statements
+                .iter()
+                .any(|s| s.debt_id == debt.id && s.period.year() < year);
+            (settlement.outcome == Outcome::Cancelled
+                && settlement.date.year() == year
+                && has_opening)
+                .then(|| settlement.amount.value())
+        }))
     }
 }

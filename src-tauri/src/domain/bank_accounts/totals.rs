@@ -1,6 +1,6 @@
 //! Yearly totals over all accounts (CSD-009 REQ-19).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 
 use crate::domain::series::SeriesData;
@@ -14,7 +14,7 @@ pub struct BankYearlyTotal {
     pub year: i32,
     /// The sum, over the accounts with an entry this year, of the balance of
     /// their latest entry this year.
-    pub closing_balance: Decimal,
+    pub closing_balance: Money,
     /// Number of entries in the year.
     pub entry_count: usize,
 }
@@ -40,7 +40,7 @@ impl BankAccounts {
     /// the year minus that of its latest earlier entry. `None` when no account
     /// has both (CSD-018 section 3).
     #[must_use]
-    pub fn increase(&self, year: i32) -> Option<Decimal> {
+    pub fn increase(&self, year: i32) -> Option<Money> {
         self.year_change(year)
     }
 }

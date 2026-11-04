@@ -1,6 +1,6 @@
 //! Tests for CSD-020 and CSD-026: debts linked to a house and settled on its sale.
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 
 use crate::domain::common::Note;
 use crate::domain::common::YearMonth;
@@ -17,8 +17,8 @@ fn today() -> YearMonth {
     YearMonth::parse("2026-10").unwrap()
 }
 
-fn dec(text: &str) -> Decimal {
-    text.parse().unwrap()
+fn dec(text: &str) -> Money {
+    Money::parse(text).unwrap()
 }
 
 fn debt(data: &mut ProjectData, name: &str, kind: &str) -> DebtId {
@@ -737,15 +737,15 @@ fn test_csd026_ac_8_1_both_outcomes_drop_to_zero() {
             today(),
         );
         let row = net.years.iter().find(|row| row.year == 2026).unwrap();
-        assert_eq!(row.debts, Decimal::ZERO);
-        assert_eq!(row.houses, Decimal::ZERO);
-        assert_eq!(row.net_worth, Decimal::ZERO);
+        assert_eq!(row.debts, Money::ZERO);
+        assert_eq!(row.houses, Money::ZERO);
+        assert_eq!(row.net_worth, Money::ZERO);
     }
 }
 
 // REQ-11, REQ-12: wealth accumulation
 
-fn repaid_2026(data: &ProjectData) -> Option<Decimal> {
+fn repaid_2026(data: &ProjectData) -> Option<Money> {
     ratios(
         &RatioSources {
             income: &data.income,

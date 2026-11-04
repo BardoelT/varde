@@ -68,6 +68,17 @@ impl Money {
     /// typos.
     pub const MAX_BALANCE: Self = Self(Decimal::from_parts(1_215_752_192, 23, 0, false, SCALE));
 
+    /// The largest amount a `Money` can hold. Every amount of the application
+    /// is far below it ([`Money::MAX_BALANCE`]); it only gives the sums of
+    /// [`Money::saturating_add`] and [`Money::saturating_sum`] an end.
+    pub const LARGEST: Self = Self(Decimal::from_parts(
+        u32::MAX,
+        u32::MAX,
+        u32::MAX,
+        false,
+        SCALE,
+    ));
+
     /// Builds an amount from a decimal read from a project file, which must
     /// not carry more than two significant decimals: `3000.500` is accepted as
     /// `3000.50`, `3000.505` is rejected. Nothing is rounded: only typed text
@@ -177,6 +188,9 @@ impl Money {
     }
 
     /// The amount as a decimal, with exactly two decimals.
+    ///
+    /// For what is not a sum of amounts: percentages and the positions of a
+    /// chart. Amounts stay `Money`.
     #[must_use]
     pub fn value(self) -> Decimal {
         self.0
@@ -192,6 +206,34 @@ impl Money {
     #[must_use]
     pub fn checked_sub(self, other: Self) -> Option<Self> {
         self.0.checked_sub(other.0).and_then(Self::at_scale_two)
+    }
+
+    /// The sum, held at the largest or smallest amount instead of overflowing.
+    ///
+    /// Every amount is within [`Money::MAX_BALANCE`], so the sum of the amounts
+    /// of any real project is about 10^17 times below [`Money::LARGEST`]: the
+    /// bound exists to keep the totals total functions, never to be reached.
+    #[must_use]
+    pub fn saturating_add(self, other: Self) -> Self {
+        self.checked_add(other).unwrap_or(if other.is_negative() {
+            -Self::LARGEST
+        } else {
+            Self::LARGEST
+        })
+    }
+
+    /// The difference, held at the largest or smallest amount (see
+    /// [`Money::saturating_add`]).
+    #[must_use]
+    pub fn saturating_sub(self, other: Self) -> Self {
+        self.saturating_add(-other)
+    }
+
+    /// The sum of all amounts, `0.00` for none, held like
+    /// [`Money::saturating_add`].
+    #[must_use]
+    pub fn saturating_sum(amounts: impl IntoIterator<Item = Self>) -> Self {
+        amounts.into_iter().fold(Self::ZERO, Self::saturating_add)
     }
 
     /// The sum of all amounts, `0.00` for none, or `None` on overflow.
@@ -227,6 +269,21 @@ impl Money {
         }
         value.rescale(SCALE);
         (value.scale() == SCALE).then_some(Self(value))
+    }
+}
+
+impl Default for Money {
+    /// `0.00`.
+    fn default() -> Self {
+        Self::ZERO
+    }
+}
+
+impl From<Money> for Decimal {
+    /// The amount as a decimal, for the constructors that check a decimal
+    /// against the rules of an area.
+    fn from(money: Money) -> Self {
+        money.0
     }
 }
 

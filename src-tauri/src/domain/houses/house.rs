@@ -1,7 +1,7 @@
 //! Houses: their id, name, valuation period, colour slot (CSD-015 REQ-1 to
 //! REQ-6) and purchase and sale (CSD-019 REQ-1 to REQ-5).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::common::Period;
@@ -128,8 +128,13 @@ impl House {
     /// The sell amount minus the purchase amount of a sold house (CSD-019
     /// REQ-8). It is derived and never stored.
     #[must_use]
-    pub fn result(&self) -> Option<Decimal> {
-        Some(self.sale?.amount.value() - self.purchase_amount.value())
+    pub fn result(&self) -> Option<Money> {
+        Some(
+            self.sale?
+                .amount
+                .value()
+                .saturating_sub(self.purchase_amount.value()),
+        )
     }
 
     /// Whether the house was purchased on or before 31/12 of `year` and not

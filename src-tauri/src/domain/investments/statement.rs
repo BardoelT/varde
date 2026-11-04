@@ -1,10 +1,9 @@
 //! One statement of an account, and the form values for "copy previous" (CSD-005 REQ-6, REQ-13).
 
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::error::DomainError;
-use crate::domain::money::zero;
+use crate::domain::money::Money;
 
 use super::{Balance, InvestmentAccountId, Investments, NetDeposits};
 use crate::domain::common::{Note, Period};
@@ -46,7 +45,7 @@ impl SeriesRecord for InvestmentStatement {
         self.period.sort_key()
     }
 
-    fn amount(&self) -> Decimal {
+    fn amount(&self) -> Money {
         self.balance.value()
     }
 
@@ -62,9 +61,9 @@ impl SeriesRecord for InvestmentStatement {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct InvestmentStatementPrefill {
     /// Balance to prefill, `None` when there is nothing to copy.
-    pub balance: Option<Decimal>,
+    pub balance: Option<Money>,
     /// Net deposits to prefill.
-    pub net_deposits: Decimal,
+    pub net_deposits: Money,
 }
 
 impl Investments {
@@ -79,7 +78,7 @@ impl Investments {
     ) -> Result<InvestmentStatementPrefill, DomainError> {
         Ok(InvestmentStatementPrefill {
             balance: self.latest_amount(id)?,
-            net_deposits: zero(),
+            net_deposits: Money::ZERO,
         })
     }
 }

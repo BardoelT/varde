@@ -1,5 +1,6 @@
 use super::*;
 use crate::domain::common::wire_name;
+use crate::domain::money::Money;
 
 fn input(name: &str, amount: &str, date: &str, category: &str) -> ExpenseInput {
     ExpenseInput {
@@ -21,8 +22,8 @@ fn code(result: Result<Expense, DomainError>) -> &'static str {
     result.err().map_or("OK", |error| error.code())
 }
 
-fn dec(text: &str) -> rust_decimal::Decimal {
-    text.parse().unwrap()
+fn dec(text: &str) -> Money {
+    Money::parse(text).unwrap()
 }
 
 fn names(list: &ExpenseList) -> Vec<&str> {

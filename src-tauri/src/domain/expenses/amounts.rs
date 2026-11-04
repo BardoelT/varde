@@ -19,7 +19,8 @@ impl ExpenseAmount {
     /// # Errors
     /// Returns the first violated rule: not above zero or
     /// above 1,000,000,000.00.
-    pub fn new(value: Decimal) -> Result<Self, DomainError> {
+    pub fn new(value: impl Into<Decimal>) -> Result<Self, DomainError> {
+        let value = value.into();
         if value <= Decimal::ZERO {
             return Err(DomainError::ExpenseAmountNotPositive);
         }
@@ -41,10 +42,10 @@ impl ExpenseAmount {
         plain_decimal(text, DomainError::ExpenseAmountInvalid).and_then(Self::new)
     }
 
-    /// The amount as a decimal.
+    /// The amount.
     #[must_use]
-    pub fn value(self) -> Decimal {
-        self.0.value()
+    pub fn value(self) -> Money {
+        self.0
     }
 }
 
