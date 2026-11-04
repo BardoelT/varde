@@ -413,10 +413,10 @@ Domain logic is in `domain/houses` (`linking`), `domain/debts` (`settlement`) an
 |---|---|
 | Rust tests | `cargo test test_csd026_`. One requirement, e.g. REQ-3: `cargo test test_csd026_ac_3_` |
 | REQ-1, REQ-4, REQ-5 through the commands | `cargo test test_csd026_ac_1_`, `test_csd026_ac_4_`, `test_csd026_ac_5_` |
-| Display ACs with a DOM test | `npm test`: `ui-bugs.test.js` (AC-13.1, the settle hint in English and in Dutch) |
-| Display ACs without a DOM test (the Edit house form table, the dialog, the Statements table) | Checked by hand |
+| Display ACs with a DOM test | `npm test`: `ui-bugs.test.js` (AC-13.1, the settle hint in English and in Dutch), `ac-c1-houses.test.js` (AC-4.3, AC-12.1, AC-12.3) and `ac-c1-debts.test.js` (the settle dialog, CSD-011 AC-27 and AC-28) |
+| Display ACs without a DOM test (look and layout of the dialog and the tables) | Checked by hand |
 
-Not covered by a named test yet (5 of 33 ACs; no test carries the AC id): AC-4.3, AC-11.1 to AC-11.2, AC-12.1, AC-12.3.
+Not covered by a named test yet (1 of 33 ACs; no test carries the AC id): AC-11.1 (finding: the Debts overview shows repaid 200000.00 for 2026, not the Cancelled-adjusted 10000.00; the ratios do apply REQ-10, the `yearly_debt_totals` command does not).
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
