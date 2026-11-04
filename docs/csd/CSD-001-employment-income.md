@@ -905,10 +905,10 @@ Tests are named `test_csd001_ac_<n>_<m>_<description>` (CSD-000 REQ-6) and run w
 | Rust tests (domain, commands over IPC, storage) | `cargo test test_csd001_`. One requirement, e.g. REQ-5: `cargo test test_csd001_ac_5_` |
 | Data of the entries table (AC-23.3) | `cargo test test_csd001_ac_23_` |
 | REQ-29 and REQ-30 over IPC (the test names carry the requirement but no AC number) | `cargo test test_csd001_ac_29_` and `cargo test test_csd001_ac_30_` |
-| Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-13.2), `dialogs.test.js` (AC-22.1), `ui-bugs.test.js` (AC-31.1 to AC-31.4) |
-| Display ACs without a DOM test (section order and contents, job buttons, delete confirmation text, default job in the add form, month or year field in the edit form) | Checked by hand |
+| Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-13.2), `dialogs.test.js` (AC-22.1), `ui-bugs.test.js` (AC-31.1 to AC-31.4), `ac-a-income.test.js` (AC-1.7, AC-4.2, AC-4.3, AC-5.6, AC-9.3, AC-23.1, AC-23.2, AC-23.4 to AC-23.6, AC-28.1 to AC-28.3, AC-29.6) |
+| Display ACs without a DOM test | None |
 
-Not covered by a named test yet (14 of 90 ACs; no test carries the AC id): AC-1.7, AC-4.2, AC-4.3, AC-5.6, AC-9.3, AC-23.1, AC-23.2, AC-23.4 to AC-23.6, AC-28.1 to AC-28.3, AC-29.6.
+Not covered by a named test yet (0 of 90 ACs; every AC carries a test name).
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
