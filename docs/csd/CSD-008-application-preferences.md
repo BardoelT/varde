@@ -284,9 +284,10 @@ All behaviour except the screens is proven by `cargo test`. Tests are named `tes
 | What | How |
 |---|---|
 | Rust tests | `cargo test test_csd008_`. Storage tests (save, load, missing, empty, invalid, oversized, read-only folder) run in a temporary directory, and the commands are exercised through the IPC test setup. One requirement, e.g. REQ-8: `cargo test test_csd008_ac_8_` |
-| Display ACs (the Appearance panel, choosing each theme, switching the macOS appearance while System is chosen, restarting with Dark on a light Mac, the title bar and native dialogs, the message when saving fails) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. The native window parts (AC-7.1, AC-4.2 with a real macOS switch) stay on a short manual checklist |
+| Display ACs (the Appearance panel, choosing each theme, the System theme, restarting with Dark, the message when saving fails) | `npm test`: `ac-d-preferences.test.js` (AC-1.1, AC-1.2, AC-3.1 to AC-3.3, AC-4.1 to AC-4.3, AC-6.1). jsdom cannot evaluate `prefers-color-scheme`, so AC-4.1 to AC-4.3 prove what the app writes on the page (no theme for System, `data-theme` for Light and Dark) and the CSS rules that react to the Mac. AC-7.1 is proven for what Rust hands the window (`test_csd008_ac_7_1_...`) |
+| Manual checklist (native window and a real Mac) | The look of the title bar and native dialogs (AC-7.1), and switching the real macOS appearance while System is chosen (AC-4.2) |
 
-Not covered by a named test yet (10 of 17 ACs; no test carries the AC id): AC-1.1, AC-1.2, AC-3.1 to AC-3.3, AC-4.1 to AC-4.3, AC-6.1, AC-7.1.
+Not covered by a named test yet (0 of 17 ACs): none. The native parts of AC-4.2 and AC-7.1 are on the manual list above.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

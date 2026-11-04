@@ -337,6 +337,8 @@ fn with_extension(path: PathBuf) -> PathBuf {
 }
 
 #[cfg(test)]
+mod ac_tests;
+#[cfg(test)]
 mod ac_tests_csd003;
 #[cfg(test)]
 mod ac_tests_csd013;

@@ -547,10 +547,10 @@ The unsaved flag and the project state live in Rust, so they are proven by `carg
 |---|---|
 | Rust tests | `cargo test test_csd002_`. One requirement, e.g. REQ-1: `cargo test test_csd002_ac_1_` |
 | AC-9.1 | `cargo test test_csd002_ac_9_` checks the table the menu is built from (ids, labels, shortcuts). Native menus can only be created on the main thread, so the built menu is on the manual checklist |
-| DOM tests (`npm test`) | `dialogs.test.js`: AC-3.1, AC-4.1, AC-7.1, AC-7.2, AC-9.3 (indicator, close, Open and New with and without unsaved changes, no buttons in the window) |
-| Manual checklist (native parts only) | The real File menu items and shortcuts (AC-9.2 to AC-9.4) and the native save dialog |
+| DOM tests (`npm test`) | `dialogs.test.js`: AC-3.1, AC-4.1, AC-7.1, AC-7.2, AC-9.3 (indicator, close, Open and New with and without unsaved changes, no buttons in the window); `ac-d-preferences.test.js`: AC-9.2, AC-9.4 (File > Save calls the save and clears the indicator, File > New and Open ask first). AC-4.2 is decided in Rust (`test_csd002_ac_4_2_...`, the close asks only when `has_unsaved_changes`) |
+| Manual checklist (native parts only) | The real File menu items and shortcuts (AC-9.1 to AC-9.4), the native save dialog, and a real window close without unsaved changes (AC-4.2: the mock runtime has no event loop to send it) |
 
-Not covered by a named test yet (6 of 44 ACs; no test carries the AC id): AC-1.6, AC-4.2, AC-9.2, AC-9.4, AC-16.1, AC-18.2.
+Not covered by a named test yet (0 of 44 ACs): none. Every AC has a test that carries its id; the native parts are on the manual list above.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

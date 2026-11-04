@@ -193,7 +193,7 @@ The left pane and the page switching are checked by DOM tests (`npm test`, dev-o
 | Display ACs with a DOM test | `npm test`: `navigation.test.js` (AC-1.1 to AC-1.3, AC-2.1, AC-2.2, AC-3.1 to AC-3.3, AC-4.1, AC-4.2, AC-6.1, AC-7.1, AC-7.2) |
 | Menu tables (REQ-5, REQ-7) | `cargo test test_csd002_ac_9_` and `cargo test test_csd003_ac_2_1` check the tables the menu is built from. Native menus can only be created on the main thread, so the built menu (AC-5.1, AC-5.2, AC-6.1 menu texts) is on the manual checklist |
 
-Not covered by a named test yet (2 of 15 ACs; no test carries the AC id): AC-5.1, AC-5.2.
+Not covered by a named test yet (2 of 15 ACs; no test carries the AC id): AC-5.1, AC-5.2. Both need the native menu bar and a real text field, which no automatic test can build (muda creates menus on the main thread only, and a native paste is an OS action). The parts of AC-5.1 that are tables are proven by `test_csd002_ac_9_1_...` and `test_csd003_ac_2_1_...`; the rest is on the manual checklist.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

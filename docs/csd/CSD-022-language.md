@@ -305,9 +305,10 @@ The preference is proven by `cargo test`. Tests are named `test_csd022_ac_<n>_<m
 | Rust tests (the preference) | `cargo test test_csd022_`. Storage tests (save, load, missing, empty, invalid, older file, read-only folder) run in a temporary directory |
 | Display ACs with a DOM test | `npm test`: `language.test.js` (AC-1.1, AC-2.1, AC-3.1 to AC-3.4, AC-4.1, AC-4.2, AC-5.1, AC-5.2, AC-6.1, AC-7.1, AC-7.2, AC-9.1) and `charts.test.js` (AC-10.1, AC-10.2) |
 | Every translatable text has a Dutch version (OQ-1) | `npm test`: `ui-bugs.test.js`, `test_csd022_every_translatable_text_has_a_dutch_version` |
-| Needs a real restart or macOS | Manual checklist: AC-2.2 (and AC-4.1 across a real restart) |
+| Not reading the Mac's language, and file errors without a path | `npm test`: `ac-d-preferences.test.js` (AC-2.2: no language preference means English and nothing in `ui/` reads the system language; AC-7.3: the toast of each file error, in both languages, holds no path). `cargo test test_csd022_ac_2_2` and `test_csd022_ac_7_3` check the answer without a file and that no error carries a path |
+| Needs a real restart or macOS | Manual checklist: AC-2.2 with a Mac set to Dutch (and AC-4.1 across a real restart) |
 
-Not covered by a named test yet (3 of 24 ACs; no test carries the AC id): AC-1.2, AC-2.2, AC-7.3.
+Not covered by a named test yet (0 of 24 ACs): none. AC-2.2 with a real Mac set to Dutch stays on the manual list above.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
