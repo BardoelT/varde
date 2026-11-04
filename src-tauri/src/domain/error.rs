@@ -281,15 +281,9 @@ pub enum DomainError {
     /// Reported as: "These dates leave existing statements outside the opening and closing of the debt."
     #[error("These dates leave existing statements outside the opening and closing of the debt.")]
     DebtDatesExcludeStatements,
-    /// Reported as: "A debt linked to a house is closed by selling the house."
-    #[error("A debt linked to a house is closed by selling the house.")]
-    DebtClosingLinked,
     /// Reported as: "Confirm that clearing the closing also removes its settlement statement."
     #[error("Confirm that clearing the closing also removes its settlement statement.")]
     DebtClosingUndoUnconfirmed,
-    /// Reported as: "The debts of a sold house cannot change."
-    #[error("The debts of a sold house cannot change.")]
-    HouseLinksLockedSold,
     /// Reported as: "Choose Repaid or Cancelled for every linked debt with an open balance."
     #[error("Choose Repaid or Cancelled for every linked debt with an open balance.")]
     HouseSettlementRequired,
@@ -511,9 +505,7 @@ impl DomainError {
             Self::DebtClosingAmountTooLarge => "DEBT_CLOSING_AMOUNT_TOO_LARGE",
             Self::DebtStatementOutsideWindow => "DEBT_STATEMENT_OUTSIDE_WINDOW",
             Self::DebtDatesExcludeStatements => "DEBT_DATES_EXCLUDE_STATEMENTS",
-            Self::DebtClosingLinked => "DEBT_CLOSING_LINKED",
             Self::DebtClosingUndoUnconfirmed => "DEBT_CLOSING_UNDO_UNCONFIRMED",
-            Self::HouseLinksLockedSold => "HOUSE_LINKS_LOCKED_SOLD",
             Self::HouseSettlementRequired => "HOUSE_SETTLEMENT_REQUIRED",
             Self::HouseSettlementInvalid => "HOUSE_SETTLEMENT_INVALID",
             Self::HouseSaleUndoUnconfirmed => "HOUSE_SALE_UNDO_UNCONFIRMED",

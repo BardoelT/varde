@@ -457,35 +457,6 @@ fn test_csd026_ac_15_1_a_manual_closing() {
 }
 
 #[test]
-fn test_csd026_ac_15_2_a_debt_linked_to_a_house_cannot_be_closed_by_hand() {
-    use crate::domain::houses::HouseInput;
-    let mut houses = Houses::default();
-    let mut debts = Debts::default();
-    let house = linking::create_house(
-        &mut houses,
-        &mut debts,
-        &HouseInput {
-            name: "Example House".to_owned(),
-            purchase_date: Some("15/03/2024".to_owned()),
-            purchase_amount: Some("250000.00".to_owned()),
-            ..HouseInput::default()
-        },
-        &linking::DebtLinksInput::default(),
-    )
-    .unwrap();
-    let mut input = form("Example Mortgage", "Monthly", "15/03/2020", "200000.00");
-    input.category = Some("Mortgage".to_owned());
-    input.house_id = Some(house.id.to_string());
-    let id = linking::create_debt(&houses, &mut debts, &input)
-        .unwrap()
-        .id;
-    let closing = with_closing(input, "10/06/2026", "0.00", "Repaid");
-    let result = linking::update_debt(&houses, &mut debts, id, &closing);
-    assert_eq!(code(result), "DEBT_CLOSING_LINKED");
-    assert!(debts.get(id).unwrap().settlement().is_none());
-}
-
-#[test]
 fn test_csd026_ac_15_3_the_closing_rules_apply() {
     let mut debts = Debts::default();
     let id = linking::create_debt(
@@ -582,47 +553,5 @@ fn test_csd026_ac_16_2_clearing_without_confirmation() {
         code(edit(&mut debts, id, &clear)),
         "DEBT_CLOSING_UNDO_UNCONFIRMED"
     );
-    assert!(debts.get(id).unwrap().settlement().is_some());
-}
-
-#[test]
-fn test_csd026_ac_16_3_a_closing_by_sale_cannot_be_cleared_here() {
-    use crate::domain::houses::HouseInput;
-    let mut houses = Houses::default();
-    let mut debts = Debts::default();
-    let input = HouseInput {
-        name: "Example House".to_owned(),
-        purchase_date: Some("15/03/2024".to_owned()),
-        purchase_amount: Some("250000.00".to_owned()),
-        ..HouseInput::default()
-    };
-    let house = linking::create_house(
-        &mut houses,
-        &mut debts,
-        &input,
-        &linking::DebtLinksInput::default(),
-    )
-    .unwrap();
-    let mut loan = form("Example Loan", "Monthly", "15/03/2020", "10000.00");
-    loan.category = Some("Loan".to_owned());
-    loan.house_id = Some(house.id.to_string());
-    let id = linking::create_debt(&houses, &mut debts, &loan).unwrap().id;
-    add(&mut debts, id, "2026-03", "3500.00").unwrap();
-    let sold = HouseInput {
-        sell_date: Some("10/06/2026".to_owned()),
-        sell_amount: Some("300000.00".to_owned()),
-        ..input
-    };
-    let choices = linking::DebtLinksInput {
-        settlements: vec![linking::SettlementChoice {
-            debt_id: id.to_string(),
-            outcome: "Cancelled".to_owned(),
-        }],
-        ..linking::DebtLinksInput::default()
-    };
-    linking::update_house(&mut houses, &mut debts, house.id, &sold, &choices).unwrap();
-    loan.confirm_undo = true;
-    let result = linking::update_debt(&houses, &mut debts, id, &loan);
-    assert_eq!(code(result), "DEBT_SETTLED_LOCKED");
     assert!(debts.get(id).unwrap().settlement().is_some());
 }

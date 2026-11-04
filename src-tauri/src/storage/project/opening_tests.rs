@@ -188,3 +188,81 @@ fn test_csd020_ac_33_6_a_settlement_that_does_not_match_the_sale_is_an_invalid_f
         "PROJECT_INVALID_FILE"
     );
 }
+
+#[test]
+fn test_csd020_ac_33_7_a_manual_closing_on_a_linked_debt_is_valid_on_any_date() {
+    use crate::domain::houses::linking::DebtLinksInput;
+    use crate::domain::houses::HouseInput;
+    let dir = TempDir::new().unwrap();
+    let mut project = Project::new();
+    let sold = HouseInput {
+        name: "Example House".to_owned(),
+        purchase_date: Some("15/03/2024".to_owned()),
+        purchase_amount: Some("250000.00".to_owned()),
+        sell_date: Some("10/06/2026".to_owned()),
+        sell_amount: Some("300000.00".to_owned()),
+        ..HouseInput::default()
+    };
+    let (houses, debts) = project.houses_and_debts_mut();
+    let house = linking::create_house(houses, debts, &sold, &DebtLinksInput::default())
+        .unwrap()
+        .id;
+    let mut loan = debt_form("15/03/2020", "10000.00");
+    loan.category = Some("Loan".to_owned());
+    loan.house_id = Some(house.to_string());
+    loan.closing = ClosingInput {
+        date: "15/05/2026".to_owned(),
+        amount: "3500.00".to_owned(),
+        outcome: "Repaid".to_owned(),
+    };
+    let (houses, debts) = project.houses_and_debts_mut();
+    linking::create_debt(houses, debts, &loan).unwrap();
+    let path = dir.path().join("example-a.varde");
+    project.save_as(path.clone()).unwrap();
+    let value: Value = serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+    assert_eq!(value["debts"]["debts"][0]["settlement"]["origin"], "Manual");
+    let mut fresh = Project::new();
+    fresh.open(&path).unwrap();
+    assert_eq!(fresh.debts(), project.debts());
+}
+
+#[test]
+fn test_csd020_ac_33_8_a_settlement_without_an_origin_is_an_invalid_file() {
+    let mut form = debt_form("15/03/2020", "200000.00");
+    form.closing = ClosingInput {
+        date: "10/06/2026".to_owned(),
+        amount: "0.00".to_owned(),
+        outcome: "Repaid".to_owned(),
+    };
+    let (_dir, path, _) = saved(&form);
+    let mut value: Value = serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+    value["debts"]["debts"][0]["settlement"]
+        .as_object_mut()
+        .unwrap()
+        .remove("origin");
+    fs::write(&path, value.to_string()).unwrap();
+    let mut fresh = Project::new();
+    assert_eq!(
+        fresh.open(&path).unwrap_err().code(),
+        "PROJECT_INVALID_FILE"
+    );
+}
+
+#[test]
+fn test_csd020_ac_33_6_a_closing_by_sale_without_a_house_is_an_invalid_file() {
+    let mut form = debt_form("15/03/2020", "200000.00");
+    form.closing = ClosingInput {
+        date: "10/06/2026".to_owned(),
+        amount: "0.00".to_owned(),
+        outcome: "Repaid".to_owned(),
+    };
+    let (_dir, path, _) = saved(&form);
+    let mut value: Value = serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+    value["debts"]["debts"][0]["settlement"]["origin"] = "Sale".into();
+    fs::write(&path, value.to_string()).unwrap();
+    let mut fresh = Project::new();
+    assert_eq!(
+        fresh.open(&path).unwrap_err().code(),
+        "PROJECT_INVALID_FILE"
+    );
+}

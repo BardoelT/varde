@@ -1,6 +1,6 @@
 //! The opening and the closing of a debt, the window they make for its
 //! statements, and the Opening row of the Statements table (CSD-011 REQ-30 to
-//! REQ-33, CSD-026 REQ-15, REQ-16).
+//! REQ-33, CSD-026 REQ-15 to REQ-17).
 
 use std::cmp::Reverse;
 
@@ -12,7 +12,7 @@ use crate::domain::houses::HouseDate;
 use crate::domain::money::Money;
 use crate::domain::series::{name_order, SeriesData};
 
-use super::settlement::{sale_period, Outcome, Settlement};
+use super::settlement::{sale_period, Origin, Outcome, Settlement};
 use super::{debt_note, Debt, DebtBalance, DebtId, DebtStatement, Debts};
 
 /// The closing fields of the debt form as typed (CSD-011 REQ-34). All three
@@ -173,37 +173,47 @@ impl Debts {
         Ok(())
     }
 
-    /// Closes a debt by hand: stores the settlement and adds its settlement
-    /// statement of 0.00 in the period of the closing date, next to any
-    /// regular statement of that period (CSD-026 REQ-15).
+    /// Closes a debt by hand, or changes its closing in place: stores the
+    /// settlement with the origin Manual and puts its settlement statement of
+    /// 0.00 in the period of the closing date, next to any regular statement
+    /// of that period, replacing the settlement statement of an earlier closing
+    /// (CSD-026 REQ-15, REQ-17). The debt may be linked to a house, held or
+    /// sold, and keeps its link.
     ///
     /// # Errors
-    /// Returns `DebtNotFound`, `DebtClosingLinked` for a debt with a house
-    /// link, `DebtSettledLocked` for a debt that is closed already,
-    /// `DebtClosingBeforeOpening` or `DebtDatesExcludeStatements`.
-    pub fn close_manually(&mut self, id: DebtId, closing: &Closing) -> Result<(), DomainError> {
+    /// Returns `DebtNotFound`, `DebtClosingBeforeOpening` or
+    /// `DebtDatesExcludeStatements`.
+    pub fn set_closing(&mut self, id: DebtId, closing: &Closing) -> Result<(), DomainError> {
         let debt = self.account(id)?;
-        if debt.house_id.is_some() {
-            return Err(DomainError::DebtClosingLinked);
-        }
-        if debt.settlement.is_some() {
-            return Err(DomainError::DebtSettledLocked);
-        }
         if closing.date < debt.opening_date {
             return Err(DomainError::DebtClosingBeforeOpening);
         }
         let period = sale_period(debt.period, closing.date)?;
-        if self.has_statement_after(id, period) {
+        let old_period = match &debt.settlement {
+            Some(old) => Some(sale_period(debt.period, old.date)?),
+            None => None,
+        };
+        // A regular statement after the new closing would lie outside the
+        // window; the settlement statement of the old closing moves with it.
+        if self.statements.iter().any(|s| {
+            s.debt_id == id && !s.is_settlement() && s.period.sort_key() > period.sort_key()
+        }) {
             return Err(DomainError::DebtDatesExcludeStatements);
         }
         let note = debt_note(&format!("{} on closing", wire_name(&closing.outcome)))?;
         let statement = DebtStatement::settlement(id, period, DebtBalance::new(Money::ZERO)?, note);
-        // Everything that can fail is done: the two changes go in together.
-        self.account_mut(id)?.settlement = Some(Settlement {
+        let settlement = Settlement {
             outcome: closing.outcome,
+            origin: Origin::Manual,
             date: closing.date,
             amount: closing.amount,
-        });
+        };
+        // Everything that can fail is done: the changes go in together.
+        if let Some(old_period) = old_period {
+            self.statements
+                .retain(|s| !(s.debt_id == id && s.period == old_period && s.is_settlement()));
+        }
+        self.account_mut(id)?.settlement = Some(settlement);
         self.statements.push(statement);
         Ok(())
     }

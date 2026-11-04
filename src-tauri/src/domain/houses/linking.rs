@@ -146,12 +146,13 @@ pub struct DebtFormInput {
     /// already sold and has an open balance (CSD-020 REQ-17).
     #[serde(default)]
     pub settlement: Option<String>,
-    /// The closing fields of the form: a manual closing of a debt without a
-    /// house link, or all empty to clear one (CSD-026 REQ-15, REQ-16).
+    /// The closing fields of the form: a manual closing of any debt, an edit
+    /// of an existing closing, or all empty to clear one (CSD-026 REQ-15 to
+    /// REQ-17).
     #[serde(default)]
     pub closing: ClosingInput,
-    /// Confirms that clearing a manual closing removes its settlement
-    /// statement (CSD-026 REQ-16).
+    /// Confirms that clearing a closing removes its settlement statement
+    /// (CSD-026 REQ-16).
     #[serde(default)]
     pub confirm_undo: bool,
 }
@@ -196,10 +197,12 @@ pub fn update_debt(
     debts.get(id).cloned().ok_or(DomainError::DebtNotFound)
 }
 
-/// Applies the closing fields of the debt form (CSD-026 REQ-15, REQ-16).
+/// Applies the closing fields of the debt form (CSD-026 REQ-15 to REQ-17).
 /// `was_settled` says whether the debt had a settlement before this save. A
-/// closing by the sale of a house is never changed here, and a debt linked to a
-/// house cannot be closed by hand.
+/// closing typed on a debt that is not closed is a manual closing, one typed
+/// differently on a closed debt is edited in place and becomes manual, one
+/// typed as stored changes nothing, and fields emptied on a closed debt clear
+/// its closing after confirmation, whatever made it.
 fn apply_closing(
     debts: &mut Debts,
     id: DebtId,
@@ -207,19 +210,16 @@ fn apply_closing(
     was_settled: bool,
 ) -> Result<(), DomainError> {
     let closing = input.closing.parse()?;
-    let linked = debts.house_of(id).is_some();
     match (was_settled, closing) {
         // Nothing typed and nothing stored.
         (false, None) => Ok(()),
-        (false, Some(_)) if linked => Err(DomainError::DebtClosingLinked),
-        (false, Some(closing)) => debts.close_manually(id, &closing),
-        // Nothing typed on a closed debt: a closing by sale cannot be cleared
-        // here, a manual closing is cleared on confirmation.
-        (true, None) if linked => Err(DomainError::DebtSettledLocked),
+        // The link step settled the debt in this very save (CSD-020 REQ-17):
+        // a closing typed besides it is ambiguous.
+        (false, Some(_)) if debts.is_settled(id) => Err(DomainError::HouseSettlementInvalid),
+        (false, Some(closing)) => debts.set_closing(id, &closing),
         (true, None) if !input.confirm_undo => Err(DomainError::DebtClosingUndoUnconfirmed),
         (true, None) => debts.unsettle(id),
-        // The stored closing typed again is unchanged; any other is refused,
-        // the user clears it first (CSD-026 NG-3).
+        // The stored closing typed again is unchanged; any other replaces it.
         (true, Some(closing)) => {
             let same = debts
                 .get(id)
@@ -232,7 +232,7 @@ fn apply_closing(
             if same {
                 Ok(())
             } else {
-                Err(DomainError::DebtSettledLocked)
+                debts.set_closing(id, &closing)
             }
         }
     }
@@ -268,12 +268,6 @@ fn apply_category_and_link(
             Ok(())
         };
     }
-    if debts.is_settled(id) {
-        return Err(DomainError::DebtSettledLocked);
-    }
-    if current.is_some_and(|house_id| houses.get(house_id).is_some_and(|house| !house.is_held())) {
-        return Err(DomainError::HouseLinksLockedSold);
-    }
     let Some(house_id) = wanted else {
         debts.set_house(id, None)?;
         return if outcome.is_some() {
@@ -300,7 +294,14 @@ fn settle_on_link(
     date: HouseDate,
     outcome: Option<Outcome>,
 ) -> Result<(), DomainError> {
-    match (debts.open_balance(id, date)?, outcome) {
+    // A debt that is closed already keeps its closing and is never asked
+    // about (CSD-020 REQ-17, CSD-026 REQ-18).
+    let open = if debts.is_settled(id) {
+        None
+    } else {
+        debts.open_balance(id, date)?
+    };
+    match (open, outcome) {
         (Some(_), Some(outcome)) => debts.settle(id, outcome, house),
         (Some(_), None) => Err(DomainError::HouseSettlementRequired),
         (None, Some(_)) => Err(DomainError::HouseSettlementInvalid),
@@ -325,6 +326,9 @@ pub fn debt_open_balance(
     let Some(sale) = house.sale else {
         return Ok(None);
     };
+    if debts.is_settled(debt_id) {
+        return Ok(None);
+    }
     Ok(debts
         .open_balance(debt_id, sale.date)?
         .map(|amount| OpenDebt {
@@ -344,10 +348,12 @@ fn apply(
 ) -> Result<(), DomainError> {
     let was_sold = old.is_some_and(|old| !old.is_held());
     let current = debts.linked_to(house.id);
+    // Only a closing by sale belongs to the sale: a manual closing neither
+    // locks the sell date nor goes with an undone sale (CSD-026 REQ-4, REQ-5).
     let settled: Vec<DebtId> = current
         .iter()
         .copied()
-        .filter(|id| debts.is_settled(*id))
+        .filter(|id| debts.is_settled_by_sale(*id))
         .collect();
     if was_sold && !house.is_held() {
         if old.is_some_and(|old| old.sale.map(|sale| sale.date) != house.sale.map(|sale| sale.date))

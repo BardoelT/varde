@@ -31,15 +31,28 @@ impl Outcome {
     }
 }
 
-/// The outcome, date and settled amount of a settled debt (CSD-026 section 3).
+/// Who made a settlement (CSD-026 section 3).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Origin {
+    /// The sale of the house the debt is linked to.
+    Sale,
+    /// The user, in the debt form.
+    Manual,
+}
+
+/// The outcome, origin, date and settled amount of a settled debt (CSD-026
+/// section 3).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Settlement {
     /// How the debt is settled.
     pub outcome: Outcome,
-    /// The sell date of the house.
+    /// Who made the settlement.
+    pub origin: Origin,
+    /// The sell date of the house for a closing by sale, the typed closing
+    /// date for a manual closing.
     pub date: HouseDate,
-    /// The open balance at the sale.
+    /// The open balance at the sale, or the typed closing amount.
     pub amount: DebtBalance,
 }
 
@@ -95,40 +108,51 @@ impl Debts {
         self.account(id).is_ok_and(|debt| debt.settlement.is_some())
     }
 
-    /// Sets the category of a debt (CSD-020 REQ-15). A settled debt cannot change.
+    /// Whether a debt has a closing by sale, a settlement with the origin
+    /// Sale (CSD-026 REQ-4, REQ-5).
+    #[must_use]
+    pub fn is_settled_by_sale(&self, id: DebtId) -> bool {
+        self.account(id).is_ok_and(|debt| {
+            debt.settlement
+                .as_ref()
+                .is_some_and(|settlement| settlement.origin == Origin::Sale)
+        })
+    }
+
+    /// Sets the category of a debt (CSD-020 REQ-15). A settled debt can
+    /// change it too (CSD-026 REQ-6).
     ///
     /// # Errors
-    /// Returns `DebtNotFound` or `DebtSettledLocked`.
+    /// Returns `DebtNotFound`.
     pub(crate) fn set_category(
         &mut self,
         id: DebtId,
         category: DebtCategory,
     ) -> Result<(), DomainError> {
-        let debt = self.account_mut(id)?;
-        if debt.category != category && debt.settlement.is_some() {
-            return Err(DomainError::DebtSettledLocked);
-        }
-        debt.category = category;
+        self.account_mut(id)?.category = category;
         Ok(())
     }
 
-    /// Links a debt to a house, or unlinks it. A settled debt keeps its house,
-    /// and only a Mortgage or a Loan can be linked (CSD-020 REQ-15, CSD-026
-    /// REQ-6).
+    /// Links a debt to a house, or unlinks it. Only a Mortgage or a Loan can
+    /// be linked (CSD-020 REQ-15). A settled debt keeps its closing when its
+    /// link changes, and a closing by sale becomes a manual closing, because
+    /// the sale of the house no longer owns it (CSD-026 REQ-18).
     ///
     /// # Errors
-    /// Returns `DebtNotFound`, `DebtSettledLocked` or `DebtLinkCategoryInvalid`.
+    /// Returns `DebtNotFound` or `DebtLinkCategoryInvalid`.
     pub(crate) fn set_house(
         &mut self,
         id: DebtId,
         house_id: Option<HouseId>,
     ) -> Result<(), DomainError> {
         let debt = self.account_mut(id)?;
-        if debt.house_id != house_id && debt.settlement.is_some() {
-            return Err(DomainError::DebtSettledLocked);
-        }
         if house_id.is_some() && !debt.category.can_link() {
             return Err(DomainError::DebtLinkCategoryInvalid);
+        }
+        if debt.house_id != house_id {
+            if let Some(settlement) = debt.settlement.as_mut() {
+                settlement.origin = Origin::Manual;
+            }
         }
         debt.house_id = house_id;
         Ok(())
@@ -152,7 +176,8 @@ impl Debts {
     }
 
     /// The linked debts with an open balance at a sale on `date`, in debt
-    /// order, for the settlement prompt (CSD-026 REQ-1, REQ-13).
+    /// order, for the settlement prompt (CSD-026 REQ-1, REQ-13). A debt that is
+    /// closed already is never an open debt.
     ///
     /// # Errors
     /// Returns `DebtNotFound` for an unknown id.
@@ -163,7 +188,7 @@ impl Debts {
     ) -> Result<Vec<OpenDebt>, DomainError> {
         let mut open = Vec::new();
         for debt in self.debts() {
-            if !ids.contains(&debt.id) {
+            if !ids.contains(&debt.id) || debt.settlement.is_some() {
                 continue;
             }
             if let Some(amount) = self.open_balance(debt.id, date)? {
@@ -216,6 +241,7 @@ impl Debts {
         let statement = DebtStatement::settlement(id, period, DebtBalance::new(Money::ZERO)?, note);
         let settlement = Settlement {
             outcome,
+            origin: Origin::Sale,
             date,
             amount: DebtBalance::new(amount)?,
         };
@@ -344,9 +370,10 @@ impl Debts {
         Ok(())
     }
 
-    /// A settled debt is linked to a house sold on the settlement date, has its
-    /// settlement statement of 0.00 in the sale period and no statement after
-    /// it (CSD-026 REQ-3, REQ-6).
+    /// A settled debt has its settlement statement of 0.00 in the settlement
+    /// period and no statement after it, and a closing by sale is on a debt
+    /// linked to a house sold on the settlement date (CSD-026 REQ-3, REQ-6,
+    /// section 5).
     fn check_settled(
         &self,
         debt: &Debt,
@@ -355,9 +382,14 @@ impl Debts {
     ) -> Result<(), DomainError> {
         let period = sale_period(debt.period, settlement.date)?;
         // A closing by sale carries the sell date of its house; a manual
-        // closing has no house (CSD-026 REQ-15).
-        let sold_on_date =
-            house.is_none_or(|house| house.sale.map(|sale| sale.date) == Some(settlement.date));
+        // closing may sit on any debt, linked or not, on any date
+        // (CSD-026 REQ-15).
+        let sold_on_date = match settlement.origin {
+            Origin::Sale => {
+                house.is_some_and(|house| house.sale.map(|sale| sale.date) == Some(settlement.date))
+            }
+            Origin::Manual => true,
+        };
         let zero_statement = self.statements.iter().any(|s| {
             s.debt_id == debt.id
                 && s.is_settlement()

@@ -197,6 +197,7 @@
         "house_id": "id-9",
         "settlement": {
           "outcome": "Repaid",
+          "origin": "Sale",
           "date": "2026-06-10",
           "amount": "148000.50"
         }
@@ -212,6 +213,7 @@
         "house_id": "id-9",
         "settlement": {
           "outcome": "Cancelled",
+          "origin": "Sale",
           "date": "2026-06-10",
           "amount": "20000.00"
         }

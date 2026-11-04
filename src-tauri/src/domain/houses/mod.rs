@@ -22,6 +22,8 @@ mod ac_tests_insights;
 #[cfg(test)]
 mod ac_tests_linking;
 #[cfg(test)]
+mod closing_tests;
+#[cfg(test)]
 mod linking_tests;
 #[cfg(test)]
 mod purchase_tests;

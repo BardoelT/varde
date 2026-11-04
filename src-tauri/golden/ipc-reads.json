@@ -3318,6 +3318,7 @@
         "settlement": {
           "amount": "20000.00",
           "date": "2026-06-10",
+          "origin": "Sale",
           "outcome": "Cancelled"
         },
         "statement_count": 2
@@ -3338,6 +3339,7 @@
         "settlement": {
           "amount": "148000.50",
           "date": "2026-06-10",
+          "origin": "Sale",
           "outcome": "Repaid"
         },
         "statement_count": 3
@@ -3527,6 +3529,7 @@
             "settlement": {
               "amount": "20000.00",
               "date": "2026-06-10",
+              "origin": "Sale",
               "outcome": "Cancelled"
             }
           },
@@ -3538,6 +3541,7 @@
             "settlement": {
               "amount": "148000.50",
               "date": "2026-06-10",
+              "origin": "Sale",
               "outcome": "Repaid"
             }
           }

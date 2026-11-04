@@ -973,6 +973,7 @@
         "house_id": "00000000-0000-4000-8000-000000000011",
         "settlement": {
           "outcome": "Repaid",
+          "origin": "Sale",
           "date": "2026-06-10",
           "amount": "170000.00"
         }
@@ -988,6 +989,7 @@
         "house_id": "00000000-0000-4000-8000-000000000011",
         "settlement": {
           "outcome": "Cancelled",
+          "origin": "Sale",
           "date": "2026-06-10",
           "amount": "12000.00"
         }
@@ -1030,6 +1032,7 @@
         "category": "Other",
         "settlement": {
           "outcome": "Repaid",
+          "origin": "Manual",
           "date": "2026-05-15",
           "amount": "300.00"
         }

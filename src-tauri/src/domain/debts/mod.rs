@@ -27,7 +27,11 @@ pub use debt::{Debt, DebtCategory, DebtId, DebtInput};
 pub use insights::DebtInsights;
 pub use opening::{ClosingInput, StatementRow};
 pub use overview::DebtSummary;
-pub use settlement::{OpenDebt, Outcome, Settlement};
+#[allow(
+    unused_imports,
+    reason = "Origin is the type of a public field of Settlement and is named by the tests"
+)]
+pub use settlement::{OpenDebt, Origin, Outcome, Settlement};
 pub use statement::{parse_period, DebtStatement, DebtStatementPrefill};
 pub use totals::DebtYearlyTotal;
 

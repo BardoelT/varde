@@ -301,28 +301,6 @@ fn test_csd020_ac_16_1_a_forbidden_category_or_link_is_rejected() {
 }
 
 #[test]
-fn test_csd020_ac_16_1_a_debt_of_a_sold_house_cannot_change_its_link() {
-    let mut data = ProjectData::default();
-    let loan = debt(&mut data, "Example Cabin Loan", "Monthly");
-    let sold = add_house(&mut data, "Example Guesthouse", &[loan]);
-    save(
-        &mut data,
-        sold,
-        "Example Guesthouse",
-        ("10/06/2026", "9000.00"),
-        &links(&[], false),
-    )
-    .unwrap();
-    assert_eq!(
-        code(link(&mut data, loan, "Loan", None)),
-        "HOUSE_LINKS_LOCKED_SOLD"
-    );
-    assert_eq!(data.debts.house_of(loan), Some(sold));
-}
-
-// REQ-3, REQ-4: the sale asks for a choice per open debt
-
-#[test]
 fn test_csd026_ac_1_1_sell_with_two_outcomes() {
     let (mut data, house, mortgage, loan) = house_with_two_debts();
     save(
@@ -662,14 +640,6 @@ fn test_csd026_ac_6_1_a_settled_debt_is_locked() {
         .delete_statement(mortgage, parse_period("2026-06").unwrap());
     assert_eq!(delete.unwrap_err().code(), "DEBT_SETTLED_LOCKED");
     let _ = house;
-    assert_eq!(
-        code(link(&mut data, mortgage, "Loan", None)),
-        "DEBT_SETTLED_LOCKED"
-    );
-    assert_eq!(
-        code(link(&mut data, mortgage, "Other", None)),
-        "DEBT_SETTLED_LOCKED"
-    );
 }
 
 #[test]
@@ -1244,18 +1214,6 @@ fn test_csd026_ac_3_1_only_a_debt_linked_to_a_sold_house_is_settled() {
         .all_statements()
         .iter()
         .all(|(_, s)| !s.is_settlement()));
-}
-
-#[test]
-fn test_csd026_ac_6_1_a_settled_debt_cannot_be_unlinked_or_relinked() {
-    let (mut data, house, mortgage) = sold_house();
-    let other = add_house(&mut data, "Other House", &[]);
-    for wanted in [None, Some(other)] {
-        let result = data.debts.set_house(mortgage, wanted);
-        assert_eq!(result.unwrap_err().code(), "DEBT_SETTLED_LOCKED");
-    }
-    assert_eq!(data.debts.house_of(mortgage), Some(house));
-    assert!(data.debts.validate_links(&data.houses).is_ok());
 }
 
 #[test]
