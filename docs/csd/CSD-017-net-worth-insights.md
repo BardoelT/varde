@@ -382,10 +382,10 @@ Tests are named `test_csd017_ac_<n>_<m>_<description>` (CSD-000 REQ-6) and run w
 | What | How |
 |---|---|
 | Rust tests (the data) | `cargo test test_csd017_` |
-| Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-12.1, empty project) |
-| Display ACs without a DOM test (the page without tabs, stacking and the order of the segments, Debts below the zero line, axis range, markers and their labels, colours of both modes, legend, highlight, tooltip order and the "No records" note, accessible labels) | Checked by hand |
+| Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-12.1, empty project) and `ac-c2-net-worth.test.js` (the page without tabs, the order of the segments, the axis, the legend, highlight, tooltip, accessible labels, fresh figures, the colour tokens of both modes) |
+| Display ACs without a DOM test (jsdom has no layout or rendering: how the 55% opacity and the colours look on screen) | Checked by hand |
 
-Not covered by a named test yet (17 of 34 ACs; no test carries the AC id): AC-1.1, AC-4.3, AC-5.2, AC-6.1, AC-6.2, AC-6.4, AC-8.1, AC-8.2, AC-9.1, AC-9.2, AC-10.1 to AC-10.3, AC-11.1, AC-13.1, AC-14.1, AC-15.1.
+Not covered by a named test yet (0 of 34 ACs; no test carries the AC id): none.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

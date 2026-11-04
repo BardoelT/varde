@@ -17,6 +17,8 @@ use crate::domain::money::{percent_of, Money};
 use crate::domain::net_worth::net_worth_insights;
 
 #[cfg(test)]
+mod ac_tests;
+#[cfg(test)]
 mod tests;
 
 /// One column of the ratios table (CSD-018 REQ-3). A figure that cannot be

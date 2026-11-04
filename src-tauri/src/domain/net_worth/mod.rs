@@ -13,6 +13,8 @@ use crate::domain::investments::Investments;
 use crate::domain::money::Money;
 
 #[cfg(test)]
+mod ac_tests;
+#[cfg(test)]
 mod tests;
 
 /// One year of the net worth chart (CSD-017 REQ-2, REQ-3).

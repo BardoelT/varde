@@ -428,10 +428,10 @@ Tests are named `test_csd018_ac_<n>_<m>_<description>` (CSD-000 REQ-6) and run w
 | What | How |
 |---|---|
 | Rust tests (the figures) | `cargo test test_csd018_` |
-| Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-11.1, empty project) |
-| Display ACs without a DOM test (page without tabs, column order and "YTD", rows and sub-headings, signs and "–", negative colour, sideways scrolling, info tooltips) | Checked by hand |
+| Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-11.1, empty project), `ratios.test.js` (AC-10.1, AC-10.2) and `ac-c2-ratios.test.js` (the page without tabs, the rows and sub-headings, the sticky row labels, fresh figures, the info tooltips) |
+| Display ACs without a DOM test (the real sideways scrolling of the table: jsdom has no layout, so only the sticky rule of the stylesheet is checked) | Checked by hand |
 
-Not covered by a named test yet (16 of 41 ACs; no test carries the AC id): AC-1.1, AC-3.1, AC-5.6 to AC-5.9, AC-6.4, AC-8.5, AC-9.4, AC-10.1 to AC-10.3, AC-12.1, AC-13.1 to AC-13.3.
+Not covered by a named test yet (1 of 41 ACs; no test carries the AC id): AC-5.9 (the Debts overview does not apply the Cancelled adjustment of CSD-026 REQ-11 yet).
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
