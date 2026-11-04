@@ -18,7 +18,7 @@ impl HouseValue {
     /// Builds a value from a decimal.
     ///
     /// # Errors
-    /// Returns the first violated rule: negative, more than two decimals, or
+    /// Returns the first violated rule: negative or
     /// above 1,000,000,000.00. Zero is valid.
     pub fn new(value: Decimal) -> Result<Self, DomainError> {
         if value < Decimal::ZERO {
@@ -27,7 +27,7 @@ impl HouseValue {
         bounded(
             value,
             Money::MAX_BALANCE,
-            DomainError::HouseValuationValuePrecision,
+            DomainError::HouseValuationValueInvalid,
             DomainError::HouseValuationValueTooLarge,
         )
         .map(Self)
@@ -46,12 +46,11 @@ impl HouseValue {
     /// of a value, with the error codes of CSD-019 REQ-4.
     ///
     /// # Errors
-    /// Returns `HouseAmountInvalid`, `HouseAmountNegative`,
-    /// `HouseAmountPrecision` or `HouseAmountTooLarge`.
+    /// Returns `HouseAmountInvalid`, `HouseAmountNegative`
+    /// or `HouseAmountTooLarge`.
     pub fn parse_amount(text: &str) -> Result<Self, DomainError> {
         Self::parse(text).map_err(|error| match error {
             DomainError::HouseValuationValueNegative => DomainError::HouseAmountNegative,
-            DomainError::HouseValuationValuePrecision => DomainError::HouseAmountPrecision,
             DomainError::HouseValuationValueTooLarge => DomainError::HouseAmountTooLarge,
             _ => DomainError::HouseAmountInvalid,
         })

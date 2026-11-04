@@ -378,13 +378,53 @@ fn test_csd009_ac_10_1_invalid_balances_are_rejected() {
         ("abc", "BANK_ENTRY_BALANCE_INVALID"),
         ("1e3", "BANK_ENTRY_BALANCE_INVALID"),
         ("2500,50", "BANK_ENTRY_BALANCE_INVALID"),
-        ("1000.999", "BANK_ENTRY_BALANCE_PRECISION"),
-        ("-1000.999", "BANK_ENTRY_BALANCE_PRECISION"),
         ("1000000000.01", "BANK_ENTRY_BALANCE_TOO_LARGE"),
         ("-1000000000.01", "BANK_ENTRY_BALANCE_TOO_LARGE"),
     ] {
         assert_eq!(codes(BankBalance::parse(text)), code, "{text:?}");
     }
+}
+
+#[test]
+fn test_csd009_ac_25_1_a_typed_balance_is_rounded_half_up() {
+    for (typed, stored) in [
+        ("3000.505", "3000.51"),
+        ("1.004", "1.00"),
+        ("1.005", "1.01"),
+        ("1000.999", "1001.00"),
+        ("-0.125", "-0.13"),
+        ("-1000.999", "-1001.00"),
+        ("-0.004", "0.00"),
+        ("0.004", "0.00"),
+        ("2500.5", "2500.50"),
+    ] {
+        assert_eq!(balance(typed).value().to_string(), stored, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd009_ac_25_2_the_limit_is_checked_after_rounding() {
+    for (typed, stored) in [
+        ("1000000000.004", "1000000000.00"),
+        ("-1000000000.004", "-1000000000.00"),
+    ] {
+        assert_eq!(balance(typed).value().to_string(), stored, "{typed}");
+    }
+    for typed in ["1000000000.005", "-1000000000.005"] {
+        assert_eq!(
+            codes(BankBalance::parse(typed)),
+            "BANK_ENTRY_BALANCE_TOO_LARGE",
+            "{typed}"
+        );
+    }
+}
+
+#[test]
+fn test_csd009_ac_25_3_a_typed_balance_in_an_edit_is_rounded() {
+    let mut banks = BankAccounts::default();
+    let id = account(&mut banks, "Example Current Account", "Monthly");
+    add(&mut banks, id, "2026-09", "2500.00");
+    assert_eq!(balance("1000.999").value().to_string(), "1001.00");
 }
 
 #[test]
@@ -400,8 +440,8 @@ fn test_csd009_ac_10_3_an_invalid_balance_in_an_edit_changes_nothing() {
     let id = account(&mut banks, "Example Current Account", "Monthly");
     add(&mut banks, id, "2026-09", "2500.00");
     assert_eq!(
-        codes(BankBalance::parse("1000.999")),
-        "BANK_ENTRY_BALANCE_PRECISION"
+        codes(BankBalance::parse("abc")),
+        "BANK_ENTRY_BALANCE_INVALID"
     );
     assert_eq!(
         banks.all_entries()[0].1.balance.value().to_string(),

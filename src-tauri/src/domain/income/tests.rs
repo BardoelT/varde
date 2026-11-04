@@ -254,7 +254,6 @@ fn test_csd001_ac_7_1_invalid_amounts_rejected() {
         ("-100.00", "0.00", "0.00", "PAYCHECK_AMOUNT_NEGATIVE"),
         ("3000.00", "-1.00", "0.00", "PAYCHECK_AMOUNT_NEGATIVE"),
         ("3000.00", "0.00", "-5.00", "PAYCHECK_AMOUNT_NEGATIVE"),
-        ("3000.999", "0.00", "0.00", "PAYCHECK_AMOUNT_PRECISION"),
         ("1000000.01", "0.00", "0.00", "PAYCHECK_AMOUNT_TOO_LARGE"),
     ];
     for (gross, holiday, bonus, code) in cases {
@@ -272,6 +271,68 @@ fn test_csd001_ac_7_2_boundary_amount_accepted() {
     let id = job_with(&mut income, "01/03/2024", "");
     add(&mut income, id, "2026-09", "1000000.00");
     assert_eq!(income.entry_count(id), 1);
+}
+
+// ---- REQ-32: typed amounts are rounded ----
+
+#[test]
+fn test_csd001_ac_32_1_a_typed_gross_salary_is_rounded_half_up() {
+    for (typed, stored) in [
+        ("3000.505", "3000.51"),
+        ("3000.504", "3000.50"),
+        ("3000.004999", "3000.00"),
+        ("1.005", "1.01"),
+        ("3000.5", "3000.50"),
+    ] {
+        let parsed = Amounts::parse(typed, "", "").unwrap();
+        assert_eq!(parsed.gross_salary().to_string(), stored, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd001_ac_32_2_a_typed_holiday_pay_or_bonus_that_rounds_to_zero_is_zero() {
+    for (typed, stored) in [("0.004", "0.00"), ("-0.004", "0.00"), ("100.999", "101.00")] {
+        let parsed = Amounts::parse("3000.00", typed, typed).unwrap();
+        assert_eq!(parsed.holiday_pay().to_string(), stored, "{typed}");
+        assert_eq!(parsed.bonus().to_string(), stored, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd001_ac_32_3_a_gross_salary_that_rounds_to_zero_is_invalid() {
+    assert_eq!(
+        Amounts::parse("0.004", "0.00", "0.00").unwrap_err().code(),
+        "PAYCHECK_GROSS_INVALID"
+    );
+}
+
+#[test]
+fn test_csd001_ac_32_4_the_limit_is_checked_after_rounding() {
+    let accepted = Amounts::parse("1000000.004", "0.00", "0.00").unwrap();
+    assert_eq!(accepted.gross_salary().to_string(), "1000000.00");
+    assert_eq!(
+        Amounts::parse("1000000.005", "0.00", "0.00")
+            .unwrap_err()
+            .code(),
+        "PAYCHECK_AMOUNT_TOO_LARGE"
+    );
+}
+
+#[test]
+fn test_csd001_ac_32_5_a_typed_amount_in_an_edit_is_rounded() {
+    let mut income = Income::default();
+    let id = job_with(&mut income, "01/03/2024", "");
+    add(&mut income, id, "2026-05", "3000.00");
+    let updated = income
+        .update_paycheck(
+            id,
+            month("2026-05"),
+            month("2026-05"),
+            Amounts::parse("3000.00", "100.999", "0.00").unwrap(),
+        )
+        .unwrap();
+    assert_eq!(updated.amounts.holiday_pay().to_string(), "101.00");
+    assert_eq!(updated.amounts.total_gross().to_string(), "3101.00");
 }
 
 // ---- REQ-8: edit and delete a paycheck ----

@@ -105,14 +105,54 @@ fn money_never_shows_negative_zero() {
 }
 
 #[test]
-fn money_rejects_more_than_two_decimals_but_accepts_trailing_zeros() {
-    assert_eq!(Money::parse("3000.505"), Err(MoneyError::Precision));
+fn typed_text_with_more_than_two_decimals_is_rounded_half_up() {
+    for (typed, rounded) in [
+        ("3000.505", "3000.51"),
+        ("3000.504", "3000.50"),
+        ("1.005", "1.01"),
+        ("1.004", "1.00"),
+        ("1.004999", "1.00"),
+        ("0.125", "0.13"),
+        ("-0.125", "-0.13"),
+        ("0.004", "0.00"),
+        ("-0.004", "0.00"),
+        ("-0.005", "-0.01"),
+        ("0.995", "1.00"),
+        ("9.999", "10.00"),
+        ("999999999.995", "1000000000.00"),
+        ("99.9951", "100.00"),
+        ("3000.500", "3000.50"),
+        ("1.000", "1.00"),
+    ] {
+        assert_eq!(money(typed).to_string(), rounded, "{typed}");
+    }
+}
+
+#[test]
+fn a_typed_amount_that_rounds_to_zero_has_no_sign() {
+    for typed in ["-0.004", "-0.0049999", "-0.00", "-0", "-0.001"] {
+        let parsed = money(typed);
+        assert_eq!(parsed.to_string(), "0.00", "{typed}");
+        assert_eq!(serde_json::to_string(&parsed).unwrap(), "\"0.00\"");
+        assert!(!parsed.is_negative());
+    }
+    assert_eq!(Money::parse_decimal("-0.004").unwrap().to_string(), "0.00");
+}
+
+#[test]
+fn only_a_decimal_from_a_file_is_checked_not_rounded() {
     assert_eq!(
         Money::from_decimal(dec("0.001")),
         Err(MoneyError::Precision)
     );
-    assert_eq!(money("3000.500").to_string(), "3000.50");
-    assert_eq!(money("1.000").to_string(), "1.00");
+    assert_eq!(
+        Money::from_decimal(dec("3000.505")),
+        Err(MoneyError::Precision)
+    );
+    assert_eq!(
+        Money::from_decimal(dec("3000.500")).unwrap().to_string(),
+        "3000.50"
+    );
 }
 
 #[test]
@@ -126,7 +166,8 @@ fn money_parse_follows_the_plain_number_rule() {
             "text {text:?}"
         );
     }
-    assert_eq!(Money::parse(&"9".repeat(40)), Err(MoneyError::Invalid));
+    assert_eq!(Money::parse(&"9".repeat(70)), Err(MoneyError::Invalid));
+    assert_eq!(Money::parse(&"9".repeat(40)), Err(MoneyError::TooLarge));
     assert_eq!(money(" 12.5 ").to_string(), "12.50");
 }
 
@@ -145,7 +186,12 @@ fn money_rounds_half_up_away_from_zero() {
 fn money_serde_is_a_two_decimal_string() {
     let amount: Money = serde_json::from_str("\"3000.5\"").unwrap();
     assert_eq!(serde_json::to_string(&amount).unwrap(), "\"3000.50\"");
+    // The file is strict: only typed text is rounded.
     assert!(serde_json::from_str::<Money>("\"1.234\"").is_err());
+    assert!(serde_json::from_str::<Money>("\"1.00000000000000000000000000004\"").is_err());
+    assert!(serde_json::from_str::<Money>("\"1e3\"").is_err());
+    let padded: Money = serde_json::from_str("\"1.500\"").unwrap();
+    assert_eq!(padded.to_string(), "1.50");
 }
 
 #[test]
@@ -218,6 +264,38 @@ proptest! {
     }
 
     #[test]
+    fn parsing_typed_text_is_half_up_of_its_exact_value(
+        negative in any::<bool>(),
+        whole in "[0-9]{1,9}",
+        fraction in "[0-9]{0,40}",
+    ) {
+        let text = format!(
+            "{}{whole}{}{fraction}",
+            if negative { "-" } else { "" },
+            if fraction.is_empty() { "" } else { "." },
+        );
+        // Half-up on the digits: the third fraction digit decides.
+        let padded = format!("{fraction:0<3}");
+        let magnitude: i64 = format!("{whole}{}", &padded[..2]).parse().unwrap();
+        let cents = magnitude + i64::from(padded.as_bytes()[2] >= b'5');
+        let expected = if negative { -cents } else { cents };
+        let expected = Money::from_decimal(Decimal::new(expected, 2)).unwrap();
+        prop_assert_eq!(Money::parse(&text), Ok(expected), "{}", text);
+        prop_assert_ne!(Money::parse(&text).unwrap().to_string(), "-0.00");
+    }
+
+    #[test]
+    fn parsing_agrees_with_midpoint_away_from_zero_on_the_exact_decimal(
+        mantissa in -999_999_999_999_i64..=999_999_999_999,
+        scale in 0_u32..=12,
+    ) {
+        // An exact decimal written out in full, with at most 12 fraction digits.
+        let exact = Decimal::new(mantissa, scale);
+        let text = exact.to_string();
+        prop_assert_eq!(Money::parse(&text), Ok(Money::round_half_up(exact).unwrap()), "{}", text);
+    }
+
+    #[test]
     fn rounding_has_scale_two_and_stays_within_half_a_cent(value in any_decimal()) {
         if let Some(rounded) = Money::round_half_up(value) {
             prop_assert_eq!(rounded.value().scale(), 2);
@@ -272,19 +350,48 @@ proptest! {
 }
 
 #[test]
-fn a_fraction_longer_than_a_decimal_holds_is_rejected_not_rounded() {
-    for text in [
-        "1.00000000000000000000000000004",
-        "0.00000000000000000000000000001",
-        "-1.00000000000000000000000000004",
+fn a_fraction_longer_than_a_decimal_holds_is_rounded_on_its_digits() {
+    for (typed, rounded) in [
+        ("1.00000000000000000000000000004", "1.00"),
+        ("0.00000000000000000000000000001", "0.00"),
+        ("-1.00000000000000000000000000004", "-1.00"),
+        ("999999999.00000000000000000001", "999999999.00"),
+        ("999999999.0000000000000000000001", "999999999.00"),
+        ("12345.0000000000000000000000001", "12345.00"),
+        ("1.0050000000000000000000000000001", "1.01"),
+        ("1.0049999999999999999999999999999", "1.00"),
     ] {
-        assert_eq!(Money::parse(text), Err(MoneyError::Precision), "{text}");
+        assert_eq!(money(typed).to_string(), rounded, "{typed}");
     }
-    // Trailing zeros carry no value and stay accepted, however many there are.
+    // Trailing zeros carry no value, however many there are.
+    assert_eq!(money("1.00000000000000000000000000000").to_string(), "1.00");
+}
+
+#[test]
+fn very_long_digit_strings_do_not_panic() {
+    let digits = "9".repeat(64);
+    for text in [
+        digits.clone(),
+        format!("{digits}.{digits}"),
+        format!("-{digits}"),
+        format!("0.{digits}"),
+        format!("{}.{}", "9".repeat(27), "9".repeat(36)),
+        "0".repeat(64),
+        format!("0.{}5", "0".repeat(60)),
+    ] {
+        let _ = Money::parse(&text);
+        let _ = Money::parse_decimal(&text);
+    }
+    // 27 nines before the point still fit a decimal once rounded to two places.
     assert_eq!(
-        Money::parse("1.00000000000000000000000000000")
+        Money::parse(&format!("{}.004", "9".repeat(20)))
             .unwrap()
-            .value()
+            .to_string(),
+        format!("{}.00", "9".repeat(20))
+    );
+    assert_eq!(
+        Money::parse(&format!("0.{}", "9".repeat(60)))
+            .unwrap()
             .to_string(),
         "1.00"
     );

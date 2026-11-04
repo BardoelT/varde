@@ -12,13 +12,27 @@ use serde::{Deserialize, Deserializer, Serialize};
 use thiserror::Error;
 
 /// Longest accepted amount text, a bound on untrusted input.
-/// The most fraction digits a `Decimal` holds exactly.
-const MAX_DECIMAL_FRACTION_DIGITS: usize = 28;
-
-const MAX_TEXT_LEN: usize = 32;
+const MAX_TEXT_LEN: usize = 64;
 
 /// The number of decimals every amount has.
 const SCALE: u32 = 2;
+
+/// [`SCALE`] as a digit count.
+const FRACTION_DIGITS: usize = 2;
+
+/// Adds one to the last digit of a string of ASCII digits, carrying, growing
+/// the string by a leading `1` when every digit was a nine.
+fn increment(digits: &mut Vec<u8>) {
+    for digit in digits.iter_mut().rev() {
+        if *digit == b'9' {
+            *digit = b'0';
+        } else {
+            *digit += 1;
+            return;
+        }
+    }
+    digits.insert(0, b'1');
+}
 
 /// Why a decimal or a text is not a valid amount. The area types map these to
 /// their own error codes.
@@ -27,7 +41,8 @@ pub enum MoneyError {
     /// The text is not a plain number such as `12500.00` or `-250`.
     #[error("not a plain decimal number")]
     Invalid,
-    /// The value has more than two significant decimals.
+    /// A decimal read from a project file has more than two significant
+    /// decimals. Typed text never gives this: it is rounded (CSD-000 CON-8).
     #[error("more than two decimals")]
     Precision,
     /// The value is too large to be held with two decimals at all.
@@ -53,9 +68,10 @@ impl Money {
     /// typos.
     pub const MAX_BALANCE: Self = Self(Decimal::from_parts(1_215_752_192, 23, 0, false, SCALE));
 
-    /// Builds an amount from a decimal, which must not carry more than two
-    /// significant decimals: `3000.500` is accepted as `3000.50`, `3000.505`
-    /// is rejected. Nothing is rounded.
+    /// Builds an amount from a decimal read from a project file, which must
+    /// not carry more than two significant decimals: `3000.500` is accepted as
+    /// `3000.50`, `3000.505` is rejected. Nothing is rounded: only typed text
+    /// is rounded ([`Money::parse`]), the file stays strict (CSD-002).
     ///
     /// # Errors
     /// `Precision` for more than two decimals, `TooLarge` for a value that
@@ -67,13 +83,36 @@ impl Money {
         Self::at_scale_two(value).ok_or(MoneyError::TooLarge)
     }
 
+    /// Reads the text of an amount from a project file: a plain number with
+    /// at most two significant decimals. Unlike [`Money::parse`] nothing is
+    /// rounded, and a fraction that a `Decimal` could not hold exactly is
+    /// refused too.
+    fn from_file_text(text: &str) -> Result<Self, MoneyError> {
+        let unsigned = text.strip_prefix('-').unwrap_or(text);
+        let (whole, fraction) = unsigned.split_once('.').unwrap_or((unsigned, ""));
+        let digits_only = |part: &str| part.bytes().all(|byte| byte.is_ascii_digit());
+        let well_formed = text.len() <= MAX_TEXT_LEN
+            && !whole.is_empty()
+            && digits_only(whole)
+            && digits_only(fraction)
+            && (fraction.is_empty() != unsigned.contains('.'));
+        if !well_formed {
+            return Err(MoneyError::Invalid);
+        }
+        if fraction.trim_end_matches('0').len() > FRACTION_DIGITS {
+            return Err(MoneyError::Precision);
+        }
+        let value = Decimal::from_str(text).map_err(|_| MoneyError::TooLarge)?;
+        Self::from_decimal(value)
+    }
+
     /// Parses an amount typed by the user: `[-]digits[.digits]`, with no
-    /// exponent, separators or `+` sign, and the precision rule of
-    /// [`Money::from_decimal`].
+    /// exponent, separators or `+` sign, rounded to two decimals half-up
+    /// ([`Money::parse_decimal`]).
     ///
     /// # Errors
-    /// `Invalid` for text that is not a plain number, otherwise the errors of
-    /// [`Money::from_decimal`].
+    /// `Invalid` for text that is not a plain number, `TooLarge` for a value
+    /// that cannot be held.
     #[allow(
         dead_code,
         reason = "part of the Money API; the area types parse in two steps to keep their error order"
@@ -82,17 +121,21 @@ impl Money {
         Self::from_decimal(Self::parse_decimal(text)?)
     }
 
-    /// The plain-number rule of [`Money::parse`] without the precision rule,
-    /// for area types that check their own rules (negative, zero) between the
-    /// two.
+    /// The plain-number rule of [`Money::parse`] for area types that check
+    /// their own rules (negative, zero, too large) between parsing and
+    /// building. The text is rounded half-up to two decimals on its digits: the
+    /// third fraction digit decides, 5 or more rounds the magnitude up, however
+    /// long the rest is, and a result of zero has no sign (CSD-000 CON-8).
     ///
     /// # Errors
-    /// `Invalid` for text that is not a plain number.
+    /// `Invalid` for text that is not a plain number, `TooLarge` for a value a
+    /// `Decimal` cannot hold.
     pub fn parse_decimal(text: &str) -> Result<Decimal, MoneyError> {
         let text = text.trim();
         if text.len() > MAX_TEXT_LEN {
             return Err(MoneyError::Invalid);
         }
+        let negative = text.starts_with('-');
         let unsigned = text.strip_prefix('-').unwrap_or(text);
         let (whole, fraction) = unsigned.split_once('.').unwrap_or((unsigned, ""));
         let digits_only = |part: &str| part.bytes().all(|byte| byte.is_ascii_digit());
@@ -103,13 +146,24 @@ impl Money {
         if !well_formed {
             return Err(MoneyError::Invalid);
         }
-        // `Decimal` rounds a fraction of more than 28 digits instead of failing,
-        // which would turn `1.00000000000000000000000000004` into `1.00`:
-        // significant digits that far out are over-precise input.
-        if fraction.trim_end_matches('0').len() > MAX_DECIMAL_FRACTION_DIGITS {
-            return Err(MoneyError::Precision);
+        let mut fraction_bytes = fraction.bytes().chain(std::iter::repeat(b'0'));
+        let mut digits: Vec<u8> = whole.bytes().collect();
+        digits.extend(fraction_bytes.by_ref().take(FRACTION_DIGITS));
+        let round_up = fraction_bytes.next().is_some_and(|digit| digit >= b'5');
+        if round_up {
+            increment(&mut digits);
         }
-        Decimal::from_str(text).map_err(|_| MoneyError::Invalid)
+        let is_zero = digits.iter().all(|digit| *digit == b'0');
+        let (whole_digits, fraction_digits) =
+            digits.split_at(digits.len().saturating_sub(FRACTION_DIGITS));
+        let mut rounded = String::with_capacity(digits.len() + 2);
+        if negative && !is_zero {
+            rounded.push('-');
+        }
+        rounded.extend(whole_digits.iter().map(|digit| char::from(*digit)));
+        rounded.push('.');
+        rounded.extend(fraction_digits.iter().map(|digit| char::from(*digit)));
+        Decimal::from_str(&rounded).map_err(|_| MoneyError::TooLarge)
     }
 
     /// Rounds a computed result to two decimals, half-up: the midpoint goes
@@ -196,8 +250,31 @@ impl fmt::Display for Money {
 }
 
 impl<'de> Deserialize<'de> for Money {
+    /// Reads an amount of a project file, strictly: a plain decimal string
+    /// with at most two significant decimals, never rounded (CSD-002 REQ-19).
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = <Decimal as Deserialize>::deserialize(deserializer)?;
-        Self::from_decimal(value).map_err(serde::de::Error::custom)
+        struct StrictAmount;
+
+        impl serde::de::Visitor<'_> for StrictAmount {
+            type Value = Money;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str("a decimal string with at most two decimals")
+            }
+
+            fn visit_str<E: serde::de::Error>(self, text: &str) -> Result<Money, E> {
+                Money::from_file_text(text).map_err(E::custom)
+            }
+
+            fn visit_i64<E: serde::de::Error>(self, value: i64) -> Result<Money, E> {
+                Money::from_decimal(Decimal::from(value)).map_err(E::custom)
+            }
+
+            fn visit_u64<E: serde::de::Error>(self, value: u64) -> Result<Money, E> {
+                Money::from_decimal(Decimal::from(value)).map_err(E::custom)
+            }
+        }
+
+        deserializer.deserialize_any(StrictAmount)
     }
 }

@@ -19,14 +19,15 @@ impl BankBalance {
     /// Builds a balance from a decimal.
     ///
     /// # Errors
-    /// Returns `BankEntryBalancePrecision` for more than two decimals and
+    /// Returns `BankEntryBalanceInvalid` for more than two decimals (never typed
+    /// text, which is rounded) and
     /// `BankEntryBalanceTooLarge` above 1,000,000,000.00 in absolute value.
     /// Zero and negative values are valid.
     pub fn new(value: Decimal) -> Result<Self, DomainError> {
         bounded(
             value,
             Money::MAX_BALANCE,
-            DomainError::BankEntryBalancePrecision,
+            DomainError::BankEntryBalanceInvalid,
             DomainError::BankEntryBalanceTooLarge,
         )
         .map(Self)

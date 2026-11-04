@@ -457,11 +457,47 @@ fn test_csd011_ac_10_1_invalid_balances_are_rejected() {
         ("1e3", "DEBT_STATEMENT_BALANCE_INVALID"),
         ("2500,50", "DEBT_STATEMENT_BALANCE_INVALID"),
         ("-0.01", "DEBT_STATEMENT_BALANCE_NEGATIVE"),
-        ("1000.999", "DEBT_STATEMENT_BALANCE_PRECISION"),
         ("1000000000.01", "DEBT_STATEMENT_BALANCE_TOO_LARGE"),
     ] {
         assert_eq!(code(DebtBalance::parse(text)), expected, "{text:?}");
     }
+}
+
+#[test]
+fn test_csd011_ac_29_1_a_typed_balance_is_rounded_half_up() {
+    for (typed, stored) in [
+        ("3000.505", "3000.51"),
+        ("1.004", "1.00"),
+        ("1.005", "1.01"),
+        ("1000.999", "1001.00"),
+        ("0.004", "0.00"),
+        ("-0.004", "0.00"),
+        ("150000.5", "150000.50"),
+    ] {
+        assert_eq!(balance(typed).value().to_string(), stored, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd011_ac_29_2_the_limit_is_checked_after_rounding() {
+    assert_eq!(
+        balance("1000000000.004").value().to_string(),
+        "1000000000.00"
+    );
+    for (typed, expected) in [
+        ("1000000000.005", "DEBT_STATEMENT_BALANCE_TOO_LARGE"),
+        ("-0.005", "DEBT_STATEMENT_BALANCE_NEGATIVE"),
+    ] {
+        assert_eq!(code(DebtBalance::parse(typed)), expected, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd011_ac_29_3_a_typed_balance_in_an_edit_is_rounded() {
+    let mut debts = Debts::default();
+    let id = debt(&mut debts, "Example Mortgage", "Monthly");
+    add(&mut debts, id, "2026-09", "150000.00");
+    assert_eq!(balance("1000.999").value().to_string(), "1001.00");
 }
 
 #[test]

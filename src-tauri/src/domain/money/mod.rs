@@ -49,8 +49,8 @@ impl Amounts {
     /// Builds amounts from decimals, applying the rules of CSD-001 REQ-7.
     ///
     /// # Errors
-    /// Returns the first violated rule: negative, more than two decimals,
-    /// above 1,000,000.00, or gross salary not greater than zero.
+    /// Returns the first violated rule: negative, not a two-decimal
+    /// amount, above 1,000,000.00, or gross salary not greater than zero.
     pub fn new(
         gross_salary: Decimal,
         holiday_pay: Decimal,
@@ -64,16 +64,17 @@ impl Amounts {
             bounded(
                 value,
                 Money::MAX_PAYCHECK,
-                DomainError::PaycheckAmountPrecision,
+                DomainError::PaycheckAmountInvalid,
                 DomainError::PaycheckAmountTooLarge,
             )
         };
-        // The precision of all three comes before the size of any.
+        // A decimal with more than two decimals (never typed text, which is
+        // rounded) comes before the size of any amount.
         if all
             .iter()
             .any(|amount| Money::from_decimal(*amount) == Err(MoneyError::Precision))
         {
-            return Err(DomainError::PaycheckAmountPrecision);
+            return Err(DomainError::PaycheckAmountInvalid);
         }
         let (gross_salary, holiday_pay, bonus) =
             (money(gross_salary)?, money(holiday_pay)?, money(bonus)?);
@@ -135,17 +136,19 @@ pub fn zero() -> Decimal {
     Money::ZERO.value()
 }
 
-/// Checks a decimal against the precision rule and an absolute limit, giving
-/// the area's own error codes. The sign rules of an area come before this.
+/// Checks a decimal against two decimals at most and an absolute limit, giving
+/// the area's own error codes. Typed text is rounded before it gets here, so
+/// only a decimal that did not come from typed text can be over-precise, and
+/// then it is `invalid`. The sign rules of an area come before this.
 pub(crate) fn bounded(
     value: Decimal,
     limit: Money,
-    precision: DomainError,
+    invalid: DomainError,
     too_large: DomainError,
 ) -> Result<Money, DomainError> {
     let money = Money::from_decimal(value).map_err(|error| match error {
         MoneyError::TooLarge => too_large.clone(),
-        MoneyError::Invalid | MoneyError::Precision => precision,
+        MoneyError::Invalid | MoneyError::Precision => invalid,
     })?;
     if money.abs() > limit {
         return Err(too_large);

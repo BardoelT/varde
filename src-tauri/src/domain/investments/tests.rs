@@ -414,11 +414,90 @@ fn test_csd005_ac_8_2_a_yearly_statement_for_a_monthly_account_is_rejected() {
 fn test_csd005_ac_9_1_invalid_balances_are_rejected() {
     for (text, code) in [
         ("-0.01", "INVESTMENT_BALANCE_NEGATIVE"),
-        ("1000.999", "INVESTMENT_BALANCE_PRECISION"),
         ("1000000000.01", "INVESTMENT_BALANCE_TOO_LARGE"),
     ] {
         assert_eq!(Balance::parse(text).unwrap_err().code(), code, "{text}");
     }
+}
+
+#[test]
+fn test_csd005_ac_30_1_a_typed_balance_is_rounded_half_up() {
+    for (typed, stored) in [
+        ("12500.505", "12500.51"),
+        ("1.004", "1.00"),
+        ("1.005", "1.01"),
+        ("1000.999", "1001.00"),
+        ("0.004", "0.00"),
+        ("-0.004", "0.00"),
+        ("12500.5", "12500.50"),
+    ] {
+        assert_eq!(balance(typed).value().to_string(), stored, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd005_ac_30_2_typed_net_deposits_are_rounded_half_up() {
+    for (typed, stored) in [
+        ("100.999", "101.00"),
+        ("-100.999", "-101.00"),
+        ("-0.125", "-0.13"),
+        ("-0.004", "0.00"),
+        ("100.004", "100.00"),
+    ] {
+        assert_eq!(deposits(typed).value().to_string(), stored, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd005_ac_30_3_the_limits_are_checked_after_rounding() {
+    assert_eq!(
+        balance("1000000000.004").value().to_string(),
+        "1000000000.00"
+    );
+    assert_eq!(
+        deposits("-1000000000.004").value().to_string(),
+        "-1000000000.00"
+    );
+    for (text, code) in [
+        ("1000000000.005", "INVESTMENT_BALANCE_TOO_LARGE"),
+        ("-0.005", "INVESTMENT_BALANCE_NEGATIVE"),
+    ] {
+        assert_eq!(Balance::parse(text).unwrap_err().code(), code, "{text}");
+    }
+    assert_eq!(
+        NetDeposits::parse("1000000000.005").unwrap_err().code(),
+        "INVESTMENT_NET_DEPOSITS_TOO_LARGE"
+    );
+}
+
+#[test]
+fn test_csd005_ac_30_4_typed_capital_growth_is_rounded_half_up() {
+    let (investments, id) = account_with_august();
+    for (typed, balance, growth) in [
+        ("200.005", "12200.01", "200.01"),
+        ("200.004", "12200.00", "200.00"),
+        ("-200.999", "11799.00", "-201.00"),
+    ] {
+        let result = calculate(
+            &investments,
+            id,
+            "2026-09",
+            "0.00",
+            CalculationInput::Growth,
+            typed,
+        )
+        .unwrap();
+        assert_eq!(result.balance.to_string(), balance, "{typed}");
+        assert_eq!(result.capital_growth.to_string(), growth, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd005_ac_30_5_a_typed_balance_in_an_edit_is_rounded() {
+    let mut investments = Investments::default();
+    let id = add_account(&mut investments, "Example Brokerage", "Monthly");
+    add(&mut investments, id, "2026-09", "12500.00");
+    assert_eq!(balance("1000.999").value().to_string(), "1001.00");
 }
 
 #[test]
@@ -860,8 +939,6 @@ fn test_csd005_ac_22_1_invalid_net_deposits_are_rejected() {
         ("abc", "INVESTMENT_NET_DEPOSITS_INVALID"),
         ("1e3", "INVESTMENT_NET_DEPOSITS_INVALID"),
         ("300,50", "INVESTMENT_NET_DEPOSITS_INVALID"),
-        ("100.999", "INVESTMENT_NET_DEPOSITS_PRECISION"),
-        ("-100.999", "INVESTMENT_NET_DEPOSITS_PRECISION"),
         ("1000000000.01", "INVESTMENT_NET_DEPOSITS_TOO_LARGE"),
         ("-1000000000.01", "INVESTMENT_NET_DEPOSITS_TOO_LARGE"),
     ] {
@@ -889,8 +966,8 @@ fn test_csd005_ac_22_3_invalid_net_deposits_in_an_edit_change_nothing() {
     let id = add_account(&mut investments, "Example Brokerage", "Monthly");
     add_with_deposits(&mut investments, id, "2026-09", "12500.00", "300.00");
     assert_eq!(
-        NetDeposits::parse("100.999").unwrap_err().code(),
-        "INVESTMENT_NET_DEPOSITS_PRECISION"
+        NetDeposits::parse("abc").unwrap_err().code(),
+        "INVESTMENT_NET_DEPOSITS_INVALID"
     );
     let rows = investments.all_statements();
     assert_eq!(rows[0].1.net_deposits.value().to_string(), "300.00");
@@ -1215,7 +1292,6 @@ fn test_csd005_ac_25_2_invalid_growth_is_rejected() {
     for (text, code) in [
         ("abc", "INVESTMENT_GROWTH_INVALID"),
         ("", "INVESTMENT_GROWTH_INVALID"),
-        ("100.999", "INVESTMENT_GROWTH_PRECISION"),
         ("1000000000.01", "INVESTMENT_GROWTH_TOO_LARGE"),
         ("-1000000000.01", "INVESTMENT_GROWTH_TOO_LARGE"),
     ] {
@@ -1253,7 +1329,6 @@ fn test_csd005_ac_25_3_a_growth_that_gives_a_balance_above_the_limit_is_rejected
 fn test_csd005_ac_25_4_invalid_net_deposits_in_the_form_are_rejected() {
     let (investments, id) = account_with_august();
     for (text, code) in [
-        ("100.999", "INVESTMENT_NET_DEPOSITS_PRECISION"),
         ("abc", "INVESTMENT_NET_DEPOSITS_INVALID"),
         ("1000000000.01", "INVESTMENT_NET_DEPOSITS_TOO_LARGE"),
     ] {

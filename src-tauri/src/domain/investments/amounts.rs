@@ -16,7 +16,7 @@ impl Balance {
     /// Builds a balance from a decimal.
     ///
     /// # Errors
-    /// Returns the first violated rule: negative, more than two decimals, or
+    /// Returns the first violated rule: negative or
     /// above 1,000,000,000.00. Zero is valid.
     pub fn new(value: Decimal) -> Result<Self, DomainError> {
         if value < Decimal::ZERO {
@@ -25,7 +25,7 @@ impl Balance {
         bounded(
             value,
             Money::MAX_BALANCE,
-            DomainError::InvestmentBalancePrecision,
+            DomainError::InvestmentBalanceInvalid,
             DomainError::InvestmentBalanceTooLarge,
         )
         .map(Self)
@@ -47,14 +47,14 @@ impl Balance {
     }
 }
 
-/// Checks a signed amount: at most two decimals and an absolute value up to
+/// Checks a signed amount: an absolute value up to
 /// 1,000,000,000.00 (CSD-005 REQ-22, REQ-25).
 fn signed_amount(
     value: Decimal,
-    precision: DomainError,
+    invalid: DomainError,
     too_large: DomainError,
 ) -> Result<Money, DomainError> {
-    bounded(value, Money::MAX_BALANCE, precision, too_large)
+    bounded(value, Money::MAX_BALANCE, invalid, too_large)
 }
 
 /// The net deposits of a statement: what the user put in minus what was taken
@@ -73,12 +73,12 @@ impl NetDeposits {
     /// Builds net deposits from a decimal.
     ///
     /// # Errors
-    /// Returns `InvestmentNetDepositsPrecision` for more than two decimals and
-    /// `InvestmentNetDepositsTooLarge` above 1,000,000,000.00 in absolute value.
+    /// Returns `InvestmentNetDepositsInvalid` for more than two decimals (never
+    /// typed text, which is rounded) and `InvestmentNetDepositsTooLarge` above 1,000,000,000.00 in absolute value.
     pub fn new(value: Decimal) -> Result<Self, DomainError> {
         signed_amount(
             value,
-            DomainError::InvestmentNetDepositsPrecision,
+            DomainError::InvestmentNetDepositsInvalid,
             DomainError::InvestmentNetDepositsTooLarge,
         )
         .map(Self)
@@ -108,7 +108,7 @@ pub(super) fn parse_growth(text: &str) -> Result<Money, DomainError> {
     let value = plain_decimal(text, DomainError::InvestmentGrowthInvalid)?;
     signed_amount(
         value,
-        DomainError::InvestmentGrowthPrecision,
+        DomainError::InvestmentGrowthInvalid,
         DomainError::InvestmentGrowthTooLarge,
     )
 }

@@ -210,7 +210,6 @@ fn test_csd013_ac_5_1_invalid_amounts_are_rejected() {
         ("2500,50", "EXPENSE_AMOUNT_INVALID"),
         ("0.00", "EXPENSE_AMOUNT_NOT_POSITIVE"),
         ("-0.01", "EXPENSE_AMOUNT_NOT_POSITIVE"),
-        ("100.999", "EXPENSE_AMOUNT_PRECISION"),
         ("1000000000.01", "EXPENSE_AMOUNT_TOO_LARGE"),
     ] {
         let mut expenses = Expenses::default();
@@ -218,6 +217,55 @@ fn test_csd013_ac_5_1_invalid_amounts_are_rejected() {
         assert_eq!(code(result), expected, "{amount:?}");
         assert_eq!(expenses.total_count(), 0);
     }
+}
+
+#[test]
+fn test_csd013_ac_18_1_a_typed_amount_is_rounded_half_up() {
+    for (typed, stored) in [
+        ("4500.505", "4500.51"),
+        ("1.004", "1.00"),
+        ("1.005", "1.01"),
+        ("100.999", "101.00"),
+        ("0.005", "0.01"),
+        ("4500.5", "4500.50"),
+    ] {
+        let mut expenses = Expenses::default();
+        let added = add(&mut expenses, "Example", typed, "15/09/2026", "Other");
+        assert_eq!(added.amount.value().to_string(), stored, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd013_ac_18_2_zero_and_the_limit_are_checked_after_rounding() {
+    for (typed, expected) in [
+        ("0.004", "EXPENSE_AMOUNT_NOT_POSITIVE"),
+        ("-0.004", "EXPENSE_AMOUNT_NOT_POSITIVE"),
+        ("1000000000.005", "EXPENSE_AMOUNT_TOO_LARGE"),
+    ] {
+        let mut expenses = Expenses::default();
+        let result = expenses.add_expense(&input("Example", typed, "15/09/2026", "Other"));
+        assert_eq!(code(result), expected, "{typed}");
+    }
+    let mut expenses = Expenses::default();
+    let added = add(
+        &mut expenses,
+        "Example",
+        "1000000000.004",
+        "15/09/2026",
+        "Other",
+    );
+    assert_eq!(added.amount.value().to_string(), "1000000000.00");
+}
+
+#[test]
+fn test_csd013_ac_18_3_a_typed_amount_in_an_edit_is_rounded() {
+    let mut expenses = Expenses::default();
+    let added = add(&mut expenses, "Example", "4500.00", "15/09/2026", "Other");
+    assert_eq!(
+        ExpenseAmount::parse("100.999").unwrap().value().to_string(),
+        "101.00"
+    );
+    assert_eq!(added.amount.value().to_string(), "4500.00");
 }
 
 #[test]

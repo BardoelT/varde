@@ -441,11 +441,44 @@ fn test_csd015_ac_10_1_invalid_values_are_rejected() {
         ("1e3", "HOUSE_VALUATION_VALUE_INVALID"),
         ("2500,50", "HOUSE_VALUATION_VALUE_INVALID"),
         ("-0.01", "HOUSE_VALUATION_VALUE_NEGATIVE"),
-        ("1000.999", "HOUSE_VALUATION_VALUE_PRECISION"),
         ("1000000000.01", "HOUSE_VALUATION_VALUE_TOO_LARGE"),
     ] {
         assert_eq!(code(HouseValue::parse(text)), expected, "{text:?}");
     }
+}
+
+#[test]
+fn test_csd015_ac_28_1_a_typed_value_is_rounded_half_up() {
+    for (typed, stored) in [
+        ("300000.505", "300000.51"),
+        ("1.004", "1.00"),
+        ("1.005", "1.01"),
+        ("1000.999", "1001.00"),
+        ("0.004", "0.00"),
+        ("-0.004", "0.00"),
+        ("300000.5", "300000.50"),
+    ] {
+        assert_eq!(value(typed).value().to_string(), stored, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd015_ac_28_2_the_limit_is_checked_after_rounding() {
+    assert_eq!(value("1000000000.004").value().to_string(), "1000000000.00");
+    for (typed, expected) in [
+        ("1000000000.005", "HOUSE_VALUATION_VALUE_TOO_LARGE"),
+        ("-0.005", "HOUSE_VALUATION_VALUE_NEGATIVE"),
+    ] {
+        assert_eq!(code(HouseValue::parse(typed)), expected, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd015_ac_28_3_a_typed_value_in_an_edit_is_rounded() {
+    let mut houses = Houses::default();
+    let id = new_house(&mut houses, "Example House", "Monthly");
+    add(&mut houses, id, "2026-09", "300000.00");
+    assert_eq!(value("1000.999").value().to_string(), "1001.00");
 }
 
 #[test]

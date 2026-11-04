@@ -225,7 +225,6 @@ fn test_csd019_ac_4_1_invalid_amounts_are_rejected() {
         ("abc", "HOUSE_AMOUNT_INVALID"),
         ("1e3", "HOUSE_AMOUNT_INVALID"),
         ("-0.01", "HOUSE_AMOUNT_NEGATIVE"),
-        ("1000.999", "HOUSE_AMOUNT_PRECISION"),
         ("1000000000.01", "HOUSE_AMOUNT_TOO_LARGE"),
     ] {
         let mut houses = Houses::default();
@@ -242,6 +241,65 @@ fn test_csd019_ac_4_1_invalid_amounts_are_rejected() {
         assert_eq!(code(result), expected, "{amount}");
         assert!(house(&houses, id).is_held());
     }
+}
+
+/// The sell amount of a held house after selling it for the typed `amount`.
+fn sold_for(amount: &str) -> Result<String, DomainError> {
+    let mut houses = Houses::default();
+    let id = create(&mut houses, ("15/03/2024", "250000.00"), ("", ""));
+    houses.update_house(
+        id,
+        &input(
+            "Example House",
+            "Monthly",
+            ("15/03/2024", "250000.00"),
+            ("10/06/2026", amount),
+        ),
+    )?;
+    Ok(house(&houses, id).sale.unwrap().amount.value().to_string())
+}
+
+#[test]
+fn test_csd019_ac_15_1_a_typed_amount_is_rounded_half_up() {
+    for (typed, stored) in [
+        ("300000.505", "300000.51"),
+        ("1.004", "1.00"),
+        ("1.005", "1.01"),
+        ("1000.999", "1001.00"),
+        ("0.004", "0.00"),
+        ("300000.5", "300000.50"),
+    ] {
+        assert_eq!(sold_for(typed).unwrap(), stored, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd019_ac_15_2_the_limit_is_checked_after_rounding() {
+    assert_eq!(sold_for("1000000000.004").unwrap(), "1000000000.00");
+    assert_eq!(sold_for("-0.004").unwrap(), "0.00");
+    assert_eq!(code(sold_for("1000000000.005")), "HOUSE_AMOUNT_TOO_LARGE");
+    assert_eq!(code(sold_for("-0.005")), "HOUSE_AMOUNT_NEGATIVE");
+}
+
+#[test]
+fn test_csd019_ac_15_3_a_typed_amount_in_an_edit_is_rounded() {
+    let mut houses = Houses::default();
+    let id = create(&mut houses, ("15/03/2024", "250000.00"), ("", ""));
+    houses
+        .update_house(
+            id,
+            &input(
+                "Example House",
+                "Monthly",
+                ("15/03/2024", "250000.999"),
+                ("", ""),
+            ),
+        )
+        .unwrap();
+    assert_eq!(
+        house(&houses, id).purchase_amount.value().to_string(),
+        "250001.00"
+    );
 }
 
 #[test]

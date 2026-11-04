@@ -1008,6 +1008,61 @@ fn test_csd002_con_1_project_file_is_private_to_the_owner() {
     assert_eq!(mode & 0o077, 0, "mode {mode:o}");
 }
 
+// ---- REQ-19: amounts in the file are strict ----
+
+/// A saved project with one job and a paycheck for 2026-09, and the path it
+/// was saved to.
+fn project_with_a_paycheck(dir: &TempDir) -> (Project, std::path::PathBuf) {
+    let mut project = Project::new();
+    let job = add_job(&mut project, "Example Employer");
+    add_paycheck(&mut project, job, "2026-09", "3000.00");
+    let path = dir.path().join("example-a.varde");
+    project.save_as(path.clone()).unwrap();
+    (project, path)
+}
+
+#[test]
+fn test_csd002_ac_19_1_a_file_amount_with_more_than_two_decimals_is_rejected_not_rounded() {
+    let dir = TempDir::new().unwrap();
+    let (mut project, path) = project_with_a_paycheck(&dir);
+    let good: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+    for amount in [
+        "3000.505",
+        "0.001",
+        "-1.234",
+        "1.00000000000000000000000000004",
+    ] {
+        let mut value = good.clone();
+        value["income"]["paychecks"][0]["gross_salary"] = serde_json::json!(amount);
+        let bad = dir.path().join("bad.varde");
+        fs::write(&bad, value.to_string()).unwrap();
+        let error = project.open(&bad).err();
+        assert_eq!(
+            error.map(|error| error.code()),
+            Some("PROJECT_INVALID_FILE"),
+            "{amount}"
+        );
+        assert_eq!(job_count(&project), 1, "{amount}");
+    }
+}
+
+#[test]
+fn test_csd002_ac_19_2_trailing_zeros_in_a_file_amount_are_accepted() {
+    let dir = TempDir::new().unwrap();
+    let (mut project, path) = project_with_a_paycheck(&dir);
+    let mut value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+    value["income"]["paychecks"][0]["gross_salary"] = serde_json::json!("3000.500");
+    let other = dir.path().join("example-b.varde");
+    fs::write(&other, value.to_string()).unwrap();
+    project.open(&other).unwrap();
+    assert_eq!(job_count(&project), 1);
+    let saved: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+    assert_eq!(saved["income"]["paychecks"][0]["gross_salary"], "3000.00");
+}
+
 // ---- REQ-17: a misspelled section must not wipe data ----
 
 #[test]

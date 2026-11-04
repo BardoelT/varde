@@ -18,7 +18,7 @@ impl DebtBalance {
     /// Builds a balance from a decimal.
     ///
     /// # Errors
-    /// Returns the first violated rule: negative, more than two decimals, or
+    /// Returns the first violated rule: negative or
     /// above 1,000,000,000.00. Zero is valid.
     pub fn new(value: Decimal) -> Result<Self, DomainError> {
         if value < Decimal::ZERO {
@@ -27,7 +27,7 @@ impl DebtBalance {
         bounded(
             value,
             Money::MAX_BALANCE,
-            DomainError::DebtStatementBalancePrecision,
+            DomainError::DebtStatementBalanceInvalid,
             DomainError::DebtStatementBalanceTooLarge,
         )
         .map(Self)

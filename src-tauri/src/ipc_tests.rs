@@ -903,11 +903,27 @@ fn test_csd005_ac_17_8_net_deposits_and_capital_growth_over_ipc() {
     // AC-22.1 and AC-22.3: invalid net deposits are rejected and change nothing.
     let error = app.err(
         "update_investment_statement",
-        json!({ "accountId": id, "period": "2026-09", "newPeriod": "2026-09", "balance": "12500.00", "netDeposits": "100.999" }),
+        json!({ "accountId": id, "period": "2026-09", "newPeriod": "2026-09", "balance": "12500.00", "netDeposits": "abc" }),
     );
-    assert_eq!(error["code"], "INVESTMENT_NET_DEPOSITS_PRECISION");
+    assert_eq!(error["code"], "INVESTMENT_NET_DEPOSITS_INVALID");
     let rows = app.ok("list_investment_statements", json!({}));
     assert_eq!(rows[0]["net_deposits"], "0.00");
+
+    // AC-30.2: typed net deposits with more than two decimals are rounded half-up.
+    let edited = app.ok(
+        "update_investment_statement",
+        json!({ "accountId": id, "period": "2026-09", "newPeriod": "2026-09", "balance": "12500.00", "netDeposits": "100.999" }),
+    );
+    assert_eq!(edited["net_deposits"], "101.00");
+    assert_eq!(edited["capital_growth"], "399.00");
+    let result = app.ok(
+        "calculate_investment_statement",
+        json!({ "accountId": id, "period": "2026-09", "netDeposits": "", "input": "growth", "value": "200.005" }),
+    );
+    assert_eq!(
+        result,
+        json!({ "balance": "12200.01", "capital_growth": "200.01" })
+    );
 }
 
 #[test]
@@ -1439,7 +1455,6 @@ fn test_csd009_bank_errors_reach_the_frontend_as_codes() {
     );
     let id = account["id"].clone();
     for (period, balance, code) in [
-        ("2026-09", "1000.999", "BANK_ENTRY_BALANCE_PRECISION"),
         ("2026-09", "abc", "BANK_ENTRY_BALANCE_INVALID"),
         ("2026-09", "1000000000.01", "BANK_ENTRY_BALANCE_TOO_LARGE"),
         ("2026-13", "1.00", "BANK_ENTRY_PERIOD_INVALID"),
@@ -1686,7 +1701,6 @@ fn test_csd011_debt_errors_reach_the_frontend_as_codes() {
     let id = debt["id"].clone();
     for (period, balance, code) in [
         ("2026-09", "-1.00", "DEBT_STATEMENT_BALANCE_NEGATIVE"),
-        ("2026-09", "1000.999", "DEBT_STATEMENT_BALANCE_PRECISION"),
         ("2026-09", "abc", "DEBT_STATEMENT_BALANCE_INVALID"),
         (
             "2026-09",
@@ -1932,7 +1946,6 @@ fn test_csd015_house_errors_reach_the_frontend_as_codes() {
     let id = house["id"].clone();
     for (period, value, code) in [
         ("2026-09", "-1.00", "HOUSE_VALUATION_VALUE_NEGATIVE"),
-        ("2026-09", "1000.999", "HOUSE_VALUATION_VALUE_PRECISION"),
         ("2026-09", "abc", "HOUSE_VALUATION_VALUE_INVALID"),
         (
             "2026-09",
@@ -2236,4 +2249,54 @@ fn test_csd019_ac_8_2_the_sale_and_its_result_reach_the_frontend() {
         json!({ "input": { "name": "Example Lodge", "period": "Monthly" } }),
     );
     assert_eq!(error["code"], "HOUSE_PURCHASE_DATE_REQUIRED");
+}
+
+#[test]
+fn test_csd009_ac_25_1_a_typed_balance_is_rounded_over_ipc() {
+    let app = harness();
+    let account = app.ok(
+        "create_bank_account",
+        json!({ "input": bank_input("Example Current Account", "Monthly") }),
+    );
+    let id = account["id"].clone();
+    let added = app.ok(
+        "add_bank_entry",
+        json!({ "accountId": id, "period": "2026-09", "balance": "-1000.999" }),
+    );
+    assert_eq!(added["balance"], "-1001.00");
+    let added = app.ok(
+        "add_bank_entry",
+        json!({ "accountId": id, "period": "2026-10", "balance": "-0.004" }),
+    );
+    assert_eq!(added["balance"], "0.00");
+}
+
+#[test]
+fn test_csd011_ac_29_1_a_typed_balance_is_rounded_over_ipc() {
+    let app = harness();
+    let debt = app.ok(
+        "create_debt",
+        json!({ "input": debt_input("Example Mortgage", "Monthly") }),
+    );
+    let id = debt["id"].clone();
+    let added = app.ok(
+        "add_debt_statement",
+        json!({ "debtId": id, "period": "2026-09", "balance": "1000.999" }),
+    );
+    assert_eq!(added["balance"], "1001.00");
+}
+
+#[test]
+fn test_csd015_ac_28_1_a_typed_value_is_rounded_over_ipc() {
+    let app = harness();
+    let house = app.ok(
+        "create_house",
+        json!({ "input": house_input("Example House", "Monthly") }),
+    );
+    let id = house["id"].clone();
+    let added = app.ok(
+        "add_house_valuation",
+        json!({ "houseId": id, "period": "2026-09", "value": "1000.999" }),
+    );
+    assert_eq!(added["value"], "1001.00");
 }

@@ -72,9 +72,6 @@ pub enum DomainError {
     /// Reported as: "Amounts cannot be negative."
     #[error("Amounts cannot be negative.")]
     PaycheckAmountNegative,
-    /// Reported as: "Amounts can have at most 2 decimal places."
-    #[error("Amounts can have at most 2 decimal places.")]
-    PaycheckAmountPrecision,
     /// Reported as: "Amounts can be at most 1000000.00."
     #[error("Amounts can be at most 1000000.00.")]
     PaycheckAmountTooLarge,
@@ -119,9 +116,6 @@ pub enum DomainError {
     /// Reported as: "The balance cannot be negative."
     #[error("The balance cannot be negative.")]
     InvestmentBalanceNegative,
-    /// Reported as: "The balance can have at most 2 decimal places."
-    #[error("The balance can have at most 2 decimal places.")]
-    InvestmentBalancePrecision,
     /// Reported as: "The balance can be at most 1000000000.00."
     #[error("The balance can be at most 1000000000.00.")]
     InvestmentBalanceTooLarge,
@@ -131,18 +125,12 @@ pub enum DomainError {
     /// Reported as: "Enter the net deposits as a number such as 300.00 or -250.00."
     #[error("Enter the net deposits as a number such as 300.00 or -250.00.")]
     InvestmentNetDepositsInvalid,
-    /// Reported as: "Net deposits can have at most 2 decimal places."
-    #[error("Net deposits can have at most 2 decimal places.")]
-    InvestmentNetDepositsPrecision,
     /// Reported as: "Net deposits can be at most 1000000000.00, or -1000000000.00."
     #[error("Net deposits can be at most 1000000000.00, or -1000000000.00.")]
     InvestmentNetDepositsTooLarge,
     /// Reported as: "Enter the capital growth as a number such as 200.00 or -150.00."
     #[error("Enter the capital growth as a number such as 200.00 or -150.00.")]
     InvestmentGrowthInvalid,
-    /// Reported as: "Capital growth can have at most 2 decimal places."
-    #[error("Capital growth can have at most 2 decimal places.")]
-    InvestmentGrowthPrecision,
     /// Reported as: "Capital growth can be at most 1000000000.00, or -1000000000.00."
     #[error("Capital growth can be at most 1000000000.00, or -1000000000.00.")]
     InvestmentGrowthTooLarge,
@@ -182,9 +170,6 @@ pub enum DomainError {
     /// Reported as: "Enter the balance as a number such as 2500.00 or -150.25."
     #[error("Enter the balance as a number such as 2500.00 or -150.25.")]
     BankEntryBalanceInvalid,
-    /// Reported as: "The balance can have at most 2 decimal places."
-    #[error("The balance can have at most 2 decimal places.")]
-    BankEntryBalancePrecision,
     /// Reported as: "The balance can be at most 1000000000.00, or -1000000000.00."
     #[error("The balance can be at most 1000000000.00, or -1000000000.00.")]
     BankEntryBalanceTooLarge,
@@ -230,9 +215,6 @@ pub enum DomainError {
     /// Reported as: "The balance cannot be negative."
     #[error("The balance cannot be negative.")]
     DebtStatementBalanceNegative,
-    /// Reported as: "The balance can have at most 2 decimal places."
-    #[error("The balance can have at most 2 decimal places.")]
-    DebtStatementBalancePrecision,
     /// Reported as: "The balance can be at most 1000000000.00."
     #[error("The balance can be at most 1000000000.00.")]
     DebtStatementBalanceTooLarge,
@@ -308,9 +290,6 @@ pub enum DomainError {
     /// Reported as: "The value cannot be negative."
     #[error("The value cannot be negative.")]
     HouseValuationValueNegative,
-    /// Reported as: "The value can have at most 2 decimal places."
-    #[error("The value can have at most 2 decimal places.")]
-    HouseValuationValuePrecision,
     /// Reported as: "The value can be at most 1000000000.00."
     #[error("The value can be at most 1000000000.00.")]
     HouseValuationValueTooLarge,
@@ -341,9 +320,6 @@ pub enum DomainError {
     /// Reported as: "The amount cannot be negative."
     #[error("The amount cannot be negative.")]
     HouseAmountNegative,
-    /// Reported as: "The amount can have at most 2 decimal places."
-    #[error("The amount can have at most 2 decimal places.")]
-    HouseAmountPrecision,
     /// Reported as: "The amount can be at most 1000000000.00."
     #[error("The amount can be at most 1000000000.00.")]
     HouseAmountTooLarge,
@@ -371,9 +347,6 @@ pub enum DomainError {
     /// Reported as: "The amount must be greater than 0.00."
     #[error("The amount must be greater than 0.00.")]
     ExpenseAmountNotPositive,
-    /// Reported as: "The amount can have at most 2 decimal places."
-    #[error("The amount can have at most 2 decimal places.")]
-    ExpenseAmountPrecision,
     /// Reported as: "The amount can be at most 1000000000.00."
     #[error("The amount can be at most 1000000000.00.")]
     ExpenseAmountTooLarge,
@@ -418,7 +391,6 @@ impl DomainError {
             Self::PaycheckGrossInvalid => "PAYCHECK_GROSS_INVALID",
             Self::PaycheckAmountInvalid => "PAYCHECK_AMOUNT_INVALID",
             Self::PaycheckAmountNegative => "PAYCHECK_AMOUNT_NEGATIVE",
-            Self::PaycheckAmountPrecision => "PAYCHECK_AMOUNT_PRECISION",
             Self::PaycheckAmountTooLarge => "PAYCHECK_AMOUNT_TOO_LARGE",
             Self::DataInvalid => "INCOME_DATA_INVALID",
             Self::InvestmentAccountNameRequired => "INVESTMENT_ACCOUNT_NAME_REQUIRED",
@@ -433,14 +405,11 @@ impl DomainError {
             Self::InvestmentStatementNotFound => "INVESTMENT_STATEMENT_NOT_FOUND",
             Self::InvestmentBalanceInvalid => "INVESTMENT_BALANCE_INVALID",
             Self::InvestmentBalanceNegative => "INVESTMENT_BALANCE_NEGATIVE",
-            Self::InvestmentBalancePrecision => "INVESTMENT_BALANCE_PRECISION",
             Self::InvestmentBalanceTooLarge => "INVESTMENT_BALANCE_TOO_LARGE",
             Self::InvestmentNoteTooLong => "INVESTMENT_NOTE_TOO_LONG",
             Self::InvestmentNetDepositsInvalid => "INVESTMENT_NET_DEPOSITS_INVALID",
-            Self::InvestmentNetDepositsPrecision => "INVESTMENT_NET_DEPOSITS_PRECISION",
             Self::InvestmentNetDepositsTooLarge => "INVESTMENT_NET_DEPOSITS_TOO_LARGE",
             Self::InvestmentGrowthInvalid => "INVESTMENT_GROWTH_INVALID",
-            Self::InvestmentGrowthPrecision => "INVESTMENT_GROWTH_PRECISION",
             Self::InvestmentGrowthTooLarge => "INVESTMENT_GROWTH_TOO_LARGE",
             Self::InvestmentDataInvalid => "INVESTMENT_DATA_INVALID",
             Self::BankAccountNameRequired => "BANK_ACCOUNT_NAME_REQUIRED",
@@ -454,7 +423,6 @@ impl DomainError {
             Self::BankEntryDuplicate => "BANK_ENTRY_DUPLICATE",
             Self::BankEntryNotFound => "BANK_ENTRY_NOT_FOUND",
             Self::BankEntryBalanceInvalid => "BANK_ENTRY_BALANCE_INVALID",
-            Self::BankEntryBalancePrecision => "BANK_ENTRY_BALANCE_PRECISION",
             Self::BankEntryBalanceTooLarge => "BANK_ENTRY_BALANCE_TOO_LARGE",
             Self::BankEntryNoteTooLong => "BANK_ENTRY_NOTE_TOO_LONG",
             Self::BankDataInvalid => "BANK_DATA_INVALID",
@@ -470,7 +438,6 @@ impl DomainError {
             Self::DebtStatementNotFound => "DEBT_STATEMENT_NOT_FOUND",
             Self::DebtStatementBalanceInvalid => "DEBT_STATEMENT_BALANCE_INVALID",
             Self::DebtStatementBalanceNegative => "DEBT_STATEMENT_BALANCE_NEGATIVE",
-            Self::DebtStatementBalancePrecision => "DEBT_STATEMENT_BALANCE_PRECISION",
             Self::DebtStatementBalanceTooLarge => "DEBT_STATEMENT_BALANCE_TOO_LARGE",
             Self::DebtStatementNoteTooLong => "DEBT_STATEMENT_NOTE_TOO_LONG",
             Self::DebtDataInvalid => "DEBT_DATA_INVALID",
@@ -496,7 +463,6 @@ impl DomainError {
             Self::HouseValuationNotFound => "HOUSE_VALUATION_NOT_FOUND",
             Self::HouseValuationValueInvalid => "HOUSE_VALUATION_VALUE_INVALID",
             Self::HouseValuationValueNegative => "HOUSE_VALUATION_VALUE_NEGATIVE",
-            Self::HouseValuationValuePrecision => "HOUSE_VALUATION_VALUE_PRECISION",
             Self::HouseValuationValueTooLarge => "HOUSE_VALUATION_VALUE_TOO_LARGE",
             Self::HouseValuationNoteTooLong => "HOUSE_VALUATION_NOTE_TOO_LONG",
             Self::HouseDataInvalid => "HOUSE_DATA_INVALID",
@@ -507,7 +473,6 @@ impl DomainError {
             Self::HouseSaleIncomplete => "HOUSE_SALE_INCOMPLETE",
             Self::HouseAmountInvalid => "HOUSE_AMOUNT_INVALID",
             Self::HouseAmountNegative => "HOUSE_AMOUNT_NEGATIVE",
-            Self::HouseAmountPrecision => "HOUSE_AMOUNT_PRECISION",
             Self::HouseAmountTooLarge => "HOUSE_AMOUNT_TOO_LARGE",
             Self::HouseValuationOutsideHolding => "HOUSE_VALUATION_OUTSIDE_HOLDING",
             Self::HouseDatesExcludeValuations => "HOUSE_DATES_EXCLUDE_VALUATIONS",
@@ -517,7 +482,6 @@ impl DomainError {
             Self::ExpenseDateInvalid => "EXPENSE_DATE_INVALID",
             Self::ExpenseAmountInvalid => "EXPENSE_AMOUNT_INVALID",
             Self::ExpenseAmountNotPositive => "EXPENSE_AMOUNT_NOT_POSITIVE",
-            Self::ExpenseAmountPrecision => "EXPENSE_AMOUNT_PRECISION",
             Self::ExpenseAmountTooLarge => "EXPENSE_AMOUNT_TOO_LARGE",
             Self::ExpenseNoteTooLong => "EXPENSE_NOTE_TOO_LONG",
             Self::ExpenseNotFound => "EXPENSE_NOT_FOUND",

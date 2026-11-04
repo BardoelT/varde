@@ -17,8 +17,8 @@ impl ExpenseAmount {
     /// Builds an amount from a decimal.
     ///
     /// # Errors
-    /// Returns the first violated rule: not above zero, more than two
-    /// decimals, or above 1,000,000,000.00.
+    /// Returns the first violated rule: not above zero or
+    /// above 1,000,000,000.00.
     pub fn new(value: Decimal) -> Result<Self, DomainError> {
         if value <= Decimal::ZERO {
             return Err(DomainError::ExpenseAmountNotPositive);
@@ -26,7 +26,7 @@ impl ExpenseAmount {
         bounded(
             value,
             Money::MAX_BALANCE,
-            DomainError::ExpenseAmountPrecision,
+            DomainError::ExpenseAmountInvalid,
             DomainError::ExpenseAmountTooLarge,
         )
         .map(Self)
