@@ -1256,10 +1256,10 @@ Rust-side behaviour is proven by `cargo test`, with domain logic tested in `doma
 | REQ-24, REQ-26 and REQ-28 over IPC (the test names carry the requirement but no AC number) | `cargo test test_csd005_ac_24_`, `test_csd005_ac_26_` and `test_csd005_ac_28_` |
 | Calculation (AC-24.x, AC-25.x) | `cargo test test_csd005_ac_24_` and `cargo test test_csd005_ac_25_` cover the `calculate_investment_statement` command and the domain logic behind it |
 | Data of the accounts and statements tables (AC-17.2, AC-17.3, AC-17.8) | `cargo test test_csd005_ac_17_` |
-| Display ACs (forms, section order and contents, titles without a currency, button placement, empty states, note cut-off, plain-text note, no counts, delete confirmations, the calculated marking) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. |
+| Display ACs (forms, section order and contents, titles without a currency, button placement, empty states, note cut-off, plain-text note, no counts, delete confirmations, the calculated marking) | DOM tests in `ui/tests/ac-b-investments.test.js` (`npm test`). AC-29.4 is also proven by a storage test and an IPC test. Checked by hand: none. |
 | The currency confirmation for investment statements | Governed by CSD-003 REQ-5 (AC-5.5, AC-5.6), verified there |
 
-Not covered by a named test yet (24 of 131 ACs; no test carries the AC id): AC-5.2, AC-5.3, AC-12.2, AC-14.1 to AC-14.3, AC-17.1, AC-17.4 to AC-17.7, AC-17.9, AC-18.1 to AC-18.3, AC-20.1, AC-20.2, AC-24.6, AC-27.1 to AC-27.4, AC-28.6, AC-29.4.
+Not covered by a named test yet (0 of 131 ACs; no test carries the AC id): none.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

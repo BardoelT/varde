@@ -505,9 +505,9 @@ The series, the axis, the pieces, the markers and the short labels are computed 
 | What | How |
 |---|---|
 | Rust tests (the data, the axis ticks, the marker value and label) | `cargo test test_csd010_`. One requirement, e.g. REQ-5: `cargo test test_csd010_ac_5_` |
-| Display ACs (the screen) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. |
+| Display ACs (the screen) | DOM tests in `ui/tests/ac-b-bank-insights.test.js` (`npm test`). Checked by hand: the tooltip centred over the slot of a year without a bar (AC-10.6, the other steps are tested), because jsdom has no layout |
 
-Not covered by a named test yet (27 of 45 ACs; no test carries the AC id): AC-1.1 to AC-1.3, AC-4.2, AC-6.1, AC-6.2, AC-6.4, AC-6.6, AC-7.1 to AC-7.3, AC-8.1, AC-8.2, AC-8.4, AC-9.1, AC-9.5, AC-10.1 to AC-10.4, AC-10.6 to AC-10.8, AC-13.4, AC-14.1, AC-15.1, AC-15.2.
+Not covered by a named test yet (0 of 45 ACs; no test carries the AC id): none.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

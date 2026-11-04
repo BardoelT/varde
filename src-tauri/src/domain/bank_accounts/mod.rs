@@ -14,6 +14,8 @@ mod overview;
 mod totals;
 
 #[cfg(test)]
+mod ac_tests;
+#[cfg(test)]
 mod tests;
 
 pub use account::{BankAccount, BankAccountId, BankAccountInput};
