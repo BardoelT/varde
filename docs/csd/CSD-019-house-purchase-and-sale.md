@@ -483,9 +483,9 @@ Domain logic is in `domain/houses` (with `domain/net_worth` and `domain/ratios` 
 | What | How |
 |---|---|
 | Rust tests | `cargo test test_csd019_`. One requirement, e.g. REQ-10: `cargo test test_csd019_ac_10_` |
-| Display ACs (the form fields, the Held and Sold wording, the unsaved indicator) | No DOM test carries an AC id; checked by hand |
+| Display ACs (the form fields, the Held and Sold wording, the unsaved indicator) | `npm test`: `ui/tests/ac-c1-houses.test.js` (AC-12.1, AC-12.2); the unsaved indicator after a sale is proven through the commands (AC-12.3). The Held and Sold wording is checked by hand |
 
-Not covered by a named test yet (5 of 40 ACs; no test carries the AC id): AC-1.3, AC-11.2, AC-12.1 to AC-12.3.
+Not covered by a named test yet (0 of 40 ACs; every AC carries a test name).
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

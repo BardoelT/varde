@@ -201,4 +201,6 @@ mod ipc_ac_tests_a;
 #[cfg(test)]
 mod ipc_ac_tests_b;
 #[cfg(test)]
+mod ipc_ac_tests_c1;
+#[cfg(test)]
 mod ipc_tests;

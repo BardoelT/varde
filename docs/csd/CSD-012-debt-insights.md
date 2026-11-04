@@ -572,9 +572,9 @@ The series is computed in Rust, so REQ-2 to REQ-5 are proven by `cargo test`. Te
 |---|---|
 | Rust tests (the data) | `cargo test test_csd012_` |
 | REQ-2 and REQ-4 (the test names carry the requirement but no AC number) | `cargo test test_csd012_ac_2_` and `cargo test test_csd012_ac_4_` |
-| Display ACs (tabs, stacking, axis range, markers, colours of both modes and of the ninth debt, legend order, wrapping and ellipsis, tooltip placement and row order, no counts, the repaid row, highlight from a segment and from the legend, accessible labels, the empty note) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. |
+| Display ACs (tabs, stacking, axis range, markers, colours of both modes and of the ninth debt, legend order, wrapping and ellipsis, tooltip placement and row order, no counts, the repaid row, highlight from a segment and from the legend, accessible labels, the empty note) | `npm test`: `ui/tests/ac-c1-debt-insights.test.js` (jsdom, canned Rust answers). By hand, because jsdom has no layout: the placement of the tooltip beside the bar and centred over a gap year (AC-10.6, and the placement half of AC-10.7), the real wrapping of a long legend on a narrow window (AC-9.3) and the look of the shared size (AC-13.1; the plot and slot geometry are compared with the Bank accounts chart in the test) |
 
-Not covered by a named test yet (47 of 59 ACs; no test carries the AC id): AC-1.1 to AC-1.3, AC-2.2 to AC-2.5, AC-4.1, AC-4.3, AC-5.6, AC-6.1, AC-6.3 to AC-6.5, AC-7.2, AC-7.3, AC-8.1 to AC-8.4, AC-9.1, AC-9.3 to AC-9.5, AC-10.1 to AC-10.9, AC-11.1 to AC-11.6, AC-13.1 to AC-13.5, AC-14.1, AC-15.1, AC-15.2.
+Not covered by a named test yet (2 of 56 ACs; no test carries the AC id; AC-13.2, AC-13.3 and AC-13.5 are removed): AC-5.6 (finding: the repaid amount of the insights and of the yearly totals is not Cancelled-adjusted, 200000.00 instead of 10000.00), AC-10.6 (tooltip placement, checked by hand).
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

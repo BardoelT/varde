@@ -284,9 +284,9 @@ Domain logic is in `domain/houses` (`linking`) and `domain/debts`, and the file 
 | What | How |
 |---|---|
 | Rust tests | `cargo test test_csd020_`. One requirement, e.g. REQ-17: `cargo test test_csd020_ac_17_` |
-| Display ACs (the debt form, the House dropdown, the badges) | No DOM test carries an AC id; checked by hand |
+| Display ACs (the debt form, the House dropdown, the badges) | `npm test`: `ui/tests/ac-c1-houses.test.js` (AC-15.7, AC-30.2) and `ui/tests/ac-c1-debts.test.js` (the settlement badge, CSD-011 AC-26.4) |
 
-Not covered by a named test yet (3 of 18 ACs; no test carries the AC id): AC-15.7, AC-30.2, AC-33.3.
+Not covered by a named test yet (0 of 18 ACs; every AC carries a test name).
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
