@@ -337,6 +337,8 @@ fn with_extension(path: PathBuf) -> PathBuf {
 }
 
 #[cfg(test)]
+mod ac_tests;
+#[cfg(test)]
 mod bank_accounts_tests;
 #[cfg(test)]
 mod debts_tests;

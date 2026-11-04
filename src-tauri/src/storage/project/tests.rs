@@ -165,7 +165,7 @@ fn saving_without_a_path_is_an_error_not_a_write() {
 }
 
 #[test]
-fn a_path_without_extension_gets_the_project_extension() {
+fn test_csd002_ac_1_6_a_path_without_extension_gets_the_project_extension() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
     add_job(&mut project, "Example Employer");
