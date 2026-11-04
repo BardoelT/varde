@@ -1,9 +1,9 @@
 ---
 id: CSD-018
 title: Ratios
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.3
+version: 1.4
 last_updated: 04/11/2026
 related: [CSD-000, CSD-001, CSD-005, CSD-007, CSD-009, CSD-011, CSD-013, CSD-017, CSD-024, CSD-026]
 ---
@@ -327,7 +327,7 @@ Scenario: No wealth accumulation from cash
 ```
 
 **REQ-10: Display** *(ubiquitous)*
-The app shall show amounts in the project currency as the other tables do, percentages with two decimals and a sign as CSD-007 REQ-10 labels them (+6.09%, -2.50%, 0.00%, the last also for a decrease that rounds to 0.00), negative figures in the negative colour, a figure that is none as "–", and no count of records. While the table is wider than the page, the app shall scroll it sideways and keep the row labels in view.
+The app shall show amounts in the project currency as the other tables do, percentages as the labels Rust delivers (two decimals and a sign as CSD-007 REQ-10 labels them: +6.09%, -2.50%, 0.00%, the last also for a decrease that rounds to 0.00), negative figures in the negative colour, a figure that is none as "–", and no count of records. While the table is wider than the page, the app shall scroll it sideways and keep the row labels in view.
 
 ```gherkin
 @AC-10.1
@@ -404,13 +404,16 @@ Command: `get_ratios()` returns the series, oldest year first, and an empty list
   "years": [
     { "year": 2025, "is_partial": false, "total_income": "48000.00",
       "wealth_accumulation": "6000.00", "wealth_percent": "12.50",
-      "investment_growth_percent": "4.17", "wealth_growth_percent": "10.00",
-      "disposable_income": "10000.00", "disposable_percent": "20.83" }
+      "wealth_percent_label": "+12.50%",
+      "investment_growth_percent": "4.17", "investment_growth_percent_label": "+4.17%",
+      "wealth_growth_percent": "10.00", "wealth_growth_percent_label": "+10.00%",
+      "disposable_income": "10000.00", "disposable_percent": "20.83",
+      "disposable_percent_label": "+20.83%" }
   ]
 }
 ```
 
-Amounts are decimal strings in the project currency (CSD-003) and percentages decimal strings with two decimals, both rounded as CSD-000 CON-8 says. A figure that is none is `null`. The command only reads the project and the project file is unchanged.
+Amounts are decimal strings in the project currency (CSD-003) and percentages decimal strings with two decimals, both rounded as CSD-000 CON-8 says. A figure that is none is `null`, and its label is "–". Every percentage comes with a `<what>_label` string built by Rust (CSD-025 section 5; sign "-"), which the table shows as received. The command only reads the project and the project file is unchanged.
 
 ## 6. Constraints
 - CON-1: The frontend displays figures computed in Rust and computes none itself, not even a percentage or a sum. Rationale: `CLAUDE.md` layout rule.
@@ -436,6 +439,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 1.4 (04/11/2026): Rust delivers the percentage labels of the table (`wealth_percent_label`, `investment_growth_percent_label`, `wealth_growth_percent_label`, `disposable_percent_label`; REQ-10 and section 5), so the frontend formats nothing and the sign is "-" like the charts. Back to `draft` until re-approved.
 - 1.3 (04/11/2026): Live references follow the split of the former CSD-020: the Cancelled and Repaid treatment is CSD-026 REQ-9, REQ-10 and REQ-11 (definition of Repaid, REQ-5); no behaviour change. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 1.1 (03/11/2026): The series runs to the later of the current year and the latest year with a record, so future years get a column labelled like any other year, and spans at most 50 years back from its last year, older records still count in the figures that span all years (REQ-2, new AC-2.4, AC-2.5; owner decision). Back to `draft` until re-approved.
