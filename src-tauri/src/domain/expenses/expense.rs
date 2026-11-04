@@ -22,26 +22,36 @@ impl IdKind for Expense {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Expense {
+    /// Identifier of the expense.
     pub id: ExpenseId,
+    /// Name of the expense.
     pub name: String,
+    /// The amount spent.
     pub amount: ExpenseAmount,
+    /// The date of the expense.
     pub date: ExpenseDate,
+    /// The category of the expense.
     pub category: ExpenseCategory,
+    /// Free-text note, possibly empty.
     pub note: Note,
 }
 
 /// Expense fields as typed by the user, before validation.
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct ExpenseInput {
+    /// Name of the expense.
     #[serde(default)]
     pub name: String,
+    /// Amount as typed, before validation.
     #[serde(default)]
     pub amount: String,
     /// `dd/mm/yyyy`.
     #[serde(default)]
     pub date: String,
+    /// Category name as typed, before validation.
     #[serde(default)]
     pub category: String,
+    /// Note as typed, before validation.
     #[serde(default)]
     pub note: Option<String>,
 }

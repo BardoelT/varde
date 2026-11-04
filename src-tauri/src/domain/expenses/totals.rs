@@ -12,8 +12,11 @@ use super::Expenses;
 /// The totals of one calendar year (CSD-013 REQ-12).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct ExpenseYearlyTotal {
+    /// The calendar year.
     pub year: i32,
+    /// Total spent in the year.
     pub total: Decimal,
+    /// Number of expenses in the year.
     pub expense_count: usize,
     /// The highest amount of a single expense this year.
     pub largest: Decimal,

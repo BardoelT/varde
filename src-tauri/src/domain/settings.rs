@@ -1,3 +1,5 @@
+//! The settings of a project, such as its currency (CSD-003).
+
 use serde::{Deserialize, Serialize};
 
 use super::error::DomainError;

@@ -15,9 +15,12 @@ pub use amount::{Money, MoneyError};
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Currency {
+    /// Euro.
     #[default]
     Eur,
+    /// US dollar.
     Usd,
+    /// British pound.
     Gbp,
 }
 

@@ -22,7 +22,9 @@ pub struct AccountSummary {
 /// total is `None` while no account has a statement.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct InvestmentsOverview {
+    /// The accounts of the overview.
     pub accounts: Vec<AccountSummary>,
+    /// The total of the latest values, `None` when there is nothing to total.
     pub total: Option<Decimal>,
 }
 

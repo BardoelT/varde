@@ -7,8 +7,10 @@ use serde::{Deserialize, Serialize};
 /// use the same two kinds.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PayPeriod {
+    /// One record per month.
     #[default]
     Monthly,
+    /// One record per year.
     Yearly,
 }
 

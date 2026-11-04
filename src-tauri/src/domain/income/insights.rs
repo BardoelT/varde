@@ -15,12 +15,19 @@ use crate::domain::common::{series_years, YearMonth};
 /// still running, and its growth against the year before (CSD-006).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct IncomeInsightsYear {
+    /// The calendar year.
     pub year: i32,
+    /// Gross salary.
     pub gross_salary: Decimal,
+    /// Holiday pay.
     pub holiday_pay: Decimal,
+    /// Bonus.
     pub bonus: Decimal,
+    /// Gross salary, holiday pay and bonus together.
     pub total_gross: Decimal,
+    /// Number of entries in the year.
     pub entry_count: usize,
+    /// Whether the year is still running, so its figures cover only part of it.
     pub is_partial: bool,
     /// Percent with two decimals, `None` when there is nothing to compare.
     pub growth_percent: Option<Decimal>,

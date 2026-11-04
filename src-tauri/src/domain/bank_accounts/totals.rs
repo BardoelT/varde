@@ -10,10 +10,12 @@ use super::BankAccounts;
 /// The totals of one calendar year over all accounts (CSD-009 REQ-19).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct BankYearlyTotal {
+    /// The calendar year.
     pub year: i32,
     /// The sum, over the accounts with an entry this year, of the balance of
     /// their latest entry this year.
     pub closing_balance: Decimal,
+    /// Number of entries in the year.
     pub entry_count: usize,
 }
 

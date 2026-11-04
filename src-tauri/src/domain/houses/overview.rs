@@ -12,10 +12,14 @@ use super::{House, Houses};
 /// REQ-17).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HouseSummary {
+    /// The house itself.
     #[serde(flatten)]
     pub house: House,
+    /// Number of valuations of the house.
     pub valuation_count: usize,
+    /// Period of the latest valuation, `None` without valuations.
     pub latest_period: Option<Period>,
+    /// The latest value, `None` without valuations.
     pub latest_value: Option<Decimal>,
     /// Whether the house has no sale (CSD-020 REQ-8).
     pub held: bool,

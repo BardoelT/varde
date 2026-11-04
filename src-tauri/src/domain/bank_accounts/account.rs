@@ -20,8 +20,11 @@ impl IdKind for BankAccount {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BankAccount {
+    /// Identifier of the bank account.
     pub id: BankAccountId,
+    /// Name of the bank account.
     pub name: String,
+    /// Whether the bank account is kept per month or per year.
     pub period: PayPeriod,
     /// 0 to 7, fixed when the account is created (CSD-009 REQ-3).
     pub colour_slot: ColourSlot,

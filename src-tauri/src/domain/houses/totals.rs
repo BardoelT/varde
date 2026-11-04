@@ -10,6 +10,7 @@ use super::Houses;
 /// The totals of one calendar year over all houses (CSD-015 REQ-20).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HouseYearlyValue {
+    /// The calendar year.
     pub year: i32,
     /// The sum, over the houses with a valuation this year, of the value of
     /// their latest valuation this year.
@@ -17,6 +18,7 @@ pub struct HouseYearlyValue {
     /// Closing value minus opening value, over the houses that have both;
     /// `None` when no house has an opening value this year.
     pub change: Option<Decimal>,
+    /// Number of valuations in the year.
     pub valuation_count: usize,
 }
 

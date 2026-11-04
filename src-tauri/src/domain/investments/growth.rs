@@ -16,7 +16,9 @@ use crate::domain::series::SeriesData;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CalculationInput {
+    /// The balance is entered and the capital growth is calculated.
     Balance,
+    /// The capital growth is entered and the balance is calculated.
     Growth,
 }
 
@@ -24,7 +26,9 @@ pub enum CalculationInput {
 /// calculation (CSD-005 REQ-24).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct StatementCalculation {
+    /// The balance.
     pub balance: Decimal,
+    /// Capital growth.
     pub capital_growth: Decimal,
 }
 

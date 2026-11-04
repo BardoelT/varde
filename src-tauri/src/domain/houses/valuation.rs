@@ -14,9 +14,13 @@ use super::{house_note, HouseId, HouseValue, Houses};
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct HouseValuation {
+    /// Identifier of the house the valuation belongs to.
     pub house_id: HouseId,
+    /// The month or year the valuation is for.
     pub period: Period,
+    /// Value at the end of the period.
     pub value: HouseValue,
+    /// Free-text note, possibly empty.
     pub note: Note,
 }
 
@@ -61,6 +65,7 @@ pub fn parse_period(text: &str) -> Result<Period, DomainError> {
 /// REQ-15): the note is never copied.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HouseValuationPrefill {
+    /// Value to prefill, `None` when there is nothing to copy.
     pub value: Option<Decimal>,
 }
 

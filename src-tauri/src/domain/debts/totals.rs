@@ -12,6 +12,7 @@ use super::Debts;
 /// The totals of one calendar year over all debts (CSD-011 REQ-19).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtYearlyTotal {
+    /// The calendar year.
     pub year: i32,
     /// The sum, over the debts with a statement this year, of the balance of
     /// their latest statement this year.
@@ -19,6 +20,7 @@ pub struct DebtYearlyTotal {
     /// Opening balance minus closing balance, over the debts that have both;
     /// `None` when no debt has an opening balance this year.
     pub repaid: Option<Decimal>,
+    /// Number of statements in the year.
     pub statement_count: usize,
 }
 

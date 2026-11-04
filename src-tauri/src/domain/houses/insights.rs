@@ -52,9 +52,11 @@ impl ChartYear for HouseInsightsYear {
 /// The payload of `get_house_insights` (CSD-016 section 5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HouseInsights {
+    /// The houses shown in the chart.
     pub houses: Vec<InsightsHouse>,
     /// The axis of the chart (CSD-025 REQ-3).
     pub axis: Axis,
+    /// The years of the chart, one entry per year.
     pub years: Vec<HouseInsightsYear>,
 }
 

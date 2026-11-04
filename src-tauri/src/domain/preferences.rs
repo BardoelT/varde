@@ -1,3 +1,5 @@
+//! The look and the language of the app (CSD-008, CSD-022).
+
 use serde::{Deserialize, Serialize};
 
 use super::error::DomainError;
@@ -6,9 +8,12 @@ use super::error::DomainError;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Theme {
+    /// Follow the system setting.
     #[default]
     System,
+    /// Always light.
     Light,
+    /// Always dark.
     Dark,
 }
 
@@ -31,9 +36,11 @@ impl Theme {
 /// The language of the app's own texts (CSD-022). English is the default.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Language {
+    /// English.
     #[default]
     #[serde(rename = "en")]
     English,
+    /// Dutch.
     #[serde(rename = "nl")]
     Dutch,
 }

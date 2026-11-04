@@ -22,7 +22,9 @@ mod tests;
 /// computed is `None`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct RatiosYear {
+    /// The calendar year.
     pub year: i32,
+    /// Whether the year is still running, so its figures cover only part of it.
     pub is_partial: bool,
     /// The total gross of the year, 0.00 without income (REQ-4).
     pub total_income: Decimal,
@@ -43,16 +45,23 @@ pub struct RatiosYear {
 /// The payload of `get_ratios` (CSD-018 section 5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct Ratios {
+    /// One entry per year.
     pub years: Vec<RatiosYear>,
 }
 
 /// What the ratios are computed from: the data of every area.
 pub struct RatioSources<'a> {
+    /// The income included in the figures.
     pub income: &'a Income,
+    /// The expenses included in the figures.
     pub expenses: &'a Expenses,
+    /// The houses included in the figures.
     pub houses: &'a Houses,
+    /// The investments included in the figures.
     pub investments: &'a Investments,
+    /// The bank accounts included in the figures.
     pub bank_accounts: &'a BankAccounts,
+    /// The debts included in the figures.
     pub debts: &'a Debts,
 }
 

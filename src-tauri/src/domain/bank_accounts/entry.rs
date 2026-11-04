@@ -13,9 +13,13 @@ use super::{bank_note, BankAccountId, BankAccounts, BankBalance};
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BankEntry {
+    /// Identifier of the bank account the entry belongs to.
     pub account_id: BankAccountId,
+    /// The month or year the entry is for.
     pub period: Period,
+    /// Closing balance of the period.
     pub balance: BankBalance,
+    /// Free-text note, possibly empty.
     pub note: Note,
 }
 
@@ -60,6 +64,7 @@ pub fn parse_period(text: &str) -> Result<Period, DomainError> {
 /// REQ-15): the note is never copied.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct EntryPrefill {
+    /// Balance to prefill, `None` when there is nothing to copy.
     pub balance: Option<Decimal>,
 }
 

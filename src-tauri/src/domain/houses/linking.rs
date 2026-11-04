@@ -29,6 +29,7 @@ pub struct DebtLinksInput {
 /// One choice of the settlement prompt.
 #[derive(Clone, Debug, Deserialize)]
 pub struct SettlementChoice {
+    /// Identifier of the debt, as sent by the frontend and checked before use.
     pub debt_id: String,
     /// `Repaid` or `Cancelled`.
     pub outcome: String,
@@ -130,6 +131,7 @@ pub fn open_debts(
 /// The debt form fields CSD-020 adds to those of CSD-011 (REQ-1).
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct DebtFormInput {
+    /// The debt fields.
     #[serde(flatten)]
     pub debt: DebtInput,
     /// `Mortgage`, `Loan` or `Other`; `Other` on create and unchanged on an
@@ -345,25 +347,34 @@ fn settle_all(
 /// A debt linked to a house, as the Houses view shows it (CSD-020 REQ-29).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct LinkedDebt {
+    /// Identifier of the debt.
     pub debt_id: DebtId,
+    /// Name of the debt.
     pub debt_name: String,
+    /// The debt category.
     pub category: DebtCategory,
+    /// The latest balance, `None` without statements.
     pub latest_balance: Option<Decimal>,
+    /// How the debt was settled, `None` while it is open.
     pub settlement: Option<Settlement>,
 }
 
 /// A house row with its linked debts.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HouseRow {
+    /// The summary the row extends.
     #[serde(flatten)]
     pub summary: HouseSummary,
+    /// The debts linked to the house.
     pub linked_debts: Vec<LinkedDebt>,
 }
 
 /// The houses overview with the linked debts of each house.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HousesView {
+    /// The houses of the overview.
     pub houses: Vec<HouseRow>,
+    /// The total of the latest values, `None` when there is nothing to total.
     pub total: Option<Decimal>,
 }
 
@@ -371,15 +382,19 @@ pub struct HousesView {
 /// (CSD-020 REQ-30).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtRow {
+    /// The summary the row extends.
     #[serde(flatten)]
     pub summary: DebtSummary,
+    /// Name of the linked house, `None` when the debt is not linked.
     pub house_name: Option<String>,
 }
 
 /// The debts overview with the house of each debt.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtsView {
+    /// The debts of the overview.
     pub debts: Vec<DebtRow>,
+    /// The total of the latest values, `None` when there is nothing to total.
     pub total: Option<Decimal>,
 }
 

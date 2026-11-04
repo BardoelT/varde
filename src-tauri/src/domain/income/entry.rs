@@ -12,8 +12,11 @@ use crate::domain::common::{Year, YearMonth};
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Paycheck {
+    /// Identifier of the job the paycheck or annual statement belongs to.
     pub job_id: JobId,
+    /// The month the paycheck is for.
     pub month: YearMonth,
+    /// The amounts of the record.
     #[serde(flatten)]
     pub amounts: Amounts,
 }
@@ -22,8 +25,11 @@ pub struct Paycheck {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AnnualStatement {
+    /// Identifier of the job the paycheck or annual statement belongs to.
     pub job_id: JobId,
+    /// The calendar year.
     pub year: Year,
+    /// The amounts of the record.
     #[serde(flatten)]
     pub amounts: Amounts,
 }
@@ -31,7 +37,9 @@ pub struct AnnualStatement {
 /// A paycheck or an annual statement (CSD-001 "entry").
 #[derive(Clone, Copy, Debug)]
 pub enum Entry<'a> {
+    /// A monthly paycheck.
     Paycheck(&'a Paycheck),
+    /// A yearly statement.
     AnnualStatement(&'a AnnualStatement),
 }
 
@@ -91,7 +99,10 @@ impl<'a> Entry<'a> {
 /// Form values for "copy previous month" (CSD-001 REQ-9).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct PaycheckPrefill {
+    /// Gross salary.
     pub gross_salary: Option<Decimal>,
+    /// Holiday pay.
     pub holiday_pay: Decimal,
+    /// Bonus.
     pub bonus: Decimal,
 }

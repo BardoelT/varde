@@ -32,11 +32,17 @@ fn totals_of<'a>(amounts: impl Iterator<Item = &'a Amounts>) -> Option<IncomePer
 /// Totals over all jobs for one calendar year (CSD-001 REQ-11).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct IncomeYearlyTotal {
+    /// The calendar year.
     pub year: i32,
+    /// Gross salary.
     pub gross_salary: Decimal,
+    /// Holiday pay.
     pub holiday_pay: Decimal,
+    /// Bonus.
     pub bonus: Decimal,
+    /// Gross salary, holiday pay and bonus together.
     pub total_gross: Decimal,
+    /// Number of entries in the year.
     pub entry_count: usize,
 }
 
@@ -54,9 +60,13 @@ pub struct IncomePeriodTotals {
 /// month, and last month. A period without entries has no totals.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct IncomeOverview {
+    /// The calendar year.
     pub year: i32,
+    /// Totals from January up to the current month, `None` without entries.
     pub year_to_date: Option<IncomePeriodTotals>,
+    /// The latest month with entries.
     pub last_month: Option<YearMonth>,
+    /// Totals of that month.
     pub last_month_totals: Option<IncomePeriodTotals>,
 }
 

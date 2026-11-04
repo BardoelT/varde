@@ -9,13 +9,21 @@ use crate::domain::error::DomainError;
 /// the segments and the legend of the Insights chart (CSD-014 REQ-4).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ExpenseCategory {
+    /// Home and household.
     Home,
+    /// Vehicle costs.
     Vehicle,
+    /// Holidays and trips.
     Holiday,
+    /// Sport.
     Sport,
+    /// Study costs.
     Study,
+    /// Appliances and devices.
     Appliances,
+    /// Hobbies.
     Hobby,
+    /// Any other kind.
     Other,
 }
 

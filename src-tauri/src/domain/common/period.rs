@@ -11,7 +11,9 @@ use crate::domain::error::DomainError;
 /// year (`YYYY`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Period {
+    /// A calendar month.
     Month(YearMonth),
+    /// A calendar year.
     Year(Year),
 }
 

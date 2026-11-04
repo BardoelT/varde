@@ -14,10 +14,15 @@ use crate::domain::series::{SeriesData, SeriesRecord};
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct InvestmentStatement {
+    /// Identifier of the investment account the statement belongs to.
     pub account_id: InvestmentAccountId,
+    /// The month or year the statement is for.
     pub period: Period,
+    /// Closing balance of the period.
     pub balance: Balance,
+    /// Net deposits of the period: money put in minus money taken out.
     pub net_deposits: NetDeposits,
+    /// Free-text note, possibly empty.
     pub note: Note,
 }
 
@@ -56,7 +61,9 @@ impl SeriesRecord for InvestmentStatement {
 /// REQ-13): the note is never copied and the net deposits start at `0.00`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct InvestmentStatementPrefill {
+    /// Balance to prefill, `None` when there is nothing to copy.
     pub balance: Option<Decimal>,
+    /// Net deposits to prefill.
     pub net_deposits: Decimal,
 }
 

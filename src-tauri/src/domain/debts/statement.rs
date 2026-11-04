@@ -28,10 +28,15 @@ pub enum StatementKind {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(from = "DebtStatementRaw", into = "DebtStatementRaw")]
 pub struct DebtStatement {
+    /// Identifier of the debt the statement belongs to.
     pub debt_id: DebtId,
+    /// The month or year the statement is for.
     pub period: Period,
+    /// Closing balance of the period.
     pub balance: DebtBalance,
+    /// Free-text note, possibly empty.
     pub note: Note,
+    /// Whether the statement is a regular one or part of a settlement.
     pub kind: StatementKind,
 }
 
@@ -131,6 +136,7 @@ pub fn parse_period(text: &str) -> Result<Period, DomainError> {
 /// REQ-15): the note is never copied.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtStatementPrefill {
+    /// Balance to prefill, `None` when there is nothing to copy.
     pub balance: Option<Decimal>,
 }
 

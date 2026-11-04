@@ -34,13 +34,17 @@ pub struct Sale {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "HouseRaw", into = "HouseRaw")]
 pub struct House {
+    /// Identifier of the house.
     pub id: HouseId,
+    /// Name of the house.
     pub name: String,
+    /// Whether the house is kept per month or per year.
     pub period: PayPeriod,
     /// 0 to 7, fixed when the house is created (CSD-015 REQ-3).
     pub colour_slot: ColourSlot,
     /// Every house has a purchase (CSD-020 REQ-1).
     pub purchase_date: HouseDate,
+    /// Purchase price.
     pub purchase_amount: HouseValue,
     /// The sale, with its date and amount together or none (CSD-020 REQ-5).
     pub sale: Option<Sale>,
@@ -153,6 +157,7 @@ impl House {
 /// House fields as typed by the user, before validation.
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct HouseInput {
+    /// Name of the house.
     #[serde(default)]
     pub name: String,
     /// `None` means Monthly when creating and "unchanged" when editing.
@@ -161,11 +166,13 @@ pub struct HouseInput {
     /// `dd/mm/yyyy`; required (CSD-020 REQ-1).
     #[serde(default)]
     pub purchase_date: Option<String>,
+    /// Purchase price.
     #[serde(default)]
     pub purchase_amount: Option<String>,
     /// Both or neither (CSD-020 REQ-5).
     #[serde(default)]
     pub sell_date: Option<String>,
+    /// Sale price.
     #[serde(default)]
     pub sell_amount: Option<String>,
 }

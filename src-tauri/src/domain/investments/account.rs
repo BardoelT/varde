@@ -20,8 +20,11 @@ impl IdKind for InvestmentAccount {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct InvestmentAccount {
+    /// Identifier of the investment account.
     pub id: InvestmentAccountId,
+    /// Name of the investment account.
     pub name: String,
+    /// Whether the investment account is kept per month or per year.
     pub period: PayPeriod,
 }
 

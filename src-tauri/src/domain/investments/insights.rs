@@ -17,15 +17,22 @@ use super::{InvestmentYearlyTotal, Investments};
 /// the year is still running and its growth percentage (CSD-007).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct InvestmentInsightsYear {
+    /// The calendar year.
     pub year: i32,
+    /// Balance at the start of the year.
     pub opening_balance: Decimal,
+    /// Net deposits: money put in minus money taken out.
     pub net_deposits: Decimal,
+    /// Capital growth.
     pub capital_growth: Decimal,
     /// Capital growth of the accounts with an opening balance, in percent of
     /// the opening balance, two decimals; `None` when the opening balance is zero.
     pub growth_percent: Option<Decimal>,
+    /// Balance at the end of the year.
     pub closing_balance: Decimal,
+    /// Number of statements in the year.
     pub statement_count: usize,
+    /// Whether the year is still running, so its figures cover only part of it.
     pub is_partial: bool,
     /// The growth percentage as the chart shows it: "+6.09%", "-2.50%",
     /// "0.00%" or a dash (CSD-007 REQ-10).

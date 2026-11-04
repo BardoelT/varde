@@ -35,6 +35,7 @@ impl Outcome {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Settlement {
+    /// How the debt is settled.
     pub outcome: Outcome,
     /// The sell date of the house.
     pub date: HouseDate,
@@ -45,8 +46,11 @@ pub struct Settlement {
 /// A linked debt with an open balance at a sale, for the settlement prompt.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct OpenDebt {
+    /// Identifier of the debt.
     pub debt_id: DebtId,
+    /// Name of the debt.
     pub debt_name: String,
+    /// The balance that was settled.
     pub amount: Decimal,
 }
 

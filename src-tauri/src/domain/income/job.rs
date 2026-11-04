@@ -31,11 +31,16 @@ impl IdKind for Job {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Job {
+    /// Identifier of the job.
     pub id: JobId,
+    /// Employer name.
     pub employer: String,
+    /// Job title.
     pub title: Option<String>,
+    /// First day of the job.
     #[serde(with = "iso_date")]
     pub start_date: Date,
+    /// Last day of the job, `None` while it continues.
     #[serde(with = "iso_date::option")]
     pub end_date: Option<Date>,
     /// A job without a pay period (an older file) is monthly.
@@ -45,12 +50,16 @@ pub struct Job {
 /// Job fields as typed by the user, before validation.
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct JobInput {
+    /// Employer name.
     #[serde(default)]
     pub employer: String,
+    /// Job title.
     #[serde(default)]
     pub title: Option<String>,
+    /// First day of the job.
     #[serde(default)]
     pub start_date: Option<String>,
+    /// Last day of the job, `None` while it continues.
     #[serde(default)]
     pub end_date: Option<String>,
     /// `None` means Monthly when creating and "unchanged" when editing.

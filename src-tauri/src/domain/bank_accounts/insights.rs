@@ -51,9 +51,11 @@ impl ChartYear for BankInsightsYear {
 /// The payload of `get_bank_insights` (CSD-010 section 5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct BankInsights {
+    /// The banks shown in the chart.
     pub banks: Vec<InsightsBank>,
     /// The axis of the chart (CSD-025 REQ-3).
     pub axis: Axis,
+    /// The years of the chart, one entry per year.
     pub years: Vec<BankInsightsYear>,
 }
 

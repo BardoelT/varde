@@ -12,6 +12,7 @@ use super::{Expense, ExpenseCategory, Expenses};
 /// All expenses with their total (CSD-013 REQ-11).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct ExpenseList {
+    /// The expenses of the overview.
     pub expenses: Vec<Expense>,
     /// The sum of the amounts of `expenses`.
     pub total: Decimal,
@@ -21,8 +22,11 @@ pub struct ExpenseList {
 /// copied (CSD-013 REQ-9).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct ExpensePrefill {
+    /// Name of the expense.
     pub name: String,
+    /// The amount of the expense.
     pub amount: Decimal,
+    /// The category of the expense.
     pub category: ExpenseCategory,
 }
 

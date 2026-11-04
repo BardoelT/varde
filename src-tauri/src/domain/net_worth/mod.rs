@@ -19,6 +19,7 @@ mod tests;
 /// One year of the net worth chart (CSD-017 REQ-2, REQ-3).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct NetWorthYear {
+    /// The calendar year.
     pub year: i32,
     /// The total value of the houses (CSD-016).
     pub houses: Decimal,
@@ -32,6 +33,7 @@ pub struct NetWorthYear {
     pub net_worth: Decimal,
     /// Whether any of the four areas has a record in the year.
     pub has_records: bool,
+    /// Whether the year is still running, so its figures cover only part of it.
     pub is_partial: bool,
     /// The stacked pieces of the bar (CSD-025 section 5).
     pub pieces: Vec<Piece>,
@@ -54,6 +56,7 @@ impl ChartYear for NetWorthYear {
 pub struct NetWorthInsights {
     /// The axis of the chart (CSD-025 REQ-3).
     pub axis: Axis,
+    /// One entry per year.
     pub years: Vec<NetWorthYear>,
 }
 

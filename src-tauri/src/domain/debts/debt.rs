@@ -24,9 +24,13 @@ impl IdKind for Debt {
 /// or a Loan can be linked to a house (CSD-020 section 3).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DebtCategory {
+    /// A mortgage, which can be linked to a house.
     Mortgage,
+    /// A loan.
     Loan,
+    /// A scholarship debt.
     Scholarship,
+    /// Any other kind.
     #[default]
     Other,
 }
@@ -52,8 +56,11 @@ impl DebtCategory {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Debt {
+    /// Identifier of the debt.
     pub id: DebtId,
+    /// Name of the debt.
     pub name: String,
+    /// Whether the debt is kept per month or per year.
     pub period: PayPeriod,
     /// 0 to 7, fixed when the debt is created (CSD-011 REQ-3).
     pub colour_slot: ColourSlot,

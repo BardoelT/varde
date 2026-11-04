@@ -52,9 +52,11 @@ impl ChartYear for ExpenseInsightsYear {
 /// The payload of `get_expense_insights` (CSD-014 section 5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct ExpenseInsights {
+    /// The categories shown in the chart.
     pub categories: Vec<InsightsCategory>,
     /// The axis of the chart (CSD-025 REQ-3).
     pub axis: Axis,
+    /// The years of the chart, one entry per year.
     pub years: Vec<ExpenseInsightsYear>,
 }
 

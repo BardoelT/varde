@@ -12,10 +12,14 @@ use super::{Debt, Debts};
 /// REQ-17).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtSummary {
+    /// The debt fields.
     #[serde(flatten)]
     pub debt: Debt,
+    /// Number of statements of the debt.
     pub statement_count: usize,
+    /// Period of the latest statement, `None` without statements.
     pub latest_period: Option<Period>,
+    /// The latest balance, `None` without statements.
     pub latest_balance: Option<Decimal>,
     /// Whether the latest statement has the balance 0.00 (CSD-011 REQ-26).
     pub repaid: bool,

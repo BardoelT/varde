@@ -12,12 +12,16 @@ use super::Investments;
 /// The totals of one calendar year over all accounts (CSD-005 REQ-26).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct InvestmentYearlyTotal {
+    /// The calendar year.
     pub year: i32,
     /// The sum, over the accounts with a statement this year, of the balance
     /// of their latest statement this year.
     pub closing_balance: Decimal,
+    /// Net deposits: money put in minus money taken out.
     pub net_deposits: Decimal,
+    /// Capital growth.
     pub capital_growth: Decimal,
+    /// Number of statements in the year.
     pub statement_count: usize,
 }
 

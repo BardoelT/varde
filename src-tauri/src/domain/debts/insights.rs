@@ -52,9 +52,11 @@ impl ChartYear for DebtInsightsYear {
 /// The payload of `get_debt_insights` (CSD-012 section 5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtInsights {
+    /// The debts shown in the chart.
     pub debts: Vec<InsightsDebt>,
     /// The axis of the chart (CSD-025 REQ-3).
     pub axis: Axis,
+    /// The years of the chart, one entry per year.
     pub years: Vec<DebtInsightsYear>,
 }
 
