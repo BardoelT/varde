@@ -1,7 +1,7 @@
 ---
 id: CSD-017
 title: Net worth insights
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 1.3
 last_updated: 04/11/2026

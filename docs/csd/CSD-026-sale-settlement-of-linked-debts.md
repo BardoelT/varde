@@ -1,7 +1,7 @@
 ---
 id: CSD-026
 title: Sale settlement of linked debts
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 1.0
 last_updated: 04/11/2026
