@@ -1,10 +1,10 @@
 ---
 id: CSD-009
 title: Bank accounts
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.2
-last_updated: 03/11/2026
+version: 2.0
+last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-005, CSD-010, CSD-025]
 ---
 
@@ -333,7 +333,7 @@ Scenario: Yearly entry for a monthly account rejected
 ```
 
 **REQ-10: Balance validation** *(unwanted behaviour)*
-If the balance of an entry is not a plain number such as 2500.00 or -150.25, has more than two decimal places or has an absolute value above 1,000,000,000.00, then the app shall reject the entry or edit without rounding or storing it. A balance of 0.00 and a negative balance are valid.
+If the balance of an entry is not a plain number such as 2500.00 or -150.25 or has an absolute value above 1,000,000,000.00, then the app shall reject the entry or edit without storing it. A balance of 0.00 and a negative balance are valid. The rules apply to the balance after rounding (REQ-25).
 
 ```gherkin
 @AC-10.1
@@ -349,8 +349,6 @@ Scenario Outline: Invalid balances rejected
     | abc              | BANK_ENTRY_BALANCE_INVALID    |
     | 1e3              | BANK_ENTRY_BALANCE_INVALID    |
     | 2500,50          | BANK_ENTRY_BALANCE_INVALID    |
-    | 1000.999         | BANK_ENTRY_BALANCE_PRECISION  |
-    | -1000.999        | BANK_ENTRY_BALANCE_PRECISION  |
     | 1000000000.01    | BANK_ENTRY_BALANCE_TOO_LARGE  |
     | -1000000000.01   | BANK_ENTRY_BALANCE_TOO_LARGE  |
 
@@ -370,9 +368,53 @@ Scenario Outline: Boundary and negative balances accepted
 @AC-10.3
 Scenario: Invalid balance in an edit rejected
   Given an entry for 2026-09 with balance 2500.00
-  When the user sets the balance to 1000.999
-  Then the edit is rejected with error code "BANK_ENTRY_BALANCE_PRECISION"
+  When the user sets the balance to "abc"
+  Then the edit is rejected with error code "BANK_ENTRY_BALANCE_INVALID"
   And the entry still has balance 2500.00
+```
+
+The rows of AC-10.1 with 1000.999 and -1000.999 (`BANK_ENTRY_BALANCE_PRECISION`) are removed in v2.0: a typed balance with more than two decimals is rounded, not rejected (REQ-25).
+
+**REQ-25: Typed balances are rounded** *(event-driven)*
+When the user enters a balance with more than two decimal places, the app shall round it half-up to two decimals (CSD-000 CON-8) before it applies the rules of REQ-10.
+
+```gherkin
+@AC-25.1
+Scenario Outline: A typed balance is rounded half-up
+  Given a monthly account "Example Current Account" and the current date 26/10/2026
+  When the user adds an entry for 2026-09 with balance "<typed>"
+  Then the entry for 2026-09 has balance <stored>
+
+  Examples:
+    | typed       | stored   |
+    | 3000.505    | 3000.51  |
+    | 1.004       | 1.00     |
+    | 1.005       | 1.01     |
+    | 1000.999    | 1001.00  |
+    | -0.125      | -0.13    |
+    | -1000.999   | -1001.00 |
+    | -0.004      | 0.00     |
+    | 0.004       | 0.00     |
+    | 2500.5      | 2500.50  |
+
+@AC-25.2
+Scenario Outline: The limit is checked after rounding
+  Given a monthly account "Example Current Account" and the current date 26/10/2026
+  When the user adds an entry for 2026-09 with balance "<typed>"
+  Then <outcome>
+
+  Examples:
+    | typed           | outcome                                                      |
+    | 1000000000.004  | the entry has balance 1000000000.00                          |
+    | -1000000000.004 | the entry has balance -1000000000.00                         |
+    | 1000000000.005  | it is rejected with error code "BANK_ENTRY_BALANCE_TOO_LARGE" |
+    | -1000000000.005 | it is rejected with error code "BANK_ENTRY_BALANCE_TOO_LARGE" |
+
+@AC-25.3
+Scenario: A typed balance in an edit is rounded
+  Given an entry for 2026-09 with balance 2500.00
+  When the user sets the balance to "1000.999"
+  Then the entry has balance 1001.00
 ```
 
 **REQ-11: Note validation** *(unwanted behaviour)*
@@ -494,8 +536,8 @@ Scenario Outline: A period of the wrong kind is rejected
 @AC-13.4
 Scenario: An invalid value rejects the whole edit
   Given a monthly account with an entry for 2026-09 with balance 2500.00
-  When the user changes its period to 2026-08 and sets the balance to 1000.999
-  Then the edit is rejected with error code "BANK_ENTRY_BALANCE_PRECISION"
+  When the user changes its period to 2026-08 and sets the balance to "abc"
+  Then the edit is rejected with error code "BANK_ENTRY_BALANCE_INVALID"
   And the entry is still for 2026-09 with balance 2500.00
   And the unsaved indicator is not shown
 
@@ -895,7 +937,7 @@ The project file gets a new section `bank_accounts` with the lists `accounts` an
 
 Commands (all inputs validated in Rust; amounts cross IPC as decimal strings): `list_bank_accounts()` (each account with its entry count, which is not displayed, latest balance and period and colour slot, plus the total), `create_bank_account`, `update_bank_account`, `delete_bank_account`, `list_bank_entries()` (entries of all accounts, each with its account name), `add_bank_entry`, `update_bank_entry` (keeps the period that identifies the entry as an argument and takes the new period as an extra one, equal to it when the period does not change, and applies the edit as a whole or not at all, REQ-13), `delete_bank_entry`, `copy_previous_bank_entry(account_id)` and `yearly_bank_totals()` (over all accounts; each row has the year, closing balance and entry count, newest year first; the count is not displayed, but the frontend may use it, for example to lock the period or to detect an empty year). The insights command is in CSD-010. Project commands (save, open, new) are in CSD-002.
 
-Error codes (returned as code plus safe message): `BANK_ACCOUNT_NAME_REQUIRED`, `BANK_ACCOUNT_NAME_TOO_LONG`, `BANK_ACCOUNT_NAME_DUPLICATE`, `BANK_ACCOUNT_PERIOD_UNSUPPORTED`, `BANK_ACCOUNT_PERIOD_LOCKED`, `BANK_ACCOUNT_NOT_FOUND`, `BANK_ENTRY_PERIOD_MISMATCH`, `BANK_ENTRY_PERIOD_INVALID`, `BANK_ENTRY_DUPLICATE`, `BANK_ENTRY_BALANCE_INVALID`, `BANK_ENTRY_BALANCE_PRECISION`, `BANK_ENTRY_BALANCE_TOO_LARGE`, `BANK_ENTRY_NOTE_TOO_LONG`, `BANK_ENTRY_NOT_FOUND` (`BANK_ENTRY_IN_FUTURE` was removed in v1.0). The two NOT_FOUND codes are returned for an account or an entry that does not exist (a stale screen). Project error codes are in CSD-002.
+Error codes (returned as code plus safe message): `BANK_ACCOUNT_NAME_REQUIRED`, `BANK_ACCOUNT_NAME_TOO_LONG`, `BANK_ACCOUNT_NAME_DUPLICATE`, `BANK_ACCOUNT_PERIOD_UNSUPPORTED`, `BANK_ACCOUNT_PERIOD_LOCKED`, `BANK_ACCOUNT_NOT_FOUND`, `BANK_ENTRY_PERIOD_MISMATCH`, `BANK_ENTRY_PERIOD_INVALID`, `BANK_ENTRY_DUPLICATE`, `BANK_ENTRY_BALANCE_INVALID`, `BANK_ENTRY_BALANCE_PRECISION` (removed in v2.0), `BANK_ENTRY_BALANCE_TOO_LARGE`, `BANK_ENTRY_NOTE_TOO_LONG`, `BANK_ENTRY_NOT_FOUND` (`BANK_ENTRY_IN_FUTURE` was removed in v1.0). The two NOT_FOUND codes are returned for an account or an entry that does not exist (a stale screen). Project error codes are in CSD-002.
 
 ## 6. Constraints
 - CON-1: Amounts use `rust_decimal::Decimal` and are in the project currency (CSD-003), so adding balances across accounts never mixes currencies. Rationale: `CLAUDE.md` money rules.
@@ -908,7 +950,7 @@ Error codes (returned as code plus safe message): `BANK_ACCOUNT_NAME_REQUIRED`, 
 - CON-8: The length of a name or a note is counted in characters (Unicode scalar values), not bytes. Rationale: names and notes in any language must fit the stated limits.
 - CON-9: The yearly totals and the total are computed in Rust each time they are needed and are never stored in the project file. Rationale: CON-2, and stored totals would go stale when an entry changes.
 - CON-10: Bank accounts get their own module, commands and page. Shared helpers may be reused or extracted when that is small, and Investments is not refactored. Rationale: `CLAUDE.md` asks before large refactors across modules.
-- CON-11: Every amount and every derived figure follows the rounding rule of CSD-000 CON-8. Balances have at most two decimals (REQ-10), so no rounding changes a stored value. Rationale: one rounding rule for the whole application.
+- CON-11: Every amount and every derived figure follows the rounding rule of CSD-000 CON-8. A typed balance is rounded to two decimals (REQ-25), so a stored balance never has more. Rationale: one rounding rule for the whole application.
 
 ## 7. Verification
 Rust-side behaviour is proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd009_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
@@ -920,7 +962,7 @@ Rust-side behaviour is proven by `cargo test`, with domain logic tested in `doma
 | Display ACs (REQ-20 to REQ-22, form labels, period field in the edit form, section order and contents, titles without a currency, button placement, empty states, note cut-off, plain-text note, no entry counts anywhere, delete confirmations, negative balance display) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. There are no `test_csd009_ac_20_` tests |
 | AC-24.1, AC-24.2 | Governed by CSD-003 REQ-5 (AC-5.7, AC-5.8), verified there; there is no test for them in this CSD |
 
-Not covered by a named test yet (27 of 93 ACs; no test carries the AC id): AC-6.2, AC-6.3, AC-12.2, AC-12.7, AC-12.9, AC-13.4, AC-14.2, AC-16.1 to AC-16.3, AC-17.6, AC-18.3, AC-20.1 to AC-20.9, AC-21.1 to AC-21.3, AC-22.1, AC-24.1, AC-24.2.
+Not covered by a named test yet (27 of 96 ACs; no test carries the AC id): AC-6.2, AC-6.3, AC-12.2, AC-12.7, AC-12.9, AC-13.4, AC-14.2, AC-16.1 to AC-16.3, AC-17.6, AC-18.3, AC-20.1 to AC-20.9, AC-21.1 to AC-21.3, AC-22.1, AC-24.1, AC-24.2.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
@@ -929,6 +971,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-2: Whether `docs/architecture.md` and the layout line of `CLAUDE.md` ("money, income, investments") get a bank accounts mention when this CSD is implemented. Owner: Thijs. Blocks: none.
 
 ## 9. Changelog
+- 2.0 (04/11/2026): A typed balance with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-25 (AC-25.1 to AC-25.3), REQ-10 applies to the rounded balance, the AC-10.1 rows for 1000.999 and -1000.999 and the code `BANK_ENTRY_BALANCE_PRECISION` are removed, AC-10.3 and AC-13.4 use "abc" (`BANK_ENTRY_BALANCE_INVALID`), CON-11 updated. Owner decision. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed `test_csd009_ac_20_` coverage is removed (no such tests exist). NG-7 and the intro point to CSD-017 for net worth. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): New AC-19.10: a year after the current year has a yearly totals row and equals the Insights series of CSD-010, which now runs to the latest year with an entry (CSD-010 v1.1). No other change. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): No date bounds (decision D11): REQ-7 accepts any valid period including future periods and the year 1899 and earlier (AC-7.3 rewritten, AC-7.4 removed, the 1899 row of AC-7.5 removed), REQ-13 no longer rejects a future period (AC-13.1 removed), error code `BANK_ENTRY_IN_FUTURE` and the year-1900 rule removed. No legacy handling (D12): REQ-23 loses the rule for a missing section (AC-23.2 removed), the schema is strict (CSD-002). The period field in the project file and IPC is called `period` for both account and entry (D13). Rounding follows CSD-000 CON-8 (new CON-11). Verification: display ACs are covered by DOM tests, and ACs without a test are marked not covered. Back to draft for re-approval.

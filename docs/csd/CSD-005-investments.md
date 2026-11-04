@@ -1,10 +1,10 @@
 ---
 id: CSD-005
 title: Investments
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.2
-last_updated: 03/11/2026
+version: 2.0
+last_updated: 04/11/2026
 related: [CSD-000, CSD-001, CSD-002, CSD-003, CSD-007, CSD-025]
 ---
 
@@ -301,7 +301,7 @@ Scenario: Yearly statement for a monthly account rejected
 ```
 
 **REQ-9: Balance validation** *(unwanted behaviour)*
-If the balance of a statement is not a plain number such as 12500.00, is negative, has more than two decimal places or exceeds 1,000,000,000.00, then the app shall reject the statement or edit without rounding or storing it. A balance of 0.00 is valid.
+If the balance of a statement is not a plain number such as 12500.00, is negative or exceeds 1,000,000,000.00, then the app shall reject the statement or edit without storing it. A balance of 0.00 is valid. The rules apply to the balance after rounding (REQ-30).
 
 ```gherkin
 @AC-9.1
@@ -314,7 +314,6 @@ Scenario Outline: Invalid balances rejected
   Examples:
     | balance          | code                          |
     | -0.01            | INVESTMENT_BALANCE_NEGATIVE   |
-    | 1000.999         | INVESTMENT_BALANCE_PRECISION  |
     | 1000000000.01    | INVESTMENT_BALANCE_TOO_LARGE  |
 
 @AC-9.2
@@ -792,7 +791,7 @@ Scenario: Edit net deposits
 ```
 
 **REQ-22: Net deposits validation** *(unwanted behaviour)*
-If the net deposits of a statement is not a plain number such as 300.00 or -250.00, has more than two decimal places or has an absolute value above 1,000,000,000.00, then the app shall reject the statement or edit without rounding or storing it. A value of 0.00 and a negative value are valid.
+If the net deposits of a statement is not a plain number such as 300.00 or -250.00 or has an absolute value above 1,000,000,000.00, then the app shall reject the statement or edit without storing it. A value of 0.00 and a negative value are valid. The rules apply to the net deposits after rounding (REQ-30).
 
 ```gherkin
 @AC-22.1
@@ -807,8 +806,6 @@ Scenario Outline: Invalid net deposits rejected
     | abc              | INVESTMENT_NET_DEPOSITS_INVALID     |
     | 1e3              | INVESTMENT_NET_DEPOSITS_INVALID     |
     | 300,50           | INVESTMENT_NET_DEPOSITS_INVALID     |
-    | 100.999          | INVESTMENT_NET_DEPOSITS_PRECISION   |
-    | -100.999         | INVESTMENT_NET_DEPOSITS_PRECISION   |
     | 1000000000.01    | INVESTMENT_NET_DEPOSITS_TOO_LARGE   |
     | -1000000000.01   | INVESTMENT_NET_DEPOSITS_TOO_LARGE   |
 
@@ -827,8 +824,8 @@ Scenario Outline: Boundary net deposits accepted
 @AC-22.3
 Scenario: Invalid net deposits in an edit rejected
   Given a statement for 2026-09 with balance 12500.00 and net deposits 300.00
-  When the user sets the net deposits to "100.999"
-  Then the edit is rejected with error code "INVESTMENT_NET_DEPOSITS_PRECISION"
+  When the user sets the net deposits to "abc"
+  Then the edit is rejected with error code "INVESTMENT_NET_DEPOSITS_INVALID"
   And the statement still has net deposits 300.00
 ```
 
@@ -990,7 +987,7 @@ Scenario: Editing without a period change uses the earlier statement
 ```
 
 **REQ-25: Invalid values in the calculation** *(unwanted behaviour)*
-If a capital growth or net deposits entered in the statement form is invalid under REQ-22 or REQ-9, or gives a negative or too large balance, then the app shall show the error code of the violated rule next to the form, shall leave the calculated field empty and shall not store the statement. Capital growth the user enters is limited like net deposits (absolute value up to 1,000,000,000.00, two decimal places).
+If a capital growth or net deposits entered in the statement form is invalid under REQ-22 or REQ-9, or gives a negative or too large balance, then the app shall show the error code of the violated rule next to the form, shall leave the calculated field empty and shall not store the statement. Capital growth the user enters is limited like net deposits (absolute value up to 1,000,000,000.00, checked after rounding, REQ-30).
 
 ```gherkin
 @AC-25.1
@@ -1011,7 +1008,6 @@ Scenario Outline: Invalid capital growth
   Examples:
     | growth           | code                         |
     | abc              | INVESTMENT_GROWTH_INVALID    |
-    | 100.999          | INVESTMENT_GROWTH_PRECISION  |
     | 1000000000.01    | INVESTMENT_GROWTH_TOO_LARGE  |
     | -1000000000.01   | INVESTMENT_GROWTH_TOO_LARGE  |
 
@@ -1025,9 +1021,78 @@ Scenario: Growth that gives a balance above the limit
 @AC-25.4
 Scenario: Invalid net deposits in the form
   Given the add form for 2026-09 of an account with a statement for 2026-08 (balance 12000.00), with balance 12500.00 entered
-  When the user enters net deposits "100.999"
-  Then the form shows error code "INVESTMENT_NET_DEPOSITS_PRECISION"
+  When the user enters net deposits "abc"
+  Then the form shows error code "INVESTMENT_NET_DEPOSITS_INVALID"
   And the capital growth is left empty
+```
+
+The rows of AC-9.1, AC-22.1 and AC-25.2 with more than two decimals (`INVESTMENT_BALANCE_PRECISION`, `INVESTMENT_NET_DEPOSITS_PRECISION`, `INVESTMENT_GROWTH_PRECISION`) are removed in v2.0: typed amounts with more than two decimals are rounded, not rejected (REQ-30).
+
+**REQ-30: Typed amounts are rounded** *(event-driven)*
+When the user enters a balance, net deposits or capital growth with more than two decimal places, the app shall round it half-up to two decimals (CSD-000 CON-8) before it applies the rules of REQ-9, REQ-22 and REQ-25.
+
+```gherkin
+@AC-30.1
+Scenario Outline: A typed balance is rounded half-up
+  Given a monthly account "Example Brokerage" and the current date 26/10/2026
+  When the user adds a statement for 2026-09 with balance "<typed>"
+  Then the statement for 2026-09 has balance <stored>
+
+  Examples:
+    | typed          | stored     |
+    | 12500.505      | 12500.51   |
+    | 1.004          | 1.00       |
+    | 1.005          | 1.01       |
+    | 1000.999       | 1001.00    |
+    | 0.004          | 0.00       |
+    | -0.004         | 0.00       |
+    | 12500.5        | 12500.50   |
+
+@AC-30.2
+Scenario Outline: Typed net deposits are rounded half-up
+  Given a monthly account "Example Brokerage" and the current date 26/10/2026
+  When the user adds a statement for 2026-09 with balance 1000.00 and net deposits "<typed>"
+  Then the statement for 2026-09 has net deposits <stored>
+
+  Examples:
+    | typed    | stored  |
+    | 100.999  | 101.00  |
+    | -100.999 | -101.00 |
+    | -0.125   | -0.13   |
+    | -0.004   | 0.00    |
+    | 100.004  | 100.00  |
+
+@AC-30.3
+Scenario Outline: The limits are checked after rounding
+  Given a monthly account "Example Brokerage" and the current date 26/10/2026
+  When the user adds a statement for 2026-09 with balance "<balance>" and net deposits "<net_deposits>"
+  Then <outcome>
+
+  Examples:
+    | balance        | net_deposits    | outcome                                                          |
+    | 1000000000.004 | 0.00            | the statement has balance 1000000000.00                          |
+    | 1000000000.005 | 0.00            | it is rejected with error code "INVESTMENT_BALANCE_TOO_LARGE"     |
+    | -0.005         | 0.00            | it is rejected with error code "INVESTMENT_BALANCE_NEGATIVE"      |
+    | 1000.00        | -1000000000.004 | the statement has net deposits -1000000000.00                    |
+    | 1000.00        | 1000000000.005  | it is rejected with error code "INVESTMENT_NET_DEPOSITS_TOO_LARGE" |
+
+@AC-30.4
+Scenario Outline: Typed capital growth is rounded half-up
+  Given the add form for 2026-09 of an account with a statement for 2026-08 (balance 12000.00)
+  When the user enters net deposits 0.00 and capital growth "<growth>"
+  Then the balance is calculated as <balance> and the capital growth as <stored>
+
+  Examples:
+    | growth         | balance   | stored  |
+    | 200.005        | 12200.01  | 200.01  |
+    | 200.004        | 12200.00  | 200.00  |
+    | -200.999       | 11799.00  | -201.00 |
+
+@AC-30.5
+Scenario: A typed balance in an edit is rounded
+  Given a statement for 2026-09 with balance 12500.00
+  When the user sets the balance to "1000.999"
+  Then the statement has balance 1001.00
 ```
 
 **REQ-27: Note when there is no earlier statement** *(state-driven)*
@@ -1166,7 +1231,7 @@ The project file gets a new section `investments` with the lists `accounts` and 
 
 Commands (all inputs validated in Rust; amounts cross IPC as decimal strings): `list_investment_accounts()` (each account with its statement count, which is not displayed, and latest balance and period, plus the total), `create_investment_account`, `update_investment_account`, `delete_investment_account`, `list_investment_statements()` (statements of all accounts, each with its account name, its net deposits and its capital growth), `add_investment_statement` and `update_investment_statement` (both take the net deposits; `update_investment_statement` keeps the period that identifies the statement as an argument and takes the new period as an extra one, equal to it when the period does not change, and applies the edit as a whole or not at all, REQ-29), `delete_investment_statement`, `copy_previous_investment_statement(account_id)`, `yearly_investment_totals()` (over all accounts; each row has the year, closing balance, net deposits, capital growth and statement count, newest year first; the count is not displayed, but the frontend may use it, for example to lock the period or to detect an empty year), and `calculate_investment_statement(account_id, period, net_deposits, input, value, ignore_period)` (`input` is `balance` or `growth`; `ignore_period` is optional: the current period of the statement being edited, which never counts as a previous statement, REQ-24; returns the balance and the capital growth, or an error code; it stores nothing). Project commands (save, open, new) are in CSD-002.
 
-Error codes (returned as code plus safe message): `INVESTMENT_ACCOUNT_NAME_REQUIRED`, `INVESTMENT_ACCOUNT_NAME_TOO_LONG`, `INVESTMENT_ACCOUNT_NAME_DUPLICATE`, `INVESTMENT_PERIOD_UNSUPPORTED`, `INVESTMENT_PERIOD_LOCKED`, `INVESTMENT_PERIOD_MISMATCH`, `INVESTMENT_STATEMENT_PERIOD_INVALID`, `INVESTMENT_STATEMENT_DUPLICATE`, `INVESTMENT_BALANCE_INVALID`, `INVESTMENT_BALANCE_NEGATIVE`, `INVESTMENT_BALANCE_PRECISION`, `INVESTMENT_BALANCE_TOO_LARGE`, `INVESTMENT_NOTE_TOO_LONG`, `INVESTMENT_NET_DEPOSITS_INVALID`, `INVESTMENT_NET_DEPOSITS_PRECISION`, `INVESTMENT_NET_DEPOSITS_TOO_LARGE`, `INVESTMENT_GROWTH_INVALID`, `INVESTMENT_GROWTH_PRECISION`, `INVESTMENT_GROWTH_TOO_LARGE`, `INVESTMENT_ACCOUNT_NOT_FOUND`, `INVESTMENT_STATEMENT_NOT_FOUND` (`INVESTMENT_STATEMENT_IN_FUTURE` was removed in v1.0). The last two are returned for an account or a statement that does not exist (a stale screen). Project error codes are in CSD-002.
+Error codes (returned as code plus safe message): `INVESTMENT_ACCOUNT_NAME_REQUIRED`, `INVESTMENT_ACCOUNT_NAME_TOO_LONG`, `INVESTMENT_ACCOUNT_NAME_DUPLICATE`, `INVESTMENT_PERIOD_UNSUPPORTED`, `INVESTMENT_PERIOD_LOCKED`, `INVESTMENT_PERIOD_MISMATCH`, `INVESTMENT_STATEMENT_PERIOD_INVALID`, `INVESTMENT_STATEMENT_DUPLICATE`, `INVESTMENT_BALANCE_INVALID`, `INVESTMENT_BALANCE_NEGATIVE`, `INVESTMENT_BALANCE_PRECISION` (removed in v2.0), `INVESTMENT_BALANCE_TOO_LARGE`, `INVESTMENT_NOTE_TOO_LONG`, `INVESTMENT_NET_DEPOSITS_INVALID`, `INVESTMENT_NET_DEPOSITS_PRECISION` (removed in v2.0), `INVESTMENT_NET_DEPOSITS_TOO_LARGE`, `INVESTMENT_GROWTH_INVALID`, `INVESTMENT_GROWTH_PRECISION` (removed in v2.0), `INVESTMENT_GROWTH_TOO_LARGE`, `INVESTMENT_ACCOUNT_NOT_FOUND`, `INVESTMENT_STATEMENT_NOT_FOUND` (`INVESTMENT_STATEMENT_IN_FUTURE` was removed in v1.0). The last two are returned for an account or a statement that does not exist (a stale screen). Project error codes are in CSD-002.
 
 ## 6. Constraints
 - CON-1: Amounts use `rust_decimal::Decimal` and are in the project currency (CSD-003), so adding balances across accounts never mixes currencies. Rationale: `CLAUDE.md` money rules.
@@ -1179,7 +1244,7 @@ Error codes (returned as code plus safe message): `INVESTMENT_ACCOUNT_NAME_REQUI
 - CON-8: The length of a name or a note is counted in characters (Unicode scalar values), not bytes. Rationale: names and notes in any language must fit the stated limits.
 - CON-9: Capital growth is computed from the stored balances and net deposits each time it is needed, and is never stored in the project file. Rationale: a stored growth would be wrong after an earlier statement is edited, added or deleted (AC-23.6 to AC-23.8).
 - CON-10: The form calculation (REQ-24) runs in Rust through a command, and the frontend computes no amounts. Rationale: CON-2.
-- CON-12: Every amount and every derived figure follows the rounding rule of CSD-000 CON-8. Amounts entered here have at most two decimals (REQ-9, REQ-22), so no rounding changes a stored value. Rationale: one rounding rule for the whole application.
+- CON-12: Every amount and every derived figure follows the rounding rule of CSD-000 CON-8. Amounts typed here are rounded to two decimals (REQ-30), so a stored amount never has more. Rationale: one rounding rule for the whole application.
 - CON-11: The yearly totals are computed in Rust each time they are needed and are never stored in the project file. Rationale: CON-2, and stored totals would go stale when a statement changes.
 
 ## 7. Verification
@@ -1194,7 +1259,7 @@ Rust-side behaviour is proven by `cargo test`, with domain logic tested in `doma
 | Display ACs (forms, section order and contents, titles without a currency, button placement, empty states, note cut-off, plain-text note, no counts, delete confirmations, the calculated marking) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. |
 | The currency confirmation for investment statements | Governed by CSD-003 REQ-5 (AC-5.5, AC-5.6), verified there |
 
-Not covered by a named test yet (24 of 126 ACs; no test carries the AC id): AC-5.2, AC-5.3, AC-12.2, AC-14.1 to AC-14.3, AC-17.1, AC-17.4 to AC-17.7, AC-17.9, AC-18.1 to AC-18.3, AC-20.1, AC-20.2, AC-24.6, AC-27.1 to AC-27.4, AC-28.6, AC-29.4.
+Not covered by a named test yet (24 of 131 ACs; no test carries the AC id): AC-5.2, AC-5.3, AC-12.2, AC-14.1 to AC-14.3, AC-17.1, AC-17.4 to AC-17.7, AC-17.9, AC-18.1 to AC-18.3, AC-20.1, AC-20.2, AC-24.6, AC-27.1 to AC-27.4, AC-28.6, AC-29.4.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
@@ -1205,6 +1270,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-4: (resolved 03/11/2026) The Insights series of CSD-007 runs from the earliest year with a statement to the later of the current year and the latest year with a statement, so a statement after the current year gets a slot, and spans at most 50 years back from its last year. A statement older than that gets no slot but still counts in the yearly totals of REQ-26 and in every total and ratio (CSD-007 REQ-2).
 
 ## 9. Changelog
+- 2.0 (04/11/2026): A typed balance, net deposits or capital growth with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-30 (AC-30.1 to AC-30.5), REQ-9, REQ-22 and REQ-25 apply to the rounded amount, the rows with more than two decimals of AC-9.1, AC-22.1 and AC-25.2 and the codes `INVESTMENT_BALANCE_PRECISION`, `INVESTMENT_NET_DEPOSITS_PRECISION` and `INVESTMENT_GROWTH_PRECISION` are removed, AC-22.3 and AC-25.4 use "abc" (`INVESTMENT_NET_DEPOSITS_INVALID`), CON-12 updated. Owner decision. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. AC-5.2 and AC-12.2 are listed as not covered (the old table said all of REQ-1 to REQ-13 except AC-5.3). NG-4 and the intro no longer call the net-worth integration future work: it is specified in CSD-017. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Resolved OQ-4: the year series of CSD-007 runs to the latest year with a statement, at most 50 years back (CSD-007 v1.1). No requirement of this CSD changes. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): No date bounds (decision D11): REQ-6 accepts any valid period including future periods and the year 1899 and earlier (AC-6.3 rewritten, AC-6.4 removed, the 1899 row of AC-6.5 removed), REQ-29 no longer rejects a future period (AC-29.1 removed), error code `INVESTMENT_STATEMENT_IN_FUTURE` removed. No legacy handling (D12): REQ-19 loses the rules for a missing section and for a missing net deposits (AC-19.2, AC-19.4 removed), the schema is strict (CSD-002). The period field in the project file and IPC is called `period` for both account and statement (D13). Rounding follows CSD-000 CON-8 (new CON-12). Verification: display ACs are covered by DOM tests, and ACs without a test are marked not covered (AC-29.4). New OQ-4. Back to draft for re-approval.

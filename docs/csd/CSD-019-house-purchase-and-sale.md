@@ -1,9 +1,9 @@
 ---
 id: CSD-019
 title: House purchase and sale
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.0
+version: 2.0
 last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-015, CSD-016, CSD-017, CSD-018, CSD-020, CSD-026]
 ---
@@ -145,7 +145,7 @@ Scenario: A date has no lower bound
 ```
 
 **REQ-4: Amount rules** *(unwanted behaviour)*
-If a purchase or sell amount is not a plain number, is negative, has more than two decimal places or exceeds 1,000,000,000.00, then the app shall reject the house or edit with the error code of the violated rule, without rounding or storing it. An amount of 0.00 is valid.
+If a purchase or sell amount is not a plain number, is negative or exceeds 1,000,000,000.00, then the app shall reject the house or edit with the error code of the violated rule, without storing it. An amount of 0.00 is valid. The rules apply to the amount after rounding (REQ-15).
 
 ```gherkin
 @AC-4.1
@@ -160,13 +160,53 @@ Scenario Outline: Invalid amounts rejected
     | abc            | HOUSE_AMOUNT_INVALID    |
     | 1e3            | HOUSE_AMOUNT_INVALID    |
     | -0.01          | HOUSE_AMOUNT_NEGATIVE   |
-    | 1000.999       | HOUSE_AMOUNT_PRECISION  |
     | 1000000000.01  | HOUSE_AMOUNT_TOO_LARGE  |
 
 @AC-4.2
 Scenario: A worthless sale and a free purchase are valid
   When the user adds a house "Example Guesthouse" with purchase date 15/03/2024 and purchase amount 0.00 and sell date 10/06/2026 and sell amount 0.00
   Then the house is sold and its result is 0.00
+```
+
+The row of AC-4.1 with 1000.999 (`HOUSE_AMOUNT_PRECISION`) is removed in v2.0: a typed amount with more than two decimals is rounded, not rejected (REQ-15).
+
+**REQ-15: Typed purchase and sell amounts are rounded** *(event-driven)*
+When the user enters a purchase or sell amount with more than two decimal places, the app shall round it half-up to two decimals (CSD-000 CON-8) before it applies the rules of REQ-4.
+
+```gherkin
+@AC-15.1
+Scenario Outline: A typed amount is rounded half-up
+  Given a held house "Example House" bought on 15/03/2024 for 250000.00
+  When the user sets sell date 10/06/2026 and sell amount "<typed>"
+  Then the house has sell amount <stored>
+
+  Examples:
+    | typed | stored |
+    | 300000.505 | 300000.51 |
+    | 1.004      | 1.00 |
+    | 1.005      | 1.01 |
+    | 1000.999   | 1001.00 |
+    | 0.004      | 0.00 |
+    | 300000.5   | 300000.50 |
+
+@AC-15.2
+Scenario Outline: The limit is checked after rounding
+  Given a held house "Example House" bought on 15/03/2024 for 250000.00
+  When the user sets sell date 10/06/2026 and sell amount "<typed>"
+  Then <outcome>
+
+  Examples:
+    | typed | outcome |
+    | 1000000000.004 | the house has sell amount 1000000000.00 |
+    | 1000000000.005 | it is rejected with error code "HOUSE_AMOUNT_TOO_LARGE" |
+    | -0.005         | it is rejected with error code "HOUSE_AMOUNT_NEGATIVE" |
+    | -0.004         | the house has sell amount 0.00 |
+
+@AC-15.3
+Scenario: A typed amount in an edit is rounded
+  Given a held house "Example House" bought on 15/03/2024 for 250000.00
+  When the user changes the purchase amount to "250000.999"
+  Then the house has purchase amount 250001.00
 ```
 
 **REQ-5: A sale is complete** *(unwanted behaviour)*
@@ -428,7 +468,7 @@ The result, the held or sold state and the held-at-year-end rule are derived (RE
 
 Commands: `create_house` and `update_house` take the purchase and sale fields; their `links` with `settlements` and `confirm_undo` are CSD-026. `list_houses()` adds, per house, the purchase, the sale and held or sold, and its total covers held houses only. `yearly_house_values()`, `get_house_insights()` and the net-worth and ratios commands apply REQ-10. Project load validates REQ-13. All validation is in Rust.
 
-Error codes (code plus safe message): `HOUSE_PURCHASE_DATE_REQUIRED`, `HOUSE_PURCHASE_AMOUNT_REQUIRED`, `HOUSE_DATE_INVALID`, `HOUSE_SELL_BEFORE_PURCHASE`, `HOUSE_SALE_INCOMPLETE`, `HOUSE_AMOUNT_INVALID`, `HOUSE_AMOUNT_NEGATIVE`, `HOUSE_AMOUNT_PRECISION`, `HOUSE_AMOUNT_TOO_LARGE`, `HOUSE_VALUATION_OUTSIDE_HOLDING`, `HOUSE_DATES_EXCLUDE_VALUATIONS`, `PROJECT_INVALID_FILE`. `HOUSE_DATE_IN_FUTURE` no longer exists (REQ-3).
+Error codes (code plus safe message): `HOUSE_PURCHASE_DATE_REQUIRED`, `HOUSE_PURCHASE_AMOUNT_REQUIRED`, `HOUSE_DATE_INVALID`, `HOUSE_SELL_BEFORE_PURCHASE`, `HOUSE_SALE_INCOMPLETE`, `HOUSE_AMOUNT_INVALID`, `HOUSE_AMOUNT_NEGATIVE`, `HOUSE_AMOUNT_PRECISION` (removed in v2.0), `HOUSE_AMOUNT_TOO_LARGE`, `HOUSE_VALUATION_OUTSIDE_HOLDING`, `HOUSE_DATES_EXCLUDE_VALUATIONS`, `PROJECT_INVALID_FILE`. `HOUSE_DATE_IN_FUTURE` no longer exists (REQ-3).
 
 ## 6. Constraints
 - CON-1: Amounts use `rust_decimal::Decimal` and reuse the value rules of CSD-015 REQ-10, and every figure is computed in Rust. Rationale: `CLAUDE.md` money rules; the frontend only displays.
@@ -445,7 +485,7 @@ Domain logic is in `domain/houses` (with `domain/net_worth` and `domain/ratios` 
 | Rust tests | `cargo test test_csd019_`. One requirement, e.g. REQ-10: `cargo test test_csd019_ac_10_` |
 | Display ACs (the form fields, the Held and Sold wording, the unsaved indicator) | No DOM test carries an AC id; checked by hand |
 
-Not covered by a named test yet (5 of 37 ACs; no test carries the AC id): AC-1.3, AC-11.2, AC-12.1 to AC-12.3.
+Not covered by a named test yet (5 of 40 ACs; no test carries the AC id): AC-1.3, AC-11.2, AC-12.1 to AC-12.3.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
@@ -453,4 +493,5 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 2.0 (04/11/2026): A typed purchase or sell amount with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0, CSD-015 REQ-28): new REQ-15 (AC-15.1 to AC-15.3), REQ-4 applies to the rounded amount, the AC-4.1 row for 1000.999 and the code `HOUSE_AMOUNT_PRECISION` are removed. Owner decision. Back to `draft` until re-approved.
 - 1.0 (04/11/2026): New CSD, split off from CSD-020 v1.1 (house purchase, sale and linked debts), reusing the free number 019. It holds the former REQ-1 to REQ-14 with their ACs, and the numbers are unchanged: REQ-1 to REQ-14 and AC-1.1 to AC-14.1 are the same as in CSD-020 v1.1. NG-1 to NG-6 and CON-1 to CON-5 keep their numbers (CON-1, CON-2, CON-4 and CON-5 are shortened to what this CSD covers), NG-7 is new. REQ-2 now points to CSD-026 REQ-1 and REQ-4 for the settlement of linked debts. Draft until approved.

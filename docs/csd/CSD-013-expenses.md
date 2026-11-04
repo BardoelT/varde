@@ -1,10 +1,10 @@
 ---
 id: CSD-013
 title: Expenses
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.1
-last_updated: 03/11/2026
+version: 2.0
+last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-014]
 ---
 
@@ -206,7 +206,7 @@ Scenario: A leap day is a real date
 ```
 
 **REQ-5: Amount validation** *(unwanted behaviour)*
-If the amount of an expense is not a plain number such as 4500.00, is 0.00 or negative, has more than two decimal places or exceeds 1,000,000,000.00, then the app shall reject the expense or edit without rounding or storing it.
+If the amount of an expense is not a plain number such as 4500.00, is 0.00 or negative or exceeds 1,000,000,000.00, then the app shall reject the expense or edit without storing it. The rules apply to the amount after rounding (REQ-18).
 
 ```gherkin
 @AC-5.1
@@ -223,7 +223,6 @@ Scenario Outline: Invalid amounts rejected
     | 2500,50       | EXPENSE_AMOUNT_INVALID       |
     | 0.00          | EXPENSE_AMOUNT_NOT_POSITIVE  |
     | -0.01         | EXPENSE_AMOUNT_NOT_POSITIVE  |
-    | 100.999       | EXPENSE_AMOUNT_PRECISION     |
     | 1000000000.01 | EXPENSE_AMOUNT_TOO_LARGE     |
 
 @AC-5.2
@@ -242,6 +241,45 @@ Scenario: Invalid amount in an edit rejected
   When the user sets the amount to 0.00
   Then the edit is rejected with error code "EXPENSE_AMOUNT_NOT_POSITIVE"
   And the expense still has amount 4500.00
+```
+
+The row of AC-5.1 with 100.999 (`EXPENSE_AMOUNT_PRECISION`) is removed in v2.0: a typed amount with more than two decimals is rounded, not rejected (REQ-18).
+
+**REQ-18: Typed amounts are rounded** *(event-driven)*
+When the user enters an amount with more than two decimal places, the app shall round it half-up to two decimals (CSD-000 CON-8) before it applies the rules of REQ-5.
+
+```gherkin
+@AC-18.1
+Scenario Outline: A typed amount is rounded half-up
+  When the user adds an expense with amount "<typed>", date 15/09/2026 and category "Other"
+  Then the expense has amount <stored>
+
+  Examples:
+    | typed | stored |
+    | 4500.505 | 4500.51 |
+    | 1.004    | 1.00 |
+    | 1.005    | 1.01 |
+    | 100.999  | 101.00 |
+    | 0.005    | 0.01 |
+    | 4500.5   | 4500.50 |
+
+@AC-18.2
+Scenario Outline: Zero and the limit are checked after rounding
+  When the user adds an expense with amount "<typed>", date 15/09/2026 and category "Other"
+  Then <outcome>
+
+  Examples:
+    | typed | outcome |
+    | 0.004          | it is rejected with error code "EXPENSE_AMOUNT_NOT_POSITIVE" |
+    | -0.004         | it is rejected with error code "EXPENSE_AMOUNT_NOT_POSITIVE" |
+    | 1000000000.004 | the expense has amount 1000000000.00 |
+    | 1000000000.005 | it is rejected with error code "EXPENSE_AMOUNT_TOO_LARGE" |
+
+@AC-18.3
+Scenario: A typed amount in an edit is rounded
+  Given an expense with amount 4500.00
+  When the user sets the amount to "100.999"
+  Then the expense has amount 101.00
 ```
 
 **REQ-6: Note validation** *(unwanted behaviour)*
@@ -624,10 +662,10 @@ The project file gets a new section `expenses` with the list `expenses`, in the 
 
 Commands (all inputs validated in Rust; amounts cross IPC as decimal strings): `list_expenses()` (no arguments; returns `{ expenses, total }`: all expenses in the order of REQ-10, each with its id, name, amount, ISO date, category and note, plus their total), `add_expense`, `update_expense` (applies the edit as a whole or not at all, REQ-7), `delete_expense`, `copy_previous_expense()` (returns name, amount and category, or nothing) and `yearly_expense_totals()` (one row per year with the year, total, expense count and largest, newest year first; the count is returned but not displayed). The insights command is in CSD-014. Project commands (save, open, new) are in CSD-002.
 
-Error codes (returned as code plus safe message): `EXPENSE_NAME_REQUIRED`, `EXPENSE_NAME_TOO_LONG`, `EXPENSE_CATEGORY_UNSUPPORTED`, `EXPENSE_DATE_INVALID`, `EXPENSE_AMOUNT_INVALID`, `EXPENSE_AMOUNT_NOT_POSITIVE`, `EXPENSE_AMOUNT_PRECISION`, `EXPENSE_AMOUNT_TOO_LARGE`, `EXPENSE_NOTE_TOO_LONG`, `EXPENSE_NOT_FOUND`. (`EXPENSE_DATE_IN_FUTURE` is removed in v1.0: future dates are allowed.) `EXPENSE_NOT_FOUND` is returned for an expense that does not exist (a stale screen). Project error codes are in CSD-002.
+Error codes (returned as code plus safe message): `EXPENSE_NAME_REQUIRED`, `EXPENSE_NAME_TOO_LONG`, `EXPENSE_CATEGORY_UNSUPPORTED`, `EXPENSE_DATE_INVALID`, `EXPENSE_AMOUNT_INVALID`, `EXPENSE_AMOUNT_NOT_POSITIVE`, `EXPENSE_AMOUNT_PRECISION` (removed in v2.0), `EXPENSE_AMOUNT_TOO_LARGE`, `EXPENSE_NOTE_TOO_LONG`, `EXPENSE_NOT_FOUND`. (`EXPENSE_DATE_IN_FUTURE` is removed in v1.0: future dates are allowed.) `EXPENSE_NOT_FOUND` is returned for an expense that does not exist (a stale screen). Project error codes are in CSD-002.
 
 ## 6. Constraints
-- CON-1: Amounts use `rust_decimal::Decimal` and are in the project currency (CSD-003), so adding amounts never mixes currencies. Money amounts follow the rounding rule of CSD-000 CON-8 (a total of amounts with two decimals has two decimals). Rationale: `CLAUDE.md` money rules.
+- CON-1: Amounts use `rust_decimal::Decimal` and are in the project currency (CSD-003), so adding amounts never mixes currencies. Money amounts follow the rounding rule of CSD-000 CON-8 (a typed amount with more than two decimals is rounded half-up, REQ-18, and a total of amounts with two decimals has two decimals). Rationale: `CLAUDE.md` money rules.
 - CON-2: The frontend displays figures computed in Rust, including the total of the list, the yearly totals and the largest expenses, and computes none itself. Rationale: `CLAUDE.md` layout rule.
 - CON-3: No network access. Rationale: `CLAUDE.md` Tauri security rules, and NG-9.
 - CON-4: Errors shown to the user never contain file paths or OS details. Rationale: `CLAUDE.md` error rules.
@@ -649,7 +687,7 @@ The data and the domain logic are proven by `cargo test`, with the domain tested
 | Display ACs without a DOM test (REQ-13, REQ-15, AC-1.3, AC-1.5, AC-7.6) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. |
 | AC-17.1, AC-17.2 (currency confirmation) | Governed by CSD-003 REQ-5 and verified there. There are no `test_csd013_ac_17_` tests |
 
-Not covered by a named test yet (19 of 61 ACs; no test carries the AC id): AC-1.3, AC-1.5, AC-3.3, AC-7.6, AC-8.2, AC-8.3, AC-13.1 to AC-13.9, AC-15.1, AC-16.2, AC-17.1, AC-17.2.
+Not covered by a named test yet (19 of 64 ACs; no test carries the AC id): AC-1.3, AC-1.5, AC-3.3, AC-7.6, AC-8.2, AC-8.3, AC-13.1 to AC-13.9, AC-15.1, AC-16.2, AC-17.1, AC-17.2.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
@@ -657,6 +695,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 2.0 (04/11/2026): A typed amount with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-18 (AC-18.1 to AC-18.3), REQ-5 applies to the rounded amount (an amount that rounds to 0.00 is not above zero), the AC-5.1 row for 100.999 and the code `EXPENSE_AMOUNT_PRECISION` are removed, CON-1 updated. Owner decision. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed REQ-17 coverage is removed (there are no `ac_17_` tests); NG-3 refers to CSD-017 NG-6 for net worth. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): No date bounds: the year-1900 lower bound and the rejection of dates in the future are removed (REQ-4, AC-4.1, AC-7.5, AC-12.7, REQ-16, section 5, NG-8, CON-11 removed; error code `EXPENSE_DATE_IN_FUTURE` removed; the "Today" definition removed). First release, no legacy: a file without the `expenses` section or with an unknown field is invalid (REQ-16, AC-16.2, AC-16.4). Money amounts reference CSD-000 CON-8 (CON-1). Verification table rewritten to what is actually covered (the claim of REQ-17 coverage and of REQ-1 to REQ-12 coverage is corrected; display ACs are covered by DOM tests). Back to `draft` for re-approval.
 - 0.4 (29/10/2026): The position in the left pane is stated in CSD-004 REQ-1 and no longer repeated here (GitHub issue 21).

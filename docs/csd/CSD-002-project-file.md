@@ -1,10 +1,10 @@
 ---
 id: CSD-002
 title: Project file (save, open, new)
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.2
-last_updated: 03/11/2026
+version: 1.3
+last_updated: 04/11/2026
 related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-026]
 ---
 
@@ -480,13 +480,40 @@ Scenario Outline: A missing or zero version is an invalid file
     | absent  |
 ```
 
+**REQ-19: Amounts in the file are strict** *(unwanted behaviour)*
+If a project file holds an amount that is not a decimal string with at most two decimals, then the app shall reject the file with the error code `PROJECT_INVALID_FILE` and leave the in-memory project unchanged, without rounding the amount.
+
+```gherkin
+@AC-19.1
+Scenario Outline: A file amount with more than two decimals is rejected, not rounded
+  Given a project file with a bank account entry whose balance is "<balance>"
+  And the app holds 1 job in memory
+  When the user opens it
+  Then an error with code "PROJECT_INVALID_FILE" is shown
+  And the 1 job in memory is unchanged
+
+  Examples:
+    | balance  |
+    | 2500.505 |
+    | 0.001    |
+    | -1.234   |
+
+@AC-19.2
+Scenario: Trailing zeros in a file amount are accepted
+  Given a project file with a bank account entry whose balance is "2500.500"
+  When the user opens it
+  Then the project opens and the entry has balance 2500.50
+```
+
+Only text typed in a form is rounded (CSD-000 CON-8), because the app itself only ever writes amounts with two decimals.
+
 ## 5. Interfaces and contracts
 
 Menu: Rust builds the File menu items `project-new`, `project-open`, `project-save` and `project-save-as`. Choosing one emits the event `menu-action` with the item id to the frontend, which runs the flow of the action, including the confirmations of REQ-7.
 
 Commands: `take_startup_notice()` (returns the REQ-11 notice once, then nothing), `new_project()`, `open_project()`, `save_project()`, `save_project_as()`, `project_status()` (returns whether there are unsaved changes and whether a path is set) and `quit_app()` (quits without asking: the frontend has already confirmed, REQ-4). The save and open commands show the native dialog themselves and take no path from the frontend.
 
-Project file: JSON with the extension `.varde`, a top-level integer `format_version` (currently 1) and amounts as decimal strings with at most two decimals (CSD-000 CON-8). Each capability owns one section, and all sections are required (REQ-16):
+Project file: JSON with the extension `.varde`, a top-level integer `format_version` (currently 1) and amounts as decimal strings with at most two decimals (CSD-000 CON-8, REQ-19). Each capability owns one section, and all sections are required (REQ-16):
 
 | Section | Capability |
 |---|---|
@@ -507,7 +534,7 @@ Error codes (code plus safe message): `PROJECT_SAVE_FAILED`, `PROJECT_INVALID_FI
 ## 6. Constraints
 - CON-1: The project file is plain, unencrypted JSON, written by writing a temporary file and renaming it over the target. It is never committed (`*.varde` is git-ignored). Rationale: it holds real financial data and the repo is public. The atomic write backs REQ-5.
 - CON-2: File access uses only the Tauri dialog plugin, opened from Rust, so no dialog permission is granted to the webview. There is no `fs` plugin, and file paths never come from the frontend. Rationale: least privilege per `CLAUDE.md`. Adding the plugin still needs approval at implementation time.
-- CON-3: Amounts in the file are decimal strings with at most two decimals (CSD-000 CON-8) and the file carries `format_version`. A newer version than the app knows is rejected (REQ-18). Rationale: no float rounding, and a clear message instead of a parse error.
+- CON-3: Amounts in the file are decimal strings with at most two decimals (CSD-000 CON-8) and are never rounded when read: a file amount with more than two decimals is invalid (REQ-19), only typed text is rounded. The file carries `format_version`. A newer version than the app knows is rejected (REQ-18). Rationale: no float rounding, and a clear message instead of a parse error.
 - CON-4: Errors shown to the user never contain file paths or OS details. Rationale: `CLAUDE.md` error rules.
 - CON-5: Tests use a temporary directory and synthetic data only, never real app data or real financial data. Rationale: `CLAUDE.md` testing and privacy rules, and the repo is public.
 - CON-6: The menu uses Tauri's built-in menu API: no plugin and no extra permission. It keeps the standard macOS menus (app, Edit, View, Window), because the Edit menu is what makes copy, paste and undo work in text fields. Rationale: least privilege per `CLAUDE.md`, and no loss of standard behaviour.
@@ -523,7 +550,7 @@ The unsaved flag and the project state live in Rust, so they are proven by `carg
 | DOM tests (`npm test`) | `dialogs.test.js`: AC-3.1, AC-4.1, AC-7.1, AC-7.2, AC-9.3 (indicator, close, Open and New with and without unsaved changes, no buttons in the window) |
 | Manual checklist (native parts only) | The real File menu items and shortcuts (AC-9.2 to AC-9.4) and the native save dialog |
 
-Not covered by a named test yet (6 of 42 ACs; no test carries the AC id): AC-1.6, AC-4.2, AC-9.2, AC-9.4, AC-16.1, AC-18.2.
+Not covered by a named test yet (6 of 44 ACs; no test carries the AC id): AC-1.6, AC-4.2, AC-9.2, AC-9.4, AC-16.1, AC-18.2.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
@@ -535,6 +562,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-5: (resolved 03/11/2026) A remembered file that exists but is invalid or from a newer app version keeps its remembered path and shows the error (REQ-13, AC-13.3).
 
 ## 9. Changelog
+- 1.3 (04/11/2026): New REQ-19 (AC-19.1, AC-19.2): the file stays strict, an amount with more than two decimals makes it invalid (`PROJECT_INVALID_FILE`) and is not rounded, because only typed amounts are rounded (CSD-000 CON-8, v4.0). The behaviour was already built; it is now stated. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. Section 5 lists the command `quit_app`, and `related` adds CSD-004, CSD-017, CSD-018 and CSD-022. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Owner decisions. REQ-11 lists the five failure cases with their codes (AC-11.1; the newer version case is new) and the notice is shown once per start. REQ-12 is now exact: the path is forgotten only when the parent folder exists and the file does not (AC-12.1 is the deleted-file scenario, the old AC-12.1 became AC-12.2). REQ-13 keeps the path in every other case, including a file that exists but is invalid or from a newer version (behaviour change: it used to be forgotten; new AC-13.3, AC-13.4). Definition "Gone for good" added. Section 5 names the `period` field of a job and the `sell_date` and `sell_amount` house fields. `PROJECT_FILE_NEWER` confirmed. OQ-3 to OQ-5 resolved. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): First release, strict schema. The project file extension is `.varde` (was `.wealth`). New REQ-16 to REQ-18: the sections of the file are listed and all required (`income`, `investments`, `bank_accounts`, `debts`, `expenses`, `houses`, `settings`), unknown fields and missing sections are rejected, a newer `format_version` has its own error `PROJECT_FILE_NEWER` (AC-2.3 removed, see AC-18.1); `format_version` stays 1, with the policy that the first schema change after 1.0 raises it; no migration (NG-7), no `.bak`. The `period` field replaces `pay_period`, `entry_period`, `statement_period` and `valuation_period`. New REQ-14 and REQ-15: saving never overwrites another file without confirmation, and `.varde` is appended. REQ-11 split: the remembered path is forgotten only when the file is gone for good (REQ-12), and kept on a transient error such as an unmounted drive (REQ-13); AC-11.2 moved to AC-12.1. OQ-2 removed as obsolete, OQ-3 to OQ-5 added. Display and dialog ACs are covered by DOM tests. Back to `draft` until re-approved.

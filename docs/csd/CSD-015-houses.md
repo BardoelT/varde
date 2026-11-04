@@ -1,9 +1,9 @@
 ---
 id: CSD-015
 title: Houses
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.3
+version: 2.0
 last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-016, CSD-019, CSD-020, CSD-026]
 ---
@@ -358,7 +358,7 @@ Scenario: Yearly valuation for a monthly house rejected
 ```
 
 **REQ-10: Value validation** *(unwanted behaviour)*
-If the value of a valuation is not a plain number such as 300000.00, is negative, has more than two decimal places or exceeds 1,000,000,000.00, then the app shall reject the valuation or edit without rounding or storing it. A value of 0.00 is valid.
+If the value of a valuation is not a plain number such as 300000.00, is negative or exceeds 1,000,000,000.00, then the app shall reject the valuation or edit without storing it. A value of 0.00 is valid. The rules apply to the value after rounding (REQ-28).
 
 ```gherkin
 @AC-10.1
@@ -375,7 +375,6 @@ Scenario Outline: Invalid values rejected
     | 1e3            | HOUSE_VALUATION_VALUE_INVALID   |
     | 2500,50        | HOUSE_VALUATION_VALUE_INVALID   |
     | -0.01          | HOUSE_VALUATION_VALUE_NEGATIVE  |
-    | 1000.999       | HOUSE_VALUATION_VALUE_PRECISION |
     | 1000000000.01  | HOUSE_VALUATION_VALUE_TOO_LARGE |
 
 @AC-10.2
@@ -395,6 +394,47 @@ Scenario: Invalid value in an edit rejected
   When the user sets the value to -1.00
   Then the edit is rejected with error code "HOUSE_VALUATION_VALUE_NEGATIVE"
   And the valuation still has value 300000.00
+```
+
+The row of AC-10.1 with 1000.999 (`HOUSE_VALUATION_VALUE_PRECISION`) is removed in v2.0: a typed value with more than two decimals is rounded, not rejected (REQ-28).
+
+**REQ-28: Typed values are rounded** *(event-driven)*
+When the user enters a value with more than two decimal places, the app shall round it half-up to two decimals (CSD-000 CON-8) before it applies the rules of REQ-10.
+
+```gherkin
+@AC-28.1
+Scenario Outline: A typed amount is rounded half-up
+  Given a monthly house "Example House"
+  When the user adds a valuation for 2026-09 with value "<typed>"
+  Then the valuation for 2026-09 has value <stored>
+
+  Examples:
+    | typed | stored |
+    | 300000.505 | 300000.51 |
+    | 1.004      | 1.00 |
+    | 1.005      | 1.01 |
+    | 1000.999   | 1001.00 |
+    | 0.004      | 0.00 |
+    | -0.004     | 0.00 |
+    | 300000.5   | 300000.50 |
+
+@AC-28.2
+Scenario Outline: The limit is checked after rounding
+  Given a monthly house "Example House"
+  When the user adds a valuation for 2026-09 with value "<typed>"
+  Then <outcome>
+
+  Examples:
+    | typed | outcome |
+    | 1000000000.004 | the valuation has value 1000000000.00 |
+    | 1000000000.005 | it is rejected with error code "HOUSE_VALUATION_VALUE_TOO_LARGE" |
+    | -0.005         | it is rejected with error code "HOUSE_VALUATION_VALUE_NEGATIVE" |
+
+@AC-28.3
+Scenario: A typed amount in an edit is rounded
+  Given a valuation for 2026-09 with value 300000.00
+  When the user sets the value to "1000.999"
+  Then the valuation has value 1001.00
 ```
 
 **REQ-11: Note validation** *(unwanted behaviour)*
@@ -1008,7 +1048,7 @@ The project file section is `houses` with the lists `houses` and `valuations`, h
 
 Commands (all inputs validated in Rust; amounts cross IPC as decimal strings): `list_houses()` (each house with its valuation count, latest value and period and colour slot, plus the total value; the count is used to lock the period (REQ-5) and is not displayed), `create_house`, `update_house`, `delete_house`, `list_house_valuations()` (valuations of all houses, each with its house name and its change, or null), `add_house_valuation`, `update_house_valuation` (keeps the period that identifies the valuation as an argument and takes the new period as an extra one, equal to it when the period does not change, and applies the edit as a whole or not at all, REQ-13), `delete_house_valuation`, `copy_previous_house_valuation(house_id)` and `yearly_house_values()` (over all houses; each row has the year, closing value, change or null and valuation count, newest year first; the count is not displayed). The insights command is in CSD-016. Project commands (save, open, new) are in CSD-002.
 
-Error codes (returned as code plus safe message): `HOUSE_NAME_REQUIRED`, `HOUSE_NAME_TOO_LONG`, `HOUSE_NAME_DUPLICATE`, `HOUSE_NOT_FOUND`, `HOUSE_PERIOD_UNSUPPORTED`, `HOUSE_PERIOD_LOCKED`, `HOUSE_PERIOD_MISMATCH`, `HOUSE_VALUATION_PERIOD_INVALID`, `HOUSE_VALUATION_DUPLICATE`, `HOUSE_VALUATION_NOT_FOUND`, `HOUSE_VALUATION_VALUE_INVALID`, `HOUSE_VALUATION_VALUE_NEGATIVE`, `HOUSE_VALUATION_VALUE_PRECISION`, `HOUSE_VALUATION_VALUE_TOO_LARGE`, `HOUSE_VALUATION_NOTE_TOO_LONG`. `HOUSE_NOT_FOUND` and `HOUSE_VALUATION_NOT_FOUND` are returned for a house or a valuation that does not exist (a stale screen). `HOUSE_VALUATION_IN_FUTURE` is removed in v1.0: future periods are allowed. The codes for the purchase, the sale and the holding window are in CSD-019. Project error codes are in CSD-002.
+Error codes (returned as code plus safe message): `HOUSE_NAME_REQUIRED`, `HOUSE_NAME_TOO_LONG`, `HOUSE_NAME_DUPLICATE`, `HOUSE_NOT_FOUND`, `HOUSE_PERIOD_UNSUPPORTED`, `HOUSE_PERIOD_LOCKED`, `HOUSE_PERIOD_MISMATCH`, `HOUSE_VALUATION_PERIOD_INVALID`, `HOUSE_VALUATION_DUPLICATE`, `HOUSE_VALUATION_NOT_FOUND`, `HOUSE_VALUATION_VALUE_INVALID`, `HOUSE_VALUATION_VALUE_NEGATIVE`, `HOUSE_VALUATION_VALUE_PRECISION` (removed in v2.0), `HOUSE_VALUATION_VALUE_TOO_LARGE`, `HOUSE_VALUATION_NOTE_TOO_LONG`. `HOUSE_NOT_FOUND` and `HOUSE_VALUATION_NOT_FOUND` are returned for a house or a valuation that does not exist (a stale screen). `HOUSE_VALUATION_IN_FUTURE` is removed in v1.0: future periods are allowed. The codes for the purchase, the sale and the holding window are in CSD-019. Project error codes are in CSD-002.
 
 ## 6. Constraints
 - CON-1: Amounts use `rust_decimal::Decimal` and are in the project currency (CSD-003), so adding values across houses never mixes currencies. Rationale: `CLAUDE.md` money rules.
@@ -1021,7 +1061,7 @@ Error codes (returned as code plus safe message): `HOUSE_NAME_REQUIRED`, `HOUSE_
 - CON-8: The length of a name or a note is counted in characters (Unicode scalar values), not bytes. Rationale: names and notes in any language must fit the stated limits.
 - CON-9: The change, the yearly values and the total value are computed in Rust each time they are needed and are never stored in the project file. Rationale: CON-2, and stored figures would go stale when a valuation changes.
 - CON-10: Houses get their own module, commands and page. Shared helpers may be reused or extracted when that is small, and Debts, Bank accounts and Investments are not refactored. Rationale: `CLAUDE.md` asks before large refactors across modules.
-- CON-11: Money amounts, totals and changes follow the rounding rule of CSD-000 CON-8 (two decimals, half-up). Rationale: one rounding rule project-wide.
+- CON-11: Money amounts, totals and changes follow the rounding rule of CSD-000 CON-8 (two decimals, half-up; a typed value with more than two decimals is rounded, REQ-28). Rationale: one rounding rule project-wide.
 
 ## 7. Verification
 The data and the domain logic are proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd015_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
@@ -1034,7 +1074,7 @@ The data and the domain logic are proven by `cargo test`, with domain logic test
 | Display ACs (REQ-21 to REQ-23, REQ-26, the rows of the tables, the dialogs) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. There are no `test_csd015_ac_21_` tests |
 | AC-25.1, AC-25.2 (currency confirmation) | Governed by CSD-003 REQ-5 and verified there. There are no `test_csd015_ac_25_` tests |
 
-Not covered by a named test yet (35 of 108 ACs; no test carries the AC id): AC-1.4, AC-6.2, AC-6.4, AC-9.2, AC-11.2, AC-12.2, AC-12.7, AC-12.9, AC-13.4, AC-14.2, AC-15.2, AC-15.3, AC-16.1 to AC-16.3, AC-17.6, AC-18.3, AC-21.1 to AC-21.8, AC-22.1 to AC-22.3, AC-23.1, AC-25.1, AC-25.2, AC-26.1, AC-27.1, AC-27.2, AC-27.4.
+Not covered by a named test yet (35 of 111 ACs; no test carries the AC id): AC-1.4, AC-6.2, AC-6.4, AC-9.2, AC-11.2, AC-12.2, AC-12.7, AC-12.9, AC-13.4, AC-14.2, AC-15.2, AC-15.3, AC-16.1 to AC-16.3, AC-17.6, AC-18.3, AC-21.1 to AC-21.8, AC-22.1 to AC-22.3, AC-23.1, AC-25.1, AC-25.2, AC-26.1, AC-27.1, AC-27.2, AC-27.4.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
@@ -1043,6 +1083,7 @@ None open. (OQ-1, the position in the left pane, is settled by REQ-26 and CSD-02
 - OQ-2: (resolved 03/11/2026) The sale fields keep the names `sell_date` and `sell_amount` in the data model, IPC and the project file (section 5, CSD-002, CSD-019).
 
 ## 9. Changelog
+- 2.0 (04/11/2026): A typed value with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-28 (AC-28.1 to AC-28.3), REQ-10 applies to the rounded value, the AC-10.1 row for 1000.999 and the code `HOUSE_VALUATION_VALUE_PRECISION` are removed, CON-11 updated. CSD-019 REQ-15 does the same for purchase and sell amounts. Owner decision. Back to `draft` until re-approved.
 - 1.3 (04/11/2026): Live references follow the split of the former CSD-020: the purchase, the sale, the holding window and the house totals are CSD-019 (REQ-1 to REQ-14, numbers unchanged), the debt link is CSD-020 (REQ-15) and linked debts in the view and the delete rule are CSD-026 (REQ-7, REQ-12); no behaviour change. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed `ac_21_` and `ac_25_` coverage is removed; the intro and NG-4 point to CSD-017 for net worth. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Owner decision: the sale fields keep the names `sell_date` and `sell_amount` (OQ-2 resolved, section 5 names them for IPC and the project file, matching CSD-002 and CSD-020). The house field `period` is confirmed as the valuation period name in the data model, replacing any `pay_period` or `valuation_period`. No behaviour change. Back to `draft` until re-approved.

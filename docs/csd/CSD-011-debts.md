@@ -1,9 +1,9 @@
 ---
 id: CSD-011
 title: Debts
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.2
+version: 2.0
 last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-004, CSD-005, CSD-009, CSD-012, CSD-018, CSD-020, CSD-024, CSD-026]
 ---
@@ -377,7 +377,7 @@ Scenario: Yearly statement for a monthly debt rejected
 ```
 
 **REQ-10: Balance validation** *(unwanted behaviour)*
-If the balance of a statement is not a plain number such as 150000.00, is negative, has more than two decimal places or exceeds 1,000,000,000.00, then the app shall reject the statement or edit without rounding or storing it. A balance of 0.00 is valid.
+If the balance of a statement is not a plain number such as 150000.00, is negative or exceeds 1,000,000,000.00, then the app shall reject the statement or edit without storing it. A balance of 0.00 is valid. The rules apply to the balance after rounding (REQ-29).
 
 ```gherkin
 @AC-10.1
@@ -394,7 +394,6 @@ Scenario Outline: Invalid balances rejected
     | 1e3              | DEBT_STATEMENT_BALANCE_INVALID     |
     | 2500,50          | DEBT_STATEMENT_BALANCE_INVALID     |
     | -0.01            | DEBT_STATEMENT_BALANCE_NEGATIVE    |
-    | 1000.999         | DEBT_STATEMENT_BALANCE_PRECISION   |
     | 1000000000.01    | DEBT_STATEMENT_BALANCE_TOO_LARGE   |
 
 @AC-10.2
@@ -414,6 +413,47 @@ Scenario: Invalid balance in an edit rejected
   When the user sets the balance to -1.00
   Then the edit is rejected with error code "DEBT_STATEMENT_BALANCE_NEGATIVE"
   And the statement still has balance 150000.00
+```
+
+The row of AC-10.1 with 1000.999 (`DEBT_STATEMENT_BALANCE_PRECISION`) is removed in v2.0: a typed balance with more than two decimals is rounded, not rejected (REQ-29).
+
+**REQ-29: Typed balances are rounded** *(event-driven)*
+When the user enters a balance with more than two decimal places, the app shall round it half-up to two decimals (CSD-000 CON-8) before it applies the rules of REQ-10.
+
+```gherkin
+@AC-29.1
+Scenario Outline: A typed amount is rounded half-up
+  Given a monthly debt "Example Mortgage" and the current date 26/10/2026
+  When the user adds a statement for 2026-09 with balance "<typed>"
+  Then the statement for 2026-09 has balance <stored>
+
+  Examples:
+    | typed | stored |
+    | 3000.505 | 3000.51 |
+    | 1.004    | 1.00 |
+    | 1.005    | 1.01 |
+    | 1000.999 | 1001.00 |
+    | 0.004    | 0.00 |
+    | -0.004   | 0.00 |
+    | 150000.5 | 150000.50 |
+
+@AC-29.2
+Scenario Outline: The limit is checked after rounding
+  Given a monthly debt "Example Mortgage" and the current date 26/10/2026
+  When the user adds a statement for 2026-09 with balance "<typed>"
+  Then <outcome>
+
+  Examples:
+    | typed | outcome |
+    | 1000000000.004 | the statement has balance 1000000000.00 |
+    | 1000000000.005 | it is rejected with error code "DEBT_STATEMENT_BALANCE_TOO_LARGE" |
+    | -0.005         | it is rejected with error code "DEBT_STATEMENT_BALANCE_NEGATIVE" |
+
+@AC-29.3
+Scenario: A typed amount in an edit is rounded
+  Given a statement for 2026-09 with balance 150000.00
+  When the user sets the balance to "1000.999"
+  Then the statement has balance 1001.00
 ```
 
 **REQ-11: Note validation** *(unwanted behaviour)*
@@ -1108,7 +1148,7 @@ The project file section `debts` has the lists `debts` and `statements`, debts i
 
 Commands (all inputs validated in Rust; amounts cross IPC as decimal strings): `list_debts()` (each debt with its statement count, latest balance and period and colour slot, plus the total debt; the count is used to lock the period (REQ-5) and is not displayed), `create_debt`, `update_debt`, `delete_debt`, `list_debt_statements()` (statements of all debts, each with its debt name and its change, or null), `add_debt_statement`, `update_debt_statement` (keeps the period that identifies the statement as an argument and takes the new period as an extra one, equal to it when the period does not change, and applies the edit as a whole or not at all, REQ-13), `delete_debt_statement`, `copy_previous_debt_statement(debt_id)` and `yearly_debt_totals()` (over all debts; each row has the year, closing balance, repaid or null (Cancelled-adjusted, REQ-19) and statement count, newest year first; the count is not displayed). The insights command is in CSD-012. Project commands (save, open, new) are in CSD-002.
 
-Error codes (returned as code plus safe message): `DEBT_NAME_REQUIRED`, `DEBT_NAME_TOO_LONG`, `DEBT_NAME_DUPLICATE`, `DEBT_NOT_FOUND`, `DEBT_PERIOD_UNSUPPORTED`, `DEBT_PERIOD_LOCKED`, `DEBT_PERIOD_MISMATCH`, `DEBT_STATEMENT_PERIOD_INVALID`, `DEBT_STATEMENT_DUPLICATE`, `DEBT_STATEMENT_NOT_FOUND`, `DEBT_STATEMENT_BALANCE_INVALID`, `DEBT_STATEMENT_BALANCE_NEGATIVE`, `DEBT_STATEMENT_BALANCE_PRECISION`, `DEBT_STATEMENT_BALANCE_TOO_LARGE`, `DEBT_STATEMENT_NOTE_TOO_LONG`. `DEBT_NOT_FOUND` and `DEBT_STATEMENT_NOT_FOUND` are returned for a debt or a statement that does not exist (a stale screen). `DEBT_STATEMENT_IN_FUTURE` is removed (future periods are allowed). Project error codes are in CSD-002.
+Error codes (returned as code plus safe message): `DEBT_NAME_REQUIRED`, `DEBT_NAME_TOO_LONG`, `DEBT_NAME_DUPLICATE`, `DEBT_NOT_FOUND`, `DEBT_PERIOD_UNSUPPORTED`, `DEBT_PERIOD_LOCKED`, `DEBT_PERIOD_MISMATCH`, `DEBT_STATEMENT_PERIOD_INVALID`, `DEBT_STATEMENT_DUPLICATE`, `DEBT_STATEMENT_NOT_FOUND`, `DEBT_STATEMENT_BALANCE_INVALID`, `DEBT_STATEMENT_BALANCE_NEGATIVE`, `DEBT_STATEMENT_BALANCE_PRECISION` (removed in v2.0), `DEBT_STATEMENT_BALANCE_TOO_LARGE`, `DEBT_STATEMENT_NOTE_TOO_LONG`. `DEBT_NOT_FOUND` and `DEBT_STATEMENT_NOT_FOUND` are returned for a debt or a statement that does not exist (a stale screen). `DEBT_STATEMENT_IN_FUTURE` is removed (future periods are allowed). Project error codes are in CSD-002.
 
 ## 6. Constraints
 - CON-1: Amounts use `rust_decimal::Decimal` and are in the project currency (CSD-003), so adding balances across debts never mixes currencies. Rationale: `CLAUDE.md` money rules.
@@ -1121,7 +1161,7 @@ Error codes (returned as code plus safe message): `DEBT_NAME_REQUIRED`, `DEBT_NA
 - CON-8: The length of a name or a note is counted in characters (Unicode scalar values), not bytes. Rationale: names and notes in any language must fit the stated limits.
 - CON-9: The change, the yearly totals and the total debt are computed in Rust each time they are needed and are never stored in the project file. Rationale: CON-2, and stored figures would go stale when a statement changes.
 - CON-10: Debts get their own module, commands and page. Shared helpers may be reused or extracted when that is small, and Investments and Bank accounts are not refactored. Rationale: `CLAUDE.md` asks before large refactors across modules.
-- CON-11: Money rounding follows CSD-000 CON-8. A balance has at most two decimals, so the rule never changes a stored balance, and derived figures (change, closing balance, repaid, total debt) are rounded under CON-8 where they are computed. Rationale: one rounding rule for the whole application.
+- CON-11: Money rounding follows CSD-000 CON-8. A typed balance is rounded to two decimals (REQ-29), so a stored balance never has more, and derived figures (change, closing balance, repaid, total debt) are rounded under CON-8 where they are computed. Rationale: one rounding rule for the whole application.
 
 ## 7. Verification
 Domain and command ACs are proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd011_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
@@ -1134,7 +1174,7 @@ Domain and command ACs are proven by `cargo test`, with domain logic tested in `
 | Display ACs (REQ-20 to REQ-22, REQ-27, REQ-28, form labels, section order and contents, no counts anywhere, delete confirmation text, titles without a currency, button placement, left-pane item, empty states, note cut-off, plain-text note, dashes for none, the settle dialog) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. There are no `test_csd011_ac_20_` tests |
 | The currency confirmation for debt statements | Governed by CSD-003 REQ-5 (AC-5.9, AC-5.10), verified there |
 
-Not covered by a named test yet (42 of 120 ACs; no test carries the AC id): AC-6.2, AC-6.4, AC-8.3, AC-9.2, AC-11.2, AC-12.2, AC-12.7, AC-12.9, AC-13.4, AC-14.2, AC-15.2, AC-15.3, AC-16.1 to AC-16.3, AC-17.6, AC-18.3, AC-19.12, AC-19.13, AC-20.1 to AC-20.8, AC-21.1 to AC-21.3, AC-22.1, AC-23.2, AC-24.1, AC-24.2, AC-26.4, AC-27.1 to AC-27.4, AC-28.1 to AC-28.3.
+Not covered by a named test yet (42 of 123 ACs; no test carries the AC id): AC-6.2, AC-6.4, AC-8.3, AC-9.2, AC-11.2, AC-12.2, AC-12.7, AC-12.9, AC-13.4, AC-14.2, AC-15.2, AC-15.3, AC-16.1 to AC-16.3, AC-17.6, AC-18.3, AC-19.12, AC-19.13, AC-20.1 to AC-20.8, AC-21.1 to AC-21.3, AC-22.1, AC-23.2, AC-24.1, AC-24.2, AC-26.4, AC-27.1 to AC-27.4, AC-28.1 to AC-28.3.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
@@ -1142,6 +1182,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 2.0 (04/11/2026): A typed balance with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-29 (AC-29.1 to AC-29.3), REQ-10 applies to the rounded balance, the AC-10.1 row for 1000.999 and the code `DEBT_STATEMENT_BALANCE_PRECISION` are removed, CON-11 updated. Owner decision. Back to `draft` until re-approved.
 - 1.2 (04/11/2026): Live references follow the split of the former CSD-020: the settlement, the settle dialog and the Cancelled-adjusted repaid amount are CSD-026 (REQ-3, REQ-9, REQ-10, REQ-11, REQ-13), the debt link stays CSD-020. The definitions and the requirements and ACs that cite CSD-020 name the new CSD and numbers; no behaviour change. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed `test_csd011_ac_20_` and `ac_21_` coverage and the REQ-24 and REQ-25 coverage (they belong to CSD-003) are removed. NG-4 and the intro point to CSD-017 for net worth. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): The left-pane item is specified in CSD-024 (was CSD-004 REQ-1; REQ-20, AC-20.1). Back to `draft` until re-approved. Yearly totals show the Cancelled-adjusted repaid amount, as CSD-018 and CSD-020 REQ-28 (REQ-19, definition of Repaid, new AC-19.12, AC-19.13; CSD-020 OQ-1 closed). A period may hold two statements, the second a non-editable settlement statement (REQ-8, new AC-8.3, REQ-12; CSD-020 REQ-20). The settle dialog is folded in (new REQ-27, REQ-28). No date bounds: the year-1900 rule and the future-date rejection are gone (REQ-7, AC-7.4, AC-7.5, new AC-7.6, REQ-13, AC-13.1; `DEBT_STATEMENT_IN_FUTURE` removed). Legacy removed: a project file without `debts` is invalid (REQ-23, AC-23.2). The debt's `statement_period` field becomes `period` and the extension is `.varde` (section 5). New CON-11 (CSD-000 CON-8). Display ACs are covered by DOM tests (section 7). References to the merged CSD-020 updated (the settlement statement is CSD-020 REQ-20, was REQ-5).
