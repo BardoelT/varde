@@ -566,7 +566,6 @@
               <span class="panel-title">Statements</span>
               <button type="button" class="btn primary" id="debt-statement-add">Add statement</button>
             </div>
-            <p class="empty-note" id="debt-statements-empty" hidden>No statements yet.</p>
             <div class="table-wrap">
               <table class="data-table" id="debt-statements-table" hidden>
                 <thead>
@@ -582,6 +581,7 @@
                 <tbody id="debt-statements-rows"></tbody>
               </table>
             </div>
+            <p class="empty-note" id="debt-statements-empty" hidden>No statements yet.</p>
           </div>
           </div>
 
@@ -1050,6 +1050,30 @@
         </label>
         <p class="field-hint field-hint-attached" id="debt-house-hint" data-describes="house_id" hidden>This debt was settled on the sale of its house, so category and house can no longer change.</p>
       </div>
+      <div class="field-row">
+        <label class="field">Opening date
+          <input data-mask="date" type="text" name="opening_date" inputmode="numeric" placeholder="dd/mm/yyyy" maxlength="10" autocomplete="off" required>
+        </label>
+        <label class="field">Opening amount
+          <input type="text" name="opening_amount" inputmode="decimal" placeholder="200000.00" autocomplete="off" required>
+        </label>
+      </div>
+      <div class="field-row">
+        <label class="field">Closing date (optional)
+          <input data-mask="date" type="text" name="closing_date" inputmode="numeric" placeholder="dd/mm/yyyy" maxlength="10" autocomplete="off">
+        </label>
+        <label class="field">Closing amount (optional)
+          <input type="text" name="closing_amount" inputmode="decimal" autocomplete="off">
+        </label>
+      </div>
+      <label class="field">Outcome (optional)
+        <select name="closing_outcome">
+          <option value=""></option>
+          <option value="Repaid">Repaid</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </label>
+      <p class="field-hint field-hint-attached" id="debt-closing-hint" data-describes="closing_date closing_amount closing_outcome" hidden></p>
       <p class="form-error" id="debt-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>

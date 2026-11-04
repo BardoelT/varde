@@ -227,8 +227,8 @@ pub enum DomainError {
     /// Reported as: "A linked debt has a statement after the month or year of the sale."
     #[error("A linked debt has a statement after the month or year of the sale.")]
     DebtStatementAfterSale,
-    /// Reported as: "This debt was settled on the sale of its house, so it can no longer change from that period on."
-    #[error("This debt was settled on the sale of its house, so it can no longer change from that period on.")]
+    /// Reported as: "This debt is closed, so it can no longer change from that period on."
+    #[error("This debt is closed, so it can no longer change from that period on.")]
     DebtSettledLocked,
     /// Reported as: "Choose Mortgage, Loan or Other as the category."
     #[error("Choose Mortgage, Loan or Other as the category.")]

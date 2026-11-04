@@ -255,7 +255,9 @@ test('test_csd011_ac_20_8_the_yearly_totals_section', async () => {
 test('test_csd011_ac_21_2_a_debt_without_statements', async () => {
   const reads = debtReads();
   const empty = { ...MORTGAGE, latest_balance: null, latest_period: null, statement_count: 0 };
-  Object.assign(reads, { list_debts: { debts: [empty], total: null }, list_debt_statements: [], yearly_debt_totals: [] });
+  // The Statements table still holds the Opening row of the debt (CSD-011 REQ-33), one row: the note shows (REQ-21).
+  const opening = { ...statementRow(empty, '2020-03-15', '200000.00'), locked: true, opening: true };
+  Object.assign(reads, { list_debts: { debts: [empty], total: null }, list_debt_statements: [opening], yearly_debt_totals: [] });
   const app = await openDebts(reads);
   const row = rowOf(app, 'Example Mortgage');
   assert.equal(app.text(row.querySelector('.account-amount')), '—', 'a dash as latest balance');
