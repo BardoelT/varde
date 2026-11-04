@@ -16,6 +16,8 @@ mod totals;
 mod valuation;
 
 #[cfg(test)]
+mod ac_tests_houses;
+#[cfg(test)]
 mod ac_tests_insights;
 #[cfg(test)]
 mod linking_tests;

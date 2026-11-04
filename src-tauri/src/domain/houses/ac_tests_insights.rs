@@ -55,8 +55,8 @@ fn test_csd016_ac_2_3_no_valuations_gives_an_empty_series() {
         .create_house(&input("Example House", "Monthly"))
         .unwrap();
     let insights = houses.insights(today());
-    assert!(insights.years.is_empty());
-    assert!(insights.houses.is_empty());
+    assert_eq!(insights.years.len(), 0);
+    assert_eq!(insights.houses.len(), 0);
 }
 
 #[test]
