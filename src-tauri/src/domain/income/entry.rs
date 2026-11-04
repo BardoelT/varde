@@ -1,26 +1,35 @@
 //! Paychecks, annual statements and the entries that cover both (CSD-001 REQ-5 to REQ-9).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::money::Amounts;
 
-use super::{JobId, Year, YearMonth};
+use super::JobId;
+use crate::domain::common::{Year, YearMonth};
 
 /// The monthly pay record of one job (CSD-001 REQ-5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Paycheck {
+    /// Identifier of the job the paycheck or annual statement belongs to.
     pub job_id: JobId,
+    /// The month the paycheck is for.
     pub month: YearMonth,
+    /// The amounts of the record.
     #[serde(flatten)]
     pub amounts: Amounts,
 }
 
 /// The yearly pay record of one job (CSD-001 REQ-25).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AnnualStatement {
+    /// Identifier of the job the paycheck or annual statement belongs to.
     pub job_id: JobId,
+    /// The calendar year.
     pub year: Year,
+    /// The amounts of the record.
     #[serde(flatten)]
     pub amounts: Amounts,
 }
@@ -28,7 +37,9 @@ pub struct AnnualStatement {
 /// A paycheck or an annual statement (CSD-001 "entry").
 #[derive(Clone, Copy, Debug)]
 pub enum Entry<'a> {
+    /// A monthly paycheck.
     Paycheck(&'a Paycheck),
+    /// A yearly statement.
     AnnualStatement(&'a AnnualStatement),
 }
 
@@ -88,7 +99,10 @@ impl<'a> Entry<'a> {
 /// Form values for "copy previous month" (CSD-001 REQ-9).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct PaycheckPrefill {
-    pub gross_salary: Option<Decimal>,
-    pub holiday_pay: Decimal,
-    pub bonus: Decimal,
+    /// Gross salary.
+    pub gross_salary: Option<Money>,
+    /// Holiday pay.
+    pub holiday_pay: Money,
+    /// Bonus.
+    pub bonus: Money,
 }

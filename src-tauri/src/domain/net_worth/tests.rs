@@ -1,10 +1,9 @@
 use super::*;
-use crate::domain::bank_accounts::{AccountInput as BankInput, BankBalance};
+use crate::domain::bank_accounts::{BankAccountInput as BankInput, BankBalance};
+use crate::domain::common::{Note, Period};
 use crate::domain::debts::{DebtBalance, DebtInput};
 use crate::domain::houses::{HouseInput, HouseValue};
-use crate::domain::investments::{
-    AccountInput as InvestmentInput, Balance, NetDeposits, Note, Period,
-};
+use crate::domain::investments::{Balance, InvestmentAccountInput as InvestmentInput, NetDeposits};
 use crate::domain::ProjectData;
 
 fn today() -> YearMonth {
@@ -18,16 +17,13 @@ fn period(text: &str) -> Period {
 fn add_house(data: &mut ProjectData, at: &str, amount: &str) {
     let id = data
         .houses
-        .create_house(
-            &HouseInput {
-                name: "Example House".to_owned(),
-                valuation_period: Some("Yearly".to_owned()),
-                purchase_date: Some("01/01/1900".to_owned()),
-                purchase_amount: Some("0.00".to_owned()),
-                ..HouseInput::default()
-            },
-            time::macros::date!(2026 - 10 - 29),
-        )
+        .create_house(&HouseInput {
+            name: "Example House".to_owned(),
+            period: Some("Yearly".to_owned()),
+            purchase_date: Some("01/01/1900".to_owned()),
+            purchase_amount: Some("0.00".to_owned()),
+            ..HouseInput::default()
+        })
         .unwrap()
         .id;
     data.houses
@@ -36,7 +32,6 @@ fn add_house(data: &mut ProjectData, at: &str, amount: &str) {
             crate::domain::houses::parse_period(at).unwrap(),
             HouseValue::parse(amount).unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
 }
@@ -48,7 +43,7 @@ fn add_investment(data: &mut ProjectData, at: &str, amount: &str) {
             data.investments
                 .create_account(&InvestmentInput {
                     name: "Example Brokerage".to_owned(),
-                    statement_period: Some("Yearly".to_owned()),
+                    period: Some("Yearly".to_owned()),
                 })
                 .unwrap()
                 .id
@@ -61,7 +56,6 @@ fn add_investment(data: &mut ProjectData, at: &str, amount: &str) {
             Balance::parse(amount).unwrap(),
             NetDeposits::parse(amount).unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
 }
@@ -71,7 +65,7 @@ fn add_cash(data: &mut ProjectData, at: &str, amount: &str) {
         .bank_accounts
         .create_account(&BankInput {
             name: "Example Bank".to_owned(),
-            entry_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
         })
         .unwrap()
         .id;
@@ -81,7 +75,6 @@ fn add_cash(data: &mut ProjectData, at: &str, amount: &str) {
             crate::domain::bank_accounts::parse_period(at).unwrap(),
             BankBalance::parse(amount).unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
 }
@@ -91,7 +84,7 @@ fn add_debt(data: &mut ProjectData, at: &str, amount: &str) {
         .debts
         .create_debt(&DebtInput {
             name: "Example Loan".to_owned(),
-            statement_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
         })
         .unwrap()
         .id;
@@ -101,7 +94,6 @@ fn add_debt(data: &mut ProjectData, at: &str, amount: &str) {
             crate::domain::debts::parse_period(at).unwrap(),
             DebtBalance::parse(amount).unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
 }
@@ -157,7 +149,7 @@ fn test_csd017_ac_2_2_accounts_without_records_give_no_years() {
     data.bank_accounts
         .create_account(&BankInput {
             name: "Example Bank".to_owned(),
-            entry_period: None,
+            period: None,
         })
         .unwrap();
     assert_eq!(series(&data).len(), 0);
@@ -277,8 +269,10 @@ fn test_csd017_ac_12_2_areas_without_records_contribute_zero() {
 fn test_csd017_section_5_amounts_cross_ipc_as_decimal_strings() {
     let mut data = ProjectData::default();
     add_house(&mut data, "2026", "300000.00");
+    let years = series(&data);
     let json = serde_json::to_value(NetWorthInsights {
-        years: series(&data),
+        axis: crate::domain::charts::Axis::of_years(&years),
+        years,
     })
     .unwrap();
     assert_eq!(json["years"][0]["houses"], "300000.00");
@@ -287,21 +281,18 @@ fn test_csd017_section_5_amounts_cross_ipc_as_decimal_strings() {
 }
 
 #[test]
-fn test_csd019_ac_11_6_net_worth_drops_a_sold_house() {
+fn test_csd019_ac_11_1_net_worth_drops_a_sold_house() {
     let mut data = ProjectData::default();
     let id = data
         .houses
-        .create_house(
-            &HouseInput {
-                name: "Example House".to_owned(),
-                valuation_period: Some("Yearly".to_owned()),
-                purchase_date: Some("15/03/2024".to_owned()),
-                purchase_amount: Some("250000.00".to_owned()),
-                sell_date: Some("10/06/2026".to_owned()),
-                sell_amount: Some("300000.00".to_owned()),
-            },
-            time::macros::date!(2026 - 10 - 29),
-        )
+        .create_house(&HouseInput {
+            name: "Example House".to_owned(),
+            period: Some("Yearly".to_owned()),
+            purchase_date: Some("15/03/2024".to_owned()),
+            purchase_amount: Some("250000.00".to_owned()),
+            sell_date: Some("10/06/2026".to_owned()),
+            sell_amount: Some("300000.00".to_owned()),
+        })
         .unwrap()
         .id;
     data.houses
@@ -310,9 +301,158 @@ fn test_csd019_ac_11_6_net_worth_drops_a_sold_house() {
             crate::domain::houses::parse_period("2025").unwrap(),
             HouseValue::parse("210000.00").unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
     assert_eq!(year(&data, 2025).houses.to_string(), "210000.00");
     assert_eq!(year(&data, 2026).houses.to_string(), "0.00");
+}
+
+fn add_named_cash(data: &mut ProjectData, name: &str, at: &str, amount: &str) {
+    let id = data
+        .bank_accounts
+        .create_account(&BankInput {
+            name: name.to_owned(),
+            period: Some("Yearly".to_owned()),
+        })
+        .unwrap()
+        .id;
+    data.bank_accounts
+        .add_entry(
+            id,
+            crate::domain::bank_accounts::parse_period(at).unwrap(),
+            BankBalance::parse(amount).unwrap(),
+            Note::default(),
+        )
+        .unwrap();
+}
+
+#[test]
+fn test_csd017_ac_2_3_records_after_the_current_year_extend_the_series() {
+    let mut data = ProjectData::default();
+    add_cash(&mut data, "2024", "100.00");
+    add_cash_entry_later(&mut data, "2027", "200.00");
+    assert_eq!(years(&data), [2024, 2025, 2026, 2027]);
+    assert_eq!(year(&data, 2025).cash.to_string(), "0.00");
+    assert_eq!(year(&data, 2026).cash.to_string(), "0.00");
+}
+
+/// A second entry on the one bank account of the data.
+fn add_cash_entry_later(data: &mut ProjectData, at: &str, amount: &str) {
+    let id = data.bank_accounts.accounts()[0].id;
+    data.bank_accounts
+        .add_entry(
+            id,
+            crate::domain::bank_accounts::parse_period(at).unwrap(),
+            BankBalance::parse(amount).unwrap(),
+            Note::default(),
+        )
+        .unwrap();
+}
+
+#[test]
+fn test_csd017_ac_2_4_a_very_old_record_gets_no_slot_but_still_counts() {
+    let mut data = ProjectData::default();
+    add_named_cash(&mut data, "Example Bank", "1950", "1000.00");
+    add_named_cash(&mut data, "Other Bank", "2026", "500.00");
+    let rows = years(&data);
+    assert_eq!(rows.len(), 50);
+    assert_eq!((rows[0], rows[49]), (1977, 2026));
+    assert_eq!(year(&data, 2026).cash.to_string(), "500.00");
+    let totals = data.bank_accounts.yearly_totals();
+    let old = totals.iter().find(|t| t.year == 1950).unwrap();
+    assert_eq!(old.closing_balance.to_string(), "1000.00");
+}
+
+#[test]
+fn test_csd017_ac_15_2_a_year_after_the_current_year_has_a_slot() {
+    let mut data = ProjectData::default();
+    add_cash(&mut data, "2027", "7000.00");
+    assert_eq!(years(&data).last(), Some(&2027));
+    assert_eq!(year(&data, 2027).cash.to_string(), "7000.00");
+    assert_eq!(year(&data, 2027).net_worth.to_string(), "7000.00");
+}
+
+#[test]
+fn test_csd017_ac_15_3_a_year_after_the_current_year_is_not_partial() {
+    let mut data = ProjectData::default();
+    add_cash(&mut data, "2025", "100.00");
+    add_cash_entry_later(&mut data, "2027", "7000.00");
+    assert!(year(&data, 2026).is_partial);
+    assert!(!year(&data, 2027).is_partial);
+}
+
+#[test]
+fn test_csd017_ac_2_3_a_later_record_in_another_area_limits_the_old_start() {
+    let mut data = ProjectData::default();
+    add_named_cash(&mut data, "Example Bank", "1950", "1000.00");
+    add_house(&mut data, "2060", "200.00");
+    let rows = years(&data);
+    assert_eq!(rows.len(), 50);
+    assert_eq!((rows[0], rows[49]), (2011, 2060));
+}
+
+// ---- CSD-025: pieces, marker and axis come from Rust ----
+
+#[test]
+fn test_csd017_ac_7_1_the_marker_is_the_net_worth_with_its_short_label() {
+    let mut data = ProjectData::default();
+    add_house(&mut data, "2025", "316000.00");
+    let row = year(&data, 2025);
+    let marker = row.marker.unwrap();
+    assert_eq!(marker.value.to_string(), "316000.00");
+    assert_eq!(marker.label, "316.00k");
+    // 2026 has no record: no marker, no pieces.
+    let later = year(&data, 2026);
+    assert!(later.marker.is_none() && later.pieces.is_empty());
+}
+
+#[test]
+fn test_csd017_ac_7_2_a_negative_marker_and_the_axis_below_the_zero_line() {
+    let mut data = ProjectData::default();
+    add_cash(&mut data, "2025", "1000.00");
+    add_debt(&mut data, "2025", "9000.00");
+    let insights = net_worth_insights(
+        &data.houses,
+        &data.investments,
+        &data.bank_accounts,
+        &data.debts,
+        today(),
+    );
+    let row = insights.years.iter().find(|y| y.year == 2025).unwrap();
+    assert_eq!(row.marker.as_ref().unwrap().label, "-8.00k");
+    assert_eq!(row.marker.as_ref().unwrap().value.to_string(), "-8000.00");
+    // CSD-017 AC-6.4: the axis reaches below -9000.00.
+    assert!(
+        insights.axis.ticks.first().unwrap().value
+            <= crate::domain::money::Money::parse("-9000.00").unwrap()
+    );
+    // Cash rises, debts hang below the zero line.
+    let pieces: Vec<_> = row
+        .pieces
+        .iter()
+        .map(|p| {
+            (
+                p.series.as_str(),
+                p.low.to_string(),
+                p.high.to_string(),
+                p.hangs,
+            )
+        })
+        .collect();
+    assert_eq!(
+        pieces,
+        [
+            ("cash", "0.00".to_owned(), "1000.00".to_owned(), false),
+            ("debts", "-9000.00".to_owned(), "0.00".to_owned(), true),
+        ]
+    );
+}
+
+#[test]
+fn test_csd017_ac_6_3_a_series_with_nothing_adds_no_piece() {
+    let mut data = ProjectData::default();
+    add_cash(&mut data, "2024", "5000.00");
+    let row = year(&data, 2024);
+    assert_eq!(row.pieces.len(), 1);
+    assert_eq!(row.pieces[0].series, "cash");
 }

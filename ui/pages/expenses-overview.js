@@ -1,18 +1,12 @@
 // Expenses: dated expenses with a category and a note, and yearly totals (CSD-013).
-import { invoke, errorText } from '../shared/ipc.js';
-import { h, iconButton, confirmAction, showToast, showError } from '../shared/dom.js';
-import { formatAmount, formatDate } from '../shared/format.js';
+import { invoke } from '../shared/ipc.js';
+import { $, h, showError, submitOnce } from '../shared/dom.js';
+import { formatAmount, formatDate, noteSummary } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
-
-const $ = (id) => document.getElementById(id);
+import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
+import { numCell, recordActions, renderTable, rowHeader } from '../shared/list-rows.js';
 
 let onChanged = async () => {};
-
-/** The first line of a note, with an ellipsis when there is more (CSD-013 REQ-13). */
-function noteSummary(note) {
-  const [first, ...rest] = note.split('\n');
-  return rest.length > 0 ? `${first} …` : first;
-}
 
 /** The category as Rust names it (a fixed list), in the chosen language. */
 function categoryName(category) {
@@ -32,44 +26,27 @@ function categoryName(category) {
 // ---- Rendering ----
 
 function renderTotals(totals) {
-  $('expense-totals-empty').hidden = totals.length > 0;
-  $('expense-totals-table').hidden = totals.length === 0;
-  $('expense-totals-rows').replaceChildren(
-    ...totals.map((total) =>
-      h(
-        'tr',
-        {},
-        h('th', { scope: 'row' }, String(total.year)),
-        h('td', { class: 'num' }, formatAmount(total.total)),
-        h('td', { class: 'num' }, formatAmount(total.largest)),
-      ),
-    ),
+  renderTable({ empty: 'expense-totals-empty', table: 'expense-totals-table', body: 'expense-totals-rows' }, totals, (total) =>
+    h('tr', {}, rowHeader(String(total.year)), numCell(formatAmount(total.total)), numCell(formatAmount(total.largest))),
   );
 }
 
 function renderExpenses(list) {
-  const none = list.expenses.length === 0;
-  $('expenses-empty').hidden = !none;
-  $('expenses-table').hidden = none;
-  if (none) $('expenses-empty').textContent = t('No expenses yet. Add your first expense.');
+  if (list.expenses.length === 0) $('expenses-empty').textContent = t('No expenses yet. Add your first expense.');
   $('expenses-total').textContent = formatAmount(list.total);
-  $('expenses-rows').replaceChildren(
-    ...list.expenses.map((expense) =>
-      h(
-        'tr',
-        {},
-        h('th', { scope: 'row' }, formatDate(expense.date)),
-        h('td', { class: 'wrap' }, expense.name),
-        h('td', {}, categoryName(expense.category)),
-        h('td', { class: 'num' }, formatAmount(expense.amount)),
-        h('td', { class: 'note-cell' }, noteSummary(expense.note)),
-        h(
-          'td',
-          { class: 'row-actions' },
-          iconButton('edit', t('Edit {name}', { name: expense.name }), () => openExpenseDialog(expense)),
-          iconButton('delete', t('Delete {name}', { name: expense.name }), () => deleteExpense(expense)),
-        ),
-      ),
+  renderTable({ empty: 'expenses-empty', table: 'expenses-table', body: 'expenses-rows' }, list.expenses, (expense) =>
+    h(
+      'tr',
+      {},
+      rowHeader(formatDate(expense.date)),
+      h('td', { class: 'wrap' }, expense.name),
+      h('td', {}, categoryName(expense.category)),
+      numCell(formatAmount(expense.amount)),
+      h('td', { class: 'note-cell' }, noteSummary(expense.note)),
+      recordActions({
+        edit: { label: t('Edit {name}', { name: expense.name }), onClick: () => openExpenseDialog(expense) },
+        remove: { label: t('Delete {name}', { name: expense.name }), onClick: () => deleteExpense(expense) },
+      }),
     ),
   );
 }
@@ -91,24 +68,27 @@ let editingExpense = null;
 
 function openExpenseDialog(expense = null) {
   editingExpense = expense;
-  const form = $('expense-form');
-  form.reset();
-  $('expense-error').hidden = true;
-  $('expense-dialog-title').textContent = expense ? t('Edit expense') : t('Add expense');
-  $('expense-copy').hidden = Boolean(expense);
-  if (expense) {
-    form.elements.name.value = expense.name;
-    form.elements.amount.value = expense.amount;
-    form.elements.date.value = formatDate(expense.date);
-    form.elements.category.value = expense.category;
-    form.elements.note.value = expense.note;
-  }
-  $('expense-dialog').showModal();
-  form.elements.name.focus();
+  openDialog({
+    dialog: 'expense-dialog',
+    form: 'expense-form',
+    error: 'expense-error',
+    title: 'expense-dialog-title',
+    titleText: expense ? t('Edit expense') : t('Add expense'),
+    focus: 'name',
+    fill(form) {
+      $('expense-copy').hidden = Boolean(expense);
+      if (expense) {
+        form.elements.name.value = expense.name;
+        form.elements.amount.value = expense.amount;
+        form.elements.date.value = formatDate(expense.date);
+        form.elements.category.value = expense.category;
+        form.elements.note.value = expense.note;
+      }
+    },
+  });
 }
 
-async function submitExpense(event) {
-  event.preventDefault();
+function submitExpense() {
   const form = $('expense-form');
   const input = {
     name: form.elements.name.value,
@@ -117,17 +97,15 @@ async function submitExpense(event) {
     category: form.elements.category.value,
     note: form.elements.note.value,
   };
-  try {
-    if (editingExpense) {
-      await invoke('update_expense', { expenseId: editingExpense.id, input });
-    } else {
-      await invoke('add_expense', { input });
-    }
-    $('expense-dialog').close();
-    await changed();
-  } catch (error) {
-    showError('expense-error', error);
-  }
+  return saveDialog({
+    dialog: 'expense-dialog',
+    error: 'expense-error',
+    changed,
+    save: () =>
+      editingExpense
+        ? invoke('update_expense', { expenseId: editingExpense.id, input })
+        : invoke('add_expense', { input }),
+  });
 }
 
 /** Fills the name, amount and category from the previous expense; date and note stay empty (CSD-013 REQ-9). */
@@ -146,25 +124,20 @@ async function copyPrevious() {
   }
 }
 
-async function deleteExpense(expense) {
-  const confirmed = await confirmAction({
+function deleteExpense(expense) {
+  return deleteWithConfirm({
     title: t('Delete {name}?', { name: expense.name }),
     message: t('The expense of {date} and its note will be deleted.', { date: formatDate(expense.date) }),
     confirmLabel: t('Delete expense'),
-    danger: true,
+    command: 'delete_expense',
+    args: { expenseId: expense.id },
+    changed,
   });
-  if (!confirmed) return;
-  try {
-    await invoke('delete_expense', { expenseId: expense.id });
-    await changed();
-  } catch (error) {
-    showToast(errorText(error));
-  }
 }
 
 export function initExpensesOverview({ onChanged: callback }) {
   onChanged = callback;
   $('expense-add').addEventListener('click', () => openExpenseDialog(null));
-  $('expense-form').addEventListener('submit', submitExpense);
+  submitOnce($('expense-form'), submitExpense);
   $('expense-copy').addEventListener('click', copyPrevious);
 }

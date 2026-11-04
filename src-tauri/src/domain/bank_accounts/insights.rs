@@ -1,12 +1,11 @@
 //! The yearly series behind the Bank accounts Insights chart (CSD-010).
 
-use std::collections::BTreeMap;
-
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 
-use crate::domain::income::YearMonth;
-use crate::domain::money::zero;
+use crate::domain::charts::{Axis, ChartYear, Marker, Piece};
+use crate::domain::common::{ColourSlot, YearMonth};
+use crate::domain::series::SeriesData;
 
 use super::{BankAccountId, BankAccounts};
 
@@ -15,88 +14,91 @@ use super::{BankAccountId, BankAccounts};
 pub struct InsightsBank {
     pub id: BankAccountId,
     pub name: String,
-    pub colour_slot: u8,
+    pub colour_slot: ColourSlot,
 }
 
 /// The part of a year's bar that belongs to one bank (CSD-010 REQ-5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct InsightsSegment {
     pub account_id: BankAccountId,
-    pub balance: Decimal,
+    pub balance: Money,
 }
 
 /// One year of the insights chart (CSD-010 REQ-2).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct BankInsightsYear {
     pub year: i32,
-    pub closing_balance: Decimal,
+    pub closing_balance: Money,
     pub entry_count: usize,
     pub is_partial: bool,
     pub segments: Vec<InsightsSegment>,
+    /// The stacked pieces of the bar (CSD-025 section 5).
+    pub pieces: Vec<Piece>,
+    /// The closing balance, for a year with entries.
+    pub marker: Option<Marker>,
+}
+
+impl ChartYear for BankInsightsYear {
+    fn pieces(&self) -> &[Piece] {
+        &self.pieces
+    }
+
+    fn marker(&self) -> Option<&Marker> {
+        self.marker.as_ref()
+    }
 }
 
 /// The payload of `get_bank_insights` (CSD-010 section 5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct BankInsights {
+    /// The banks shown in the chart.
     pub banks: Vec<InsightsBank>,
+    /// The axis of the chart (CSD-025 REQ-3).
+    pub axis: Axis,
+    /// The years of the chart, one entry per year.
     pub years: Vec<BankInsightsYear>,
 }
 
 impl BankAccounts {
     /// One figure set per calendar year from the first entry up to and
-    /// including the current year, oldest first, and the banks that have a
-    /// segment in them, in creation order (CSD-010). Years without entries are
-    /// zero and have no segments. The current year is partial. Entries after
-    /// the current year, which only a project file can contain, are not shown.
+    /// including the later of the current year and the latest entry, at most 50
+    /// years back from it, oldest first, and the banks that have a segment in
+    /// them, in creation order (CSD-010 REQ-2). An older entry has no slot but
+    /// still counts in the yearly totals. Years without entries are zero and
+    /// have no segments (nothing is carried forward). The current year is
+    /// partial; a year after it is not.
     #[must_use]
     pub fn insights(&self, today: YearMonth) -> BankInsights {
-        let mut counts: BTreeMap<i32, usize> = BTreeMap::new();
-        for entry in &self.entries {
-            *counts.entry(entry.period.year()).or_default() += 1;
-        }
-        let Some(&first) = counts.keys().next() else {
-            return BankInsights {
-                banks: Vec::new(),
-                years: Vec::new(),
-            };
-        };
-        let years: Vec<BankInsightsYear> = (first..=today.year())
-            .map(|year| {
-                let segments: Vec<InsightsSegment> = self
-                    .year_segments(year)
-                    .into_iter()
-                    .map(|(account, balance)| InsightsSegment {
-                        account_id: account.id,
-                        balance,
-                    })
-                    .collect();
-                BankInsightsYear {
-                    year,
-                    closing_balance: segments
-                        .iter()
-                        .fold(zero(), |sum, segment| sum + segment.balance),
-                    entry_count: counts.get(&year).copied().unwrap_or(0),
-                    is_partial: year == today.year(),
-                    segments,
-                }
-            })
-            .collect();
+        let figures = self.year_figures(today);
         let banks = self
-            .accounts
-            .iter()
-            .filter(|account| {
-                years.iter().any(|year| {
-                    year.segments
-                        .iter()
-                        .any(|segment| segment.account_id == account.id)
-                })
-            })
+            .legend(&figures)
+            .into_iter()
             .map(|account| InsightsBank {
                 id: account.id,
                 name: account.name.clone(),
                 colour_slot: account.colour_slot,
             })
             .collect();
-        BankInsights { banks, years }
+        let years: Vec<BankInsightsYear> = figures
+            .into_iter()
+            .map(|figure| BankInsightsYear {
+                year: figure.year,
+                closing_balance: figure.closing,
+                entry_count: figure.count,
+                is_partial: figure.is_partial,
+                segments: figure
+                    .segments
+                    .iter()
+                    .map(|(account, balance)| InsightsSegment {
+                        account_id: account.id,
+                        balance: *balance,
+                    })
+                    .collect(),
+                pieces: figure.pieces,
+                marker: figure.marker,
+            })
+            .collect();
+        let axis = Axis::of_years(&years);
+        BankInsights { banks, axis, years }
     }
 }

@@ -1,10 +1,10 @@
 // Employment income: jobs, yearly totals over all jobs, and the paychecks and annual statements of all jobs (CSD-001).
-import { invoke, errorText } from '../shared/ipc.js';
-import { h, iconButton, confirmAction, showToast, showError } from '../shared/dom.js';
+import { invoke } from '../shared/ipc.js';
+import { $, h, showError, setHint, submitOnce } from '../shared/dom.js';
 import { formatAmount, formatDate, currentYear, currentMonth } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
-
-const $ = (id) => document.getElementById(id);
+import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
+import { accountRow, numCell, recordActions, renderTable, rowHeader, toggleEmpty } from '../shared/list-rows.js';
 
 let jobs = [];
 let onChanged = async () => {};
@@ -19,77 +19,58 @@ function payPeriodName(payPeriod) {
 }
 
 function jobMeta(job) {
-  return [job.title, jobDates(job), payPeriodName(job.pay_period)].filter(Boolean).join(' · ');
+  return [job.title, jobDates(job), payPeriodName(job.period)].filter(Boolean).join(' · ');
 }
 
-function amountCell(value) {
-  return h('td', { class: 'num' }, formatAmount(value));
-}
+const amountCell = (value) => numCell(formatAmount(value));
 
 // ---- Rendering ----
 
 function renderJobs() {
   const hasJobs = jobs.length > 0;
-  $('income-empty').hidden = hasJobs;
-  $('income-content').hidden = !hasJobs;
+  toggleEmpty('income-empty', 'income-content', hasJobs);
   $('job-add').hidden = !hasJobs;
   $('job-list').replaceChildren(
     ...jobs.map((job) =>
-      h(
-        'li',
-        { class: 'job-row' },
-        h('span', { class: 'job-name' }, job.employer),
-        h('span', { class: 'job-meta' }, jobMeta(job)),
-        h(
-          'span',
-          { class: 'job-actions' },
-          iconButton('edit', t('Edit {name}', { name: job.employer }), () => openJobDialog(job)),
-          iconButton('delete', t('Delete {name}', { name: job.employer }), () => deleteJob(job)),
-        ),
-      ),
+      accountRow({
+        name: job.employer,
+        meta: jobMeta(job),
+        edit: { label: t('Edit {name}', { name: job.employer }), onClick: () => openJobDialog(job) },
+        remove: { label: t('Delete {name}', { name: job.employer }), onClick: () => deleteJob(job) },
+      }),
     ),
   );
 }
 
 function renderTotals(totals) {
-  $('totals-empty').hidden = totals.length > 0;
-  $('totals-table').hidden = totals.length === 0;
-  $('totals-rows').replaceChildren(
-    ...totals.map((total) =>
-      h(
-        'tr',
-        {},
-        h('th', { scope: 'row' }, String(total.year)),
-        amountCell(total.gross_salary),
-        amountCell(total.holiday_pay),
-        amountCell(total.bonus),
-        amountCell(total.total_gross),
-      ),
+  renderTable({ empty: 'totals-empty', table: 'totals-table', body: 'totals-rows' }, totals, (total) =>
+    h(
+      'tr',
+      {},
+      rowHeader(String(total.year)),
+      amountCell(total.gross_salary),
+      amountCell(total.holiday_pay),
+      amountCell(total.bonus),
+      amountCell(total.total_gross),
     ),
   );
 }
 
 function renderEntries(entries) {
-  $('paycheck-empty').hidden = entries.length > 0;
-  $('paycheck-table').hidden = entries.length === 0;
-  $('paycheck-rows').replaceChildren(
-    ...entries.map((e) =>
-      h(
-        'tr',
-        {},
-        h('th', { scope: 'row' }, e.period),
-        h('td', { class: 'wrap' }, e.employer),
-        amountCell(e.gross_salary),
-        amountCell(e.holiday_pay),
-        amountCell(e.bonus),
-        amountCell(e.total_gross),
-        h(
-          'td',
-          { class: 'row-actions' },
-          iconButton('edit', t('Edit {name} {period}', { name: e.employer, period: e.period }), () => openEntryDialog(e)),
-          iconButton('delete', t('Delete {name} {period}', { name: e.employer, period: e.period }), () => deleteEntry(e)),
-        ),
-      ),
+  renderTable({ empty: 'paycheck-empty', table: 'paycheck-table', body: 'paycheck-rows' }, entries, (e) =>
+    h(
+      'tr',
+      {},
+      rowHeader(e.period),
+      h('td', { class: 'wrap' }, e.employer),
+      amountCell(e.gross_salary),
+      amountCell(e.holiday_pay),
+      amountCell(e.bonus),
+      amountCell(e.total_gross),
+      recordActions({
+        edit: { label: t('Edit {name} {period}', { name: e.employer, period: e.period }), onClick: () => openEntryDialog(e) },
+        remove: { label: t('Delete {name} {period}', { name: e.employer, period: e.period }), onClick: () => deleteEntry(e) },
+      }),
     ),
   );
 }
@@ -115,27 +96,30 @@ let editingJob = null;
 
 function openJobDialog(job) {
   editingJob = job;
-  const form = $('job-form');
-  form.reset();
-  $('job-error').hidden = true;
-  $('job-dialog-title').textContent = job ? t('Edit job') : t('Add job');
-  // The pay period is locked once the job has entries (CSD-001 REQ-24).
-  const locked = Boolean(job && job.entry_count > 0);
-  form.elements.pay_period.disabled = locked;
-  $('job-period-hint').hidden = !locked;
-  if (job) {
-    form.elements.pay_period.value = job.pay_period;
-    form.elements.employer.value = job.employer;
-    form.elements.title.value = job.title ?? '';
-    form.elements.start_date.value = formatDate(job.start_date);
-    form.elements.end_date.value = job.end_date ? formatDate(job.end_date) : '';
-  }
-  $('job-dialog').showModal();
-  form.elements.employer.focus();
+  openDialog({
+    dialog: 'job-dialog',
+    form: 'job-form',
+    error: 'job-error',
+    title: 'job-dialog-title',
+    titleText: job ? t('Edit job') : t('Add job'),
+    focus: 'employer',
+    fill(form) {
+      // The pay period is locked once the job has entries (CSD-001 REQ-24).
+      const locked = Boolean(job && job.entry_count > 0);
+      form.elements.period.disabled = locked;
+      setHint('job-period-hint', locked);
+      if (job) {
+        form.elements.period.value = job.period;
+        form.elements.employer.value = job.employer;
+        form.elements.title.value = job.title ?? '';
+        form.elements.start_date.value = formatDate(job.start_date);
+        form.elements.end_date.value = job.end_date ? formatDate(job.end_date) : '';
+      }
+    },
+  });
 }
 
-async function submitJob(event) {
-  event.preventDefault();
+function submitJob() {
   const form = $('job-form');
   const input = {
     employer: form.elements.employer.value,
@@ -143,34 +127,25 @@ async function submitJob(event) {
     start_date: form.elements.start_date.value,
     end_date: form.elements.end_date.value,
   };
-  if (!form.elements.pay_period.disabled) input.pay_period = form.elements.pay_period.value;
-  try {
-    if (editingJob) {
-      await invoke('update_job', { jobId: editingJob.id, input });
-    } else {
-      await invoke('create_job', { input });
-    }
-    $('job-dialog').close();
-    await changed();
-  } catch (error) {
-    showError('job-error', error);
-  }
+  if (!form.elements.period.disabled) input.period = form.elements.period.value;
+  return saveDialog({
+    dialog: 'job-dialog',
+    error: 'job-error',
+    changed,
+    save: () =>
+      editingJob ? invoke('update_job', { jobId: editingJob.id, input }) : invoke('create_job', { input }),
+  });
 }
 
-async function deleteJob(job) {
-  const confirmed = await confirmAction({
+function deleteJob(job) {
+  return deleteWithConfirm({
     title: t('Delete {name}?', { name: job.employer }),
     message: t('This job and all its paychecks and statements will be deleted.'),
     confirmLabel: t('Delete job'),
-    danger: true,
+    command: 'delete_job',
+    args: { jobId: job.id },
+    changed,
   });
-  if (!confirmed) return;
-  try {
-    await invoke('delete_job', { jobId: job.id });
-    await changed();
-  } catch (error) {
-    showToast(errorText(error));
-  }
 }
 
 // ---- Entry dialog: a paycheck for a monthly job, an annual statement for a yearly job ----
@@ -195,7 +170,7 @@ function chosenJob() {
 /** Titles and asks for a month or a year, following the chosen job (CSD-001 REQ-28). */
 function applyPayPeriod({ resetPeriod }) {
   const form = $('paycheck-form');
-  const yearly = chosenJob()?.pay_period === 'Yearly';
+  const yearly = chosenJob()?.period === 'Yearly';
   $('paycheck-dialog-title').textContent = yearly ? t('Add annual statement') : t('Add paycheck');
   $('paycheck-period-label').textContent = yearly ? t('Year') : t('Month');
   form.elements.period.placeholder = yearly ? String(new Date().getFullYear() - 1) : 'yyyy-mm';
@@ -236,38 +211,34 @@ function openEntryDialog(entry = null) {
   (entry ? form.elements.gross_salary : form.elements.period).focus();
 }
 
-async function submitEntry(event) {
-  event.preventDefault();
+function submitEntry() {
   const form = $('paycheck-form');
   const amounts = {
     gross_salary: form.elements.gross_salary.value,
     holiday_pay: form.elements.holiday_pay.value,
     bonus: form.elements.bonus.value,
   };
-  try {
-    if (editingEntry) {
-      // The entry is found by its current month or year; the field holds the new one (CSD-001 REQ-29).
-      const { job_id: jobId, period } = editingEntry;
-      const newPeriod = form.elements.period.value;
-      if (editingEntry.kind === 'statement') {
-        await invoke('update_statement', { jobId, year: period, newYear: newPeriod, amounts });
-      } else {
-        await invoke('update_paycheck', { jobId, month: period, newMonth: newPeriod, amounts });
+  const editing = editingEntry;
+  return saveDialog({
+    dialog: 'paycheck-dialog',
+    error: 'paycheck-error',
+    changed,
+    save() {
+      if (editing) {
+        // The entry is found by its current month or year; the field holds the new one (CSD-001 REQ-29).
+        const { job_id: jobId, period } = editing;
+        const newPeriod = form.elements.period.value;
+        return editing.kind === 'statement'
+          ? invoke('update_statement', { jobId, year: period, newYear: newPeriod, amounts })
+          : invoke('update_paycheck', { jobId, month: period, newMonth: newPeriod, amounts });
       }
-    } else {
       const jobId = form.elements.job_id.value;
       const period = form.elements.period.value;
-      if (chosenJob()?.pay_period === 'Yearly') {
-        await invoke('add_statement', { jobId, year: period, amounts });
-      } else {
-        await invoke('add_paycheck', { jobId, month: period, amounts });
-      }
-    }
-    $('paycheck-dialog').close();
-    await changed();
-  } catch (error) {
-    showError('paycheck-error', error);
-  }
+      return chosenJob()?.period === 'Yearly'
+        ? invoke('add_statement', { jobId, year: period, amounts })
+        : invoke('add_paycheck', { jobId, month: period, amounts });
+    },
+  });
 }
 
 /** Fills the form from the latest entry of the job chosen in it (CSD-001 REQ-9). */
@@ -283,26 +254,31 @@ async function copyPrevious() {
   }
 }
 
-async function deleteEntry(entry) {
-  try {
-    if (entry.kind === 'statement') {
-      await invoke('delete_statement', { jobId: entry.job_id, year: entry.period });
-    } else {
-      await invoke('delete_paycheck', { jobId: entry.job_id, month: entry.period });
-    }
-    await changed();
-  } catch (error) {
-    showToast(errorText(error));
-  }
+function deleteEntry(entry) {
+  const statement = entry.kind === 'statement';
+  const values = { period: entry.period, employer: entry.employer };
+  return deleteWithConfirm({
+    title: t(statement ? 'Delete the annual statement of {period}?' : 'Delete the paycheck of {period}?', values),
+    message: t(
+      statement
+        ? 'The annual statement of {period} of {employer} will be deleted.'
+        : 'The paycheck of {period} of {employer} will be deleted.',
+      values,
+    ),
+    confirmLabel: t(statement ? 'Delete annual statement' : 'Delete paycheck'),
+    command: statement ? 'delete_statement' : 'delete_paycheck',
+    args: statement ? { jobId: entry.job_id, year: entry.period } : { jobId: entry.job_id, month: entry.period },
+    changed,
+  });
 }
 
 export function initIncomeOverview({ onChanged: callback }) {
   onChanged = callback;
   $('job-add').addEventListener('click', () => openJobDialog(null));
   $('job-add-first').addEventListener('click', () => openJobDialog(null));
-  $('job-form').addEventListener('submit', submitJob);
+  submitOnce($('job-form'), submitJob);
   $('paycheck-add').addEventListener('click', () => openEntryDialog());
   $('paycheck-copy').addEventListener('click', copyPrevious);
-  $('paycheck-form').addEventListener('submit', submitEntry);
+  submitOnce($('paycheck-form'), submitEntry);
   $('paycheck-form').elements.job_id.addEventListener('change', () => applyPayPeriod({ resetPeriod: true }));
 }

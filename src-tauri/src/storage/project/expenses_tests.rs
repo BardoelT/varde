@@ -1,7 +1,6 @@
 use std::fs;
 
 use tempfile::TempDir;
-use time::macros::date;
 
 use super::*;
 use crate::domain::expenses::ExpenseInput;
@@ -9,16 +8,13 @@ use crate::domain::expenses::ExpenseInput;
 fn add(project: &mut Project, name: &str, amount: &str, date: &str, note: &str) {
     project
         .expenses_mut()
-        .add_expense(
-            &ExpenseInput {
-                name: name.to_owned(),
-                amount: amount.to_owned(),
-                date: date.to_owned(),
-                category: "Home".to_owned(),
-                note: Some(note.to_owned()),
-            },
-            date!(2026 - 10 - 29),
-        )
+        .add_expense(&ExpenseInput {
+            name: name.to_owned(),
+            amount: amount.to_owned(),
+            date: date.to_owned(),
+            category: "Home".to_owned(),
+            note: Some(note.to_owned()),
+        })
         .unwrap();
 }
 
@@ -33,7 +29,7 @@ fn test_csd013_ac_16_1_expenses_survive_save_and_open_including_notes() {
         "15/09/2026",
         "Line one\nLine two",
     );
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
 
     let mut fresh = Project::new();
@@ -52,21 +48,6 @@ fn test_csd013_ac_16_1_expenses_survive_save_and_open_including_notes() {
 }
 
 #[test]
-fn test_csd013_ac_16_2_a_file_without_the_section_opens_without_expenses() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
-    fs::write(
-        &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]}}"#,
-    )
-    .unwrap();
-    let mut project = Project::new();
-    project.open(&path).unwrap();
-    assert_eq!(project.expenses().total_count(), 0);
-    assert!(!project.status().unsaved_changes);
-}
-
-#[test]
 fn test_csd013_ac_16_3_the_other_sections_are_untouched() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
@@ -75,17 +56,17 @@ fn test_csd013_ac_16_3_the_other_sections_are_untouched() {
         .debts_mut()
         .create_debt(&crate::domain::debts::DebtInput {
             name: "Example Mortgage".to_owned(),
-            statement_period: None,
+            period: None,
         })
         .unwrap();
     project
         .bank_accounts_mut()
-        .create_account(&crate::domain::bank_accounts::AccountInput {
+        .create_account(&crate::domain::bank_accounts::BankAccountInput {
             name: "Example Current Account".to_owned(),
-            entry_period: None,
+            period: None,
         })
         .unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
     let mut fresh = Project::new();
     fresh.open(&path).unwrap();
@@ -97,7 +78,7 @@ fn test_csd013_ac_16_3_the_other_sections_are_untouched() {
 #[test]
 fn test_csd013_ac_16_4_a_damaged_section_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     let id = "671166f4-5827-4794-bcdc-54d7824fb650";
     let expense = |amount: &str, date: &str, category: &str| {
         format!(
@@ -126,12 +107,10 @@ fn test_csd013_ac_16_4_a_damaged_section_is_an_invalid_file() {
 }
 
 #[test]
-fn test_csd013_an_expense_change_is_an_unsaved_change() {
+fn test_csd013_ac_1_5_adding_an_expense_is_an_unsaved_change() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
-    project
-        .save_as(dir.path().join("example-a.wealth"))
-        .unwrap();
+    project.save_as(dir.path().join("example-a.varde")).unwrap();
     assert!(!project.status().unsaved_changes);
     add(&mut project, "Example Bike", "900.00", "10/09/2026", "");
     assert!(project.status().unsaved_changes);

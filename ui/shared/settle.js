@@ -1,11 +1,9 @@
-// The "Settle linked debts" prompt: Repaid or Cancelled for each open debt (CSD-020 REQ-15).
-import { h } from './dom.js';
+// The "Settle linked debts" prompt: Repaid or Cancelled for each open debt (CSD-026 REQ-13).
+import { $, h } from './dom.js';
 import { formatAmount } from './format.js';
 import { t } from './i18n.js';
 
-const $ = (id) => document.getElementById(id);
-
-/** Asks Repaid or Cancelled for each open debt; resolves to the choices, or null for Back (CSD-020 REQ-15). */
+/** Asks Repaid or Cancelled for each open debt; resolves to the choices, or null for Back (CSD-026 REQ-13). */
 export function askSettlements(openDebts) {
   const dialog = $('house-settle-dialog');
   const save = $('house-settle-save');

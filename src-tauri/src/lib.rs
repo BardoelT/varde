@@ -195,4 +195,16 @@ pub fn run() {
 }
 
 #[cfg(test)]
+mod golden_tests;
+#[cfg(test)]
+mod ipc_ac_tests_a;
+#[cfg(test)]
+mod ipc_ac_tests_b;
+#[cfg(test)]
+mod ipc_ac_tests_c1;
+#[cfg(test)]
+mod ipc_ac_tests_c2;
+#[cfg(test)]
+mod ipc_ac_tests_d;
+#[cfg(test)]
 mod ipc_tests;

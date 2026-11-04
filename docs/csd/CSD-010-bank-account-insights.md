@@ -3,15 +3,15 @@ id: CSD-010
 title: Bank account insights
 status: approved
 owner: Thijs Bardoel
-version: 0.6
-last_updated: 29/10/2026
-related: [CSD-007, CSD-009]
+version: 1.3
+last_updated: 03/11/2026
+related: [CSD-007, CSD-009, CSD-025]
 ---
 
 # CSD-010: Bank account insights
 
 ## 1. Intent
-The Bank accounts page lists accounts, entries and a table of yearly totals, but a table does not show how the money at the banks is spread over the accounts and how that changed over the years. This capability adds an insights layer to the Bank accounts page: a chart with one bar per calendar year, stacked from one segment per bank, with a marker at the closing balance of the year. It is for the owner looking back over their own bank balances. It follows the Investment insights of CSD-007, but a bank entry is only a balance, so the segments are the banks instead of opening balance, deposits and growth. It supersedes CSD-009 NG-6 for this view only to the extent that the chart shows the closing balance per bank.
+The Bank accounts page lists accounts, entries and a table of yearly totals, but a table does not show how the money at the banks is spread over the accounts and how that changed over the years. This capability adds an insights layer to the Bank accounts page: a chart with one bar per calendar year, stacked from one segment per bank, with a marker at the closing balance of the year. It is for the owner looking back over their own bank balances. The chart frame (axis, bars, tooltip, highlight, motion, size, look, legend, colours, tabs, short labels) is shared and specified in CSD-025. It follows the Investment insights of CSD-007, but a bank entry is only a balance, so the segments are the banks instead of opening balance, deposits and growth. It supersedes CSD-009 NG-6 for this view only to the extent that the chart shows the closing balance per bank.
 
 ## 2. Scope
 ### 2.1 In scope
@@ -50,9 +50,9 @@ sequenceDiagram
     U->>UI: opens the Insights tab
     UI->>CMD: get_bank_insights()
     CMD->>DOM: insights(today)
-    DOM-->>CMD: banks and one figure set per year, with segments
-    CMD-->>UI: figures as decimal strings
-    UI->>U: stacked bars per bank, closing markers, legend
+    DOM-->>CMD: banks, axis, and one figure set per year, with segments, pieces and marker
+    CMD-->>UI: figures as decimal strings, short labels as text
+    UI->>U: draws the received bars per bank, markers, axis and labels, legend
 ```
 
 **REQ-1: Tabs on the Bank accounts page** *(ubiquitous)*
@@ -82,7 +82,7 @@ Scenario: No accounts yet
 ```
 
 **REQ-2: Year series** *(ubiquitous)*
-The app shall return one set of figures for every calendar year from the year of the earliest entry up to and including the current year, oldest year first, holding the closing balance, the number of entries (returned, not displayed) and, per bank with an entry in that year, its segment.
+The app shall return one set of figures for every calendar year from the year of the earliest entry up to and including the later of the current year and the year of the latest entry, but for at most 50 years back from that last year, oldest year first, holding the closing balance, the number of entries (returned, not displayed) and, per bank with an entry in that year, its segment, together with the axis, the bar pieces, the marker and the short labels of CSD-025 REQ-3. An entry older than the 50 years gets no slot, but still counts in the yearly totals of CSD-009 REQ-19 (a year counts only the entries of its own period).
 
 ```gherkin
 @AC-2.1
@@ -106,6 +106,34 @@ Scenario: No entries
   And an account without entries
   When the insights are requested
   Then the series is empty
+
+@AC-2.5
+Scenario: An entry after the current year extends the series
+  Given today is 26/10/2026
+  And entries for 2024-03 and 2027-05
+  When the insights are requested
+  Then the series holds the years 2024, 2025, 2026 and 2027
+
+@AC-2.6
+Scenario: A very old entry gets no slot but still counts
+  Given today is 26/10/2026
+  And "Example Bank" has an entry for 1950-01 with balance 1000.00
+  And "Other Bank" has an entry for 2026-03 with balance 500.00
+  When the insights are requested
+  Then the series holds the years 1977 to 2026, which is 50 years
+  And 1950 to 1976 have no slot
+  And the closing balance of 2026 is 500.00
+  And the yearly totals of CSD-009 REQ-19 still hold a row for 1950 with closing balance 1000.00
+
+@AC-2.4
+Scenario: Pieces, marker and labels are delivered
+  Given today is 26/10/2026
+  And account "Example Current Account" with an entry 2025-12 (balance 2000.00)
+  And account "Example Savings" with an entry 2025-12 (balance 8000.00)
+  When the insights are requested
+  Then 2025 has the pieces 0.00 to 2000.00 and 2000.00 to 10000.00, in the creation order of the banks
+  And the marker of 2025 has value 10000.00 and label "10.00k"
+  And the axis ticks include 0.00 and 10000.00 with the labels "0" and "10k"
 ```
 
 **REQ-3: Years without entries** *(unwanted behaviour)*
@@ -122,7 +150,7 @@ Scenario: Gap year
 ```
 
 **REQ-4: Current year is partial** *(state-driven)*
-While a year is the current year, the app shall mark it as partial.
+While a year is the current year, the app shall mark it as partial. A year after the current year is not marked partial and looks like any other year.
 
 ```gherkin
 @AC-4.1
@@ -140,6 +168,13 @@ Scenario: Current year without entries is still in the series and marked
   When the insights are requested
   Then the series holds 2025 and 2026
   And 2026 is marked partial and has 0 entries
+
+@AC-4.3
+Scenario: A future year is not marked partial
+  Given today is 26/10/2026
+  And an entry for 2027-05
+  When the insights are requested
+  Then the year 2027 is not marked partial
 ```
 
 **REQ-5: Segments are the latest balances per bank** *(ubiquitous)*
@@ -186,10 +221,11 @@ Scenario: Closing balance and entries equal the yearly totals
   And the entries of AC-5.1 and AC-5.2
   When the insights and the yearly totals are requested
   Then for every year the closing balance and the number of entries of the insights equal those of the yearly totals
+  And this includes a year after the current year that has an entry
 ```
 
 **REQ-6: Chart** *(ubiquitous)*
-The Insights tab shall draw one bar per year in the order received, stacked from one segment per bank in which positive segments rise from the zero line in the order received and negative segments hang down from it in that order, on a y-axis that includes 0, ends at a rounded-up value of at least the highest positive sum and starts at a rounded-down value of at most the lowest negative sum, with gridlines, compact axis labels (such as "10k"), a gap year as a labelled slot without a bar, and no currency.
+The Insights tab shall draw one bar per year in the order received, stacked from one segment per bank in which positive segments rise from the zero line in the order received and negative segments hang down from it in that order, on a y-axis that includes 0, ends at a rounded-up value of at least the highest positive sum and starts at a rounded-down value of at most the lowest negative sum, with gridlines, short axis labels delivered by Rust (CSD-025 REQ-3, REQ-4 and REQ-17, such as "10k" on the axis and "10.00k" on a marker), a gap year as a labelled slot without a bar, and no currency.
 
 ```gherkin
 @AC-6.1
@@ -234,7 +270,7 @@ Scenario: Current year is marked
 ```
 
 **REQ-7: Closing-balance marker** *(ubiquitous)*
-The Insights tab shall draw for each year with entries a horizontal marker line of 2 px with round ends in the muted text colour, wider than the bar, at the closing balance, with its compact value next to it (above the line), not connected to the markers of other years, and dashed for the current year.
+The Insights tab shall draw for each year with entries the marker of CSD-025 REQ-7 at the closing balance, with the short label of the closing balance delivered by Rust.
 
 ```gherkin
 @AC-7.1
@@ -242,7 +278,7 @@ Scenario: Marker at the closing balance
   Given 2025 has the segments 2000.00 and 8000.00 and closing balance 10000.00
   When the user opens the Insights tab
   Then a marker line is drawn across the 2025 bar at 10000.00
-  And its label reads "10k"
+  And its label reads "10.00k"
 
 @AC-7.2
 Scenario: Marker sits at the net sum when a segment is negative
@@ -275,12 +311,7 @@ Scenario: Colours survive a deletion
   When the user deletes the bank with slot 0 on the Overview tab and opens the Insights tab
   Then the other banks are still drawn in the colours of slots 1 and 2
 
-@AC-8.3
-Scenario: The palette in both modes
-  Given the Insights tab shows the chart
-  When the app is in light mode and then in dark mode
-  Then the eight colours are distinct from each other in each mode
-  And each has at most 60% HSL saturation
+# @AC-8.3 (removed in v1.0): the palette in both modes is specified in CSD-025 REQ-14 (AC-14.2).
 
 @AC-8.4
 Scenario: More than eight banks
@@ -291,7 +322,7 @@ Scenario: More than eight banks
 ```
 
 **REQ-9: Legend of banks** *(ubiquitous)*
-The Insights tab shall show a legend with a colour swatch and the name of every bank that has at least one entry, in the order the banks were created, wrapping onto more lines when it does not fit, with no limit on the number of banks, and shall cut a name that does not fit on one legend item with an ellipsis, with the full name available in a tooltip and to screen readers. The legend shall also show the closing-balance marker.
+The Insights tab shall show the legend of CSD-025 REQ-13 for every bank that has at least one entry, in the order the banks were created, followed by the closing-balance marker.
 
 ```gherkin
 @AC-9.1
@@ -307,19 +338,8 @@ Scenario: A bank without entries is not in the legend
   When the user opens the Insights tab
   Then the legend lists only "Example Savings"
 
-@AC-9.3
-Scenario: Many banks wrap
-  Given twelve banks with entries
-  When the user opens the Insights tab on a narrow window
-  Then the legend shows all twelve banks, wrapped onto more than one line
-  And no bank is left out
-
-@AC-9.4
-Scenario: A long name is cut with an ellipsis
-  Given a bank with a name of 100 characters and an entry
-  When the user opens the Insights tab
-  Then its legend item shows the name cut with an ellipsis
-  And the full name is available in a tooltip and to screen readers
+# @AC-9.3 (removed in v1.0): wrapping of many names is specified in CSD-025 REQ-13 (AC-13.1).
+# @AC-9.4 (removed in v1.0): the ellipsis for a long name is specified in CSD-025 REQ-13 (AC-13.2).
 
 @AC-9.5
 Scenario: A deleted bank leaves the legend
@@ -329,7 +349,7 @@ Scenario: A deleted bank leaves the legend
 ```
 
 **REQ-10: Details of a year** *(event-driven)*
-When the user hovers over or moves keyboard focus to a year, the Insights tab shall show a tooltip with the year, one row per segment with the bank's swatch, full name and balance in the order the bar shows them from top to bottom (the highest segment first, the segments below the zero line last), then the closing balance and, for the current year, that it is partial, beside the year's bar as CSD-007 REQ-14 places a tooltip, and shall give the same values to screen readers. The tooltip and the screen-reader description show no number of entries, and a year without entries shows the note "No entries".
+When the user hovers over or moves keyboard focus to a year, the Insights tab shall show a tooltip with the year, one row per segment with the bank's swatch, full name and balance in the order the bar shows them from top to bottom (the highest segment first, the segments below the zero line last), then the closing balance and, for the current year, that it is partial, placed as CSD-025 REQ-8 says, with the same values given to screen readers. The tooltip and the screen-reader description show no number of entries, and a year without entries shows the note "No entries".
 
 ```gherkin
 @AC-10.1
@@ -360,13 +380,7 @@ Scenario: Partial year
   When the user hovers over the 2026 bar
   Then the tooltip says that the year is partial
 
-@AC-10.5
-Scenario: Tooltip beside the bar
-  Given the chart shows the years 2024, 2025 and 2026
-  When the user hovers over the 2024 bar
-  Then the tooltip is shown to the right of that bar with its top level with the top of the bar
-  When the user hovers over the 2026 bar and the tooltip does not fit to its right
-  Then the tooltip is shown to the left of that bar and stays inside the chart area
+# @AC-10.5 (removed in v1.0): the placement of the tooltip is specified in CSD-025 REQ-8 (AC-8.2).
 
 @AC-10.6
 Scenario: Year without a bar
@@ -391,127 +405,25 @@ Scenario: Only positive segments
   And the closing balance is listed last
 ```
 
-**REQ-11: Highlight one bank** *(event-driven)*
-When the mouse is over a segment or a legend item of a bank, or keyboard focus is on a legend item, the Insights tab shall keep all segments of that bank at full colour in every year and ease all other segments to 70% opacity, set the legend item and the tooltip row of that bank in the full text colour and a heavier font weight, and ease the other legend items to 70% opacity, and while no segment or legend item is hovered or focused, the Insights tab shall highlight nothing. Keyboard focus on a year highlights nothing.
+**REQ-11: Highlight one bank** *(removed in v1.0)*
+Moved to CSD-025 REQ-9, which holds the highlight of one series for every chart. AC-11.1 to AC-11.6 are replaced by CSD-025 AC-9.1 to AC-9.4.
+
+**REQ-12: Motion and reduced motion** *(removed in v1.0)*
+Moved to CSD-025 REQ-10. AC-12.1 to AC-12.3 are replaced by CSD-025 AC-10.1 and AC-10.2.
+
+**REQ-13: Size, look and accessible segments** *(ubiquitous)*
+The Insights tab shall draw the chart with the size and the look of CSD-025 REQ-11 and REQ-12, with every segment carrying an accessible label with the bank, the year and the balance.
 
 ```gherkin
-@AC-11.1
-Scenario: Hovering a segment
-  Given 2025 and 2026 each have a segment of "Example Savings" and of "Example Current Account"
-  When the user hovers over the "Example Savings" segment of 2025
-  Then all "Example Savings" segments, in 2025 and 2026, keep their full colour
-  And all "Example Current Account" segments are eased down to 70% opacity
-  And the "Example Savings" legend item is in the full text colour and a heavier font weight
-  And the other legend items are eased down to 70% opacity
-
-@AC-11.2
-Scenario: Hovering a legend item
-  Given the legend lists "Example Savings" and "Example Current Account"
-  When the user hovers over the legend item "Example Savings"
-  Then the segments of "Example Savings" keep their full colour in every year
-  And the other segments are eased down to 70% opacity
-
-@AC-11.3
-Scenario: Focusing a legend item
-  Given the legend lists "Example Savings" and "Example Current Account"
-  When the user moves keyboard focus to the legend item "Example Savings"
-  Then the highlight is the same as when hovering over it
-  And it ends when focus leaves the legend item
-
-@AC-11.4
-Scenario: Leaving the segment
-  Given the user hovers over a segment
-  When the user moves the mouse to empty space in the year's column
-  Then no legend item is highlighted and no segment is dimmed
-  And the tooltip is still shown
-
-@AC-11.5
-Scenario: Not colour alone
-  Given the user hovers over a segment
-  Then the highlighted legend item has a heavier font weight than the other items
-  And the other segments are lighter, not differently coloured
-
-@AC-11.6
-Scenario: Keyboard focus on a year highlights nothing
-  Given the Insights tab shows the chart
-  When the user moves focus to the 2025 bar with the Tab key
-  Then no legend item is highlighted and no segment is dimmed
-```
-
-**REQ-12: Motion and reduced motion** *(event-driven)*
-When a tooltip appears or moves to another year, or the highlight of REQ-11 changes, the Insights tab shall animate the change over 120 to 150 ms with an ease-out curve, and while the user prefers reduced motion it shall show tooltips and highlight changes at once.
-
-```gherkin
-@AC-12.1
-Scenario: Tooltip fades in and glides
-  Given the Insights tab shows the chart
-  When the user hovers over the 2025 bar and then over the 2026 bar
-  Then the tooltip fades in over 120 to 150 ms while it slides 4 px towards its place
-  And it glides to its new place over 120 to 150 ms instead of jumping
-
-@AC-12.2
-Scenario: Dimming eases
-  Given the user hovers over a segment of "Example Savings"
-  When the user moves the mouse away from the segment
-  Then the other segments and the legend items ease back to full opacity over 120 to 150 ms
-
-@AC-12.3
-Scenario: Reduced motion
-  Given the user prefers reduced motion
-  When the user hovers over the 2025 bar and then over the 2026 bar
-  Then each tooltip appears at once at its place without sliding or gliding
-  And the dimming of segments and legend items changes at once
-```
-
-**REQ-13: Refined look and accessible segments** *(ubiquitous)*
-The Insights tab shall draw the chart with bars at most 50% of the width of their slot and at most 44 px wide, with the top corners of the topmost positive segment and the bottom corners of the lowest negative segment rounded by 3 px and a 1 px gap between stacked segments in place of an outline, so that neighbouring segments of the same hue stay apart, with a plot height that scales with the height of the window and a year slot at least 64 px wide, the same size and behaviour as every other yearly chart of the app, with 1 px gridlines at 55% opacity of the border colour and a 1 px zero line in the muted text colour at 70% opacity that is always drawn, also when no segment is negative, with axis and year labels in the muted text colour at regular font weight, with marker values in 10 px medium weight, and with tooltips of 10 px corner radius, 12 px by 14 px padding, a shadow of at least 16 px blur and at most 12% opacity, a 12 px title in semibold and row labels in the muted text colour, in light and in dark mode. Every segment shall carry an accessible label with the bank, the year and the balance.
-
-```gherkin
-@AC-13.1
-Scenario: Bars
-  Given the series holds the years 2024, 2025 and 2026
-  When the user opens the Insights tab
-  Then no bar is wider than 50% of its slot or 44 px
-  And the outer corners of each bar are rounded by 3 px
-  And stacked segments are separated by a 1 px gap and have no outline
-
-@AC-13.2
-Scenario: Gridlines, zero line and labels
-  Given the Insights tab shows the chart with a negative segment
-  Then the gridlines are 1 px lines at 55% opacity of the border colour
-  And the zero line is 1 px in the muted text colour at 70% opacity
-  And the axis labels and the year labels are in the muted text colour at regular font weight
-
-@AC-13.3
-Scenario: Tooltip
-  Given the user hovers over a year
-  Then the tooltip has a 10 px corner radius, 12 px by 14 px padding and a soft shadow
-  And its title is semibold and its row labels are in the muted text colour
-
 @AC-13.4
 Scenario: Segment labels
   Given 2026 has a segment of "Example Savings" with balance 8000.00
   When a screen reader reads that segment
   Then it announces "Example Savings", 2026 and 8000.00
 
-@AC-13.5
-Scenario: The zero line is always drawn
-  Given every segment of every year is positive
-  When the user opens the Insights tab
-  Then a 1 px zero line in the muted text colour at 70% opacity is drawn at 0
-
-@AC-13.6
-Scenario: Same size as the other yearly charts
-  Given the Insights tab shows the chart
-  Then the plot height scales with the height of the window
-  And each year slot is at least 64 px wide
-
-@AC-13.7
-Scenario: The plot follows the height of the window
-  Given the Insights tab shows the chart and the page is scrolled to the top
-  When the user makes the window 200 px higher
-  Then the plot is about 200 px higher and the chart still ends at the bottom of the window
-  And when the window is made so low that the plot would be below 260 px, the plot stays 260 px high
+# @AC-13.1, @AC-13.2, @AC-13.3 (removed in v1.0): bars, gridlines, zero line and tooltip look are specified in CSD-025 REQ-12 (AC-12.1 to AC-12.3).
+# @AC-13.5 (removed in v1.0): the always-drawn zero line is specified in CSD-025 REQ-2 (AC-2.3).
+# @AC-13.6, @AC-13.7 (removed in v1.0): size and plot height are specified in CSD-025 REQ-11 (AC-11.1, AC-11.2).
 ```
 
 **REQ-14: No entries yet** *(state-driven)*
@@ -553,7 +465,7 @@ Scenario: A moved entry follows to its new year
 
 ## 5. Interfaces and contracts
 
-Command: `get_bank_insights()` returns the banks that have at least one entry, in creation order, and the series, oldest year first:
+Command: `get_bank_insights()` returns the banks that have at least one entry, in creation order, and the series, oldest year first, together with the common part of CSD-025 section 5 (`axis`, and per year `pieces` and `marker`; the `series` of a piece is the id of its bank):
 
 ```json
 {
@@ -561,40 +473,53 @@ Command: `get_bank_insights()` returns the banks that have at least one entry, i
     { "id": "…", "name": "Example Current Account", "colour_slot": 0 },
     { "id": "…", "name": "Example Savings", "colour_slot": 1 }
   ],
+  "axis": { "ticks": [ { "value": "0.00", "label": "0" }, { "value": "5000.00", "label": "5k" }, { "value": "10000.00", "label": "10k" }, { "value": "15000.00", "label": "15k" } ] },
   "years": [
     { "year": 2025, "closing_balance": "10000.00", "entry_count": 2, "is_partial": false,
-      "segments": [ { "account_id": "…", "balance": "2000.00" }, { "account_id": "…", "balance": "8000.00" } ] },
+      "segments": [ { "account_id": "…", "balance": "2000.00" }, { "account_id": "…", "balance": "8000.00" } ],
+      "pieces": [ { "series": "…", "low": "0.00", "high": "2000.00", "hangs": false, "rounding": "none" },
+                  { "series": "…", "low": "2000.00", "high": "10000.00", "hangs": false, "rounding": "top" } ],
+      "marker": { "value": "10000.00", "label": "10.00k" } },
     { "year": 2026, "closing_balance": "2500.00", "entry_count": 1, "is_partial": true,
-      "segments": [ { "account_id": "…", "balance": "2500.00" } ] }
+      "segments": [ { "account_id": "…", "balance": "2500.00" } ],
+      "pieces": [ { "series": "…", "low": "0.00", "high": "2500.00", "hangs": false, "rounding": "top" } ],
+      "marker": { "value": "2500.00", "label": "2.50k" } }
   ]
 }
 ```
 
-`entry_count` is returned but never displayed. `banks` and `years` are empty when there are no entries. `segments` follow the creation order of the banks and are empty for a gap year. Amounts are decimal strings. Rust decides "today" (local time), the years, the partial flag and the segments, and the frontend only displays what it receives. Error codes are those of CSD-009.
+`entry_count` is returned but never displayed. `banks` and `years` are empty when there are no entries. `segments` follow the creation order of the banks and are empty for a gap year, which also has no pieces and `"marker": null`. Amounts are decimal strings. Rust decides "today" (local time), the years, the partial flag, the axis, the pieces and the short labels, and the frontend only displays what it receives. Error codes are those of CSD-009.
 
 ## 6. Constraints
-- CON-1: The chart reuses the shared chart code of the frontend (`ui/shared/yearly-chart.js`) and adds no chart library or other dependency. Rationale: NG-6, and `CLAUDE.md` asks before adding dependencies.
-- CON-2: The frontend displays figures computed in Rust and computes no amounts, not even the sum of the segments or the axis total beyond what drawing needs. Rationale: `CLAUDE.md` layout rule.
+- CON-1: The chart reuses the shared chart code of the frontend (CSD-025 CON-1) and adds no chart library or other dependency. Rationale: NG-6, and `CLAUDE.md` asks before adding dependencies.
+- CON-2: The frontend displays figures and labels built in Rust and computes no amounts, not the sum of the segments, not the stack of the pieces, not the axis and not a short label (CSD-025 CON-2). Rationale: `CLAUDE.md` layout rule.
 - CON-3: No network access. Rationale: `CLAUDE.md` Tauri security rules.
 - CON-4: Bank names are drawn as plain text, never as HTML. Rationale: a name is typed by the user and must not run as markup.
 - CON-5: Tests and fixtures use synthetic data only. Rationale: the repo is public.
-- CON-6: The palette is defined once as colour tokens per mode, and no colour of a bank is written inline in the page code. Rationale: one place to adjust, and both modes stay in step.
+- CON-6: (removed in v1.0) The palette tokens are specified in CSD-025 CON-5.
+- CON-7: Money rounding, also for the short labels, follows CSD-000 CON-8. Rationale: one rounding rule for the whole application.
 
 ## 7. Verification
-The series is computed in Rust, so REQ-2 to REQ-5 are proven by `cargo test`. Tests are named `test_csd010_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
+The series, the axis, the pieces, the markers and the short labels are computed in Rust, so REQ-2 to REQ-5 are proven by `cargo test`. Tests are named `test_csd010_ac_<n>_<m>_<description>` (CSD-000 REQ-6). The shared chart behaviour (look, size, motion, label format) is verified in CSD-025.
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-2 to REQ-5, AC-15.1 to AC-15.3 (the data) | `cargo test test_csd010_` |
-| REQ-1, REQ-6 to REQ-14 (all ACs, including AC-10.7, AC-10.8, AC-13.5, AC-13.6 and AC-13.7), AC-15.1 to AC-15.3 (the screen) | Manual checklist: tabs, tooltip row order and no entry count, plot height scaling with the window and slot width of at least 64 px, zero line always drawn, stacking and negative segments, axis range, markers, colours of both modes and of the ninth bank, legend order, wrapping and ellipsis, tooltip placement, highlight from a segment and from the legend including keyboard, motion and reduced motion, the look, accessible labels and the empty note. There is no frontend test setup |
-| One requirement, e.g. REQ-5 | `cargo test test_csd010_ac_5_` |
+| Rust tests (the data, the axis ticks, the marker value and label) | `cargo test test_csd010_`. One requirement, e.g. REQ-5: `cargo test test_csd010_ac_5_` |
+| Display ACs (the screen) | DOM tests in `ui/tests/ac-b-bank-insights.test.js` (`npm test`). Checked by hand: the tooltip centred over the slot of a year without a bar (AC-10.6, the other steps are tested), because jsdom has no layout |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (0 of 45 ACs; no test carries the AC id): none.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 - OQ-1: (resolved in v0.2) The legend lists only banks that have at least one entry (REQ-9), because a bank without entries has no segment to identify.
+- OQ-2: (resolved 03/11/2026) An entry after the current year extends the series to the latest year with an entry, so the closing balances equal the yearly totals of CSD-009 REQ-19 (REQ-2, AC-2.5, AC-5.5). The series spans at most 50 years back from its last year; an older entry gets no slot but still counts (AC-2.6). A future year is not marked partial (REQ-4, AC-4.3).
 
 ## 9. Changelog
+- 1.3 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claim that display ACs have DOM tests is removed.
+- 1.2 (03/11/2026): The axis tick labels in AC-2.4 and the section 5 example are whole numbers ("0", "10k"), as CSD-025 REQ-17 says; markers keep 2 decimals. Back to `draft` until re-approved.
+- 1.1 (03/11/2026): Resolved OQ-2: the series runs to the later of the current year and the latest year with an entry (REQ-2, new AC-2.5), spans at most 50 years back from its last year, older entries still count (new AC-2.6), a future year is not partial (REQ-4, new AC-4.3), AC-5.5 covers future years. Back to `draft` until re-approved.
+- 1.0 (03/11/2026): The shared chart text moved to CSD-025: REQ-11 (highlight) and REQ-12 (motion) removed in favour of CSD-025 REQ-9 and REQ-10, REQ-13 reduced to the size and look reference and the accessible segment label (AC-13.1 to AC-13.3, AC-13.5 to AC-13.7 removed), AC-8.3, AC-9.3, AC-9.4 and AC-10.5 removed, CON-6 removed. REQ-7 uses the marker of CSD-025 and the short label "10.00k" (was "10k"). Rust delivers the axis, the pieces, the marker and the short labels (REQ-2, new AC-2.4, section 5, CON-2). Rounding follows CSD-000 CON-8 (new CON-7). Verification: display ACs are covered by DOM tests, ACs without a test are marked not covered. New OQ-2 (entries in the future). Back to draft for re-approval.
 - 0.6 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.
 - 0.5 (29/10/2026): The Reports page is replaced by the Net worth page of CSD-017 (NG-5; GitHub issue 24). No other change.
 - 0.4 (29/10/2026): The plot of every yearly chart is 390 px high (was 260 px), 50% taller. No other behaviour change.

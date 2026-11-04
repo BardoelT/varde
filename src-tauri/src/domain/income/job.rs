@@ -1,96 +1,70 @@
 //! Jobs: their id, pay period and the rules for the fields the user types (CSD-001 REQ-1 to REQ-4).
 
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
+use time::macros::format_description;
 use time::Date;
-use uuid::Uuid;
 
+use crate::domain::common::{Id, IdKind, PayPeriod};
 use crate::domain::error::DomainError;
-
-use super::dates::parse_date;
 
 const MAX_TEXT_CHARS: usize = 200;
 
 time::serde::format_description!(iso_date, Date, "[year]-[month]-[day]");
 
-/// Identifies a job.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct JobId(Uuid);
-
-impl JobId {
-    pub(super) fn generate() -> Self {
-        Self(Uuid::new_v4())
-    }
-
-    /// Parses the text form returned to the frontend.
-    ///
-    /// # Errors
-    /// Returns `JobNotFound` for text that is not a job id.
-    pub fn parse(text: &str) -> Result<Self, DomainError> {
-        Uuid::parse_str(text.trim())
-            .map(Self)
-            .map_err(|_| DomainError::JobNotFound)
-    }
+/// Parses a date as the user types it: `dd/mm/yyyy` with a two-digit day and
+/// month (CSD-001 REQ-22). Other formats and impossible dates are rejected.
+fn parse_date(text: &str) -> Result<Date, DomainError> {
+    Date::parse(text.trim(), format_description!("[day]/[month]/[year]"))
+        .map_err(|_| DomainError::JobDateInvalid)
 }
 
-impl fmt::Display for JobId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
-    }
-}
+/// Identifies a Job.
+pub type JobId = Id<Job>;
 
-/// How a job is recorded (CSD-001 REQ-1): one paycheck per month, or one
-/// annual statement per calendar year.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PayPeriod {
-    #[default]
-    Monthly,
-    Yearly,
-}
-
-impl PayPeriod {
-    /// Parses `"Monthly"` or `"Yearly"` (case-insensitive).
-    #[must_use]
-    pub fn parse(text: &str) -> Option<Self> {
-        match text.trim().to_ascii_lowercase().as_str() {
-            "monthly" => Some(Self::Monthly),
-            "yearly" => Some(Self::Yearly),
-            _ => None,
-        }
+impl IdKind for Job {
+    fn not_found() -> DomainError {
+        DomainError::JobNotFound
     }
 }
 
 /// One employment relationship (CSD-001 REQ-1).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Job {
+    /// Identifier of the job.
     pub id: JobId,
+    /// Employer name.
     pub employer: String,
+    /// Job title.
     pub title: Option<String>,
+    /// First day of the job.
     #[serde(with = "iso_date")]
     pub start_date: Date,
-    #[serde(default, with = "iso_date::option")]
+    /// Last day of the job, `None` while it continues.
+    #[serde(with = "iso_date::option")]
     pub end_date: Option<Date>,
     /// A job without a pay period (an older file) is monthly.
-    #[serde(default)]
-    pub pay_period: PayPeriod,
+    pub period: PayPeriod,
 }
 
 /// Job fields as typed by the user, before validation.
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct JobInput {
+    /// Employer name.
     #[serde(default)]
     pub employer: String,
+    /// Job title.
     #[serde(default)]
     pub title: Option<String>,
+    /// First day of the job.
     #[serde(default)]
     pub start_date: Option<String>,
+    /// Last day of the job, `None` while it continues.
     #[serde(default)]
     pub end_date: Option<String>,
     /// `None` means Monthly when creating and "unchanged" when editing.
     #[serde(default)]
-    pub pay_period: Option<String>,
+    pub period: Option<String>,
 }
 
 pub(super) struct ValidJob {
@@ -98,7 +72,7 @@ pub(super) struct ValidJob {
     pub(super) title: Option<String>,
     pub(super) start_date: Date,
     pub(super) end_date: Option<Date>,
-    pub(super) pay_period: Option<PayPeriod>,
+    pub(super) period: Option<PayPeriod>,
 }
 
 impl JobInput {
@@ -119,7 +93,7 @@ impl JobInput {
         let end_date = non_blank(self.end_date.as_deref())
             .map(parse_date)
             .transpose()?;
-        let pay_period = non_blank(self.pay_period.as_deref())
+        let period = non_blank(self.period.as_deref())
             .map(|text| PayPeriod::parse(text).ok_or(DomainError::JobPeriodUnsupported))
             .transpose()?;
         if end_date.is_some_and(|end| end < start_date) {
@@ -130,7 +104,7 @@ impl JobInput {
             title: title.map(str::to_owned),
             start_date,
             end_date,
-            pay_period,
+            period,
         })
     }
 }

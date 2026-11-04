@@ -1,20 +1,23 @@
 //! Capital growth of a statement and the balance-or-growth calculation of the form (CSD-005 REQ-23 to REQ-25).
 
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::error::DomainError;
-use crate::domain::money::{with_two_decimals, zero};
+use crate::domain::money::Money;
 
 use super::amounts::parse_growth;
-use super::{Balance, InvestmentAccountId, InvestmentStatement, Investments, NetDeposits, Period};
+use super::{Balance, InvestmentAccountId, InvestmentStatement, Investments, NetDeposits};
+use crate::domain::common::Period;
+use crate::domain::series::SeriesData;
 
 /// Which of balance and capital growth the user typed in the statement form
 /// (CSD-005 REQ-24).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CalculationInput {
+    /// The balance is entered and the capital growth is calculated.
     Balance,
+    /// The capital growth is entered and the balance is calculated.
     Growth,
 }
 
@@ -22,8 +25,10 @@ pub enum CalculationInput {
 /// calculation (CSD-005 REQ-24).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct StatementCalculation {
-    pub balance: Decimal,
-    pub capital_growth: Decimal,
+    /// The balance.
+    pub balance: Money,
+    /// Capital growth.
+    pub capital_growth: Money,
 }
 
 impl Investments {
@@ -32,11 +37,15 @@ impl Investments {
     /// taken to start at 0.00, so its first statement has no previous balance to
     /// subtract (CSD-005 REQ-23).
     #[must_use]
-    pub fn capital_growth(&self, statement: &InvestmentStatement) -> Decimal {
+    pub fn capital_growth(&self, statement: &InvestmentStatement) -> Money {
         let previous = self
             .previous_balance(statement.account_id, statement.period, None)
-            .unwrap_or_else(zero);
-        with_two_decimals(statement.balance.value() - previous - statement.net_deposits.value())
+            .unwrap_or(Money::ZERO);
+        growth_of(
+            statement.balance.value(),
+            previous,
+            statement.net_deposits.value(),
+        )
     }
 
     /// Calculates the other one of balance and capital growth for the
@@ -57,24 +66,28 @@ impl Investments {
         value: &str,
         ignore: Option<Period>,
     ) -> Result<StatementCalculation, DomainError> {
-        if self.account(account_id)?.statement_period != period.kind() {
+        if self.account(account_id)?.period != period.kind() {
             return Err(DomainError::InvestmentPeriodMismatch);
         }
         let net_deposits = NetDeposits::parse(net_deposits)?.value();
         let previous = self
             .previous_balance(account_id, period, ignore)
-            .unwrap_or_else(zero);
+            .unwrap_or(Money::ZERO);
         match input {
             CalculationInput::Balance => {
                 let balance = Balance::parse(value)?.value();
                 Ok(StatementCalculation {
                     balance,
-                    capital_growth: with_two_decimals(balance - previous - net_deposits),
+                    capital_growth: growth_of(balance, previous, net_deposits),
                 })
             }
             CalculationInput::Growth => {
                 let growth = parse_growth(value)?;
-                let balance = Balance::new(previous + net_deposits + growth)?;
+                let total = previous
+                    .checked_add(net_deposits)
+                    .and_then(|sum| sum.checked_add(growth))
+                    .ok_or(DomainError::InvestmentBalanceTooLarge)?;
+                let balance = Balance::new(total)?;
                 Ok(StatementCalculation {
                     balance: balance.value(),
                     capital_growth: growth,
@@ -82,4 +95,13 @@ impl Investments {
             }
         }
     }
+}
+
+/// Balance minus the previous balance minus the net deposits, as one amount.
+/// Every operand is a stored amount of at most 1,000,000,000.00, so the
+/// bounded subtraction never reaches its bound.
+fn growth_of(balance: Money, previous: Money, net_deposits: Money) -> Money {
+    balance
+        .saturating_sub(previous)
+        .saturating_sub(net_deposits)
 }

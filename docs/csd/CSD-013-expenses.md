@@ -1,10 +1,10 @@
 ---
 id: CSD-013
 title: Expenses
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.4
-last_updated: 29/10/2026
+version: 2.1
+last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-014]
 ---
 
@@ -25,12 +25,12 @@ The app tracks what the user owns and owes, but has no view of what the user spe
 ### 2.2 Non-goals
 - NG-1: Budgets, spending limits, and a comparison with income or any other figure.
 - NG-2: Recurring expenses, instalments and spreading one expense over several months or years.
-- NG-3: A link to bank accounts, so recording an expense never changes a balance, and integration with net worth and the dashboard (CSD-004).
+- NG-3: A link to bank accounts, so recording an expense never changes a balance, and integration with the dashboard (CSD-004). Expenses are not part of the net worth (CSD-017 NG-6).
 - NG-4: A threshold or any other rule that limits which expenses can be recorded, such as a minimum amount. The user decides what to record.
 - NG-5: Categories that the user can add, rename or remove. The categories are fixed (REQ-3).
 - NG-6: More than one category per expense, tags, and sub-categories.
 - NG-7: A currency per expense. All amounts are in the project currency (CSD-003).
-- NG-8: Expenses dated in the future, planned expenses and forecasts.
+- NG-8: Planned expenses and forecasts. (Dates are not bounded: a future date is allowed, REQ-4. Changed in v1.0.)
 - NG-9: Import of expenses (CSV, PDF, bank export), and data fetched from any service.
 - NG-10: Attachments such as receipts or photos, and rich text in notes.
 - NG-11: Changing several expenses at once, and filtering, searching or sorting by anything.
@@ -43,7 +43,6 @@ The app tracks what the user owns and owes, but has no view of what the user spe
 | **Date** | The calendar day the expense was made, typed and shown as `dd/mm/yyyy`. Its month and year are derived from it and never stored apart from it. |
 | **Amount** | What the expense cost, one amount above 0.00 in the project currency. |
 | **Category** | One of the fixed values Home, Vehicle, Holiday, Sport, Study, Appliances, Hobby and Other, in that order. |
-| **Today** | The calendar date of the user's local time. |
 | **Previous expense** | The expense with the latest date, and among expenses with that date the one added last. |
 | **Yearly total** | One row per calendar year with at least one expense: the total spent and the largest expense of that year (and, in the data only, the number of expenses, which is not displayed). See REQ-12. |
 | **Largest expense (of a year)** | The highest amount of a single expense in that year. |
@@ -83,13 +82,11 @@ When the user submits an expense with a name, an amount, a date, a category and 
 ```gherkin
 @AC-1.1
 Scenario: Expense with a note
-  Given the current date is 29/10/2026
   When the user adds an expense named "Example Roof Repair" with amount 4500.00, date 15/09/2026, category "Home" and note "Replaced tiles"
   Then the expense "Example Roof Repair" exists with amount 4500.00, date 15/09/2026, category "Home" and note "Replaced tiles"
 
 @AC-1.2
 Scenario: Expense without a note
-  Given the current date is 29/10/2026
   When the user adds an expense named "Example Washing Machine" with amount 650.00, date 02/10/2026 and category "Appliances" without a note
   Then the expense has an empty note
 
@@ -100,8 +97,7 @@ Scenario: The category defaults to Other in the form
 
 @AC-1.4
 Scenario: Two expenses on one day with one name
-  Given the current date is 29/10/2026
-  And an expense "Example Bike" dated 10/10/2026 with amount 900.00
+  Given an expense "Example Bike" dated 10/10/2026 with amount 900.00
   When the user adds an expense "Example Bike" dated 10/10/2026 with amount 900.00
   Then both expenses exist
 
@@ -173,25 +169,23 @@ Scenario: The category match is exact
 ```
 
 **REQ-4: Date rules** *(unwanted behaviour)*
-If the date of an expense is not a real calendar date, is before 01/01/1900 or is later than today, then the app shall reject the expense or edit with the error code of the violated rule, without storing or changing it. Today itself is valid.
+If the date of an expense is not a real calendar date, then the app shall reject the expense or edit with the error code `EXPENSE_DATE_INVALID`, without storing or changing it. Any real date is accepted, in the past or in the future.
 
 ```gherkin
 @AC-4.1
-Scenario Outline: Boundary dates
-  Given the current date is 29/10/2026
+Scenario Outline: Any real date is accepted
   When the user adds an expense with date "<date>"
-  Then <outcome>
+  Then the expense exists with date <date>
 
   Examples:
-    | date       | outcome                                                   |
-    | 29/10/2026 | the expense exists with date 29/10/2026                   |
-    | 30/10/2026 | it is rejected with error code "EXPENSE_DATE_IN_FUTURE"   |
-    | 01/01/1900 | the expense exists with date 01/01/1900                   |
-    | 31/12/1899 | it is rejected with error code "EXPENSE_DATE_INVALID"     |
+    | date       |
+    | 29/10/2026 |
+    | 30/10/2040 |
+    | 01/01/1900 |
+    | 31/12/1850 |
 
 @AC-4.2
 Scenario Outline: Invalid dates rejected
-  Given the current date is 29/10/2026
   When the user adds an expense with date "<date>"
   Then it is rejected with error code "EXPENSE_DATE_INVALID"
   And no expense exists
@@ -207,18 +201,16 @@ Scenario Outline: Invalid dates rejected
 
 @AC-4.3
 Scenario: A leap day is a real date
-  Given the current date is 29/10/2026
   When the user adds an expense with date "29/02/2024"
   Then the expense exists with date 29/02/2024
 ```
 
 **REQ-5: Amount validation** *(unwanted behaviour)*
-If the amount of an expense is not a plain number such as 4500.00, is 0.00 or negative, has more than two decimal places or exceeds 1,000,000,000.00, then the app shall reject the expense or edit without rounding or storing it.
+If the amount of an expense is not a plain number such as 4500.00, is 0.00 or negative or exceeds 1,000,000,000.00, then the app shall reject the expense or edit without storing it. The rules apply to the amount after rounding (REQ-18).
 
 ```gherkin
 @AC-5.1
 Scenario Outline: Invalid amounts rejected
-  Given the current date is 29/10/2026
   When the user adds an expense with amount "<amount>", date 15/09/2026 and category "Other"
   Then it is rejected with error code "<code>"
   And no expense exists
@@ -231,12 +223,10 @@ Scenario Outline: Invalid amounts rejected
     | 2500,50       | EXPENSE_AMOUNT_INVALID       |
     | 0.00          | EXPENSE_AMOUNT_NOT_POSITIVE  |
     | -0.01         | EXPENSE_AMOUNT_NOT_POSITIVE  |
-    | 100.999       | EXPENSE_AMOUNT_PRECISION     |
     | 1000000000.01 | EXPENSE_AMOUNT_TOO_LARGE     |
 
 @AC-5.2
 Scenario Outline: Boundary amounts accepted
-  Given the current date is 29/10/2026
   When the user adds an expense with amount "<amount>", date 15/09/2026 and category "Other"
   Then the expense has amount <amount>
 
@@ -253,13 +243,51 @@ Scenario: Invalid amount in an edit rejected
   And the expense still has amount 4500.00
 ```
 
+The row of AC-5.1 with 100.999 (`EXPENSE_AMOUNT_PRECISION`) is removed in v2.0: a typed amount with more than two decimals is rounded, not rejected (REQ-18).
+
+**REQ-18: Typed amounts are rounded** *(event-driven)*
+When the user enters an amount with more than two decimal places, the app shall round it half-up to two decimals (CSD-000 CON-8) before it applies the rules of REQ-5.
+
+```gherkin
+@AC-18.1
+Scenario Outline: A typed amount is rounded half-up
+  When the user adds an expense with amount "<typed>", date 15/09/2026 and category "Other"
+  Then the expense has amount <stored>
+
+  Examples:
+    | typed | stored |
+    | 4500.505 | 4500.51 |
+    | 1.004    | 1.00 |
+    | 1.005    | 1.01 |
+    | 100.999  | 101.00 |
+    | 0.005    | 0.01 |
+    | 4500.5   | 4500.50 |
+
+@AC-18.2
+Scenario Outline: Zero and the limit are checked after rounding
+  When the user adds an expense with amount "<typed>", date 15/09/2026 and category "Other"
+  Then <outcome>
+
+  Examples:
+    | typed | outcome |
+    | 0.004          | it is rejected with error code "EXPENSE_AMOUNT_NOT_POSITIVE" |
+    | -0.004         | it is rejected with error code "EXPENSE_AMOUNT_NOT_POSITIVE" |
+    | 1000000000.004 | the expense has amount 1000000000.00 |
+    | 1000000000.005 | it is rejected with error code "EXPENSE_AMOUNT_TOO_LARGE" |
+
+@AC-18.3
+Scenario: A typed amount in an edit is rounded
+  Given an expense with amount 4500.00
+  When the user sets the amount to "100.999"
+  Then the expense has amount 101.00
+```
+
 **REQ-6: Note validation** *(unwanted behaviour)*
 If the note of an expense is longer than 2,000 characters, then the app shall reject the expense or edit with the error code `EXPENSE_NOTE_TOO_LONG`, without shortening or storing it. Line breaks in a note are kept as typed.
 
 ```gherkin
 @AC-6.1
 Scenario: Note length boundary
-  Given the current date is 29/10/2026
   When the user adds an expense dated 15/09/2026 with a note of 2000 characters
   Then the expense exists with that note
   When the user adds an expense dated 16/09/2026 with a note of 2001 characters
@@ -278,8 +306,7 @@ When the user edits an expense in the edit form and saves, the app shall give it
 ```gherkin
 @AC-7.1
 Scenario: Edit every field
-  Given the current date is 29/10/2026
-  And an expense "Example Bike" with amount 900.00, date 10/09/2026, category "Hobby" and note "First"
+  Given an expense "Example Bike" with amount 900.00, date 10/09/2026, category "Hobby" and note "First"
   When the user sets the name "Example E-Bike", the amount 1200.00, the date 12/09/2026, the category "Vehicle" and the note "Upgraded"
   Then the expense has name "Example E-Bike", amount 1200.00, date 12/09/2026, category "Vehicle" and note "Upgraded"
   And no confirmation was asked
@@ -292,28 +319,24 @@ Scenario: Clear a note
 
 @AC-7.3
 Scenario: Move an expense to another year
-  Given the current date is 29/10/2026
-  And an expense "Example Bike" with amount 900.00 and date 10/01/2026
+  Given an expense "Example Bike" with amount 900.00 and date 10/01/2026
   When the user changes its date to 20/12/2025
   Then 2025 shows total 900.00
   And 2026 is not listed in the yearly totals
 
 @AC-7.4
 Scenario: An invalid value rejects the whole edit
-  Given the current date is 29/10/2026
-  And an expense "Example Bike" with amount 900.00 and date 10/09/2026
+  Given an expense "Example Bike" with amount 900.00 and date 10/09/2026
   When the user changes its date to 11/09/2026 and its amount to -1.00
   Then the edit is rejected with error code "EXPENSE_AMOUNT_NOT_POSITIVE"
   And the expense still has amount 900.00 and date 10/09/2026
   And the unsaved indicator is not shown
 
 @AC-7.5
-Scenario: A date in the future is rejected
-  Given the current date is 29/10/2026
-  And an expense with date 10/09/2026
-  When the user changes its date to 30/10/2026
-  Then the edit is rejected with error code "EXPENSE_DATE_IN_FUTURE"
-  And the expense still has date 10/09/2026
+Scenario: A date in the future is accepted
+  Given an expense with date 10/09/2026
+  When the user changes its date to 30/10/2040
+  Then the expense has date 30/10/2040
 
 @AC-7.6
 Scenario: An edit is an unsaved change
@@ -462,20 +485,19 @@ Scenario: Totals follow changes
   Then 2026 shows total 2100.00 and largest 1200.00
 
 @AC-12.7
-Scenario: The 1900 and the current year
-  Given the current date is 29/10/2026
-  And expenses dated 01/01/1900 and 29/10/2026
+Scenario: Early and future years
+  Given expenses dated 31/12/1850 and 30/10/2040
   When the user views the yearly totals
-  Then the rows are listed 2026 and 1900
+  Then the rows are listed 2040 and 1850
 ```
 
 **REQ-13: Expenses view layout** *(ubiquitous)*
-The app shall offer "Expenses" as its own item in the left pane with a receipt icon (position: CSD-004 REQ-1), and shall show the Overview tab as the sections Yearly totals and Expenses in that order, with the columns Year, Total and Largest and no actions in the Yearly totals section, only the button "Add expense" in the header of the Expenses section (no filters), all expenses in the Expenses section, the columns Date, Name, Category, Amount and Note and the icon buttons Edit (pencil) and Delete (trash) flush right on each row in the Expenses section, and the total of the listed expenses in a footer row labelled "Total". A note longer than one line is cut to one line in the table and shown in full when the expense is edited. Dates are shown as `dd/mm/yyyy`. The page offers the tabs "Overview" and "Insights" (CSD-014), with Overview shown first.
+The app shall offer "Expenses" as its own item in the left pane with a receipt icon (position: CSD-024 REQ-1), and shall show the Overview tab as the sections Yearly totals and Expenses in that order, with the columns Year, Total and Largest and no actions in the Yearly totals section, only the button "Add expense" in the header of the Expenses section (no filters), all expenses in the Expenses section, the columns Date, Name, Category, Amount and Note and the icon buttons Edit (pencil) and Delete (trash) flush right on each row in the Expenses section, and the total of the listed expenses in a footer row labelled "Total". A note longer than one line is cut to one line in the table and shown in full when the expense is edited. Dates are shown as `dd/mm/yyyy`. The page offers the tabs "Overview" and "Insights" (CSD-014), with Overview shown first.
 
 ```gherkin
 @AC-13.1
 Scenario: Left pane item
-  Then "Expenses" is an item in the left pane (CSD-004 REQ-1)
+  Then "Expenses" is an item in the left pane (CSD-024 REQ-1)
   And it shows a receipt icon
 
 @AC-13.2
@@ -489,7 +511,7 @@ Scenario: Sections in order
 Scenario: Expense rows
   Given an expense "Example Roof Repair" with amount 4500.00, date 15/09/2026, category "Home" and note "Replaced tiles"
   Then the Expenses section shows the columns Date, Name, Category, Amount and Note in that order
-  And the row shows "15/09/2026", "Example Roof Repair", "Home", "4500.00" and "Replaced tiles"
+  And the row shows "15/09/2026", "Example Roof Repair", "Home", "4,500.00" and "Replaced tiles"
   And the row has the icon buttons Edit (pencil) and Delete (trash) at its right edge, each named for screen readers and in a tooltip, such as "Edit Example Roof Repair"
 
 @AC-13.4
@@ -558,7 +580,7 @@ Scenario: No currency in the sections
 ### 4.3 Saving, loading and currency
 
 **REQ-16: Expenses are part of the project file** *(event-driven)*
-When the user saves and later opens a project, the app shall restore all expenses exactly, including amounts, dates, categories, notes and the order they were added. When the project file has no `expenses` section, the app shall open the project with no expenses. If the section holds an expense with a name, an amount, a date, a category or a note that breaks the rules of REQ-2 to REQ-6, or two expenses with the same id, then the app shall reject the file with the error code `PROJECT_INVALID_FILE`. The date is not checked against today when a file is opened, only against being a real date from 01/01/1900.
+When the user saves and later opens a project, the app shall restore all expenses exactly, including amounts, dates, categories, notes and the order they were added. If the file has no `expenses` section, has an unknown field in it, or holds an expense with a name, an amount, a date, a category or a note that breaks the rules of REQ-2 to REQ-6, or two expenses with the same id, then the app shall reject the file with the error code `PROJECT_INVALID_FILE` (all sections are required and unknown fields are rejected, CSD-002). A date is valid when it is a real date.
 
 ```gherkin
 @AC-16.1
@@ -569,9 +591,9 @@ Scenario: Round trip
 
 @AC-16.2
 Scenario: File without the section
-  Given a project file made before this capability, without an "expenses" section
+  Given a project file without an "expenses" section
   When the user opens it
-  Then it opens with no expenses and no error
+  Then it is rejected with the error code "PROJECT_INVALID_FILE"
 
 @AC-16.3
 Scenario: Other sections are untouched
@@ -591,6 +613,7 @@ Scenario Outline: A damaged section is an invalid file
     | the amount "0.00"     |
     | the date "2026-02-30" |
     | a duplicate id        |
+    | an unknown field      |
 
 @AC-16.5
 Scenario: The order they were added survives
@@ -619,7 +642,7 @@ Scenario: No expenses needs no confirmation for them
 
 ## 5. Interfaces and contracts
 
-Dates: the user types and sees `dd/mm/yyyy` (CSD-000 CON-7). The frontend sends the date as typed, and Rust parses it, validates it and returns it as ISO 8601 (`YYYY-MM-DD`) for the frontend to show as `dd/mm/yyyy`. The project file holds `YYYY-MM-DD`. The year must be 1900 or later, like statements in CSD-005 and CSD-009.
+Dates: the user types and sees `dd/mm/yyyy` (CSD-000 CON-7). The frontend sends the date as typed, and Rust parses it, validates it and returns it as ISO 8601 (`YYYY-MM-DD`) for the frontend to show as `dd/mm/yyyy`. The project file holds `YYYY-MM-DD`. There is no lower or upper bound on the date.
 
 ```mermaid
 erDiagram
@@ -627,7 +650,7 @@ erDiagram
         ExpenseId id
         string name "required, trimmed, max 100, not unique"
         Decimal amount "0.01 to 1000000000.00, two decimals"
-        Date date "1900-01-01 up to today"
+        Date date "any real date"
         Category category "Home, Vehicle, Holiday, Sport, Study, Appliances, Hobby or Other"
         string note "optional, max 2000 characters"
     }
@@ -635,14 +658,14 @@ erDiagram
 
 The expense has no parent entity. The month and year of an expense, the yearly totals, the largest expense and the total of the list are not part of the model: they are derived (REQ-11, REQ-12).
 
-The project file gets a new section `expenses` with the list `expenses`, in the order the expenses were added. Amounts are decimal strings. `format_version` stays 1 and nothing is migrated: a file without the section opens with no expenses, as the app is not released yet.
+The project file gets a new section `expenses` with the list `expenses`, in the order the expenses were added. Amounts are decimal strings. The section is required and unknown fields are rejected (CSD-002).
 
 Commands (all inputs validated in Rust; amounts cross IPC as decimal strings): `list_expenses()` (no arguments; returns `{ expenses, total }`: all expenses in the order of REQ-10, each with its id, name, amount, ISO date, category and note, plus their total), `add_expense`, `update_expense` (applies the edit as a whole or not at all, REQ-7), `delete_expense`, `copy_previous_expense()` (returns name, amount and category, or nothing) and `yearly_expense_totals()` (one row per year with the year, total, expense count and largest, newest year first; the count is returned but not displayed). The insights command is in CSD-014. Project commands (save, open, new) are in CSD-002.
 
-Error codes (returned as code plus safe message): `EXPENSE_NAME_REQUIRED`, `EXPENSE_NAME_TOO_LONG`, `EXPENSE_CATEGORY_UNSUPPORTED`, `EXPENSE_DATE_INVALID`, `EXPENSE_DATE_IN_FUTURE`, `EXPENSE_AMOUNT_INVALID`, `EXPENSE_AMOUNT_NOT_POSITIVE`, `EXPENSE_AMOUNT_PRECISION`, `EXPENSE_AMOUNT_TOO_LARGE`, `EXPENSE_NOTE_TOO_LONG`, `EXPENSE_NOT_FOUND`. `EXPENSE_NOT_FOUND` is returned for an expense that does not exist (a stale screen). Project error codes are in CSD-002.
+Error codes (returned as code plus safe message): `EXPENSE_NAME_REQUIRED`, `EXPENSE_NAME_TOO_LONG`, `EXPENSE_CATEGORY_UNSUPPORTED`, `EXPENSE_DATE_INVALID`, `EXPENSE_AMOUNT_INVALID`, `EXPENSE_AMOUNT_NOT_POSITIVE`, `EXPENSE_AMOUNT_PRECISION` (removed in v2.0), `EXPENSE_AMOUNT_TOO_LARGE`, `EXPENSE_NOTE_TOO_LONG`, `EXPENSE_NOT_FOUND`. (`EXPENSE_DATE_IN_FUTURE` is removed in v1.0: future dates are allowed.) `EXPENSE_NOT_FOUND` is returned for an expense that does not exist (a stale screen). Project error codes are in CSD-002.
 
 ## 6. Constraints
-- CON-1: Amounts use `rust_decimal::Decimal` and are in the project currency (CSD-003), so adding amounts never mixes currencies. Rationale: `CLAUDE.md` money rules.
+- CON-1: Amounts use `rust_decimal::Decimal` and are in the project currency (CSD-003), so adding amounts never mixes currencies. Money amounts follow the rounding rule of CSD-000 CON-8 (a typed amount with more than two decimals is rounded half-up, REQ-18, and a total of amounts with two decimals has two decimals). Rationale: `CLAUDE.md` money rules.
 - CON-2: The frontend displays figures computed in Rust, including the total of the list, the yearly totals and the largest expenses, and computes none itself. Rationale: `CLAUDE.md` layout rule.
 - CON-3: No network access. Rationale: `CLAUDE.md` Tauri security rules, and NG-9.
 - CON-4: Errors shown to the user never contain file paths or OS details. Rationale: `CLAUDE.md` error rules.
@@ -652,25 +675,30 @@ Error codes (returned as code plus safe message): `EXPENSE_NAME_REQUIRED`, `EXPE
 - CON-8: The length of a name or a note is counted in characters (Unicode scalar values), not bytes. Rationale: names and notes in any language must fit the stated limits.
 - CON-9: The totals, the largest expenses and the total of the list are computed in Rust each time they are needed and are never stored in the project file. Rationale: CON-2, and stored figures would go stale when an expense changes.
 - CON-10: Expenses get their own module, commands and page. Shared helpers may be reused or extracted when that is small, and Debts, Bank accounts and Investments are not refactored. Rationale: `CLAUDE.md` asks before large refactors across modules.
-- CON-11: "Today" is the local calendar date and is decided in Rust. Rationale: the rule against future dates (REQ-4) must not depend on the webview.
+- CON-11: (removed in v1.0) "Today" no longer matters for expenses, as future dates are allowed.
 
 ## 7. Verification
-All ACs are proven by `cargo test`, with domain logic tested in `domain/`, except the screens. Tests are named `test_csd013_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
+The data and the domain logic are proven by `cargo test`, with the domain tested in `domain/`. Tests are named `test_csd013_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-1 to REQ-12, REQ-16, REQ-17 (data) | `cargo test test_csd013_` |
-| AC-11.1 `test_csd013_ac_11_1_the_total_is_the_sum_of_all_expenses` (total of all expenses across years), AC-11.2 `test_csd013_ac_11_2_no_expenses` (empty list, total 0.00), AC-12.1, AC-12.2, AC-12.4 to AC-12.7 (the yearly totals) | `cargo test test_csd013_ac_11_` and `cargo test test_csd013_ac_12_` |
-| AC-1.3, AC-1.5, AC-7.6, REQ-13 (all ACs), REQ-14, REQ-15, AC-17.1 (the dialog) | Manual checklist: form labels and the default category, the unsaved indicator, section order and contents, left-pane item and icon, titles without a currency, button placement (only "Add expense" in the section header, no filters), no counts, empty states, note cut-off, plain-text name and note, the currency confirmation dialog. There is no frontend test setup |
-| The currency confirmation for expenses | Governed by CSD-003 REQ-5, verified there |
-| One requirement, e.g. REQ-4 | `cargo test test_csd013_ac_4_` |
+| Rust tests | `cargo test test_csd013_`. One requirement, e.g. REQ-4: `cargo test test_csd013_ac_4_` |
+| Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-14.1, no expenses) |
+| Display ACs with a DOM test (REQ-13, REQ-15, AC-1.3, AC-8.2, AC-17.1, AC-17.2) | `npm test`: `ac-a-expenses.test.js` |
+| AC-1.5, AC-7.6 (unsaved change), AC-16.2 (file without the section), AC-17.1, AC-17.2 (the entry count over IPC) | `cargo test test_csd013_ac_1_5`, `test_csd013_ac_7_6`, `test_csd013_ac_16_2`, `test_csd013_ac_17_`. The currency confirmation itself is governed by CSD-003 REQ-5 |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (0 of 64 ACs; every AC carries a test name).
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 None.
 
 ## 9. Changelog
+- 2.1 (04/11/2026): Wording follows the UI; no behaviour change: the amount shown in a list row is grouped as in CSD-022 AC-10.1 (AC-13.3). Back to `draft` until re-approved.
+- 2.0 (04/11/2026): A typed amount with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-18 (AC-18.1 to AC-18.3), REQ-5 applies to the rounded amount (an amount that rounds to 0.00 is not above zero), the AC-5.1 row for 100.999 and the code `EXPENSE_AMOUNT_PRECISION` are removed, CON-1 updated. Owner decision. Back to `draft` until re-approved.
+- 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed REQ-17 coverage is removed (there are no `ac_17_` tests); NG-3 refers to CSD-017 NG-6 for net worth. Back to `draft` until re-approved.
+- 1.0 (03/11/2026): No date bounds: the year-1900 lower bound and the rejection of dates in the future are removed (REQ-4, AC-4.1, AC-7.5, AC-12.7, REQ-16, section 5, NG-8, CON-11 removed; error code `EXPENSE_DATE_IN_FUTURE` removed; the "Today" definition removed). First release, no legacy: a file without the `expenses` section or with an unknown field is invalid (REQ-16, AC-16.2, AC-16.4). Money amounts reference CSD-000 CON-8 (CON-1). Verification table rewritten to what is actually covered (the claim of REQ-17 coverage and of REQ-1 to REQ-12 coverage is corrected; display ACs are covered by DOM tests). Back to `draft` for re-approval.
 - 0.4 (29/10/2026): The position in the left pane is stated in CSD-004 REQ-1 and no longer repeated here (GitHub issue 21).
 - 0.3 (29/10/2026): The year and month filter is removed. The overview always lists all expenses, newest first, with their total. REQ-11 is now "List and total" (AC-11.1 and AC-11.2 rewritten, AC-11.3 to AC-11.9 removed), AC-12.3 and AC-14.2 removed, the Filter definition, the filter wording in NG-11, REQ-7, REQ-12, REQ-13, REQ-14, the flow, CON-2 and CON-9 removed or reworded. `list_expenses()` takes no arguments and returns `{ expenses, total }` (no `years`). The number of expenses is no longer displayed (the Expenses column of the yearly totals is gone, REQ-12, REQ-13, AC-12.1, AC-12.6, AC-7.3); `expense_count` stays in the IPC data.
 - 0.2 (29/10/2026): Renamed from "Major expenses" to "Expenses": title, file name, page and navigation labels, and wording. No behaviour change. NG-4 is reworded: there is no minimum amount.

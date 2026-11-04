@@ -3,9 +3,9 @@ id: CSD-014
 title: Expense insights
 status: approved
 owner: Thijs Bardoel
-version: 0.6
-last_updated: 29/10/2026
-related: [CSD-010, CSD-012, CSD-013]
+version: 1.2
+last_updated: 03/11/2026
+related: [CSD-000, CSD-010, CSD-012, CSD-013, CSD-025]
 ---
 
 # CSD-014: Expense insights
@@ -16,7 +16,7 @@ The Expenses page lists expenses and a table of yearly totals, but a table does 
 ## 2. Scope
 ### 2.1 In scope
 - The "Insights" tab on the Expenses page, next to "Overview" (CSD-013 REQ-13).
-- A yearly stacked bar chart over all expenses with one segment per category, a legend of the categories, a tooltip and the highlight of one category.
+- A yearly stacked bar chart over all expenses with one segment per category, a legend of the categories, a tooltip and the highlight of one category. The behaviour that every yearly chart shares (motion, look, size, short axis labels) is in CSD-025.
 - Its empty state.
 
 ### 2.2 Non-goals
@@ -35,7 +35,7 @@ The Expenses page lists expenses and a table of yearly totals, but a table does 
 | Term | Meaning |
 |---|---|
 | **Year** | A calendar year. An expense counts in the year of its own date. |
-| **Current year** | The calendar year of today, in local time. Its figures run up to today, and are therefore partial. |
+| **Current year** | The calendar year of today, in local time. Its figures run up to today, and are therefore partial. An expense may also be dated after today (CSD-013 REQ-4); it counts in the year of its date. |
 | **Segment** | The part of a year's bar that belongs to one category: the sum of the amounts of all expenses of that category in that year. A category without an expense in that year has no segment in it. |
 | **Total (of a year)** | The sum of the segments of a year, which is the total of the yearly totals of CSD-013 REQ-12. |
 | **Colour slot** | The number from 0 to 7 of a category, fixed by its place in the list of categories: Home 0, Vehicle 1, Holiday 2, Sport 3, Study 4, Appliances 5, Hobby 6, Other 7. It decides the colour of the category. |
@@ -58,7 +58,7 @@ sequenceDiagram
 ```
 
 **REQ-1: Year series** *(ubiquitous)*
-The app shall return one set of figures for every calendar year from the year of the earliest expense up to and including the current year, oldest year first, holding the total, the number of expenses (data only: the Insights tab does not display it) and, per category with an expense in that year, its segment.
+The app shall return one set of figures for every calendar year from the year of the earliest expense up to and including the later of the current year and the year of the latest expense, but for at most 50 years back from that last year, oldest year first, holding the total, the number of expenses (data only: the Insights tab does not display it) and, per category with an expense in that year, its segment. An expense older than the 50 years gets no slot, but still counts in every total that spans all years (CSD-013 REQ-12).
 
 ```gherkin
 @AC-1.1
@@ -89,6 +89,23 @@ Scenario: An old expense extends the series
   And the only expense is dated 01/01/2022
   When the insights are requested
   Then the series holds the years 2022, 2023, 2024, 2025 and 2026
+
+@AC-1.5
+Scenario: An expense dated in the future extends the series
+  Given today is 29/10/2026
+  And expenses dated 15/03/2024 and 10/05/2028
+  When the insights are requested
+  Then the series holds the years 2024, 2025, 2026, 2027 and 2028
+  And 2026 and 2027 have total 0.00 and no segments
+
+@AC-1.6
+Scenario: A very old expense gets no slot but still counts
+  Given today is 29/10/2026
+  And expenses dated 01/01/1950 for 100.00 and 15/09/2026 for 50.00
+  When the insights are requested
+  Then the series holds the years 1977 to 2026, which is 50 years
+  And 1950 to 1976 have no slot
+  And the 100.00 of 1950 still counts in the yearly totals of CSD-013 REQ-12
 ```
 
 **REQ-2: Years without expenses** *(unwanted behaviour)*
@@ -105,7 +122,7 @@ Scenario: Gap year
 ```
 
 **REQ-3: Current year is partial** *(state-driven)*
-While a year is the current year, the app shall mark it as partial.
+While a year is the current year, the app shall mark it as partial. A year after the current year is not marked partial and looks like any other year.
 
 ```gherkin
 @AC-3.1
@@ -123,6 +140,13 @@ Scenario: Current year without expenses is still in the series and marked
   When the insights are requested
   Then the series holds 2025 and 2026
   And 2026 is marked partial, has total 0.00 and has 0 expenses
+
+@AC-3.3
+Scenario: A future year is not marked partial
+  Given today is 29/10/2026
+  And an expense dated 10/05/2028
+  When the insights are requested
+  Then the year 2028 is not marked partial
 ```
 
 **REQ-4: Segments are the sums per category** *(ubiquitous)*
@@ -183,7 +207,7 @@ Scenario: An edit moves the segment
 ```
 
 **REQ-5: Chart** *(ubiquitous)*
-The Insights tab shall draw, at the size of every yearly chart (REQ-14), one bar per year in the order received, stacked upwards from the zero line from one segment per category in the order received, on a y-axis that starts at 0 and ends at a rounded-up value of at least the highest total, with gridlines, compact axis labels (such as "10k"), a gap year as a labelled slot without a bar, and no currency.
+The Insights tab shall draw, at the size of every yearly chart (REQ-14), one bar per year in the order received, stacked upwards from the zero line from one segment per category in the order received, on a y-axis that starts at 0 and ends at a rounded-up value of at least the highest total, with gridlines, short axis labels whose text is provided by the backend (format in CSD-025), a gap year as a labelled slot without a bar, and no currency.
 
 ```gherkin
 @AC-5.1
@@ -225,6 +249,13 @@ Scenario: No total marker
   When the user opens the Insights tab
   Then no marker line is drawn for the total of a year
   And the legend shows no marker
+
+@AC-5.7
+Scenario: Axis labels come from the backend
+  Given the backend provides the axis label "2.55k" for the value 2550.00
+  When the user opens the Insights tab
+  Then the y-axis shows the text "2.55k" at that value
+  And the frontend has not computed or reformatted it
 ```
 
 **REQ-6: A fixed colour per category** *(ubiquitous)*
@@ -270,7 +301,7 @@ Scenario: Narrow window
 ```
 
 **REQ-8: Details of a year** *(event-driven)*
-When the user hovers over or moves keyboard focus to a year, the Insights tab shall show a tooltip with the year, one row per segment with the category's swatch, name and amount, listed in the order the bar shows the segments, top to bottom (the highest segment first), followed by the row Total and, for the current year, that it is partial, beside the year's bar as CSD-007 REQ-14 places a tooltip, and shall give the same values to screen readers. The tooltip shows no number of expenses, and for a year without expenses it shows the note "No expenses" and no Total row.
+When the user hovers over or moves keyboard focus to a year, the Insights tab shall show a tooltip with the year, one row per segment with the category's swatch, name and amount, listed in the order the bar shows the segments, top to bottom (the highest segment first), followed by the row Total and, for the current year, that it is partial, beside the year's bar as the shared charts place a tooltip (CSD-025), and shall give the same values to screen readers. The tooltip shows no number of expenses, and for a year without expenses it shows the note "No expenses" and no Total row.
 
 ```gherkin
 @AC-8.1
@@ -385,55 +416,24 @@ Scenario: A category without expenses
 ```
 
 **REQ-10: Motion and reduced motion** *(event-driven)*
-When a tooltip appears or moves to another year, or the highlight of REQ-9 changes, the Insights tab shall animate the change over 120 to 150 ms with an ease-out curve, and while the user prefers reduced motion it shall show tooltips and highlight changes at once.
+When a tooltip appears or moves to another year, or the highlight of REQ-9 changes, the Insights tab shall animate the change, and show it at once while the user prefers reduced motion, as every yearly chart does (CSD-025).
 
 ```gherkin
 @AC-10.1
-Scenario: Tooltip fades in and glides
+Scenario: The shared motion
   Given the Insights tab shows the chart
   When the user hovers over the 2025 bar and then over the 2026 bar
-  Then the tooltip fades in over 120 to 150 ms while it slides 4 px towards its place
-  And it glides to its new place over 120 to 150 ms instead of jumping
-
-@AC-10.2
-Scenario: Dimming eases
-  Given the user hovers over a segment of "Home"
-  When the user moves the mouse away from the segment
-  Then the other segments and the legend items ease back to full opacity over 120 to 150 ms
-
-@AC-10.3
-Scenario: Reduced motion
-  Given the user prefers reduced motion
-  When the user hovers over the 2025 bar and then over the 2026 bar
-  Then each tooltip appears at once at its place without sliding or gliding
-  And the dimming of segments and legend items changes at once
+  Then the tooltip behaves as CSD-025 specifies, with and without reduced motion
 ```
 
-**REQ-11: Refined look and accessible segments** *(ubiquitous)*
-The Insights tab shall draw the chart with the look that CSD-012 REQ-13 describes: bars at most 50% of the width of their slot and at most 44 px wide, the top corners of the highest segment rounded by 3 px and a 1 px gap between stacked segments in place of an outline, 1 px gridlines at 55% opacity of the border colour, a 1 px zero line in the muted text colour at 70% opacity, axis and year labels in the muted text colour at regular font weight, and tooltips of 10 px corner radius, 12 px by 14 px padding, a shadow of at least 16 px blur and at most 12% opacity, a 12 px title in semibold and row labels in the muted text colour, in light and in dark mode. Every segment shall carry an accessible label with the category, the year and the amount.
+AC-10.2 and AC-10.3 (removed in v1.0): the motion durations and the reduced-motion behaviour are specified once in CSD-025.
+
+**REQ-11: Look and accessible segments** *(ubiquitous)*
+The Insights tab shall draw the chart with the shared look of every yearly chart (bars, gridlines, zero line, labels, tooltip, light and dark mode; CSD-025), and every segment shall carry an accessible label with the category, the year and the amount.
+
+AC-11.1 to AC-11.3 (removed in v1.0): the look is specified once in CSD-025.
 
 ```gherkin
-@AC-11.1
-Scenario: Bars
-  Given the series holds the years 2024, 2025 and 2026
-  When the user opens the Insights tab
-  Then no bar is wider than 50% of its slot or 44 px
-  And the top corners of each bar are rounded by 3 px
-  And stacked segments are separated by a 1 px gap and have no outline
-
-@AC-11.2
-Scenario: Gridlines, zero line and labels
-  Given the Insights tab shows the chart
-  Then the gridlines are 1 px lines at 55% opacity of the border colour
-  And the zero line is 1 px in the muted text colour at 70% opacity
-  And the axis labels and the year labels are in the muted text colour at regular font weight
-
-@AC-11.3
-Scenario: Tooltip
-  Given the user hovers over a year
-  Then the tooltip has a 10 px corner radius, 12 px by 14 px padding and a soft shadow
-  And its title is semibold and its row labels are in the muted text colour
-
 @AC-11.4
 Scenario: Segment labels
   Given 2026 has a segment of "Home" with amount 5700.00
@@ -481,22 +481,16 @@ AC-13.4 (removed in v0.3): the Overview tab has no filter any more, so there is 
 ```
 
 **REQ-14: One size for every yearly chart** *(ubiquitous)*
-The Insights tab shall draw the chart with a plot height that scales with the height of the window and a minimum slot width of 64 px, with the zero line styled as on the bank accounts chart, and with a legend of one item per series (REQ-7), the same as the bank accounts chart (CSD-010), so that the yearly charts of all pages have the same size and behaviour.
+The Insights tab shall draw the chart with the size, the sideways scrolling, the zero line and the legend of every yearly chart (CSD-025, which the bank accounts chart of CSD-010 follows too), with one legend item per series (REQ-7).
 
 ```gherkin
 @AC-14.1
-Scenario: Same plot height and slot width as the bank accounts chart
+Scenario: The shared size
   Given the Insights tab shows the chart
-  Then the plot height scales with the height of the window
-  And each year's slot is at least 64 px wide
-  And the zero line is styled as on the bank accounts chart
-
-@AC-14.2
-Scenario: Many years scroll
-  Given the series holds more years than fit at 64 px per slot
-  When the user opens the Insights tab
-  Then the chart scrolls sideways and no slot is narrower than 64 px
+  Then the chart has the size and zero line that CSD-025 specifies for every yearly chart
 ```
+
+AC-14.2 (removed in v1.0): the sideways scrolling is specified once in CSD-025.
 
 ## 5. Interfaces and contracts
 
@@ -523,7 +517,7 @@ Command: `get_expense_insights()` returns the fixed list of categories with thei
 }
 ```
 
-`categories` always holds the eight categories. `expense_count` stays in the payload but the frontend does not display it, not in the tooltip and not elsewhere. `years` is empty when there are no expenses. `segments` follow the fixed category order and are empty for a gap year, where `total` is "0.00". Amounts are decimal strings. Rust decides "today" (local time), the years, the partial flag and the sums, and the frontend only displays what it receives. Error codes are those of CSD-013.
+`categories` always holds the eight categories. `expense_count` stays in the payload but the frontend does not display it, not in the tooltip and not elsewhere. `years` is empty when there are no expenses. The text of the short axis labels is built by Rust and delivered with the series, and the frontend only displays it (format: CSD-025). `segments` follow the fixed category order and are empty for a gap year, where `total` is "0.00". Amounts are decimal strings. Rust decides "today" (local time), the years, the partial flag and the sums, and the frontend only displays what it receives. Error codes are those of CSD-013.
 
 ## 6. Constraints
 - CON-1: The chart reuses the shared chart code of the frontend (`ui/shared/yearly-chart.js`) and adds no chart library or other dependency. Rationale: NG-7, and `CLAUDE.md` asks before adding dependencies.
@@ -533,22 +527,28 @@ Command: `get_expense_insights()` returns the fixed list of categories with thei
 - CON-5: Tests and fixtures use synthetic data only. Rationale: the repo is public.
 - CON-6: The palette is the one of the bank accounts chart (CSD-010 CON-6), defined once as colour tokens per mode, and no colour of a category is written inline in the page code. Rationale: one place to adjust, and both modes stay in step.
 - CON-7: The mapping from category to colour slot is defined once in Rust and travels with the data. Rationale: the frontend decides nothing about categories, and a new category later changes one place.
+- CON-8: Money amounts follow the rounding rule of CSD-000 CON-8 (two decimals, half-up). Rationale: one rounding rule project-wide.
 
 ## 7. Verification
-The series is computed in Rust, so REQ-1 to REQ-4 are proven by `cargo test`. Tests are named `test_csd014_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
+The series is computed in Rust, so the data ACs are proven by `cargo test`. Tests are named `test_csd014_ac_<n>_<m>_<description>` (CSD-000 REQ-6). The shared chart behaviour (look, size, motion, label format) is verified in CSD-025.
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-1 to REQ-4 and AC-13.3 (the data) | `cargo test test_csd014_` |
-| REQ-5 to REQ-12 and REQ-14 (all ACs), AC-13.1, AC-13.2 (the screen) | Manual checklist: stacking, axis range, no marker, colours of both modes, legend order and wrapping, chart size (plot height scaling with the window, 64 px slots), tooltip placement, rows in the order of the bar and the "No expenses" note without a count, highlight from a segment and from the legend including keyboard and a category without expenses, motion and reduced motion, the look, accessible labels and the empty note. There is no frontend test setup |
-| One requirement, e.g. REQ-4 | `cargo test test_csd014_ac_4_` |
+| Rust tests (the data) | `cargo test test_csd014_`. One requirement, e.g. REQ-4: `cargo test test_csd014_ac_4_` |
+| Display ACs (REQ-5 to REQ-14) | `npm test`: `ac-a-expense-insights.test.js` (all display ACs except AC-8.5). The palette (AC-6.3) is checked on the tokens of `base.css`, the wrapping of the legend (AC-7.2) on its style rule |
+| Placement of the tooltip beside the bar and its flip near the right edge (AC-8.5, the centring of AC-8.6) | Checked by hand: jsdom has no layout |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (1 of 51 ACs; no test carries the AC id): AC-8.5 (checked by hand, see above).
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
-None.
+- OQ-1: (resolved 03/11/2026) A year after the current year (an expense dated in the future, CSD-013 REQ-4) is not marked and looks like any other year (REQ-3, AC-3.3). The series runs to the latest year with an expense, at most 50 years back from its last year (REQ-1, AC-1.5, AC-1.6).
 
 ## 9. Changelog
+- 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
+- 1.1 (03/11/2026): Resolved OQ-1: a future year is not marked. The series spans at most 50 years back from its last year; older expenses get no slot but still count in the totals (REQ-1, new AC-1.6). Back to `draft` until re-approved.
+- 1.0 (03/11/2026): Future dates are allowed (CSD-013 v1.0), so the series runs up to the later of the current year and the year of the latest expense (REQ-1, AC-1.5), a future year is not partial (REQ-3, AC-3.3, OQ-1). The short axis labels are built by the backend (CSD-025; REQ-5, new AC-5.7, section 5). Motion (REQ-10), look (REQ-11) and size (REQ-14) now refer to CSD-025: AC-10.2, AC-10.3, AC-11.1 to AC-11.3 and AC-14.2 removed, the tooltip placement refers to CSD-025. Money rounding references CSD-000 CON-8 (new CON-8). Verification table rewritten to what is covered (the claimed coverage of AC-13.3 by `cargo test` is corrected; display ACs are covered by DOM tests). Back to `draft` for re-approval.
 - 0.6 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.
 - 0.5 (29/10/2026): The Reports page is replaced by the Net worth page of CSD-017 (NG-5; GitHub issue 24). No other change.
 - 0.4 (29/10/2026): The plot of every yearly chart is 390 px high (was 260 px), 50% taller. No other behaviour change.

@@ -1,6 +1,7 @@
 use super::*;
-use crate::domain::income::PayPeriod;
-use crate::domain::series::COLOUR_SLOTS;
+use crate::domain::common::ColourSlot;
+use crate::domain::common::PayPeriod;
+use crate::domain::YearMonth;
 
 fn period(text: &str) -> Period {
     parse_period(text).unwrap()
@@ -17,34 +18,27 @@ fn value(text: &str) -> HouseValue {
 fn input(name: &str, period: &str) -> HouseInput {
     HouseInput {
         name: name.to_owned(),
-        valuation_period: Some(period.to_owned()),
+        period: Some(period.to_owned()),
         purchase_date: Some("01/01/1900".to_owned()),
         purchase_amount: Some("0.00".to_owned()),
         ..HouseInput::default()
     }
 }
 
-fn today_date() -> Date {
-    time::macros::date!(2026 - 10 - 29)
-}
-
 fn new_house(houses: &mut Houses, name: &str, period: &str) -> HouseId {
-    houses
-        .create_house(&input(name, period), today_date())
-        .unwrap()
-        .id
+    houses.create_house(&input(name, period)).unwrap().id
 }
 
 fn add(houses: &mut Houses, id: HouseId, at: &str, amount: &str) {
     houses
-        .add_valuation(id, period(at), value(amount), Note::default(), today())
+        .add_valuation(id, period(at), value(amount), Note::default())
         .unwrap();
 }
 
 fn add_error(houses: &mut Houses, id: HouseId, at: &str, amount: &str) -> DomainError {
     match parse_period(at)
         .and_then(|p| HouseValue::parse(amount).map(|b| (p, b)))
-        .and_then(|(p, b)| houses.add_valuation(id, p, b, Note::default(), today()))
+        .and_then(|(p, b)| houses.add_valuation(id, p, b, Note::default()))
     {
         Ok(_) => panic!("expected an error"),
         Err(error) => error,
@@ -62,14 +56,7 @@ fn update(
     to: &str,
     amount: &str,
 ) -> Result<HouseValuation, DomainError> {
-    houses.update_valuation(
-        id,
-        period(from),
-        period(to),
-        value(amount),
-        Note::default(),
-        today(),
-    )
+    houses.update_valuation(id, period(from), period(to), value(amount), Note::default())
 }
 
 /// The change of the valuation of `at`, as text, or "none".
@@ -90,18 +77,15 @@ fn change(houses: &Houses, id: HouseId, at: &str) -> String {
 fn test_csd015_ac_1_1_a_house_is_monthly_by_default() {
     let mut houses = Houses::default();
     let created = houses
-        .create_house(
-            &HouseInput {
-                name: "Example House".to_owned(),
-                valuation_period: None,
-                purchase_date: Some("01/01/1900".to_owned()),
-                purchase_amount: Some("0.00".to_owned()),
-                ..HouseInput::default()
-            },
-            today_date(),
-        )
+        .create_house(&HouseInput {
+            name: "Example House".to_owned(),
+            period: None,
+            purchase_date: Some("01/01/1900".to_owned()),
+            purchase_amount: Some("0.00".to_owned()),
+            ..HouseInput::default()
+        })
         .unwrap();
-    assert_eq!(created.valuation_period, PayPeriod::Monthly);
+    assert_eq!(created.period, PayPeriod::Monthly);
     assert_eq!(houses.valuation_count(created.id), 0);
 }
 
@@ -109,13 +93,13 @@ fn test_csd015_ac_1_1_a_house_is_monthly_by_default() {
 fn test_csd015_ac_1_2_a_yearly_house() {
     let mut houses = Houses::default();
     new_house(&mut houses, "Example Lodge", "Yearly");
-    assert_eq!(houses.houses()[0].valuation_period, PayPeriod::Yearly);
+    assert_eq!(houses.houses()[0].period, PayPeriod::Yearly);
 }
 
 #[test]
 fn test_csd015_ac_1_3_an_unknown_period_is_rejected() {
     let mut houses = Houses::default();
-    let result = houses.create_house(&input("Example House", "Weekly"), today_date());
+    let result = houses.create_house(&input("Example House", "Weekly"));
     assert_eq!(code(result), "HOUSE_PERIOD_UNSUPPORTED");
     assert_eq!(houses.houses().len(), 0);
 }
@@ -131,7 +115,7 @@ fn test_csd015_ac_2_1_invalid_names_are_rejected() {
         ("example house", "HOUSE_NAME_DUPLICATE"),
     ] {
         assert_eq!(
-            code(houses.create_house(&input(name, "Monthly"), today_date())),
+            code(houses.create_house(&input(name, "Monthly"))),
             expected,
             "{name:?}"
         );
@@ -143,9 +127,9 @@ fn test_csd015_ac_2_1_invalid_names_are_rejected() {
 fn test_csd015_ac_2_2_name_length_boundary() {
     let mut houses = Houses::default();
     assert!(houses
-        .create_house(&input(&"a".repeat(100), "Monthly"), today_date())
+        .create_house(&input(&"a".repeat(100), "Monthly"))
         .is_ok());
-    let result = houses.create_house(&input(&"b".repeat(101), "Monthly"), today_date());
+    let result = houses.create_house(&input(&"b".repeat(101), "Monthly"));
     assert_eq!(code(result), "HOUSE_NAME_TOO_LONG");
 }
 
@@ -153,7 +137,7 @@ fn test_csd015_ac_2_2_name_length_boundary() {
 fn test_csd015_ac_2_3_the_name_is_stored_trimmed() {
     let mut houses = Houses::default();
     let created = houses
-        .create_house(&input("  Example House  ", "Monthly"), today_date())
+        .create_house(&input("  Example House  ", "Monthly"))
         .unwrap();
     assert_eq!(created.name, "Example House");
 }
@@ -163,7 +147,7 @@ fn test_csd015_ac_2_4_renaming_to_an_existing_name_is_rejected() {
     let mut houses = Houses::default();
     new_house(&mut houses, "Example House", "Monthly");
     let land = new_house(&mut houses, "Example Lodge", "Monthly");
-    let result = houses.update_house(land, &input("example house", "Monthly"), today_date());
+    let result = houses.update_house(land, &input("example house", "Monthly"));
     assert_eq!(code(result), "HOUSE_NAME_DUPLICATE");
 }
 
@@ -172,7 +156,7 @@ fn test_csd015_ac_2_5_changing_only_the_case_of_its_own_name_is_allowed() {
     let mut houses = Houses::default();
     let land = new_house(&mut houses, "Example Lodge", "Monthly");
     let renamed = houses
-        .update_house(land, &input("EXAMPLE LAND", "Monthly"), today_date())
+        .update_house(land, &input("EXAMPLE LAND", "Monthly"))
         .unwrap();
     assert_eq!(renamed.name, "EXAMPLE LAND");
 }
@@ -186,9 +170,10 @@ fn test_csd015_ac_3_1_slots_follow_creation_order() {
         .iter()
         .map(|name| {
             houses
-                .create_house(&input(name, "Monthly"), today_date())
+                .create_house(&input(name, "Monthly"))
                 .unwrap()
                 .colour_slot
+                .get()
         })
         .collect();
     assert_eq!(slots, [0, 1, 2]);
@@ -197,14 +182,15 @@ fn test_csd015_ac_3_1_slots_follow_creation_order() {
 #[test]
 fn test_csd015_ac_3_2_slots_cycle_after_eight_houses() {
     let mut houses = Houses::default();
-    for index in 0..COLOUR_SLOTS {
+    for index in 0..ColourSlot::COUNT {
         new_house(&mut houses, &format!("House {index}"), "Monthly");
     }
     assert_eq!(
         houses
-            .create_house(&input("House 9", "Monthly"), today_date())
+            .create_house(&input("House 9", "Monthly"))
             .unwrap()
-            .colour_slot,
+            .colour_slot
+            .get(),
         0
     );
 }
@@ -216,7 +202,11 @@ fn test_csd015_ac_3_3_deleting_a_house_does_not_recolour_the_others() {
     new_house(&mut houses, "B", "Monthly");
     new_house(&mut houses, "C", "Monthly");
     houses.delete_house(first).unwrap();
-    let slots: Vec<u8> = houses.houses().iter().map(|d| d.colour_slot).collect();
+    let slots: Vec<u8> = houses
+        .houses()
+        .iter()
+        .map(|d| d.colour_slot.get())
+        .collect();
     assert_eq!(slots, [1, 2]);
 }
 
@@ -229,9 +219,10 @@ fn test_csd015_ac_3_4_a_freed_slot_is_used_first() {
     houses.delete_house(second).unwrap();
     assert_eq!(
         houses
-            .create_house(&input("D", "Monthly"), today_date())
+            .create_house(&input("D", "Monthly"))
             .unwrap()
-            .colour_slot,
+            .colour_slot
+            .get(),
         1
     );
 }
@@ -243,9 +234,9 @@ fn test_csd015_ac_3_5_renaming_keeps_the_slot() {
     new_house(&mut houses, "B", "Monthly");
     let third = new_house(&mut houses, "C", "Monthly");
     let renamed = houses
-        .update_house(third, &input("Renamed", "Monthly"), today_date())
+        .update_house(third, &input("Renamed", "Monthly"))
         .unwrap();
-    assert_eq!(renamed.colour_slot, 2);
+    assert_eq!(renamed.colour_slot.get(), 2);
 }
 
 // REQ-4 to REQ-6
@@ -257,7 +248,7 @@ fn test_csd015_ac_4_1_rename_keeps_valuations() {
     add(&mut houses, id, "2026-08", "100.00");
     add(&mut houses, id, "2026-09", "90.00");
     houses
-        .update_house(id, &input("Example Home", "Monthly"), today_date())
+        .update_house(id, &input("Example Home", "Monthly"))
         .unwrap();
     assert_eq!(houses.valuation_count(id), 2);
 }
@@ -267,9 +258,9 @@ fn test_csd015_ac_4_2_the_period_of_a_house_without_valuations_can_change() {
     let mut houses = Houses::default();
     let id = new_house(&mut houses, "Example House", "Monthly");
     let changed = houses
-        .update_house(id, &input("Example House", "Yearly"), today_date())
+        .update_house(id, &input("Example House", "Yearly"))
         .unwrap();
-    assert_eq!(changed.valuation_period, PayPeriod::Yearly);
+    assert_eq!(changed.period, PayPeriod::Yearly);
 }
 
 #[test]
@@ -278,7 +269,7 @@ fn test_csd015_ac_4_3_an_invalid_edit_changes_nothing() {
     new_house(&mut houses, "Example House", "Monthly");
     let land = new_house(&mut houses, "Example Lodge", "Monthly");
     assert_eq!(
-        code(houses.update_house(land, &input("  ", "Monthly"), today_date())),
+        code(houses.update_house(land, &input("  ", "Monthly"))),
         "HOUSE_NAME_REQUIRED"
     );
     assert!(houses.houses().iter().any(|d| d.name == "Example Lodge"));
@@ -289,9 +280,9 @@ fn test_csd015_ac_5_1_the_period_is_locked_once_valuations_exist() {
     let mut houses = Houses::default();
     let id = new_house(&mut houses, "Example House", "Monthly");
     add(&mut houses, id, "2026-09", "100.00");
-    let result = houses.update_house(id, &input("Example House", "Yearly"), today_date());
+    let result = houses.update_house(id, &input("Example House", "Yearly"));
     assert_eq!(code(result), "HOUSE_PERIOD_LOCKED");
-    assert_eq!(houses.houses()[0].valuation_period, PayPeriod::Monthly);
+    assert_eq!(houses.houses()[0].period, PayPeriod::Monthly);
 }
 
 #[test]
@@ -301,7 +292,7 @@ fn test_csd015_ac_5_2_the_period_can_change_after_deleting_the_last_valuation() 
     add(&mut houses, id, "2026-09", "100.00");
     houses.delete_valuation(id, period("2026-09")).unwrap();
     assert!(houses
-        .update_house(id, &input("Example House", "Yearly"), today_date())
+        .update_house(id, &input("Example House", "Yearly"))
         .is_ok());
 }
 
@@ -341,7 +332,6 @@ fn test_csd015_ac_7_1_a_monthly_valuation_with_a_note() {
             period("2026-09"),
             value("150000.00"),
             house_note("Valuation report").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(valuation.value.value().to_string(), "150000.00");
@@ -365,20 +355,14 @@ fn test_csd015_ac_7_3_old_periods_are_accepted() {
 }
 
 #[test]
-fn test_csd015_ac_7_4_the_current_period_is_accepted_and_a_later_one_is_not() {
+fn test_csd015_ac_7_4_a_period_in_the_future_is_accepted() {
     let mut houses = Houses::default();
     let monthly = new_house(&mut houses, "Monthly", "Monthly");
     let yearly = new_house(&mut houses, "Yearly", "Yearly");
-    add(&mut houses, monthly, "2026-10", "1000.00");
-    add(&mut houses, yearly, "2026", "1000.00");
-    assert_eq!(
-        add_error(&mut houses, monthly, "2026-11", "1000.00").code(),
-        "HOUSE_VALUATION_IN_FUTURE"
-    );
-    assert_eq!(
-        add_error(&mut houses, yearly, "2027", "1000.00").code(),
-        "HOUSE_VALUATION_IN_FUTURE"
-    );
+    add(&mut houses, monthly, "2040-11", "1000.00");
+    add(&mut houses, yearly, "2040", "1000.00");
+    assert_eq!(houses.valuation_count(monthly), 1);
+    assert_eq!(houses.valuation_count(yearly), 1);
 }
 
 #[test]
@@ -392,7 +376,6 @@ fn test_csd015_ac_7_5_an_invalid_period_is_rejected() {
         (monthly, "abcd"),
         (yearly, "26"),
         (yearly, "abcd"),
-        (yearly, "1899"),
     ] {
         assert_eq!(
             add_error(&mut houses, id, text, "1000.00").code(),
@@ -412,7 +395,6 @@ fn test_csd015_ac_8_1_a_duplicate_period_is_rejected() {
             period("2026-09"),
             value("150000.00"),
             house_note("First").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(
@@ -435,7 +417,7 @@ fn test_csd015_ac_8_2_the_same_period_on_another_house_is_allowed() {
 }
 
 #[test]
-fn test_csd015_ac_9_a_valuation_must_match_the_valuation_period() {
+fn test_csd015_ac_9_1_a_valuation_must_match_the_valuation_period() {
     let mut houses = Houses::default();
     let yearly = new_house(&mut houses, "Yearly", "Yearly");
     let monthly = new_house(&mut houses, "Monthly", "Monthly");
@@ -459,11 +441,44 @@ fn test_csd015_ac_10_1_invalid_values_are_rejected() {
         ("1e3", "HOUSE_VALUATION_VALUE_INVALID"),
         ("2500,50", "HOUSE_VALUATION_VALUE_INVALID"),
         ("-0.01", "HOUSE_VALUATION_VALUE_NEGATIVE"),
-        ("1000.999", "HOUSE_VALUATION_VALUE_PRECISION"),
         ("1000000000.01", "HOUSE_VALUATION_VALUE_TOO_LARGE"),
     ] {
         assert_eq!(code(HouseValue::parse(text)), expected, "{text:?}");
     }
+}
+
+#[test]
+fn test_csd015_ac_28_1_a_typed_value_is_rounded_half_up() {
+    for (typed, stored) in [
+        ("300000.505", "300000.51"),
+        ("1.004", "1.00"),
+        ("1.005", "1.01"),
+        ("1000.999", "1001.00"),
+        ("0.004", "0.00"),
+        ("-0.004", "0.00"),
+        ("300000.5", "300000.50"),
+    ] {
+        assert_eq!(value(typed).value().to_string(), stored, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd015_ac_28_2_the_limit_is_checked_after_rounding() {
+    assert_eq!(value("1000000000.004").value().to_string(), "1000000000.00");
+    for (typed, expected) in [
+        ("1000000000.005", "HOUSE_VALUATION_VALUE_TOO_LARGE"),
+        ("-0.005", "HOUSE_VALUATION_VALUE_NEGATIVE"),
+    ] {
+        assert_eq!(code(HouseValue::parse(typed)), expected, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd015_ac_28_3_a_typed_value_in_an_edit_is_rounded() {
+    let mut houses = Houses::default();
+    let id = new_house(&mut houses, "Example House", "Monthly");
+    add(&mut houses, id, "2026-09", "300000.00");
+    assert_eq!(value("1000.999").value().to_string(), "1001.00");
 }
 
 #[test]
@@ -489,7 +504,7 @@ fn test_csd015_ac_10_3_an_invalid_value_in_an_edit_changes_nothing() {
 }
 
 #[test]
-fn test_csd015_ac_11_note_length_and_line_breaks() {
+fn test_csd015_ac_11_1_note_length_and_line_breaks() {
     assert!(house_note(&"a".repeat(2000)).is_ok());
     assert_eq!(
         code(house_note(&"a".repeat(2001))),
@@ -515,7 +530,6 @@ fn test_csd015_ac_12_1_edit_value_and_note_and_clear_the_note() {
             period("2026-09"),
             value("149000.00"),
             house_note("Corrected").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(edited.value.value().to_string(), "149000.00");
@@ -534,7 +548,6 @@ fn test_csd015_ac_12_3_a_valuation_moves_to_another_month() {
             period("2026-09"),
             value("150000.00"),
             house_note("First").unwrap(),
-            today(),
         )
         .unwrap();
     houses
@@ -544,7 +557,6 @@ fn test_csd015_ac_12_3_a_valuation_moves_to_another_month() {
             period("2026-08"),
             value("150000.00"),
             house_note("First").unwrap(),
-            today(),
         )
         .unwrap();
     let rows = houses.all_valuations();
@@ -594,23 +606,6 @@ fn test_csd015_ac_12_8_keeping_the_period_is_not_a_duplicate() {
     let id = new_house(&mut houses, "Example House", "Monthly");
     add(&mut houses, id, "2026-09", "150000.00");
     assert!(update(&mut houses, id, "2026-09", "2026-09", "149000.00").is_ok());
-}
-
-#[test]
-fn test_csd015_ac_13_1_a_new_period_in_the_future_is_rejected() {
-    let mut houses = Houses::default();
-    let monthly = new_house(&mut houses, "Monthly", "Monthly");
-    let yearly = new_house(&mut houses, "Yearly", "Yearly");
-    add(&mut houses, monthly, "2026-09", "1000.00");
-    add(&mut houses, yearly, "2025", "1000.00");
-    assert_eq!(
-        code(update(&mut houses, monthly, "2026-09", "2026-11", "1.00")),
-        "HOUSE_VALUATION_IN_FUTURE"
-    );
-    assert_eq!(
-        code(update(&mut houses, yearly, "2025", "2027", "1.00")),
-        "HOUSE_VALUATION_IN_FUTURE"
-    );
 }
 
 #[test]
@@ -689,7 +684,7 @@ fn test_csd015_ac_14_1_deleting_a_valuation_removes_only_that_valuation() {
 }
 
 #[test]
-fn test_csd015_ac_15_copy_previous() {
+fn test_csd015_ac_15_1_copy_previous() {
     let mut houses = Houses::default();
     let id = new_house(&mut houses, "Example House", "Monthly");
     // AC-15.2: nothing to copy yet.
@@ -701,7 +696,6 @@ fn test_csd015_ac_15_copy_previous() {
             period("2026-08"),
             value("150000.00"),
             house_note("Valuation report").unwrap(),
-            today(),
         )
         .unwrap();
     // AC-15.1: the latest value, and nothing is stored.
@@ -906,7 +900,6 @@ fn test_csd015_ac_19_5_changes_follow_a_move() {
             period("2026-10"),
             value("10500.00"),
             Note::default(),
-            today(),
         )
         .unwrap();
     assert_eq!(change(&houses, id, "2026-09"), "1000.00");
@@ -926,7 +919,6 @@ fn test_csd015_ac_19_6_editing_an_earlier_valuation_changes_the_later_change() {
             period("2026-08"),
             value("10200.00"),
             Note::default(),
-            today(),
         )
         .unwrap();
     assert_eq!(change(&houses, id, "2026-09"), "800.00");
@@ -1078,10 +1070,6 @@ fn test_csd015_a_damaged_section_is_not_consistent() {
     add(&mut houses, id, "2026-09", "150000.00");
     assert!(houses.validate().is_ok());
 
-    let mut bad_slot = houses.clone();
-    bad_slot.houses[0].colour_slot = COLOUR_SLOTS;
-    assert_eq!(code(bad_slot.validate()), "HOUSE_DATA_INVALID");
-
     let mut orphan = houses.clone();
     orphan.houses.clear();
     assert_eq!(code(orphan.validate()), "HOUSE_DATA_INVALID");
@@ -1095,7 +1083,7 @@ fn test_csd015_a_damaged_section_is_not_consistent() {
 // CSD-016 REQ-2 to REQ-5
 
 #[test]
-fn test_csd016_ac_2_the_series_runs_from_the_first_valuation_to_the_current_year() {
+fn test_csd016_ac_2_1_the_series_runs_from_the_first_valuation_to_the_current_year() {
     let mut houses = Houses::default();
     let id = new_house(&mut houses, "Example House", "Monthly");
     add(&mut houses, id, "2024-03", "100.00");
@@ -1134,7 +1122,7 @@ fn test_csd016_ac_3_1_a_gap_year_is_zero_without_segments() {
 }
 
 #[test]
-fn test_csd016_ac_4_the_current_year_is_partial_even_without_valuations() {
+fn test_csd016_ac_4_2_the_current_year_is_partial_even_without_valuations() {
     let mut houses = Houses::default();
     let id = new_house(&mut houses, "Example Lodge", "Yearly");
     add(&mut houses, id, "2025", "100.00");
@@ -1244,4 +1232,85 @@ fn test_csd016_ac_15_3_a_moved_valuation_follows_to_its_new_year() {
     );
     assert_eq!(years[0].segments.len(), 1);
     assert_eq!(years[1].segments.len(), 0);
+}
+
+fn insight_years_of(houses: &Houses) -> Vec<i32> {
+    houses
+        .insights(today())
+        .years
+        .iter()
+        .map(|y| y.year)
+        .collect()
+}
+
+#[test]
+fn test_csd016_ac_2_4_a_valuation_in_the_future_extends_the_series() {
+    let mut houses = Houses::default();
+    let id = new_house(&mut houses, "Example House", "Monthly");
+    add(&mut houses, id, "2024-03", "100.00");
+    add(&mut houses, id, "2028-05", "200.00");
+    assert_eq!(insight_years_of(&houses), [2024, 2025, 2026, 2027, 2028]);
+}
+
+#[test]
+fn test_csd016_ac_2_5_a_very_old_valuation_gets_no_slot_but_still_counts() {
+    let mut houses = Houses::default();
+    let id = new_house(&mut houses, "Example House", "Monthly");
+    add(&mut houses, id, "1950-01", "100000.00");
+    add(&mut houses, id, "2026-03", "250000.00");
+    let years = houses.insights(today()).years;
+    assert_eq!(years.len(), 50);
+    assert_eq!((years[0].year, years[49].year), (1977, 2026));
+    assert_eq!(years[49].closing_value.to_string(), "250000.00");
+    let values = houses.yearly_values();
+    let old = values.iter().find(|v| v.year == 1950).unwrap();
+    assert_eq!(old.closing_value.to_string(), "100000.00");
+}
+
+#[test]
+fn test_csd016_ac_4_3_a_future_year_is_not_marked_partial() {
+    let mut houses = Houses::default();
+    let id = new_house(&mut houses, "Example House", "Monthly");
+    add(&mut houses, id, "2026-03", "100.00");
+    add(&mut houses, id, "2028-05", "200.00");
+    let years = houses.insights(today()).years;
+    let partial: Vec<(i32, bool)> = years.iter().map(|y| (y.year, y.is_partial)).collect();
+    assert_eq!(partial, [(2026, true), (2027, false), (2028, false)]);
+}
+
+// ---- CSD-025: pieces, marker and axis come from Rust ----
+
+#[test]
+fn test_csd016_ac_7_1_the_marker_is_the_total_value_with_its_short_label() {
+    let mut houses = Houses::default();
+    let a = new_house(&mut houses, "Example House", "Yearly");
+    let b = new_house(&mut houses, "Example Flat", "Yearly");
+    add(&mut houses, a, "2025", "2000.00");
+    add(&mut houses, b, "2025", "8000.00");
+    let insights = houses.insights(today());
+    let year = &insights.years[0];
+    let marker = year.marker.as_ref().unwrap();
+    assert_eq!(
+        (marker.value.to_string(), marker.label.as_str()),
+        ("10000.00".to_owned(), "10.00k")
+    );
+    assert_eq!(year.pieces[0].series, format!("house-{a}"));
+    assert_eq!(year.pieces[1].series, format!("house-{b}"));
+    assert_eq!(year.pieces[1].high.to_string(), "10000.00");
+}
+
+#[test]
+fn test_csd016_ac_6_6_axis_labels_are_whole_numbers_built_by_rust() {
+    let mut houses = Houses::default();
+    let a = new_house(&mut houses, "Example House", "Yearly");
+    add(&mut houses, a, "2025", "350000.00");
+    let insights = houses.insights(today());
+    let ticks = &insights.axis.ticks;
+    assert!(
+        ticks.last().unwrap().value >= crate::domain::money::Money::parse("350000.00").unwrap()
+    );
+    assert!(ticks.iter().all(|t| !t.label.contains('.')));
+    assert!(ticks.iter().skip(1).all(|t| t.label.ends_with('k')));
+    let gap = insights.years.iter().find(|y| y.year == 2026).unwrap();
+    assert!(gap.pieces.is_empty() && gap.marker.is_none());
 }

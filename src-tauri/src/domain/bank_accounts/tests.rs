@@ -1,23 +1,20 @@
 use super::*;
-use crate::domain::income::PayPeriod;
-use crate::domain::series::COLOUR_SLOTS;
+use crate::domain::common::ColourSlot;
+use crate::domain::common::PayPeriod;
+use crate::domain::YearMonth;
 
 fn period(text: &str) -> Period {
     parse_period(text).unwrap()
-}
-
-fn today() -> YearMonth {
-    YearMonth::parse("2026-10").unwrap()
 }
 
 fn balance(text: &str) -> BankBalance {
     BankBalance::parse(text).unwrap()
 }
 
-fn input(name: &str, period: &str) -> AccountInput {
-    AccountInput {
+fn input(name: &str, period: &str) -> BankAccountInput {
+    BankAccountInput {
         name: name.to_owned(),
-        entry_period: Some(period.to_owned()),
+        period: Some(period.to_owned()),
     }
 }
 
@@ -27,14 +24,14 @@ fn account(banks: &mut BankAccounts, name: &str, period: &str) -> BankAccountId 
 
 fn add(banks: &mut BankAccounts, id: BankAccountId, at: &str, amount: &str) {
     banks
-        .add_entry(id, period(at), balance(amount), Note::default(), today())
+        .add_entry(id, period(at), balance(amount), Note::default())
         .unwrap();
 }
 
 fn add_error(banks: &mut BankAccounts, id: BankAccountId, at: &str, amount: &str) -> DomainError {
     match parse_period(at)
         .and_then(|p| BankBalance::parse(amount).map(|b| (p, b)))
-        .and_then(|(p, b)| banks.add_entry(id, p, b, Note::default(), today()))
+        .and_then(|(p, b)| banks.add_entry(id, p, b, Note::default()))
     {
         Ok(_) => panic!("expected an error"),
         Err(error) => error,
@@ -51,12 +48,12 @@ fn codes<T>(result: Result<T, DomainError>) -> &'static str {
 fn test_csd009_ac_1_1_an_account_is_monthly_by_default() {
     let mut banks = BankAccounts::default();
     let created = banks
-        .create_account(&AccountInput {
+        .create_account(&BankAccountInput {
             name: "Example Current Account".to_owned(),
-            entry_period: None,
+            period: None,
         })
         .unwrap();
-    assert_eq!(created.entry_period, PayPeriod::Monthly);
+    assert_eq!(created.period, PayPeriod::Monthly);
     assert_eq!(banks.entry_count(created.id), 0);
 }
 
@@ -65,7 +62,7 @@ fn test_csd009_ac_1_2_a_yearly_account() {
     let mut banks = BankAccounts::default();
     let id = account(&mut banks, "Example Savings", "Yearly");
     assert_eq!(banks.accounts()[0].id, id);
-    assert_eq!(banks.accounts()[0].entry_period, PayPeriod::Yearly);
+    assert_eq!(banks.accounts()[0].period, PayPeriod::Yearly);
 }
 
 #[test]
@@ -142,6 +139,7 @@ fn test_csd009_ac_3_1_slots_follow_creation_order() {
                 .create_account(&input(name, "Monthly"))
                 .unwrap()
                 .colour_slot
+                .get()
         })
         .collect();
     assert_eq!(slots, [0, 1, 2]);
@@ -150,11 +148,11 @@ fn test_csd009_ac_3_1_slots_follow_creation_order() {
 #[test]
 fn test_csd009_ac_3_2_slots_cycle_after_eight_accounts() {
     let mut banks = BankAccounts::default();
-    for index in 0..COLOUR_SLOTS {
+    for index in 0..ColourSlot::COUNT {
         account(&mut banks, &format!("Bank {index}"), "Monthly");
     }
     let ninth = banks.create_account(&input("Bank 9", "Monthly")).unwrap();
-    assert_eq!(ninth.colour_slot, 0);
+    assert_eq!(ninth.colour_slot.get(), 0);
 }
 
 #[test]
@@ -164,7 +162,11 @@ fn test_csd009_ac_3_3_deleting_an_account_does_not_recolour_the_others() {
     account(&mut banks, "B", "Monthly");
     account(&mut banks, "C", "Monthly");
     banks.delete_account(first).unwrap();
-    let slots: Vec<u8> = banks.accounts().iter().map(|a| a.colour_slot).collect();
+    let slots: Vec<u8> = banks
+        .accounts()
+        .iter()
+        .map(|a| a.colour_slot.get())
+        .collect();
     assert_eq!(slots, [1, 2]);
 }
 
@@ -176,7 +178,7 @@ fn test_csd009_ac_3_4_a_freed_slot_is_used_first() {
     account(&mut banks, "C", "Monthly");
     banks.delete_account(second).unwrap();
     let new = banks.create_account(&input("D", "Monthly")).unwrap();
-    assert_eq!(new.colour_slot, 1);
+    assert_eq!(new.colour_slot.get(), 1);
 }
 
 #[test]
@@ -188,7 +190,7 @@ fn test_csd009_ac_3_5_renaming_keeps_the_slot() {
     let renamed = banks
         .update_account(third, &input("Renamed", "Monthly"))
         .unwrap();
-    assert_eq!(renamed.colour_slot, 2);
+    assert_eq!(renamed.colour_slot.get(), 2);
 }
 
 // REQ-4 to REQ-6
@@ -212,7 +214,7 @@ fn test_csd009_ac_4_2_the_period_of_an_account_without_entries_can_change() {
     let changed = banks
         .update_account(id, &input("Example Current Account", "Yearly"))
         .unwrap();
-    assert_eq!(changed.entry_period, PayPeriod::Yearly);
+    assert_eq!(changed.period, PayPeriod::Yearly);
 }
 
 #[test]
@@ -222,7 +224,7 @@ fn test_csd009_ac_5_1_the_period_is_locked_once_entries_exist() {
     add(&mut banks, id, "2026-09", "100.00");
     let result = banks.update_account(id, &input("Example Current Account", "Yearly"));
     assert_eq!(codes(result), "BANK_ACCOUNT_PERIOD_LOCKED");
-    assert_eq!(banks.accounts()[0].entry_period, PayPeriod::Monthly);
+    assert_eq!(banks.accounts()[0].period, PayPeriod::Monthly);
 }
 
 #[test]
@@ -263,7 +265,6 @@ fn test_csd009_ac_7_1_a_monthly_entry_with_a_note() {
             period("2026-09"),
             balance("2500.00"),
             bank_note("Salary received").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(entry.balance.value().to_string(), "2500.00");
@@ -279,28 +280,22 @@ fn test_csd009_ac_7_2_a_yearly_entry_without_a_note() {
 }
 
 #[test]
-fn test_csd009_ac_7_3_old_periods_are_accepted() {
-    let mut banks = BankAccounts::default();
-    let id = account(&mut banks, "Example Current Account", "Monthly");
-    add(&mut banks, id, "2019-01", "1000.00");
-    assert_eq!(banks.entry_count(id), 1);
-}
-
-#[test]
-fn test_csd009_ac_7_4_the_current_period_is_accepted_and_a_later_one_is_not() {
+fn test_csd009_ac_7_3_any_valid_period_is_accepted() {
     let mut banks = BankAccounts::default();
     let monthly = account(&mut banks, "Monthly", "Monthly");
     let yearly = account(&mut banks, "Yearly", "Yearly");
-    add(&mut banks, monthly, "2026-10", "1000.00");
-    add(&mut banks, yearly, "2026", "1000.00");
-    assert_eq!(
-        add_error(&mut banks, monthly, "2026-11", "1000.00").code(),
-        "BANK_ENTRY_IN_FUTURE"
-    );
-    assert_eq!(
-        add_error(&mut banks, yearly, "2027", "1000.00").code(),
-        "BANK_ENTRY_IN_FUTURE"
-    );
+    for (id, text) in [
+        (monthly, "2019-01"),
+        (monthly, "1899-12"),
+        (monthly, "2026-10"),
+        (monthly, "2026-11"),
+        (yearly, "2026"),
+        (yearly, "2027"),
+    ] {
+        add(&mut banks, id, text, "1000.00");
+    }
+    assert_eq!(banks.entry_count(monthly), 4);
+    assert_eq!(banks.entry_count(yearly), 2);
 }
 
 #[test]
@@ -314,7 +309,6 @@ fn test_csd009_ac_7_5_an_invalid_period_is_rejected() {
         (monthly, "abcd"),
         (yearly, "26"),
         (yearly, "abcd"),
-        (yearly, "1899"),
     ] {
         assert_eq!(
             add_error(&mut banks, id, text, "1000.00").code(),
@@ -334,7 +328,6 @@ fn test_csd009_ac_8_1_a_duplicate_period_is_rejected() {
             period("2026-09"),
             balance("2500.00"),
             bank_note("First").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(
@@ -385,13 +378,53 @@ fn test_csd009_ac_10_1_invalid_balances_are_rejected() {
         ("abc", "BANK_ENTRY_BALANCE_INVALID"),
         ("1e3", "BANK_ENTRY_BALANCE_INVALID"),
         ("2500,50", "BANK_ENTRY_BALANCE_INVALID"),
-        ("1000.999", "BANK_ENTRY_BALANCE_PRECISION"),
-        ("-1000.999", "BANK_ENTRY_BALANCE_PRECISION"),
         ("1000000000.01", "BANK_ENTRY_BALANCE_TOO_LARGE"),
         ("-1000000000.01", "BANK_ENTRY_BALANCE_TOO_LARGE"),
     ] {
         assert_eq!(codes(BankBalance::parse(text)), code, "{text:?}");
     }
+}
+
+#[test]
+fn test_csd009_ac_25_1_a_typed_balance_is_rounded_half_up() {
+    for (typed, stored) in [
+        ("3000.505", "3000.51"),
+        ("1.004", "1.00"),
+        ("1.005", "1.01"),
+        ("1000.999", "1001.00"),
+        ("-0.125", "-0.13"),
+        ("-1000.999", "-1001.00"),
+        ("-0.004", "0.00"),
+        ("0.004", "0.00"),
+        ("2500.5", "2500.50"),
+    ] {
+        assert_eq!(balance(typed).value().to_string(), stored, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd009_ac_25_2_the_limit_is_checked_after_rounding() {
+    for (typed, stored) in [
+        ("1000000000.004", "1000000000.00"),
+        ("-1000000000.004", "-1000000000.00"),
+    ] {
+        assert_eq!(balance(typed).value().to_string(), stored, "{typed}");
+    }
+    for typed in ["1000000000.005", "-1000000000.005"] {
+        assert_eq!(
+            codes(BankBalance::parse(typed)),
+            "BANK_ENTRY_BALANCE_TOO_LARGE",
+            "{typed}"
+        );
+    }
+}
+
+#[test]
+fn test_csd009_ac_25_3_a_typed_balance_in_an_edit_is_rounded() {
+    let mut banks = BankAccounts::default();
+    let id = account(&mut banks, "Example Current Account", "Monthly");
+    add(&mut banks, id, "2026-09", "2500.00");
+    assert_eq!(balance("1000.999").value().to_string(), "1001.00");
 }
 
 #[test]
@@ -407,8 +440,8 @@ fn test_csd009_ac_10_3_an_invalid_balance_in_an_edit_changes_nothing() {
     let id = account(&mut banks, "Example Current Account", "Monthly");
     add(&mut banks, id, "2026-09", "2500.00");
     assert_eq!(
-        codes(BankBalance::parse("1000.999")),
-        "BANK_ENTRY_BALANCE_PRECISION"
+        codes(BankBalance::parse("abc")),
+        "BANK_ENTRY_BALANCE_INVALID"
     );
     assert_eq!(
         banks.all_entries()[0].1.balance.value().to_string(),
@@ -448,7 +481,6 @@ fn update(
         period(to),
         balance(amount),
         Note::default(),
-        today(),
     )
 }
 
@@ -464,7 +496,6 @@ fn test_csd009_ac_12_1_edit_balance_and_note() {
             period("2026-09"),
             balance("2750.00"),
             bank_note("Corrected").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(entry.balance.value().to_string(), "2750.00");
@@ -484,7 +515,6 @@ fn test_csd009_ac_12_3_an_entry_moves_to_another_month() {
             period("2026-09"),
             balance("2500.00"),
             bank_note("First").unwrap(),
-            today(),
         )
         .unwrap();
     banks
@@ -494,7 +524,6 @@ fn test_csd009_ac_12_3_an_entry_moves_to_another_month() {
             period("2026-08"),
             balance("2500.00"),
             bank_note("First").unwrap(),
-            today(),
         )
         .unwrap();
     let rows = banks.all_entries();
@@ -546,23 +575,6 @@ fn test_csd009_ac_12_8_keeping_the_period_is_not_a_duplicate() {
     add(&mut banks, id, "2026-09", "2500.00");
     let entry = update(&mut banks, id, "2026-09", "2026-09", "2750.00").unwrap();
     assert_eq!(entry.balance.value().to_string(), "2750.00");
-}
-
-#[test]
-fn test_csd009_ac_13_1_a_new_period_in_the_future_is_rejected() {
-    let mut banks = BankAccounts::default();
-    let monthly = account(&mut banks, "Monthly", "Monthly");
-    let yearly = account(&mut banks, "Yearly", "Yearly");
-    add(&mut banks, monthly, "2026-09", "2500.00");
-    add(&mut banks, yearly, "2025", "2500.00");
-    assert_eq!(
-        codes(update(&mut banks, monthly, "2026-09", "2026-11", "1.00")),
-        "BANK_ENTRY_IN_FUTURE"
-    );
-    assert_eq!(
-        codes(update(&mut banks, yearly, "2025", "2027", "1.00")),
-        "BANK_ENTRY_IN_FUTURE"
-    );
 }
 
 #[test]
@@ -648,7 +660,6 @@ fn test_csd009_ac_15_1_the_form_is_prefilled_from_the_latest_entry_without_a_not
             period("2026-08"),
             balance("2500.00"),
             bank_note("Salary received").unwrap(),
-            today(),
         )
         .unwrap();
     let prefill = banks.prefill_from_latest(id).unwrap();
@@ -928,10 +939,6 @@ fn test_csd009_a_damaged_section_is_not_consistent() {
     add(&mut banks, id, "2026-09", "2500.00");
     assert!(banks.validate().is_ok());
 
-    let mut bad_slot = banks.clone();
-    bad_slot.accounts[0].colour_slot = COLOUR_SLOTS;
-    assert_eq!(codes(bad_slot.validate()), "BANK_DATA_INVALID");
-
     let mut orphan = banks.clone();
     orphan.accounts.clear();
     assert_eq!(codes(orphan.validate()), "BANK_DATA_INVALID");
@@ -1112,4 +1119,158 @@ fn test_csd010_ac_15_3_a_moved_entry_follows_to_its_new_year() {
     );
     assert_eq!(years[0].segments.len(), 1);
     assert_eq!(years[1].segments.len(), 0);
+}
+
+fn series_years_of(banks: &BankAccounts) -> Vec<i32> {
+    banks
+        .insights(insights_today())
+        .years
+        .iter()
+        .map(|y| y.year)
+        .collect()
+}
+
+#[test]
+fn test_csd010_ac_2_5_an_entry_after_the_current_year_extends_the_series() {
+    let mut banks = BankAccounts::default();
+    let id = account(&mut banks, "Example Bank", "Monthly");
+    add(&mut banks, id, "2024-03", "100.00");
+    add(&mut banks, id, "2027-05", "200.00");
+    assert_eq!(series_years_of(&banks), [2024, 2025, 2026, 2027]);
+}
+
+#[test]
+fn test_csd010_ac_2_6_a_very_old_entry_gets_no_slot_but_still_counts() {
+    let mut banks = BankAccounts::default();
+    let example = account(&mut banks, "Example Bank", "Monthly");
+    let other = account(&mut banks, "Other Bank", "Monthly");
+    add(&mut banks, example, "1950-01", "1000.00");
+    add(&mut banks, other, "2026-03", "500.00");
+    let years = banks.insights(insights_today()).years;
+    assert_eq!(years.len(), 50);
+    assert_eq!((years[0].year, years[49].year), (1977, 2026));
+    assert_eq!(years[49].closing_balance.to_string(), "500.00");
+    let totals = banks.yearly_totals();
+    let old = totals.iter().find(|t| t.year == 1950).unwrap();
+    assert_eq!(old.closing_balance.to_string(), "1000.00");
+}
+
+#[test]
+fn test_csd010_ac_4_3_a_future_year_is_not_marked_partial() {
+    let mut banks = BankAccounts::default();
+    let id = account(&mut banks, "Example Bank", "Monthly");
+    add(&mut banks, id, "2026-03", "100.00");
+    add(&mut banks, id, "2027-05", "200.00");
+    let years = banks.insights(insights_today()).years;
+    let partial: Vec<(i32, bool)> = years.iter().map(|y| (y.year, y.is_partial)).collect();
+    assert_eq!(partial, [(2026, true), (2027, false)]);
+}
+
+#[test]
+fn test_csd010_ac_5_5_a_year_after_the_current_year_equals_the_yearly_totals() {
+    let mut banks = BankAccounts::default();
+    let id = account(&mut banks, "Example Current Account", "Monthly");
+    add(&mut banks, id, "2026-05", "3000.00");
+    add(&mut banks, id, "2027-02", "3500.00");
+    let years = banks.insights(insights_today()).years;
+    for total in banks.yearly_totals() {
+        let row = years.iter().find(|y| y.year == total.year).unwrap();
+        assert_eq!(row.closing_balance, total.closing_balance);
+        assert_eq!(row.entry_count, total.entry_count);
+    }
+    assert_eq!(years[1].closing_balance.to_string(), "3500.00");
+}
+
+#[test]
+fn test_csd009_ac_19_10_a_year_after_the_current_year_has_a_row_like_any_other() {
+    let mut banks = BankAccounts::default();
+    let id = account(&mut banks, "Example Current Account", "Monthly");
+    add(&mut banks, id, "2026-05", "3000.00");
+    add(&mut banks, id, "2027-02", "3500.00");
+    let totals = banks.yearly_totals();
+    assert_eq!(totals[0].year, 2027);
+    assert_eq!(totals[0].closing_balance.to_string(), "3500.00");
+    assert_eq!(totals[0].entry_count, 1);
+    assert_eq!(totals[1].year, 2026);
+    let insights = banks.insights(insights_today()).years;
+    assert_eq!(insights[0].closing_balance.to_string(), "3000.00");
+    assert_eq!(insights[1].closing_balance.to_string(), "3500.00");
+}
+
+// ---- CSD-025: pieces, marker and axis come from Rust ----
+
+#[test]
+fn test_csd010_ac_2_4_pieces_marker_and_labels_are_delivered() {
+    let mut banks = BankAccounts::default();
+    let current = account(&mut banks, "Example Current Account", "Monthly");
+    let savings = account(&mut banks, "Example Savings", "Monthly");
+    add(&mut banks, current, "2025-12", "2000.00");
+    add(&mut banks, savings, "2025-12", "8000.00");
+    let insights = banks.insights(insights_today());
+    let year = &insights.years[0];
+    let spans: Vec<_> = year
+        .pieces
+        .iter()
+        .map(|p| (p.series.clone(), p.low.to_string(), p.high.to_string()))
+        .collect();
+    assert_eq!(
+        spans,
+        [
+            (
+                format!("bank-{current}"),
+                "0.00".to_owned(),
+                "2000.00".to_owned()
+            ),
+            (
+                format!("bank-{savings}"),
+                "2000.00".to_owned(),
+                "10000.00".to_owned()
+            ),
+        ]
+    );
+    let marker = year.marker.as_ref().unwrap();
+    assert_eq!(
+        (marker.value.to_string(), marker.label.as_str()),
+        ("10000.00".to_owned(), "10.00k")
+    );
+    let ticks: Vec<_> = insights
+        .axis
+        .ticks
+        .iter()
+        .map(|t| (t.value.to_string(), t.label.as_str()))
+        .collect();
+    assert!(ticks.contains(&("0.00".to_owned(), "0")));
+    assert!(ticks.contains(&("10000.00".to_owned(), "10k")));
+}
+
+#[test]
+fn test_csd010_ac_6_3_the_axis_covers_the_highest_and_the_lowest_level() {
+    let mut banks = BankAccounts::default();
+    let a = account(&mut banks, "Example Current Account", "Yearly");
+    let b = account(&mut banks, "Example Overdraft", "Yearly");
+    add(&mut banks, a, "2026", "13100.00");
+    add(&mut banks, b, "2026", "-1000.00");
+    let insights = banks.insights(insights_today());
+    let ticks = &insights.axis.ticks;
+    assert!(
+        ticks.first().unwrap().value <= crate::domain::money::Money::parse("-1000.00").unwrap()
+    );
+    assert!(ticks.last().unwrap().value >= crate::domain::money::Money::parse("13100.00").unwrap());
+    let pieces = &insights.years[0].pieces;
+    assert!(pieces[1].hangs);
+    assert_eq!(pieces[0].rounding, crate::domain::charts::Rounding::Top);
+    assert_eq!(pieces[1].rounding, crate::domain::charts::Rounding::Bottom);
+    // The marker is the net sum, 12100.00.
+    assert_eq!(insights.years[0].marker.as_ref().unwrap().label, "12.10k");
+}
+
+#[test]
+fn test_csd010_ac_6_5_a_gap_year_has_no_pieces_and_no_marker() {
+    let mut banks = BankAccounts::default();
+    let a = account(&mut banks, "Example Current Account", "Yearly");
+    add(&mut banks, a, "2024", "100.00");
+    add(&mut banks, a, "2026", "300.00");
+    let years = banks.insights(insights_today()).years;
+    let gap = years.iter().find(|y| y.year == 2025).unwrap();
+    assert!(gap.pieces.is_empty() && gap.marker.is_none());
 }

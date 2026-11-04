@@ -11,12 +11,12 @@ use time::UtcOffset;
 use crate::configure;
 use crate::storage::Preferences;
 
-struct Harness {
-    window: WebviewWindow<MockRuntime>,
+pub(crate) struct Harness {
+    pub(crate) window: WebviewWindow<MockRuntime>,
     _app: App<MockRuntime>,
 }
 
-fn harness() -> Harness {
+pub(crate) fn harness() -> Harness {
     let app = configure(mock_builder(), UtcOffset::UTC)
         .build(mock_context(noop_assets()))
         .unwrap();
@@ -41,7 +41,7 @@ fn harness_in(config_dir: &std::path::Path) -> Harness {
 }
 
 impl Harness {
-    fn call(&self, command: &str, args: Value) -> Result<Value, Value> {
+    pub(crate) fn call(&self, command: &str, args: Value) -> Result<Value, Value> {
         let request = InvokeRequest {
             cmd: command.into(),
             callback: tauri::ipc::CallbackFn(0),
@@ -54,7 +54,7 @@ impl Harness {
         get_ipc_response(&self.window, request).map(|body| body.deserialize::<Value>().unwrap())
     }
 
-    fn ok(&self, command: &str, args: Value) -> Value {
+    pub(crate) fn ok(&self, command: &str, args: Value) -> Value {
         self.call(command, args)
             .unwrap_or_else(|error| panic!("{command} failed: {error}"))
     }
@@ -63,6 +63,14 @@ impl Harness {
         self.call(command, args)
             .expect_err(&format!("{command} should have failed"))
     }
+}
+
+/// The axis of a chart without figures: 0.00 to 1.00 (CSD-025 REQ-3).
+fn empty_axis() -> Value {
+    json!({ "ticks": [
+        { "value": "0.00", "label": "0" },
+        { "value": "1.00", "label": "1" },
+    ] })
 }
 
 fn job_input() -> Value {
@@ -185,12 +193,6 @@ fn errors_reach_the_frontend_as_code_and_safe_message() {
 
     let job = app.ok("create_job", json!({ "input": job_input() }));
     let job_id = job["id"].as_str().unwrap().to_owned();
-
-    let future = app.err(
-        "add_paycheck",
-        json!({ "jobId": job_id, "month": "9999-12", "amounts": amounts("3000.00", "", "") }),
-    );
-    assert_eq!(future["code"], "PAYCHECK_MONTH_IN_FUTURE");
 
     app.ok(
         "add_paycheck",
@@ -423,16 +425,16 @@ fn test_csd004_dashboard_over_ipc() {
 fn monthly_and_yearly_job(app: &Harness) -> (String, String) {
     let monthly = app.ok("create_job", json!({ "input": job_input() }));
     // AC-1.1, AC-1.5: Monthly by default, Yearly when chosen.
-    assert_eq!(monthly["pay_period"], "Monthly");
+    assert_eq!(monthly["period"], "Monthly");
     let yearly = app.ok(
         "create_job",
         json!({ "input": {
             "employer": "Older Example Employer",
             "start_date": "01/01/2020",
-            "pay_period": "Yearly"
+            "period": "Yearly"
         } }),
     );
-    assert_eq!(yearly["pay_period"], "Yearly");
+    assert_eq!(yearly["period"], "Yearly");
     (
         monthly["id"].as_str().unwrap().to_owned(),
         yearly["id"].as_str().unwrap().to_owned(),
@@ -445,7 +447,7 @@ fn test_csd001_annual_statements_are_listed_and_totalled_over_ipc() {
     let (monthly_id, yearly_id) = monthly_and_yearly_job(&app);
     let unsupported = app.err(
         "create_job",
-        json!({ "input": { "employer": "Example Employer", "start_date": "01/03/2024", "pay_period": "Weekly" } }),
+        json!({ "input": { "employer": "Example Employer", "start_date": "01/03/2024", "period": "Weekly" } }),
     );
     assert_eq!(unsupported["code"], "JOB_PERIOD_UNSUPPORTED");
 
@@ -517,14 +519,7 @@ fn test_csd001_annual_statement_errors_over_ipc() {
         ),
         "JOB_PERIOD_MISMATCH"
     );
-    assert_eq!(
-        code(
-            "add_statement",
-            json!({ "jobId": yearly_id, "year": "9999", "amounts": one })
-        ),
-        "STATEMENT_YEAR_IN_FUTURE"
-    );
-    for bad in ["26", "2026-05", "abcd", "1899"] {
+    for bad in ["26", "2026-05", "abcd", "0000"] {
         assert_eq!(
             code(
                 "add_statement",
@@ -544,7 +539,7 @@ fn test_csd001_annual_statement_errors_over_ipc() {
     );
 
     // REQ-24: the pay period is locked while the job has entries.
-    let job_input = |name: &str, period: &str| json!({ "employer": name, "start_date": "01/01/2020", "pay_period": period });
+    let job_input = |name: &str, period: &str| json!({ "employer": name, "start_date": "01/01/2020", "period": period });
     assert_eq!(
         code(
             "update_job",
@@ -556,7 +551,7 @@ fn test_csd001_annual_statement_errors_over_ipc() {
         "update_job",
         json!({ "jobId": yearly_id, "input": job_input("Renamed Example Employer", "Yearly") }),
     );
-    assert_eq!(renamed["pay_period"], "Yearly");
+    assert_eq!(renamed["period"], "Yearly");
 }
 
 #[test]
@@ -606,16 +601,16 @@ fn test_csd001_annual_statements_can_be_copied_edited_and_deleted_over_ipc() {
         json!({ "jobId": yearly_id, "input": {
             "employer": "Older Example Employer",
             "start_date": "01/01/2020",
-            "pay_period": "Monthly"
+            "period": "Monthly"
         } }),
     );
-    assert_eq!(changed["pay_period"], "Monthly");
+    assert_eq!(changed["period"], "Monthly");
 
     // CSD-004 AC-2.4, AC-3.4: this year's statement counts in "This year" in full
     // and never in "Last month".
     let other = app.ok(
         "create_job",
-        json!({ "input": { "employer": "Third Example Employer", "start_date": "01/01/2019", "pay_period": "Yearly" } }),
+        json!({ "input": { "employer": "Third Example Employer", "start_date": "01/01/2019", "period": "Yearly" } }),
     );
     app.ok(
         "add_statement",
@@ -634,7 +629,7 @@ fn test_csd001_annual_statements_can_be_copied_edited_and_deleted_over_ipc() {
         .iter()
         .find(|j| j["employer"] == "Third Example Employer")
         .unwrap();
-    assert_eq!(third["pay_period"], "Yearly");
+    assert_eq!(third["period"], "Yearly");
     assert_eq!(third["entry_count"], 1);
 
     // AC-4.1: deleting a job removes its statements too.
@@ -646,7 +641,7 @@ fn test_csd001_annual_statements_can_be_copied_edited_and_deleted_over_ipc() {
 }
 
 fn account_input(name: &str, period: &str) -> Value {
-    json!({ "name": name, "statement_period": period })
+    json!({ "name": name, "period": period })
 }
 
 #[test]
@@ -665,7 +660,7 @@ fn test_csd005_ac_17_2_investment_accounts_and_the_total_over_ipc() {
     );
     let brokerage_id = brokerage["id"].as_str().unwrap();
     let pension_id = pension["id"].as_str().unwrap();
-    assert_eq!(brokerage["statement_period"], "Monthly");
+    assert_eq!(brokerage["period"], "Monthly");
     assert_eq!(app.ok("project_status", json!({}))["unsaved_changes"], true);
 
     app.ok(
@@ -685,7 +680,7 @@ fn test_csd005_ac_17_2_investment_accounts_and_the_total_over_ipc() {
     assert_eq!(overview["total"], "92500.50");
     let accounts = overview["accounts"].as_array().unwrap();
     assert_eq!(accounts[0]["name"], "Example Brokerage");
-    assert_eq!(accounts[0]["statement_period"], "Monthly");
+    assert_eq!(accounts[0]["period"], "Monthly");
     assert_eq!(accounts[0]["statement_count"], 2);
     assert_eq!(accounts[0]["latest_period"], "2026-09");
     assert_eq!(accounts[0]["latest_balance"], "12500.50");
@@ -758,10 +753,6 @@ fn test_csd005_investment_errors_reach_the_frontend_as_codes() {
     assert_eq!(
         add("2025", "1.00", "")["code"],
         "INVESTMENT_PERIOD_MISMATCH"
-    );
-    assert_eq!(
-        add("2999-01", "1.00", "")["code"],
-        "INVESTMENT_STATEMENT_IN_FUTURE"
     );
     assert_eq!(
         add("2026-09", "1.00", &"x".repeat(2001))["code"],
@@ -912,15 +903,31 @@ fn test_csd005_ac_17_8_net_deposits_and_capital_growth_over_ipc() {
     // AC-22.1 and AC-22.3: invalid net deposits are rejected and change nothing.
     let error = app.err(
         "update_investment_statement",
-        json!({ "accountId": id, "period": "2026-09", "newPeriod": "2026-09", "balance": "12500.00", "netDeposits": "100.999" }),
+        json!({ "accountId": id, "period": "2026-09", "newPeriod": "2026-09", "balance": "12500.00", "netDeposits": "abc" }),
     );
-    assert_eq!(error["code"], "INVESTMENT_NET_DEPOSITS_PRECISION");
+    assert_eq!(error["code"], "INVESTMENT_NET_DEPOSITS_INVALID");
     let rows = app.ok("list_investment_statements", json!({}));
     assert_eq!(rows[0]["net_deposits"], "0.00");
+
+    // AC-30.2: typed net deposits with more than two decimals are rounded half-up.
+    let edited = app.ok(
+        "update_investment_statement",
+        json!({ "accountId": id, "period": "2026-09", "newPeriod": "2026-09", "balance": "12500.00", "netDeposits": "100.999" }),
+    );
+    assert_eq!(edited["net_deposits"], "101.00");
+    assert_eq!(edited["capital_growth"], "399.00");
+    let result = app.ok(
+        "calculate_investment_statement",
+        json!({ "accountId": id, "period": "2026-09", "netDeposits": "", "input": "growth", "value": "200.005" }),
+    );
+    assert_eq!(
+        result,
+        json!({ "balance": "12200.01", "capital_growth": "200.01" })
+    );
 }
 
 #[test]
-fn test_csd005_ac_24_the_form_calculation_over_ipc() {
+fn test_csd005_ac_24_1_the_form_calculation_over_ipc() {
     let app = harness();
     let account = app.ok(
         "create_investment_account",
@@ -983,14 +990,14 @@ fn test_csd006_income_insights_over_ipc() {
     // An empty project has an empty series (AC-10.1).
     assert_eq!(
         app.ok("get_income_insights", json!({})),
-        json!({ "years": [] })
+        json!({ "axis": empty_axis(), "years": [] })
     );
 
     let job = app.ok("create_job", json!({ "input": job_input() }));
     let job_id = job["id"].as_str().unwrap().to_owned();
     assert_eq!(
         app.ok("get_income_insights", json!({})),
-        json!({ "years": [] }),
+        json!({ "axis": empty_axis(), "years": [] }),
         "a job without entries has no years"
     );
 
@@ -1009,10 +1016,31 @@ fn test_csd006_income_insights_over_ipc() {
     assert_eq!(years[0]["is_partial"], false);
     assert_eq!(years[0]["growth_percent"], Value::Null);
     assert_eq!(years.last().unwrap()["is_partial"], true);
+    // CSD-025 section 5: the axis, the pieces and the labels come with the series.
+    assert_eq!(years[0]["growth_label"], "–");
+    assert_eq!(years[0]["marker"], Value::Null);
+    assert_eq!(
+        years[0]["pieces"],
+        json!([
+            { "series": "salary", "low": "0.00", "high": "3000.00", "hangs": false, "rounding": "none" },
+            { "series": "bonus", "low": "3000.00", "high": "4000.00", "hangs": false, "rounding": "top" },
+        ])
+    );
+    assert_eq!(years.last().unwrap()["pieces"], json!([]));
+    assert_eq!(
+        insights["axis"],
+        json!({ "ticks": [
+            { "value": "0.00", "label": "0" },
+            { "value": "1000.00", "label": "1k" },
+            { "value": "2000.00", "label": "2k" },
+            { "value": "3000.00", "label": "3k" },
+            { "value": "4000.00", "label": "4k" },
+        ] })
+    );
 }
 
 #[test]
-fn test_csd005_ac_26_yearly_totals_over_ipc() {
+fn test_csd005_ac_26_1_yearly_totals_over_ipc() {
     let app = harness();
     // AC-26.2: nothing yet.
     assert_eq!(app.ok("yearly_investment_totals", json!({})), json!([]));
@@ -1047,7 +1075,7 @@ fn test_csd007_investment_insights_over_ipc() {
     // AC-2.3: no statements, no series.
     assert_eq!(
         app.ok("get_investment_insights", json!({})),
-        json!({ "years": [] })
+        json!({ "axis": empty_axis(), "years": [] })
     );
     let account = app.ok(
         "create_investment_account",
@@ -1075,11 +1103,24 @@ fn test_csd007_investment_insights_over_ipc() {
             "growth_percent": null,
             "closing_balance": "11500.00",
             "statement_count": 2,
-            "is_partial": false
+            "is_partial": false,
+            "growth_label": "–",
+            "pieces": [
+                { "series": "deposits", "low": "0.00", "high": "11200.00", "hangs": false, "rounding": "none" },
+                { "series": "growth-up", "low": "11200.00", "high": "11500.00", "hangs": false, "rounding": "top" },
+            ],
+            "marker": { "value": "11500.00", "label": "11.50k" }
         })
     );
     assert!(years.len() >= 2);
     assert_eq!(years.last().unwrap()["is_partial"], true);
+    assert_eq!(years.last().unwrap()["marker"], Value::Null);
+    let ticks = insights["axis"]["ticks"].as_array().unwrap();
+    assert_eq!(ticks[0], json!({ "value": "0.00", "label": "0" }));
+    assert!(ticks.last().unwrap()["label"]
+        .as_str()
+        .unwrap()
+        .ends_with('k'));
 }
 
 #[test]
@@ -1219,7 +1260,7 @@ fn test_csd022_ac_9_1_a_failed_save_keeps_the_language_over_ipc() {
 }
 
 #[test]
-fn test_csd001_ac_29_the_month_of_a_paycheck_changes_over_ipc() {
+fn test_csd001_ac_29_1_the_month_of_a_paycheck_changes_over_ipc() {
     let app = harness();
     let job = app.ok("create_job", json!({ "input": job_input() }));
     let job_id = job["id"].as_str().unwrap().to_owned();
@@ -1253,7 +1294,7 @@ fn test_csd001_ac_29_the_month_of_a_paycheck_changes_over_ipc() {
 }
 
 #[test]
-fn test_csd001_ac_30_a_rejected_edit_changes_nothing_over_ipc() {
+fn test_csd001_ac_30_4_a_rejected_edit_changes_nothing_over_ipc() {
     let app = harness();
     let job = app.ok("create_job", json!({ "input": job_input() }));
     let job_id = job["id"].as_str().unwrap().to_owned();
@@ -1263,15 +1304,6 @@ fn test_csd001_ac_30_a_rejected_edit_changes_nothing_over_ipc() {
     );
     let before = app.ok("list_entries", json!({}));
 
-    // AC-30.1: in the future. AC-30.2 is covered in the domain; here the codes cross IPC.
-    let error = app.err(
-        "update_paycheck",
-        json!({
-            "jobId": job_id, "month": "2026-05", "newMonth": "2099-01",
-            "amounts": amounts("3000.00", "", "")
-        }),
-    );
-    assert_eq!(error["code"], "PAYCHECK_MONTH_IN_FUTURE");
     // AC-30.4: an invalid amount together with a new month rejects the whole edit.
     let error = app.err(
         "update_paycheck",
@@ -1289,7 +1321,7 @@ fn test_csd001_ac_29_3_the_year_of_an_annual_statement_changes_over_ipc() {
     let app = harness();
     let yearly = app.ok(
         "create_job",
-        json!({ "input": { "employer": "Example Employer", "title": "", "start_date": "01/03/2024", "end_date": "", "pay_period": "Yearly" } }),
+        json!({ "input": { "employer": "Example Employer", "title": "", "start_date": "01/03/2024", "end_date": "", "period": "Yearly" } }),
     );
     let job_id = yearly["id"].as_str().unwrap().to_owned();
     app.ok(
@@ -1310,15 +1342,10 @@ fn test_csd001_ac_29_3_the_year_of_an_annual_statement_changes_over_ipc() {
         json!({ "jobId": job_id, "year": "2024", "newYear": "2023", "amounts": amounts("38000.00", "", "") }),
     );
     assert_eq!(error["code"], "STATEMENT_DUPLICATE_YEAR");
-    let error = app.err(
-        "update_statement",
-        json!({ "jobId": job_id, "year": "2024", "newYear": "2099", "amounts": amounts("38000.00", "", "") }),
-    );
-    assert_eq!(error["code"], "STATEMENT_YEAR_IN_FUTURE");
 }
 
 #[test]
-fn test_csd005_ac_28_the_period_of_a_statement_changes_over_ipc() {
+fn test_csd005_ac_28_1_the_period_of_a_statement_changes_over_ipc() {
     let app = harness();
     let account = app.ok(
         "create_investment_account",
@@ -1338,9 +1365,8 @@ fn test_csd005_ac_28_the_period_of_a_statement_changes_over_ipc() {
         json!({ "accountId": id, "period": "2026-08", "newPeriod": "2026-09", "balance": "-1.00" }),
     );
     assert_eq!(error["code"], "INVESTMENT_BALANCE_NEGATIVE");
-    // AC-29.1 to AC-29.3: the codes of the add rules cross IPC.
+    // AC-29.2 and AC-29.3: the codes of the add rules cross IPC.
     for (new_period, code) in [
-        ("2026-12", "INVESTMENT_STATEMENT_IN_FUTURE"),
         ("2026-07", "INVESTMENT_STATEMENT_DUPLICATE"),
         ("2026", "INVESTMENT_PERIOD_MISMATCH"),
     ] {
@@ -1374,7 +1400,7 @@ fn test_csd005_ac_28_the_period_of_a_statement_changes_over_ipc() {
 }
 
 fn bank_input(name: &str, period: &str) -> Value {
-    json!({ "name": name, "entry_period": period })
+    json!({ "name": name, "period": period })
 }
 
 #[test]
@@ -1387,7 +1413,7 @@ fn test_csd009_ac_17_2_bank_accounts_and_the_total_over_ipc() {
         "create_bank_account",
         json!({ "input": bank_input("Example Current Account", "Monthly") }),
     );
-    assert_eq!(current["entry_period"], "Monthly");
+    assert_eq!(current["period"], "Monthly");
     assert_eq!(current["colour_slot"], 0);
     let savings = app.ok(
         "create_bank_account",
@@ -1429,12 +1455,10 @@ fn test_csd009_bank_errors_reach_the_frontend_as_codes() {
     );
     let id = account["id"].clone();
     for (period, balance, code) in [
-        ("2026-09", "1000.999", "BANK_ENTRY_BALANCE_PRECISION"),
         ("2026-09", "abc", "BANK_ENTRY_BALANCE_INVALID"),
         ("2026-09", "1000000000.01", "BANK_ENTRY_BALANCE_TOO_LARGE"),
         ("2026-13", "1.00", "BANK_ENTRY_PERIOD_INVALID"),
         ("2025", "1.00", "BANK_ENTRY_PERIOD_MISMATCH"),
-        ("2999-01", "1.00", "BANK_ENTRY_IN_FUTURE"),
     ] {
         let error = app.err(
             "add_bank_entry",
@@ -1503,12 +1527,6 @@ fn test_csd009_bank_entries_can_be_copied_edited_moved_and_deleted_over_ipc() {
     );
     assert_eq!(moved["period"], "2026-08");
     assert_eq!(moved["balance"], "200.00");
-    // AC-13.1: a later period is rejected and nothing changes.
-    let error = app.err(
-        "update_bank_entry",
-        json!({ "accountId": id, "period": "2026-08", "newPeriod": "2999-01", "balance": "1.00" }),
-    );
-    assert_eq!(error["code"], "BANK_ENTRY_IN_FUTURE");
     assert_eq!(
         app.ok("list_bank_entries", json!({}))[0]["balance"],
         "200.00"
@@ -1549,7 +1567,10 @@ fn test_csd003_ac_5_7_a_bank_entry_counts_for_the_currency_confirmation() {
 fn test_csd010_the_insights_reach_the_frontend_with_banks_and_segments() {
     let app = harness();
     let empty = app.ok("get_bank_insights", json!({}));
-    assert_eq!(empty, json!({ "banks": [], "years": [] }));
+    assert_eq!(
+        empty,
+        json!({ "banks": [], "axis": empty_axis(), "years": [] })
+    );
     let current = app.ok(
         "create_bank_account",
         json!({ "input": bank_input("Example Current Account", "Monthly") }),
@@ -1576,6 +1597,20 @@ fn test_csd010_the_insights_reach_the_frontend_with_banks_and_segments() {
     assert_eq!(first["is_partial"], false);
     assert_eq!(first["segments"][0]["account_id"], current["id"]);
     assert_eq!(first["segments"][1]["balance"], "-1000.00");
+    // CSD-025 section 5: pieces, marker and axis.
+    assert_eq!(
+        first["pieces"],
+        json!([
+            { "series": format!("bank-{}", current["id"].as_str().unwrap()), "low": "0.00", "high": "5000.00", "hangs": false, "rounding": "top" },
+            { "series": format!("bank-{}", overdraft["id"].as_str().unwrap()), "low": "-1000.00", "high": "0.00", "hangs": true, "rounding": "bottom" },
+        ])
+    );
+    assert_eq!(
+        first["marker"],
+        json!({ "value": "4000.00", "label": "4.00k" })
+    );
+    let ticks = &insights["axis"]["ticks"];
+    assert_eq!(ticks[0], json!({ "value": "-2000.00", "label": "-2k" }));
     // The current year is in the series even without entries (CSD-010 AC-4.2).
     let last = insights["years"]
         .as_array()
@@ -1601,7 +1636,7 @@ fn test_csd009_new_project_clears_the_bank_accounts() {
 }
 
 fn debt_input(name: &str, period: &str) -> Value {
-    json!({ "name": name, "statement_period": period })
+    json!({ "name": name, "period": period })
 }
 
 #[test]
@@ -1615,7 +1650,7 @@ fn test_csd011_ac_17_2_debts_and_the_total_over_ipc() {
         "create_debt",
         json!({ "input": debt_input("Example Mortgage", "Monthly") }),
     );
-    assert_eq!(mortgage["statement_period"], "Monthly");
+    assert_eq!(mortgage["period"], "Monthly");
     assert_eq!(mortgage["colour_slot"], 0);
     let loan = app.ok(
         "create_debt",
@@ -1666,7 +1701,6 @@ fn test_csd011_debt_errors_reach_the_frontend_as_codes() {
     let id = debt["id"].clone();
     for (period, balance, code) in [
         ("2026-09", "-1.00", "DEBT_STATEMENT_BALANCE_NEGATIVE"),
-        ("2026-09", "1000.999", "DEBT_STATEMENT_BALANCE_PRECISION"),
         ("2026-09", "abc", "DEBT_STATEMENT_BALANCE_INVALID"),
         (
             "2026-09",
@@ -1675,7 +1709,6 @@ fn test_csd011_debt_errors_reach_the_frontend_as_codes() {
         ),
         ("2026-13", "1.00", "DEBT_STATEMENT_PERIOD_INVALID"),
         ("2025", "1.00", "DEBT_PERIOD_MISMATCH"),
-        ("2999-01", "1.00", "DEBT_STATEMENT_IN_FUTURE"),
     ] {
         let error = app.err(
             "add_debt_statement",
@@ -1743,12 +1776,6 @@ fn test_csd011_debt_statements_can_be_copied_edited_moved_and_deleted_over_ipc()
     );
     assert_eq!(moved["period"], "2026-08");
     assert_eq!(moved["balance"], "149000.00");
-    // AC-13.1: a later period is rejected and nothing changes.
-    let error = app.err(
-        "update_debt_statement",
-        json!({ "debtId": id, "period": "2026-08", "newPeriod": "2999-01", "balance": "1.00" }),
-    );
-    assert_eq!(error["code"], "DEBT_STATEMENT_IN_FUTURE");
     assert_eq!(
         app.ok("list_debt_statements", json!({}))[0]["balance"],
         "149000.00"
@@ -1790,7 +1817,7 @@ fn test_csd012_the_debt_insights_reach_the_frontend_with_segments_and_repaid() {
     let app = harness();
     assert_eq!(
         app.ok("get_debt_insights", json!({})),
-        json!({ "debts": [], "years": [] })
+        json!({ "debts": [], "axis": empty_axis(), "years": [] })
     );
     let mortgage = app.ok(
         "create_debt",
@@ -1851,7 +1878,7 @@ fn test_csd011_new_project_clears_the_debts() {
 fn house_input(name: &str, period: &str) -> Value {
     json!({
         "name": name,
-        "valuation_period": period,
+        "period": period,
         "purchase_date": "01/01/1900",
         "purchase_amount": "0.00",
     })
@@ -1868,7 +1895,7 @@ fn test_csd015_ac_17_2_houses_and_the_total_over_ipc() {
         "create_house",
         json!({ "input": house_input("Example House", "Monthly") }),
     );
-    assert_eq!(mortgage["valuation_period"], "Monthly");
+    assert_eq!(mortgage["period"], "Monthly");
     assert_eq!(mortgage["colour_slot"], 0);
     let loan = app.ok(
         "create_house",
@@ -1919,7 +1946,6 @@ fn test_csd015_house_errors_reach_the_frontend_as_codes() {
     let id = house["id"].clone();
     for (period, value, code) in [
         ("2026-09", "-1.00", "HOUSE_VALUATION_VALUE_NEGATIVE"),
-        ("2026-09", "1000.999", "HOUSE_VALUATION_VALUE_PRECISION"),
         ("2026-09", "abc", "HOUSE_VALUATION_VALUE_INVALID"),
         (
             "2026-09",
@@ -1928,7 +1954,6 @@ fn test_csd015_house_errors_reach_the_frontend_as_codes() {
         ),
         ("2026-13", "1.00", "HOUSE_VALUATION_PERIOD_INVALID"),
         ("2025", "1.00", "HOUSE_PERIOD_MISMATCH"),
-        ("2999-01", "1.00", "HOUSE_VALUATION_IN_FUTURE"),
     ] {
         let error = app.err(
             "add_house_valuation",
@@ -1996,12 +2021,6 @@ fn test_csd015_house_valuations_can_be_copied_edited_moved_and_deleted_over_ipc(
     );
     assert_eq!(moved["period"], "2026-08");
     assert_eq!(moved["value"], "149000.00");
-    // AC-13.1: a later period is rejected and nothing changes.
-    let error = app.err(
-        "update_house_valuation",
-        json!({ "houseId": id, "period": "2026-08", "newPeriod": "2999-01", "value": "1.00" }),
-    );
-    assert_eq!(error["code"], "HOUSE_VALUATION_IN_FUTURE");
     assert_eq!(
         app.ok("list_house_valuations", json!({}))[0]["value"],
         "149000.00"
@@ -2043,7 +2062,7 @@ fn test_csd016_the_house_insights_reach_the_frontend_with_segments_and_change() 
     let app = harness();
     assert_eq!(
         app.ok("get_house_insights", json!({})),
-        json!({ "houses": [], "years": [] })
+        json!({ "houses": [], "axis": empty_axis(), "years": [] })
     );
     let mortgage = app.ok(
         "create_house",
@@ -2106,7 +2125,7 @@ fn test_csd017_the_net_worth_insights_reach_the_frontend_and_follow_the_project(
     let app = harness();
     assert_eq!(
         app.ok("get_net_worth_insights", json!({})),
-        json!({ "years": [] })
+        json!({ "axis": empty_axis(), "years": [] })
     );
     let bank = app.ok(
         "create_bank_account",
@@ -2124,8 +2143,17 @@ fn test_csd017_the_net_worth_insights_reach_the_frontend_and_follow_the_project(
         "add_debt_statement",
         json!({ "debtId": debt["id"], "period": "2025", "balance": "9000.00" }),
     );
-    let years = app.ok("get_net_worth_insights", json!({}))["years"].clone();
+    let insights = app.ok("get_net_worth_insights", json!({}));
+    let years = insights["years"].clone();
     let first = &years[0];
+    // CSD-025 section 5: the marker is -4000.00, debts hang below the zero line.
+    assert_eq!(
+        first["marker"],
+        json!({ "value": "-4000.00", "label": "-4.00k" })
+    );
+    assert_eq!(first["pieces"][1]["series"], "debts");
+    assert_eq!(first["pieces"][1]["hangs"], true);
+    assert_eq!(insights["axis"]["ticks"][0]["value"], "-10000.00");
     assert_eq!(first["year"], 2025);
     assert_eq!(first["cash"], "5000.00");
     assert_eq!(first["debts"], "9000.00");
@@ -2139,7 +2167,7 @@ fn test_csd017_the_net_worth_insights_reach_the_frontend_and_follow_the_project(
     app.ok("new_project", json!({}));
     assert_eq!(
         app.ok("get_net_worth_insights", json!({})),
-        json!({ "years": [] })
+        json!({ "axis": empty_axis(), "years": [] })
     );
 }
 
@@ -2187,7 +2215,7 @@ fn test_csd019_ac_14_1_the_purchase_and_sale_need_no_currency_confirmation() {
         "create_house",
         json!({ "input": {
             "name": "Example House",
-            "valuation_period": "Monthly",
+            "period": "Monthly",
             "purchase_date": "15/03/2024",
             "purchase_amount": "250000.00",
             "sell_date": "10/06/2026",
@@ -2198,13 +2226,13 @@ fn test_csd019_ac_14_1_the_purchase_and_sale_need_no_currency_confirmation() {
 }
 
 #[test]
-fn test_csd019_ac_9_2_the_sale_and_its_result_reach_the_frontend() {
+fn test_csd019_ac_8_2_the_sale_and_its_result_reach_the_frontend() {
     let app = harness();
     let house = app.ok(
         "create_house",
         json!({ "input": {
             "name": "Example House",
-            "valuation_period": "Monthly",
+            "period": "Monthly",
             "purchase_date": "15/03/2024",
             "purchase_amount": "250000.00",
             "sell_date": "10/06/2026",
@@ -2218,7 +2246,57 @@ fn test_csd019_ac_9_2_the_sale_and_its_result_reach_the_frontend() {
     assert_eq!(overview["houses"][0]["result"], "50000.00");
     let error = app.err(
         "create_house",
-        json!({ "input": { "name": "Example Lodge", "valuation_period": "Monthly" } }),
+        json!({ "input": { "name": "Example Lodge", "period": "Monthly" } }),
     );
     assert_eq!(error["code"], "HOUSE_PURCHASE_DATE_REQUIRED");
+}
+
+#[test]
+fn test_csd009_ac_25_1_a_typed_balance_is_rounded_over_ipc() {
+    let app = harness();
+    let account = app.ok(
+        "create_bank_account",
+        json!({ "input": bank_input("Example Current Account", "Monthly") }),
+    );
+    let id = account["id"].clone();
+    let added = app.ok(
+        "add_bank_entry",
+        json!({ "accountId": id, "period": "2026-09", "balance": "-1000.999" }),
+    );
+    assert_eq!(added["balance"], "-1001.00");
+    let added = app.ok(
+        "add_bank_entry",
+        json!({ "accountId": id, "period": "2026-10", "balance": "-0.004" }),
+    );
+    assert_eq!(added["balance"], "0.00");
+}
+
+#[test]
+fn test_csd011_ac_29_1_a_typed_balance_is_rounded_over_ipc() {
+    let app = harness();
+    let debt = app.ok(
+        "create_debt",
+        json!({ "input": debt_input("Example Mortgage", "Monthly") }),
+    );
+    let id = debt["id"].clone();
+    let added = app.ok(
+        "add_debt_statement",
+        json!({ "debtId": id, "period": "2026-09", "balance": "1000.999" }),
+    );
+    assert_eq!(added["balance"], "1001.00");
+}
+
+#[test]
+fn test_csd015_ac_28_1_a_typed_value_is_rounded_over_ipc() {
+    let app = harness();
+    let house = app.ok(
+        "create_house",
+        json!({ "input": house_input("Example House", "Monthly") }),
+    );
+    let id = house["id"].clone();
+    let added = app.ok(
+        "add_house_valuation",
+        json!({ "houseId": id, "period": "2026-09", "value": "1000.999" }),
+    );
+    assert_eq!(added["value"], "1001.00");
 }

@@ -21,9 +21,8 @@ pub fn list_expenses(state: State<'_, AppState>) -> Result<ExpenseList, AppError
 
 #[tauri::command]
 pub fn add_expense(state: State<'_, AppState>, input: ExpenseInput) -> Result<Expense, AppError> {
-    let today = state.today_date();
     let mut project = state.project()?;
-    Ok(project.expenses_mut().add_expense(&input, today)?)
+    Ok(project.expenses_mut().add_expense(&input)?)
 }
 
 /// Applies the edit as a whole or not at all (CSD-013 REQ-7).
@@ -33,10 +32,9 @@ pub fn update_expense(
     expense_id: String,
     input: ExpenseInput,
 ) -> Result<Expense, AppError> {
-    let today = state.today_date();
     let id = ExpenseId::parse(&expense_id)?;
     let mut project = state.project()?;
-    Ok(project.expenses_mut().update_expense(id, &input, today)?)
+    Ok(project.expenses_mut().update_expense(id, &input)?)
 }
 
 #[tauri::command]

@@ -2,49 +2,62 @@
 
 use std::collections::BTreeMap;
 
-use rust_decimal::{Decimal, RoundingStrategy};
+use crate::domain::money::Money;
+use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::money::zero;
+use crate::domain::charts::{percent_label, stack_from_zero, ChartYear, Marker, Piece};
+use crate::domain::money::percent_of;
 
-use super::{Income, IncomeYearlyTotal, YearMonth};
-
-/// Growth in percent from `previous` to `current`, to one decimal with
-/// banker's rounding (CSD-006 REQ-5). `None` when `previous` is zero.
-fn growth(previous: Decimal, current: Decimal) -> Option<Decimal> {
-    let percent = (current - previous)
-        .checked_mul(Decimal::ONE_HUNDRED)?
-        .checked_div(previous)?;
-    let mut rounded = percent.round_dp_with_strategy(1, RoundingStrategy::MidpointNearestEven);
-    if rounded.is_zero() {
-        // A decrease that rounds to zero shows no sign.
-        rounded = Decimal::ZERO;
-    }
-    rounded.rescale(1);
-    Some(rounded)
-}
+use super::{Income, IncomeYearlyTotal};
+use crate::domain::common::{series_years, YearMonth};
 
 /// One year of the insights chart: sums over all jobs, whether the year is
 /// still running, and its growth against the year before (CSD-006).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct IncomeInsightsYear {
+    /// The calendar year.
     pub year: i32,
-    pub gross_salary: Decimal,
-    pub holiday_pay: Decimal,
-    pub bonus: Decimal,
-    pub total_gross: Decimal,
+    /// Gross salary.
+    pub gross_salary: Money,
+    /// Holiday pay.
+    pub holiday_pay: Money,
+    /// Bonus.
+    pub bonus: Money,
+    /// Gross salary, holiday pay and bonus together.
+    pub total_gross: Money,
+    /// Number of entries in the year.
     pub entry_count: usize,
+    /// Whether the year is still running, so its figures cover only part of it.
     pub is_partial: bool,
-    /// Percent with one decimal, `None` when there is nothing to compare.
+    /// Percent with two decimals, `None` when there is nothing to compare.
     pub growth_percent: Option<Decimal>,
+    /// The growth as the chart shows it: "+6.42%", "-2.50%", "0.00%" or a dash
+    /// (CSD-006 REQ-8).
+    pub growth_label: String,
+    /// The stacked pieces of the bar, bottom to top (CSD-025 section 5).
+    pub pieces: Vec<Piece>,
+    /// Income has no marker; always `None`.
+    pub marker: Option<Marker>,
+}
+
+impl ChartYear for IncomeInsightsYear {
+    fn pieces(&self) -> &[Piece] {
+        &self.pieces
+    }
+
+    fn marker(&self) -> Option<&Marker> {
+        self.marker.as_ref()
+    }
 }
 
 impl Income {
     /// One figure set per calendar year from the first entry up to and
-    /// including the current year, oldest first (CSD-006). Years without
-    /// entries are zero. The current year is partial and, like a year without
-    /// entries or after one, has no growth. Entries after the current year,
-    /// which only a project file can contain, are not shown.
+    /// including the later of the current year and the latest entry, at most 50
+    /// years back from it, oldest first (CSD-006 REQ-2). An older entry has no
+    /// slot but still counts in the yearly totals. Years without entries are
+    /// zero. The current year is partial and, like a year without entries or
+    /// after one, has no growth; a year after the current year is not partial.
     #[must_use]
     pub fn insights(&self, today: YearMonth) -> Vec<IncomeInsightsYear> {
         let totals: BTreeMap<i32, IncomeYearlyTotal> = self
@@ -52,14 +65,11 @@ impl Income {
             .into_iter()
             .map(|total| (total.year, total))
             .collect();
-        let Some(&first) = totals.keys().next() else {
-            return Vec::new();
-        };
         let mut series: Vec<IncomeInsightsYear> = Vec::new();
-        for year in first..=today.year() {
+        for year in series_years(totals.keys().copied(), today.year()) {
             let (gross_salary, holiday_pay, bonus, total_gross, entry_count) =
                 totals.get(&year).map_or_else(
-                    || (zero(), zero(), zero(), zero(), 0),
+                    || (Money::ZERO, Money::ZERO, Money::ZERO, Money::ZERO, 0),
                     |t| {
                         (
                             t.gross_salary,
@@ -71,12 +81,17 @@ impl Income {
                     },
                 );
             let is_partial = year == today.year();
-            let growth_percent = match series.last() {
-                Some(previous) if !is_partial && entry_count > 0 => {
-                    growth(previous.total_gross, total_gross)
-                }
+            let growth_percent = match totals.get(&(year - 1)) {
+                Some(previous) if !is_partial && entry_count > 0 => total_gross
+                    .checked_sub(previous.total_gross)
+                    .and_then(|change| percent_of(change, previous.total_gross)),
                 _ => None,
             };
+            let pieces = stack_from_zero([
+                ("salary".to_owned(), gross_salary),
+                ("holiday".to_owned(), holiday_pay),
+                ("bonus".to_owned(), bonus),
+            ]);
             series.push(IncomeInsightsYear {
                 year,
                 gross_salary,
@@ -86,6 +101,9 @@ impl Income {
                 entry_count,
                 is_partial,
                 growth_percent,
+                growth_label: percent_label(growth_percent),
+                pieces,
+                marker: None,
             });
         }
         series

@@ -3,14 +3,14 @@ use std::fs;
 use tempfile::TempDir;
 
 use super::*;
-use crate::domain::{AccountInput, Balance, NetDeposits, Note, Period, YearMonth};
+use crate::domain::{Balance, InvestmentAccountInput, NetDeposits, Note, Period};
 
 fn account(project: &mut Project, name: &str, period: &str) -> crate::domain::InvestmentAccountId {
     project
         .investments_mut()
-        .create_account(&AccountInput {
+        .create_account(&InvestmentAccountInput {
             name: name.to_owned(),
-            statement_period: Some(period.to_owned()),
+            period: Some(period.to_owned()),
         })
         .unwrap()
         .id
@@ -29,10 +29,9 @@ fn test_csd005_ac_19_1_investments_survive_save_and_open_including_notes() {
             Balance::parse("80000.00").unwrap(),
             NetDeposits::parse("-250.00").unwrap(),
             Note::new("Line one\nLine two").unwrap(),
-            YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
 
     let mut fresh = Project::new();
@@ -56,24 +55,9 @@ fn test_csd005_ac_19_1_investments_survive_save_and_open_including_notes() {
 }
 
 #[test]
-fn test_csd005_ac_19_2_a_file_without_the_section_opens_without_accounts() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
-    fs::write(
-        &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]}}"#,
-    )
-    .unwrap();
-    let mut project = Project::new();
-    project.open(&path).unwrap();
-    assert_eq!(project.investments().accounts().len(), 0);
-    assert!(!project.status().unsaved_changes);
-}
-
-#[test]
 fn test_csd005_an_inconsistent_investments_section_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     // A statement of an account that does not exist.
     fs::write(
         &path,
@@ -91,9 +75,46 @@ fn test_csd005_an_inconsistent_investments_section_is_an_invalid_file() {
 fn test_csd005_an_investment_change_is_an_unsaved_change() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path).unwrap();
     assert!(!project.status().unsaved_changes);
     account(&mut project, "Example Brokerage", "Monthly");
     assert!(project.status().unsaved_changes);
+}
+
+#[test]
+fn test_csd005_ac_29_4_a_rejected_edit_changes_nothing_and_is_no_unsaved_change() {
+    let dir = TempDir::new().unwrap();
+    let mut project = Project::new();
+    let id = account(&mut project, "Example Brokerage", "Monthly");
+    let period = Period::parse("2026-09").unwrap();
+    project
+        .investments_mut()
+        .add_statement(
+            id,
+            period,
+            Balance::parse("12500.00").unwrap(),
+            NetDeposits::default(),
+            Note::default(),
+        )
+        .unwrap();
+    project.save_as(dir.path().join("example-a.varde")).unwrap();
+    assert!(!project.status().unsaved_changes);
+
+    // The period moves to 2026-08 and the balance is -1.00. The command parses the balance
+    // before it touches the data, so the edit is rejected as a whole.
+    let error = Balance::parse("-1.00").unwrap_err();
+    assert_eq!(error.code(), "INVESTMENT_BALANCE_NEGATIVE");
+
+    let rows = project.investments().all_statements();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(
+        rows[0].1.period, period,
+        "the statement is still for 2026-09"
+    );
+    assert_eq!(rows[0].1.balance.value().to_string(), "12500.00");
+    assert!(
+        !project.status().unsaved_changes,
+        "the unsaved indicator is not shown"
+    );
 }

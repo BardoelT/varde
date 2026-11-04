@@ -1,23 +1,26 @@
 //! Yearly totals over all accounts (CSD-005 REQ-26).
 
-use std::collections::{BTreeMap, HashMap};
-
-use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::money::zero;
+use crate::domain::money::Money;
 
-use super::{InvestmentAccountId, InvestmentStatement, Investments};
+use crate::domain::series::SeriesData;
+
+use super::Investments;
 
 /// The totals of one calendar year over all accounts (CSD-005 REQ-26).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct InvestmentYearlyTotal {
+    /// The calendar year.
     pub year: i32,
     /// The sum, over the accounts with a statement this year, of the balance
     /// of their latest statement this year.
-    pub closing_balance: Decimal,
-    pub net_deposits: Decimal,
-    pub capital_growth: Decimal,
+    pub closing_balance: Money,
+    /// Net deposits: money put in minus money taken out.
+    pub net_deposits: Money,
+    /// Capital growth.
+    pub capital_growth: Money,
+    /// Number of statements in the year.
     pub statement_count: usize,
 }
 
@@ -27,41 +30,22 @@ impl Investments {
     /// statement counts in the year of its own period only.
     #[must_use]
     pub fn yearly_totals(&self) -> Vec<InvestmentYearlyTotal> {
-        let mut by_year: BTreeMap<i32, Vec<&InvestmentStatement>> = BTreeMap::new();
-        for statement in &self.statements {
-            by_year
-                .entry(statement.period.year())
-                .or_default()
-                .push(statement);
-        }
-        by_year
+        self.yearly_closings()
             .into_iter()
-            .rev()
-            .map(|(year, statements)| self.year_total(year, &statements))
+            .map(|(year, statement_count, closing_balance)| {
+                let statements = self.records_in_year(year);
+                InvestmentYearlyTotal {
+                    year,
+                    closing_balance,
+                    net_deposits: Money::saturating_sum(
+                        statements.iter().map(|s| s.net_deposits.value()),
+                    ),
+                    capital_growth: Money::saturating_sum(
+                        statements.iter().map(|s| self.capital_growth(s)),
+                    ),
+                    statement_count,
+                }
+            })
             .collect()
-    }
-
-    fn year_total(&self, year: i32, statements: &[&InvestmentStatement]) -> InvestmentYearlyTotal {
-        let mut latest: HashMap<InvestmentAccountId, &InvestmentStatement> = HashMap::new();
-        let mut net_deposits = zero();
-        let mut capital_growth = zero();
-        for statement in statements {
-            net_deposits += statement.net_deposits.value();
-            capital_growth += self.capital_growth(statement);
-            let newest = latest.entry(statement.account_id).or_insert(statement);
-            if statement.period.sort_key() > newest.period.sort_key() {
-                *newest = statement;
-            }
-        }
-        let closing_balance = latest
-            .values()
-            .fold(zero(), |sum, statement| sum + statement.balance.value());
-        InvestmentYearlyTotal {
-            year,
-            closing_balance,
-            net_deposits,
-            capital_growth,
-            statement_count: statements.len(),
-        }
     }
 }

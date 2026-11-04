@@ -1,10 +1,11 @@
 //! The yearly series behind the Houses Insights chart (CSD-016).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 
-use crate::domain::income::YearMonth;
-use crate::domain::money::zero;
+use crate::domain::charts::{Axis, ChartYear, Marker, Piece};
+use crate::domain::common::{ColourSlot, YearMonth};
+use crate::domain::series::SeriesData;
 
 use super::{HouseId, Houses};
 
@@ -13,88 +14,97 @@ use super::{HouseId, Houses};
 pub struct InsightsHouse {
     pub id: HouseId,
     pub name: String,
-    pub colour_slot: u8,
+    pub colour_slot: ColourSlot,
 }
 
 /// The part of a year's bar that belongs to one house (CSD-016 REQ-5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct InsightsSegment {
     pub house_id: HouseId,
-    pub value: Decimal,
+    pub value: Money,
 }
 
 /// One year of the insights chart (CSD-016 REQ-2).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HouseInsightsYear {
     pub year: i32,
-    pub closing_value: Decimal,
-    pub change: Option<Decimal>,
+    pub closing_value: Money,
+    pub change: Option<Money>,
     pub valuation_count: usize,
     pub is_partial: bool,
     pub segments: Vec<InsightsSegment>,
+    /// The stacked pieces of the bar (CSD-025 section 5).
+    pub pieces: Vec<Piece>,
+    /// The total value, for a year with valuations.
+    pub marker: Option<Marker>,
+}
+
+impl ChartYear for HouseInsightsYear {
+    fn pieces(&self) -> &[Piece] {
+        &self.pieces
+    }
+
+    fn marker(&self) -> Option<&Marker> {
+        self.marker.as_ref()
+    }
 }
 
 /// The payload of `get_house_insights` (CSD-016 section 5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HouseInsights {
+    /// The houses shown in the chart.
     pub houses: Vec<InsightsHouse>,
+    /// The axis of the chart (CSD-025 REQ-3).
+    pub axis: Axis,
+    /// The years of the chart, one entry per year.
     pub years: Vec<HouseInsightsYear>,
 }
 
 impl Houses {
     /// One figure set per calendar year from the first valuation up to and
-    /// including the current year, oldest first, and the houses that have a
-    /// segment in them, in creation order (CSD-016). Years without valuations
-    /// are zero and have no segments. The current year is partial. Valuations
-    /// after the current year, which only a project file can contain, are not
-    /// shown.
+    /// including the later of the current year and the latest valuation, at
+    /// most 50 years back from it, oldest first, and the houses that have a
+    /// segment in them, in creation order (CSD-016 REQ-2). An older valuation
+    /// has no slot but still counts in the yearly values. Years without
+    /// valuations are zero and have no segments. The current year is partial; a
+    /// year after it is not.
     #[must_use]
     pub fn insights(&self, today: YearMonth) -> HouseInsights {
-        let counts = self.counted_valuations_per_year();
-        let Some(&first) = counts.keys().next() else {
-            return HouseInsights {
-                houses: Vec::new(),
-                years: Vec::new(),
-            };
-        };
-        let years: Vec<HouseInsightsYear> = (first..=today.year())
-            .map(|year| {
-                let segments: Vec<InsightsSegment> = self
-                    .year_segments(year)
-                    .into_iter()
-                    .map(|(house, value)| InsightsSegment {
-                        house_id: house.id,
-                        value,
-                    })
-                    .collect();
-                HouseInsightsYear {
-                    year,
-                    closing_value: segments
-                        .iter()
-                        .fold(zero(), |sum, segment| sum + segment.value),
-                    change: self.year_change(year),
-                    valuation_count: counts.get(&year).copied().unwrap_or(0),
-                    is_partial: year == today.year(),
-                    segments,
-                }
-            })
-            .collect();
+        let figures = self.year_figures(today);
         let houses = self
-            .houses
-            .iter()
-            .filter(|house| {
-                years.iter().any(|year| {
-                    year.segments
-                        .iter()
-                        .any(|segment| segment.house_id == house.id)
-                })
-            })
+            .legend(&figures)
+            .into_iter()
             .map(|house| InsightsHouse {
                 id: house.id,
                 name: house.name.clone(),
                 colour_slot: house.colour_slot,
             })
             .collect();
-        HouseInsights { houses, years }
+        let years: Vec<HouseInsightsYear> = figures
+            .into_iter()
+            .map(|figure| HouseInsightsYear {
+                year: figure.year,
+                closing_value: figure.closing,
+                change: self.year_change(figure.year),
+                valuation_count: figure.count,
+                is_partial: figure.is_partial,
+                segments: figure
+                    .segments
+                    .iter()
+                    .map(|(house, value)| InsightsSegment {
+                        house_id: house.id,
+                        value: *value,
+                    })
+                    .collect(),
+                pieces: figure.pieces,
+                marker: figure.marker,
+            })
+            .collect();
+        let axis = Axis::of_years(&years);
+        HouseInsights {
+            houses,
+            axis,
+            years,
+        }
     }
 }

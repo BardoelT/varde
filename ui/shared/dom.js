@@ -1,6 +1,10 @@
 // Small DOM helpers shared by every page: element builder, icon buttons, toast
 // and the confirmation dialog.
 import { errorText } from './ipc.js';
+import { fieldForError } from './field-errors.js';
+
+/** The element with the given id. */
+export const $ = (id) => document.getElementById(id);
 
 /** Builds an element. Strings become text nodes, so user data is never parsed as HTML. */
 export function h(tag, attrs = {}, ...children) {
@@ -97,9 +101,104 @@ export function confirmAction({ title, message, confirmLabel, danger = false }) 
   });
 }
 
-/** Shows `error` as safe text in the error box with the given id. */
+/** Removes the `aria-invalid` mark from every field of `form`. */
+function clearInvalid(form) {
+  for (const field of form.querySelectorAll('[aria-invalid]')) field.removeAttribute('aria-invalid');
+}
+
+/** The forms that already clear their invalid marks themselves. */
+const watchedForms = new WeakSet();
+
+/** A field that is edited, a form that is reset or a new submit clears the marks of the last failure. */
+function watchInvalid(form) {
+  if (watchedForms.has(form)) return;
+  watchedForms.add(form);
+  const clearField = (event) => event.target.removeAttribute?.('aria-invalid');
+  form.addEventListener('input', clearField);
+  form.addEventListener('change', clearField);
+  form.addEventListener('reset', () => clearInvalid(form));
+}
+
+/**
+ * Shows `error` as safe text in the error box with the given id (a live region, `role="alert"`).
+ * When the error code is about one field of the form around the box, that field is marked
+ * `aria-invalid` and focused, until the user edits it; otherwise the box itself is focused.
+ */
 export function showError(id, error) {
   const box = document.getElementById(id);
   box.textContent = errorText(error);
   box.hidden = false;
+  const form = box.closest('form');
+  if (!form) return;
+  watchInvalid(form);
+  clearInvalid(form);
+  const field = fieldForError(form, error?.code);
+  if (field) {
+    field.setAttribute('aria-invalid', 'true');
+    field.focus();
+  } else {
+    box.tabIndex = -1;
+    box.focus();
+  }
+}
+
+/**
+ * Shows or hides a conditional hint. A hint names the fields it describes in `data-describes`
+ * (field names, space separated); while it is shown it is part of their `aria-describedby`.
+ * A hidden hint must not be read out, although `aria-describedby` still reaches hidden text.
+ */
+export function setHint(id, visible) {
+  const hint = document.getElementById(id);
+  hint.hidden = !visible;
+  const form = hint.closest('form');
+  for (const name of (hint.dataset.describes ?? '').split(' ').filter(Boolean)) {
+    const field = form?.elements[name];
+    if (!field) continue;
+    const ids = new Set((field.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean));
+    if (visible) ids.add(id);
+    else ids.delete(id);
+    if (ids.size) field.setAttribute('aria-describedby', [...ids].join(' '));
+    else field.removeAttribute('aria-describedby');
+  }
+}
+
+/**
+ * Runs `handler(event)` when `form` is submitted, one submit at a time. While the handler is
+ * pending the submit buttons are disabled and a second submit (a double Enter or click) is
+ * ignored, so one action never creates two records. Both are undone when the handler ends,
+ * also when it throws.
+ */
+export function submitOnce(form, handler) {
+  let busy = false;
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (busy) return;
+    busy = true;
+    clearInvalid(form);
+    const buttons = [...form.querySelectorAll('[type="submit"]')];
+    buttons.forEach((button) => {
+      button.disabled = true;
+    });
+    try {
+      await handler(event);
+    } finally {
+      busy = false;
+      buttons.forEach((button) => {
+        button.disabled = false;
+      });
+    }
+  });
+}
+
+/**
+ * Reloads what a saved change touched. The change itself is saved and its dialog is closed by
+ * then, so a failing reload goes to the toast, where the user sees it, and not into the closed
+ * dialog's error box.
+ */
+export async function reloadAfterSave(reload) {
+  try {
+    await reload();
+  } catch (error) {
+    showToast(errorText(error));
+  }
 }

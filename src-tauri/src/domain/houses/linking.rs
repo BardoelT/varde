@@ -1,21 +1,21 @@
 //! Linking debts to a house, in the debt form, and settling them when the
-//! house is sold (CSD-020).
+//! house is sold (CSD-020, CSD-026).
 //!
 //! A house and its debts live in two places of the project, so the operations
-//! work on both and change them together or not at all (CSD-020 CON-2).
+//! work on both and change them together or not at all (CSD-026 CON-5).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::{Deserialize, Serialize};
-use time::Date;
 
 use crate::domain::debts::{
-    Category, Debt, DebtId, DebtInput, DebtSummary, Debts, OpenDebt, Outcome, Settlement,
+    Debt, DebtCategory, DebtId, DebtInput, DebtSummary, Debts, OpenDebt, Outcome, Settlement,
 };
 use crate::domain::error::DomainError;
+use crate::domain::series::SeriesData;
 
 use super::{House, HouseDate, HouseId, HouseInput, HouseSummary, Houses};
 
-/// The debt side of the Add and Edit house forms (CSD-020 REQ-3, REQ-6).
+/// The debt side of the Add and Edit house forms (CSD-026 REQ-1, REQ-4).
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct DebtLinksInput {
     /// The Repaid or Cancelled choice per debt with an open balance.
@@ -29,6 +29,7 @@ pub struct DebtLinksInput {
 /// One choice of the settlement prompt.
 #[derive(Clone, Debug, Deserialize)]
 pub struct SettlementChoice {
+    /// Identifier of the debt, as sent by the frontend and checked before use.
     pub debt_id: String,
     /// `Repaid` or `Cancelled`.
     pub outcome: String,
@@ -56,7 +57,7 @@ impl DebtLinksInput {
 }
 
 /// Creates a house (CSD-015 REQ-1). It has no linked debts yet, so a sale
-/// given at creation settles nothing (CSD-020 REQ-3).
+/// given at creation settles nothing (CSD-026 REQ-1).
 ///
 /// # Errors
 /// Returns the errors of `Houses::create_house` and of the link and
@@ -66,12 +67,11 @@ pub fn create_house(
     debts: &mut Debts,
     input: &HouseInput,
     links: &DebtLinksInput,
-    today: Date,
 ) -> Result<House, DomainError> {
     let parsed = links.parse()?;
     let mut new_houses = houses.clone();
     let mut new_debts = debts.clone();
-    let house = new_houses.create_house(input, today)?;
+    let house = new_houses.create_house(input)?;
     apply(&mut new_debts, None, &house, &parsed)?;
     *houses = new_houses;
     *debts = new_debts;
@@ -79,7 +79,7 @@ pub fn create_house(
 }
 
 /// Changes a house and its linked debts together: the settlement of a new
-/// sale, and the undo of a sale (CSD-020 REQ-3 to REQ-7).
+/// sale, and the undo of a sale (CSD-026 REQ-1 to REQ-5).
 ///
 /// # Errors
 /// Returns the errors of `Houses::update_house` and of the link and settlement
@@ -90,25 +90,24 @@ pub fn update_house(
     id: HouseId,
     input: &HouseInput,
     links: &DebtLinksInput,
-    today: Date,
 ) -> Result<House, DomainError> {
     let parsed = links.parse()?;
     let mut new_houses = houses.clone();
     let mut new_debts = debts.clone();
-    let old = new_houses.house(id)?.clone();
-    let house = new_houses.update_house(id, input, today)?;
+    let old = new_houses.account(id)?.clone();
+    let house = new_houses.update_house(id, input)?;
     apply(&mut new_debts, Some(&old), &house, &parsed)?;
     *houses = new_houses;
     *debts = new_debts;
     Ok(house)
 }
 
-/// Deletes a house unless debts are linked to it (CSD-020 REQ-9).
+/// Deletes a house unless debts are linked to it (CSD-026 REQ-7).
 ///
 /// # Errors
 /// Returns `HouseNotFound` or `HouseHasLinkedDebts`.
 pub fn delete_house(houses: &mut Houses, debts: &Debts, id: HouseId) -> Result<(), DomainError> {
-    houses.house(id)?;
+    houses.account(id)?;
     if !debts.linked_to(id).is_empty() {
         return Err(DomainError::HouseHasLinkedDebts);
     }
@@ -116,7 +115,7 @@ pub fn delete_house(houses: &mut Houses, debts: &Debts, id: HouseId) -> Result<(
 }
 
 /// The debts linked to `house_id` with an open balance at a sale on
-/// `sell_date`, for the settlement prompt (CSD-020 REQ-15).
+/// `sell_date`, for the settlement prompt (CSD-026 REQ-13).
 ///
 /// # Errors
 /// Returns a date error of CSD-019.
@@ -124,15 +123,15 @@ pub fn open_debts(
     debts: &Debts,
     house_id: HouseId,
     sell_date: &str,
-    today: Date,
 ) -> Result<Vec<OpenDebt>, DomainError> {
-    let date = HouseDate::parse(sell_date.trim(), today)?;
+    let date = HouseDate::parse(sell_date.trim())?;
     debts.open_debts(&debts.linked_to(house_id), date)
 }
 
 /// The debt form fields CSD-020 adds to those of CSD-011 (REQ-1).
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct DebtFormInput {
+    /// The debt fields.
     #[serde(flatten)]
     pub debt: DebtInput,
     /// `Mortgage`, `Loan` or `Other`; `Other` on create and unchanged on an
@@ -148,8 +147,8 @@ pub struct DebtFormInput {
     pub settlement: Option<String>,
 }
 
-/// Creates a debt with its category and optional house (CSD-020 REQ-1,
-/// REQ-2).
+/// Creates a debt with its category and optional house (CSD-020 REQ-15,
+/// REQ-16).
 ///
 /// # Errors
 /// Returns the errors of `Debts::create_debt` and the category and link rules;
@@ -166,8 +165,8 @@ pub fn create_debt(
     debts.get(id).cloned().ok_or(DomainError::DebtNotFound)
 }
 
-/// Changes a debt with its category and optional house (CSD-020 REQ-1,
-/// REQ-2, REQ-8).
+/// Changes a debt with its category and optional house (CSD-020 REQ-15,
+/// REQ-16, CSD-026 REQ-6).
 ///
 /// # Errors
 /// Returns the errors of `Debts::update_debt` and the category and link rules;
@@ -192,8 +191,8 @@ fn apply_category_and_link(
     input: &DebtFormInput,
 ) -> Result<(), DomainError> {
     let category = match input.category.as_deref().map(str::trim) {
-        Some(text) if !text.is_empty() => Category::parse(text)?,
-        _ => debts.get(id).map(|debt| debt.category).unwrap_or_default(),
+        Some(text) if !text.is_empty() => DebtCategory::parse(text)?,
+        _ => debts.get(id).map(Debt::category).unwrap_or_default(),
     };
     let wanted = match input.house_id.as_deref().map(str::trim) {
         Some(text) if !text.is_empty() => Some(HouseId::parse(text)?),
@@ -231,8 +230,8 @@ fn apply_category_and_link(
     };
     let house = houses.get(house_id).ok_or(DomainError::HouseNotFound)?;
     debts.set_house(id, Some(house_id))?;
-    match house.sell_date {
-        Some(date) => settle_on_link(debts, id, house, date, outcome),
+    match house.sale {
+        Some(sale) => settle_on_link(debts, id, house, sale.date, outcome),
         None if outcome.is_some() => Err(DomainError::HouseSettlementInvalid),
         None => Ok(()),
     }
@@ -248,7 +247,7 @@ fn settle_on_link(
     outcome: Option<Outcome>,
 ) -> Result<(), DomainError> {
     match (debts.open_balance(id, date)?, outcome) {
-        (Some(_), Some(outcome)) => debts.settle(id, outcome, &house.name, date),
+        (Some(_), Some(outcome)) => debts.settle(id, outcome, house),
         (Some(_), None) => Err(DomainError::HouseSettlementRequired),
         (None, Some(_)) => Err(DomainError::HouseSettlementInvalid),
         (None, None) => Ok(()),
@@ -257,7 +256,7 @@ fn settle_on_link(
 
 /// The open balance of a debt at the sell date of the sold house it would be
 /// linked to, `None` for a held house or without an open balance, for the
-/// settlement prompt (CSD-020 REQ-15, REQ-17).
+/// settlement prompt (CSD-026 REQ-13, CSD-020 REQ-17).
 ///
 /// # Errors
 /// Returns `DebtNotFound` or `HouseNotFound`.
@@ -269,14 +268,16 @@ pub fn debt_open_balance(
 ) -> Result<Option<OpenDebt>, DomainError> {
     let house = houses.get(house_id).ok_or(DomainError::HouseNotFound)?;
     let debt = debts.get(debt_id).ok_or(DomainError::DebtNotFound)?;
-    let Some(date) = house.sell_date else {
+    let Some(sale) = house.sale else {
         return Ok(None);
     };
-    Ok(debts.open_balance(debt_id, date)?.map(|amount| OpenDebt {
-        debt_id,
-        debt_name: debt.name.clone(),
-        amount,
-    }))
+    Ok(debts
+        .open_balance(debt_id, sale.date)?
+        .map(|amount| OpenDebt {
+            debt_id,
+            debt_name: debt.name.clone(),
+            amount,
+        }))
 }
 
 /// Applies the debt side of a saved house. `old` is the house before the save,
@@ -295,7 +296,9 @@ fn apply(
         .filter(|id| debts.is_settled(*id))
         .collect();
     if was_sold && !house.is_held() {
-        if old.is_some_and(|old| old.sell_date != house.sell_date) && !settled.is_empty() {
+        if old.is_some_and(|old| old.sale.map(|sale| sale.date) != house.sale.map(|sale| sale.date))
+            && !settled.is_empty()
+        {
             return Err(DomainError::HouseSellDateLocked);
         }
         if !parsed.settlements.is_empty() {
@@ -311,8 +314,8 @@ fn apply(
             debts.unsettle(id)?;
         }
     }
-    match house.sell_date {
-        Some(date) => settle_all(debts, house, date, &parsed.settlements),
+    match house.sale {
+        Some(sale) => settle_all(debts, house, sale.date, &parsed.settlements),
         None if parsed.settlements.is_empty() => Ok(()),
         None => Err(DomainError::HouseSettlementInvalid),
     }
@@ -336,50 +339,63 @@ fn settle_all(
             .iter()
             .find(|(id, _)| *id == debt.debt_id)
             .ok_or(DomainError::HouseSettlementRequired)?;
-        debts.settle(debt.debt_id, *outcome, &house.name, date)?;
+        debts.settle(debt.debt_id, *outcome, house)?;
     }
     Ok(())
 }
 
-/// A debt linked to a house, as the Houses view shows it (CSD-020 REQ-13).
+/// A debt linked to a house, as the Houses view shows it (CSD-026 REQ-12).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct LinkedDebt {
+    /// Identifier of the debt.
     pub debt_id: DebtId,
+    /// Name of the debt.
     pub debt_name: String,
-    pub category: Category,
-    pub latest_balance: Option<Decimal>,
+    /// The debt category.
+    pub category: DebtCategory,
+    /// The latest balance, `None` without statements.
+    pub latest_balance: Option<Money>,
+    /// How the debt was settled, `None` while it is open.
     pub settlement: Option<Settlement>,
 }
 
 /// A house row with its linked debts.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HouseRow {
+    /// The summary the row extends.
     #[serde(flatten)]
     pub summary: HouseSummary,
+    /// The debts linked to the house.
     pub linked_debts: Vec<LinkedDebt>,
 }
 
 /// The houses overview with the linked debts of each house.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HousesView {
+    /// The houses of the overview.
     pub houses: Vec<HouseRow>,
-    pub total: Option<Decimal>,
+    /// The total of the latest values, `None` when there is nothing to total.
+    pub total: Option<Money>,
 }
 
 /// A debt row with the name of its house, as the Debts view shows it
-/// (CSD-020 REQ-14).
+/// (CSD-020 REQ-30).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtRow {
+    /// The summary the row extends.
     #[serde(flatten)]
     pub summary: DebtSummary,
+    /// Name of the linked house, `None` when the debt is not linked.
     pub house_name: Option<String>,
 }
 
 /// The debts overview with the house of each debt.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtsView {
+    /// The debts of the overview.
     pub debts: Vec<DebtRow>,
-    pub total: Option<Decimal>,
+    /// The total of the latest values, `None` when there is nothing to total.
+    pub total: Option<Money>,
 }
 
 /// The houses overview (CSD-015 REQ-17) with the debts linked to each house.
@@ -393,13 +409,13 @@ pub fn houses_view(houses: &Houses, debts: &Debts) -> HousesView {
         .map(|summary| {
             let linked_debts = summaries
                 .iter()
-                .filter(|row| row.debt.house_id == Some(summary.house.id))
+                .filter(|row| row.debt.house_id() == Some(summary.house.id))
                 .map(|row| LinkedDebt {
                     debt_id: row.debt.id,
                     debt_name: row.debt.name.clone(),
-                    category: row.debt.category,
+                    category: row.debt.category(),
                     latest_balance: row.latest_balance,
-                    settlement: row.debt.settlement.clone(),
+                    settlement: row.debt.settlement().cloned(),
                 })
                 .collect();
             HouseRow {
@@ -424,7 +440,7 @@ pub fn debts_view(debts: &Debts, houses: &Houses) -> DebtsView {
         .map(|summary| {
             let house_name = summary
                 .debt
-                .house_id
+                .house_id()
                 .and_then(|id| houses.get(id))
                 .map(|house| house.name.clone());
             DebtRow {

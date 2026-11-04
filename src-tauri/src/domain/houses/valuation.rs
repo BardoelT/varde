@@ -1,22 +1,56 @@
 //! One valuation of a house, its change, and the form values for "copy previous" (CSD-015 REQ-7, REQ-15, REQ-19).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::{Deserialize, Serialize};
 
+use crate::domain::common::{Note, Period};
 use crate::domain::error::DomainError;
-use crate::domain::investments::{Note, Period};
 
-use super::{HouseId, HouseValue, Houses};
+use crate::domain::series::{self, SeriesData, SeriesRecord};
+
+use super::{house_note, HouseId, HouseValue, Houses};
 
 /// The record of one house for one period (CSD-015 REQ-7).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct HouseValuation {
-    #[serde(alias = "asset_id")]
+    /// Identifier of the house the valuation belongs to.
     pub house_id: HouseId,
+    /// The month or year the valuation is for.
     pub period: Period,
+    /// Value at the end of the period.
     pub value: HouseValue,
-    #[serde(default)]
+    /// Free-text note, possibly empty.
     pub note: Note,
+}
+
+impl SeriesRecord for HouseValuation {
+    type AccountId = HouseId;
+    type Order = (i32, u8);
+
+    fn account_id(&self) -> HouseId {
+        self.house_id
+    }
+
+    fn period(&self) -> Period {
+        self.period
+    }
+
+    fn set_period(&mut self, period: Period) {
+        self.period = period;
+    }
+
+    fn order_key(&self) -> (i32, u8) {
+        self.period.sort_key()
+    }
+
+    fn amount(&self) -> Money {
+        self.value.value()
+    }
+
+    fn is_valid(&self) -> bool {
+        HouseValue::new(self.value.value()).is_ok() && house_note(self.note.as_str()).is_ok()
+    }
 }
 
 /// Parses `YYYY-MM` or `YYYY` typed by the user (CSD-015 REQ-7).
@@ -24,14 +58,15 @@ pub struct HouseValuation {
 /// # Errors
 /// Returns `HouseValuationPeriodInvalid` for any other text.
 pub fn parse_period(text: &str) -> Result<Period, DomainError> {
-    Period::parse(text).map_err(|_| DomainError::HouseValuationPeriodInvalid)
+    series::parse_period(text, DomainError::HouseValuationPeriodInvalid)
 }
 
 /// Form values for "copy previous month" or "copy previous year" (CSD-015
 /// REQ-15): the note is never copied.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-pub struct ValuationPrefill {
-    pub value: Option<Decimal>,
+pub struct HouseValuationPrefill {
+    /// Value to prefill, `None` when there is nothing to copy.
+    pub value: Option<Money>,
 }
 
 impl Houses {
@@ -40,10 +75,9 @@ impl Houses {
     ///
     /// # Errors
     /// Returns `HouseNotFound`.
-    pub fn prefill_from_latest(&self, id: HouseId) -> Result<ValuationPrefill, DomainError> {
-        self.house(id)?;
-        Ok(ValuationPrefill {
-            value: self.latest(id).map(|valuation| valuation.value.value()),
+    pub fn prefill_from_latest(&self, id: HouseId) -> Result<HouseValuationPrefill, DomainError> {
+        Ok(HouseValuationPrefill {
+            value: self.latest_amount(id)?,
         })
     }
 
@@ -51,14 +85,12 @@ impl Houses {
     /// valuation of the house, or `None` for a first valuation (REQ-19). Derived
     /// each time, never stored.
     #[must_use]
-    pub fn change(&self, valuation: &HouseValuation) -> Option<Decimal> {
-        self.valuations
-            .iter()
-            .filter(|s| {
-                s.house_id == valuation.house_id
-                    && s.period.sort_key() < valuation.period.sort_key()
-            })
-            .max_by_key(|s| s.period.sort_key())
-            .map(|previous| valuation.value.value() - previous.value.value())
+    pub fn change(&self, valuation: &HouseValuation) -> Option<Money> {
+        self.previous_record(valuation).map(|previous| {
+            valuation
+                .value
+                .value()
+                .saturating_sub(previous.value.value())
+        })
     }
 }

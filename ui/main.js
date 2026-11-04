@@ -26,6 +26,18 @@ async function refreshStatusAndSettings() {
   await reloadSettings();
 }
 
+/** Runs every reload at once and waits for all of them. Resolves to the failures, so one failing page stops no other. */
+async function reloadAll(reloads) {
+  const results = await Promise.allSettled(reloads.map((reload) => reload()));
+  return results.filter((result) => result.status === 'rejected').map((result) => result.reason);
+}
+
+/** Shows what failed in the toast, each safe message once. A failing page never stops the others. */
+async function reportFailures(failures) {
+  const messages = [...new Set((await failures).map((error) => errorText(error)))];
+  if (messages.length > 0) showToast(messages.join(' '));
+}
+
 async function start() {
   // The texts of the page are noted before any project data is written into it (CSD-022 CON-3).
   collectStaticTexts();
@@ -68,7 +80,7 @@ async function start() {
   });
   initDebtsInsights();
   // Debt statements count for the currency confirmation of the settings page (CSD-011 REQ-24).
-  // A debt's category and house show in the Houses overview and its Edit form (CSD-020 REQ-13).
+  // A debt's category and house show in the Houses overview and its Edit form (CSD-026 REQ-12).
   initDebtsOverview({
     onChanged: async () => {
       await refreshStatusAndSettings();
@@ -77,7 +89,7 @@ async function start() {
   });
   initHousesInsights();
   // House valuations count for the currency confirmation of the settings page (CSD-015 REQ-25).
-  // A sale or its undo settles or unsettles the linked debts, so the Debts overview follows (CSD-020 REQ-5, REQ-6).
+  // A sale or its undo settles or unsettles the linked debts, so the Debts overview follows (CSD-026 REQ-3, REQ-4).
   initHousesOverview({
     onChanged: async () => {
       await refreshStatusAndSettings();
@@ -97,24 +109,27 @@ async function start() {
     },
   });
   // Everything is drawn again after a project replaced the data, and after a language change (CSD-022 REQ-3).
-  const reloadEverything = async () => {
-    await reloadSettings();
-    await reloadIncomeOverview();
-    await reloadIncomeInsightsIfOpen();
-    await reloadInvestmentsOverview();
-    await reloadInvestmentsInsightsIfOpen();
-    await reloadBankOverview();
-    await reloadBankInsightsIfOpen();
-    await reloadDebtsOverview();
-    await reloadDebtsInsightsIfOpen();
-    await reloadHousesOverview();
-    await reloadHousesInsightsIfOpen();
-    await reloadExpensesOverview();
-    await reloadExpensesInsightsIfOpen();
-    await reloadNetWorthIfOpen();
-    await reloadRatiosIfOpen();
-    await reloadDashboard();
-  };
+  const reloadEverything = () =>
+    reportFailures(
+      reloadAll([
+        reloadSettings,
+        reloadIncomeOverview,
+        reloadIncomeInsightsIfOpen,
+        reloadInvestmentsOverview,
+        reloadInvestmentsInsightsIfOpen,
+        reloadBankOverview,
+        reloadBankInsightsIfOpen,
+        reloadDebtsOverview,
+        reloadDebtsInsightsIfOpen,
+        reloadHousesOverview,
+        reloadHousesInsightsIfOpen,
+        reloadExpensesOverview,
+        reloadExpensesInsightsIfOpen,
+        reloadNetWorthIfOpen,
+        reloadRatiosIfOpen,
+        reloadDashboard,
+      ]),
+    );
   await initProject({ onReplaced: reloadEverything });
   onLanguageChange(async () => {
     await refreshProjectStatus();
@@ -133,14 +148,18 @@ async function start() {
     .querySelector('[data-section="dashboard"]')
     .addEventListener('click', () => reloadDashboard().catch((e) => showToast(errorText(e))));
 
-  await reloadSettings();
-  await reloadIncomeOverview();
-  await reloadInvestmentsOverview();
-  await reloadBankOverview();
-  await reloadDebtsOverview();
-  await reloadHousesOverview();
-  await reloadExpensesOverview();
-  await reloadDashboard();
+  await reportFailures(
+    reloadAll([
+      reloadSettings,
+      reloadIncomeOverview,
+      reloadInvestmentsOverview,
+      reloadBankOverview,
+      reloadDebtsOverview,
+      reloadHousesOverview,
+      reloadExpensesOverview,
+      reloadDashboard,
+    ]),
+  );
 }
 
 start().catch((error) => showToast(errorText(error)));

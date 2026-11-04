@@ -3,11 +3,12 @@
     reason = "Tauri commands receive their arguments by value"
 )]
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use super::AppState;
+use crate::domain::charts::Axis;
 use crate::domain::{
     Amounts, Entry, Income, IncomeInsightsYear, IncomeYearlyTotal, Job, JobId, JobInput,
     PaycheckPrefill, Year, YearMonth,
@@ -41,10 +42,10 @@ pub struct EntryView {
     kind: &'static str,
     /// `YYYY-MM` for a paycheck, `YYYY` for an annual statement.
     period: String,
-    gross_salary: Decimal,
-    holiday_pay: Decimal,
-    bonus: Decimal,
-    total_gross: Decimal,
+    gross_salary: Money,
+    holiday_pay: Money,
+    bonus: Money,
+    total_gross: Money,
 }
 
 impl EntryView {
@@ -150,14 +151,11 @@ pub fn add_paycheck(
     month: String,
     amounts: AmountsInput,
 ) -> Result<EntryView, AppError> {
-    let today = state.today();
     let job_id = JobId::parse(&job_id)?;
     let month = YearMonth::parse(&month)?;
     let amounts = amounts.parse()?;
     let mut project = state.project()?;
-    let paycheck = project
-        .income_mut()
-        .add_paycheck(job_id, month, amounts, today)?;
+    let paycheck = project.income_mut().add_paycheck(job_id, month, amounts)?;
     EntryView::of(project.income(), Entry::Paycheck(&paycheck))
 }
 
@@ -168,14 +166,11 @@ pub fn add_statement(
     year: String,
     amounts: AmountsInput,
 ) -> Result<EntryView, AppError> {
-    let today = state.today();
     let job_id = JobId::parse(&job_id)?;
     let year = Year::parse(&year)?;
     let amounts = amounts.parse()?;
     let mut project = state.project()?;
-    let statement = project
-        .income_mut()
-        .add_statement(job_id, year, amounts, today)?;
+    let statement = project.income_mut().add_statement(job_id, year, amounts)?;
     EntryView::of(project.income(), Entry::AnnualStatement(&statement))
 }
 
@@ -187,7 +182,6 @@ pub fn update_paycheck(
     new_month: String,
     amounts: AmountsInput,
 ) -> Result<EntryView, AppError> {
-    let today = state.today();
     let job_id = JobId::parse(&job_id)?;
     let month = YearMonth::parse(&month)?;
     let new_month = YearMonth::parse(&new_month)?;
@@ -195,7 +189,7 @@ pub fn update_paycheck(
     let mut project = state.project()?;
     let paycheck = project
         .income_mut()
-        .update_paycheck(job_id, month, new_month, amounts, today)?;
+        .update_paycheck(job_id, month, new_month, amounts)?;
     EntryView::of(project.income(), Entry::Paycheck(&paycheck))
 }
 
@@ -207,7 +201,6 @@ pub fn update_statement(
     new_year: String,
     amounts: AmountsInput,
 ) -> Result<EntryView, AppError> {
-    let today = state.today();
     let job_id = JobId::parse(&job_id)?;
     let year = Year::parse(&year)?;
     let new_year = Year::parse(&new_year)?;
@@ -215,7 +208,7 @@ pub fn update_statement(
     let mut project = state.project()?;
     let statement = project
         .income_mut()
-        .update_statement(job_id, year, new_year, amounts, today)?;
+        .update_statement(job_id, year, new_year, amounts)?;
     EntryView::of(project.income(), Entry::AnnualStatement(&statement))
 }
 
@@ -270,13 +263,17 @@ pub fn yearly_totals(state: State<'_, AppState>) -> Result<Vec<IncomeYearlyTotal
 pub fn get_income_insights(state: State<'_, AppState>) -> Result<IncomeInsights, AppError> {
     let today = state.today();
     let project = state.project()?;
+    let years = project.income().insights(today);
     Ok(IncomeInsights {
-        years: project.income().insights(today),
+        axis: Axis::of_years(&years),
+        years,
     })
 }
 
 /// Payload of `get_income_insights` (CSD-006 section 5).
 #[derive(Serialize)]
 pub struct IncomeInsights {
+    /// The axis of the chart (CSD-025 REQ-3).
+    axis: Axis,
     years: Vec<IncomeInsightsYear>,
 }

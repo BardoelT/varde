@@ -4,14 +4,16 @@ use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use super::{PayPeriod, Year, YearMonth};
 use crate::domain::error::DomainError;
-use crate::domain::income::{PayPeriod, Year, YearMonth};
 
 /// The period of one statement: a calendar month (`YYYY-MM`) or a calendar
 /// year (`YYYY`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Period {
+    /// A calendar month.
     Month(YearMonth),
+    /// A calendar year.
     Year(Year),
 }
 
@@ -49,14 +51,6 @@ impl Period {
         match self {
             Self::Month(month) => (month.year(), month.month()),
             Self::Year(year) => (year.value(), 12),
-        }
-    }
-
-    /// Whether the period starts after the current month `today` (REQ-6).
-    pub(crate) fn is_after(self, today: YearMonth) -> bool {
-        match self {
-            Self::Month(month) => month > today,
-            Self::Year(year) => year.value() > today.year(),
         }
     }
 }

@@ -5,7 +5,7 @@ If you (Claude) make the same mistake twice, propose an addition here.
 
 ## Project
 
-Personal wealth tracking desktop app: accounts, assets, transactions and net-worth over time.
+Personal wealth tracking desktop app: bank accounts, houses, investments, debts, expenses, income and net worth over time. There is no transaction model: individual stocks, prices and trades are out of scope.
 
 - **Stack:** Rust + Tauri v2. Frontend: vanilla HTML + CSS + JS (no framework, no build step) in `ui/`, Rust backend in `src-tauri/`.
 - **Platform:** macOS only (Apple Silicon + Intel). Do not add Windows/Linux code paths or CI targets unless asked.
@@ -22,11 +22,14 @@ cargo clippy --all-targets --all-features -- -D warnings   # lint (must be clean
 cargo test --all-features                # all tests
 cargo test <name>                        # single test
 cargo deny check                         # licenses, advisories, banned crates
+npm ci                                   # once: installs jsdom (tests-only dev dependency)
+npm test                                 # DOM tests of ui/ (node:test + jsdom, Node 26)
+GOLDEN_UPDATE=1 cargo test golden        # rewrite src-tauri/golden/ after a deliberate behaviour change; review the diff
 ```
 
-No npm / frontend build step — `ui/` is served as-is by Tauri.
+The app has no frontend build step and no runtime npm dependency — `ui/` is served as-is by Tauri. `jsdom` is the one tests-only dev dependency (CSD-021 CON-5): exact-pinned in `package.json`, installed from `package-lock.json`, never bundled. Use only `node:test` and `node:assert` besides it.
 
-Before saying a task is done: fmt, clippy, and tests must all pass.
+Before saying a task is done: fmt, clippy and the cargo tests must pass, and `npm test` too when `ui/` changed.
 
 ## Layout
 
@@ -35,24 +38,28 @@ ui/                   # frontend (UI only — HTML + CSS + JS, no business logic
   index.html
   main.js             # entry point: wires the pages and reloads them
   navigation.js       # left-pane navigation
-  pages/              # one file per page or view, named <page>-<view>.js
-  shared/             # helpers pages share: ipc, dom, format, date-mask, chart, yearly-chart, tabs
+  pages/              # one file per page: <page>-overview.js and <page>-insights.js for pages with two tabs, <page>.js for the rest (dashboard, net-worth, ratios, settings, project)
+  shared/             # helpers pages share: ipc, dom, crud, list-rows, record-form, insights-page, format, i18n, settle, date-mask, chart, yearly-chart, tabs
+  locales/            # Dutch texts (nl*.js); the English text in the code is the key (CSD-022)
   styles/             # CSS by area: base, layout, components, pages, charts
+  tests/              # DOM tests (node:test + jsdom) and their harness; not part of the app
 src-tauri/
   src/main.rs         # thin entry point
   src/lib.rs          # app setup, command registration
   src/commands/       # #[tauri::command] handlers: validate input, call domain, map errors
-  src/domain/         # pure business logic (money, income, investments): no Tauri, no IO
-  src/storage/        # project file persistence (JSON, atomic write)
+  src/domain/         # pure business logic: no Tauri, no IO. Areas: income, expenses, bank_accounts, investments, houses, debts, net_worth, ratios; shared: common, series, charts, money, preferences, settings
+  src/storage/        # project file persistence (JSON, atomic write), last project, preferences (theme, language)
+  src/menu.rs         # native macOS menu bar
   src/error.rs        # app error type
   capabilities/       # Tauri permission files
+  golden/             # golden files for the golden tests (see Testing)
   tauri.conf.json
 docs/
   architecture.md     # how the code is organised and the conventions it follows
   csd/                # capability specifications
 ```
 
-Rule: `domain/` is pure and unit-tested. Commands stay thin. The frontend never computes financial figures; it only displays what Rust returns.
+Rule: `domain/` is pure and unit-tested. Commands stay thin. The frontend never computes financial figures; it only displays what Rust returns. `docs/architecture.md` explains the structure, including the bank accounts area and the series core that bank accounts, investments, debts and houses share (`domain/series`).
 
 ## Rust rules
 
@@ -83,7 +90,7 @@ module_name_repetitions = "allow"
 ### Money and numbers
 - **Never use `f32`/`f64` for money.** Use `rust_decimal::Decimal` (or integer minor units) everywhere: domain, storage, and IPC.
 - Amounts are in the project currency, one per project and a project setting (CSD-003), so amounts are never mixed. Add an explicit conversion before ever allowing a second currency.
-- Rounding is explicit and documented (banker's rounding unless stated otherwise).
+- Rounding is one rule (CSD-000 CON-8): 2 decimals, half-up (the midpoint rounds away from zero), for amounts and for percentages and ratios alike; typed amounts with more than 2 decimals are rounded, not rejected, while project file amounts stay strict (CSD-002 REQ-19). `Money` is the amount type; never round anywhere else.
 - Dates: use `time` or `chrono` with explicit time zones; store UTC, display local.
 - Dates the user sees or types are `dd/mm/yyyy` (months `YYYY-MM`), in the UI, in messages and in all docs and CSDs. The project file and IPC use ISO 8601 internally (CSD-000 CON-7).
 
@@ -100,18 +107,19 @@ module_name_repetitions = "allow"
 ### Dependencies
 - Ask before adding a new crate. Prefer well-maintained, widely used crates.
 - Must pass `cargo deny check` (licenses: MIT/Apache-2.0/BSD-compatible).
-- Commit `Cargo.lock`.
+- Commit `Cargo.lock`. The Rust toolchain is pinned in `rust-toolchain.toml` (rustup installs it on first use); `release.yml` pins the same version and its actions to commit SHAs, so change those together. Release-workflow cargo commands use `--locked`.
 
 ## Tauri security
 - **Least privilege capabilities.** Only enable the permissions a feature needs in `src-tauri/capabilities/`. Do not add `shell`, `fs` with broad scopes, or `http` plugins without asking.
-- The CSP in `tauri.conf.json` is currently `null` — set a strict policy before any release build (no `unsafe-eval`, no remote scripts). Load no remote content.
+- `tauri.conf.json` sets a strict CSP: no `unsafe-eval`, no remote scripts, no remote content. `style-src` is `'self'` only, so `ui/` must not use `style=` attributes, `<style>` blocks or `setAttribute('style', ...)`/`cssText` (put styles in `ui/styles/`; `element.style.x = ...` through the CSSOM is fine); a DOM test guards this. CSD-021 covers the release workflow.
 - Treat every `#[tauri::command]` input as untrusted: validate and bound it before use.
 - No network calls at all unless explicitly requested (e.g. a future exchange-rate fetch must be opt-in and documented).
 - Don't use `dangerousDisableAssetCspModification` or similar `dangerous*` options.
 
 ## Privacy and the public repo
 This app handles personal financial data and the repo is public.
-- **Never commit real financial data.** Fixtures and test data must be obviously fake (e.g. "Example Bank", round numbers).
+- **Never commit real financial data.** Never commit `*.varde` or any real project file (`*.varde` is git-ignored). Stage explicit paths, never `git add -A` or `git add .`.
+- Fixtures and test data must be obviously fake (e.g. "Example Bank", round numbers).
 - **No secrets in the repo.** Signing certificates, notarization credentials and API keys live only in GitHub Actions secrets. Never print them in logs.
 - No telemetry, analytics or crash reporting that sends data off the machine.
 - Don't log amounts, account names or balances at `info` level or above.
@@ -120,8 +128,10 @@ This app handles personal financial data and the repo is public.
 ## Testing
 - Unit tests for all `domain/` logic, especially money math, currency handling and edge cases (zero, negative, very large values, rounding).
 - Use property tests (`proptest`) for arithmetic invariants where useful.
+- Golden tests (`golden_tests.rs`) pin the output of every read command and the project file against `src-tauri/golden/`; refactors must not change them. Update only with `GOLDEN_UPDATE=1 cargo test golden` for a deliberate change, and review the diff.
 - Storage tests run against a temporary directory, never real project files.
 - Bug fix = failing test first, then the fix.
+- Display ACs (what the screen shows) are covered by DOM tests in `ui/tests/` (`node:test` + jsdom, a fake Tauri bridge fed with the golden files). Test titles carry the AC id: `test_csd024_ac_3_1_...`. Rust computes every figure, so DOM tests feed canned answers and check only what is displayed.
 - Don't delete or weaken existing tests to make a change pass.
 
 ## Git and PRs

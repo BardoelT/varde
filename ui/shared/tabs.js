@@ -1,9 +1,7 @@
 // Tabs of a page, such as Overview and Insights: one tab selected at a time,
 // arrow keys to move between them, and an optional action when a tab opens.
 import { errorText } from './ipc.js';
-import { showToast } from './dom.js';
-
-const $ = (id) => document.getElementById(id);
+import { $, showToast } from './dom.js';
 
 /**
  * Wires the tabs `[{ tab, panel, onOpen }]`, where `tab` and `panel` are element

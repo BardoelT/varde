@@ -159,7 +159,7 @@ export default {
   'Debts are linked to a house in the Debts page.': 'Schulden koppel je aan een woning op de pagina Schulden.',
   'Save house': 'Woning opslaan',
   'Settle linked debts': 'Gekoppelde schulden afhandelen',
-  'Repaid counts as wealth accumulation from cash, Cancelled does not.': 'Afgelost telt als vermogensopbouw uit geld, Kwijtgescholden niet.',
+  'Repaid counts in full in the wealth accumulation from cash, Cancelled nets to zero.': 'Afgelost telt volledig mee in de vermogensopbouw uit contant geld, Kwijtgescholden telt voor nul.',
   'Back': 'Terug',
   'Save sale': 'Verkoop opslaan',
   'Use a dot for decimals, for example 150000.00. The value is what the house is worth at the end of the period, so it cannot be negative. A note can be up to 2000 characters.': 'Gebruik een punt voor decimalen, bijvoorbeeld 150000.00. De waarde is wat de woning waard is aan het einde van de periode, dus die mag niet negatief zijn. Een notitie mag maximaal 2000 tekens bevatten.',
@@ -182,6 +182,6 @@ export default {
   'Study': 'Studie',
   'Appliances': 'Apparaten',
   'Hobby': 'Hobby',
-  'Use a dot for decimals, for example 4500.00. The amount must be above 0.00, and the date cannot be in the future. A note can be up to 2000 characters.': 'Gebruik een punt voor decimalen, bijvoorbeeld 4500.00. Het bedrag moet hoger zijn dan 0.00 en de datum mag niet in de toekomst liggen. Een notitie mag maximaal 2000 tekens bevatten.',
+  'Use a dot for decimals, for example 4500.00. The amount must be above 0.00. A note can be up to 2000 characters.': 'Gebruik een punt voor decimalen, bijvoorbeeld 4500.00. Het bedrag moet hoger zijn dan 0.00. Een notitie mag maximaal 2000 tekens bevatten.',
   'Save expense': 'Uitgave opslaan',
 };

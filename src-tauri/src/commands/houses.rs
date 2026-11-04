@@ -3,7 +3,7 @@
     reason = "Tauri commands receive their arguments by value"
 )]
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 use tauri::State;
 
@@ -25,10 +25,10 @@ pub struct ValuationView {
     house_name: String,
     /// `YYYY-MM` for a monthly house, `YYYY` for a yearly one.
     period: String,
-    value: Decimal,
+    value: Money,
     /// The previous valuation's value minus this one; `None` for a first
     /// valuation (REQ-19).
-    change: Option<Decimal>,
+    change: Option<Money>,
     note: String,
 }
 
@@ -53,20 +53,18 @@ pub fn list_houses(state: State<'_, AppState>) -> Result<HousesView, AppError> {
 }
 
 /// The linked debts with an open balance at a sale on `sell_date`, for the
-/// settlement prompt (CSD-020 REQ-15).
+/// settlement prompt (CSD-026 REQ-13).
 #[tauri::command]
 pub fn list_open_debts(
     state: State<'_, AppState>,
     house_id: String,
     sell_date: String,
 ) -> Result<Vec<OpenDebt>, AppError> {
-    let today = state.today_date();
     let project = state.project()?;
     Ok(linking::open_debts(
         project.debts(),
         HouseId::parse(&house_id)?,
         &sell_date,
-        today,
     )?)
 }
 
@@ -76,7 +74,6 @@ pub fn create_house(
     input: HouseInput,
     links: Option<DebtLinksInput>,
 ) -> Result<House, AppError> {
-    let today = state.today_date();
     let mut project = state.project()?;
     let (houses, debts) = project.houses_and_debts_mut();
     Ok(linking::create_house(
@@ -84,7 +81,6 @@ pub fn create_house(
         debts,
         &input,
         &links.unwrap_or_default(),
-        today,
     )?)
 }
 
@@ -95,7 +91,6 @@ pub fn update_house(
     input: HouseInput,
     links: Option<DebtLinksInput>,
 ) -> Result<House, AppError> {
-    let today = state.today_date();
     let mut project = state.project()?;
     let (houses, debts) = project.houses_and_debts_mut();
     Ok(linking::update_house(
@@ -104,7 +99,6 @@ pub fn update_house(
         HouseId::parse(&house_id)?,
         &input,
         &links.unwrap_or_default(),
-        today,
     )?)
 }
 
@@ -136,7 +130,6 @@ pub fn add_house_valuation(
     value: String,
     note: Option<String>,
 ) -> Result<ValuationView, AppError> {
-    let today = state.today();
     let house_id = HouseId::parse(&house_id)?;
     let period = parse_period(&period)?;
     let value = HouseValue::parse(&value)?;
@@ -144,7 +137,7 @@ pub fn add_house_valuation(
     let mut project = state.project()?;
     let valuation = project
         .houses_mut()
-        .add_valuation(house_id, period, value, note, today)?;
+        .add_valuation(house_id, period, value, note)?;
     valuation_view(&project, &valuation)
 }
 
@@ -157,7 +150,6 @@ pub fn update_house_valuation(
     value: String,
     note: Option<String>,
 ) -> Result<ValuationView, AppError> {
-    let today = state.today();
     let house_id = HouseId::parse(&house_id)?;
     let period = parse_period(&period)?;
     let new_period = parse_period(&new_period)?;
@@ -166,7 +158,7 @@ pub fn update_house_valuation(
     let mut project = state.project()?;
     let valuation = project
         .houses_mut()
-        .update_valuation(house_id, period, new_period, value, note, today)?;
+        .update_valuation(house_id, period, new_period, value, note)?;
     valuation_view(&project, &valuation)
 }
 

@@ -1,14 +1,11 @@
-use time::macros::date;
-
 use super::*;
-use crate::domain::bank_accounts::{AccountInput as BankInput, BankBalance};
+use crate::domain::bank_accounts::{BankAccountInput as BankInput, BankBalance};
+use crate::domain::common::{Note, Period};
 use crate::domain::debts::{DebtBalance, DebtInput};
 use crate::domain::expenses::ExpenseInput;
 use crate::domain::houses::{HouseInput, HouseValue};
 use crate::domain::income::JobInput;
-use crate::domain::investments::{
-    AccountInput as InvestmentInput, Balance, NetDeposits, Note, Period,
-};
+use crate::domain::investments::{Balance, InvestmentAccountInput as InvestmentInput, NetDeposits};
 use crate::domain::money::Amounts;
 use crate::domain::ProjectData;
 
@@ -16,8 +13,8 @@ fn today() -> YearMonth {
     YearMonth::parse("2026-10").unwrap()
 }
 
-fn dec(text: &str) -> Decimal {
-    text.parse().unwrap()
+fn dec(text: &str) -> Money {
+    Money::parse(text).unwrap()
 }
 
 fn period(text: &str) -> Period {
@@ -32,32 +29,28 @@ fn add_income(data: &mut ProjectData, year: &str, gross: &str) {
             title: None,
             start_date: Some("01/01/2020".to_owned()),
             end_date: None,
-            pay_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
         })
         .unwrap()
         .id;
     data.income
         .add_statement(
             job,
-            crate::domain::income::Year::parse(year).unwrap(),
+            crate::domain::common::Year::parse(year).unwrap(),
             Amounts::parse(gross, "", "").unwrap(),
-            today(),
         )
         .unwrap();
 }
 
 fn add_expense(data: &mut ProjectData, on: &str, amount: &str) {
     data.expenses
-        .add_expense(
-            &ExpenseInput {
-                name: "Example Bike".to_owned(),
-                amount: amount.to_owned(),
-                date: on.to_owned(),
-                category: "Other".to_owned(),
-                note: None,
-            },
-            date!(2026 - 10 - 29),
-        )
+        .add_expense(&ExpenseInput {
+            name: "Example Bike".to_owned(),
+            amount: amount.to_owned(),
+            date: on.to_owned(),
+            category: "Other".to_owned(),
+            note: None,
+        })
         .unwrap();
 }
 
@@ -67,7 +60,7 @@ fn add_bank(data: &mut ProjectData, name: &str, entries: &[(&str, &str)]) {
         .bank_accounts
         .create_account(&BankInput {
             name: name.to_owned(),
-            entry_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
         })
         .unwrap()
         .id;
@@ -78,7 +71,6 @@ fn add_bank(data: &mut ProjectData, name: &str, entries: &[(&str, &str)]) {
                 crate::domain::bank_accounts::parse_period(at).unwrap(),
                 BankBalance::parse(balance).unwrap(),
                 Note::default(),
-                today(),
             )
             .unwrap();
     }
@@ -90,7 +82,7 @@ fn add_investment(data: &mut ProjectData, statements: &[(&str, &str, &str)]) {
         .investments
         .create_account(&InvestmentInput {
             name: "Example Brokerage".to_owned(),
-            statement_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
         })
         .unwrap()
         .id;
@@ -102,7 +94,6 @@ fn add_investment(data: &mut ProjectData, statements: &[(&str, &str, &str)]) {
                 Balance::parse(balance).unwrap(),
                 NetDeposits::parse(deposits).unwrap(),
                 Note::default(),
-                today(),
             )
             .unwrap();
     }
@@ -114,7 +105,7 @@ fn add_debt(data: &mut ProjectData, statements: &[(&str, &str)]) {
         .debts
         .create_debt(&DebtInput {
             name: "Example Loan".to_owned(),
-            statement_period: Some("Yearly".to_owned()),
+            period: Some("Yearly".to_owned()),
         })
         .unwrap()
         .id;
@@ -125,7 +116,6 @@ fn add_debt(data: &mut ProjectData, statements: &[(&str, &str)]) {
                 crate::domain::debts::parse_period(at).unwrap(),
                 DebtBalance::parse(balance).unwrap(),
                 Note::default(),
-                today(),
             )
             .unwrap();
     }
@@ -134,16 +124,13 @@ fn add_debt(data: &mut ProjectData, statements: &[(&str, &str)]) {
 fn add_house(data: &mut ProjectData, at: &str, value: &str) {
     let id = data
         .houses
-        .create_house(
-            &HouseInput {
-                name: "Example House".to_owned(),
-                valuation_period: Some("Yearly".to_owned()),
-                purchase_date: Some("01/01/1900".to_owned()),
-                purchase_amount: Some("0.00".to_owned()),
-                ..HouseInput::default()
-            },
-            time::macros::date!(2026 - 10 - 29),
-        )
+        .create_house(&HouseInput {
+            name: "Example House".to_owned(),
+            period: Some("Yearly".to_owned()),
+            purchase_date: Some("01/01/1900".to_owned()),
+            purchase_amount: Some("0.00".to_owned()),
+            ..HouseInput::default()
+        })
         .unwrap()
         .id;
     data.houses
@@ -152,7 +139,6 @@ fn add_house(data: &mut ProjectData, at: &str, value: &str) {
             crate::domain::houses::parse_period(at).unwrap(),
             HouseValue::parse(value).unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
 }
@@ -315,7 +301,7 @@ fn test_csd018_ac_6_1_a_share_of_the_income() {
     add_income(&mut data, "2025", "48000.00");
     assert_eq!(
         year(&data, 2025).wealth_percent.unwrap().to_string(),
-        "12.5"
+        "12.50"
     );
 }
 
@@ -332,7 +318,7 @@ fn test_csd018_ac_6_2_a_negative_share() {
     add_income(&mut data, "2025", "48000.00");
     assert_eq!(
         year(&data, 2025).wealth_percent.unwrap().to_string(),
-        "-3.5"
+        "-3.54"
     );
 }
 
@@ -386,7 +372,6 @@ fn net_worth_of(first: &str, second: &str) -> ProjectData {
             crate::domain::houses::parse_period("2026").unwrap(),
             HouseValue::parse(second).unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
     data
@@ -397,7 +382,7 @@ fn test_csd018_ac_8_1_growth_of_the_net_worth() {
     let data = net_worth_of("100000.00", "110000.00");
     assert_eq!(
         year(&data, 2026).wealth_growth_percent.unwrap().to_string(),
-        "10.0"
+        "10.00"
     );
 }
 
@@ -406,7 +391,7 @@ fn test_csd018_ac_8_2_a_shrinking_net_worth() {
     let data = net_worth_of("100000.00", "95000.00");
     assert_eq!(
         year(&data, 2026).wealth_growth_percent.unwrap().to_string(),
-        "-5.0"
+        "-5.00"
     );
 }
 
@@ -452,7 +437,7 @@ fn test_csd018_ac_9_2_the_percentage_of_the_income() {
     add_income(&mut data, "2025", "48000.00");
     assert_eq!(
         year(&data, 2025).disposable_percent.unwrap().to_string(),
-        "20.8"
+        "20.83"
     );
 }
 
@@ -482,6 +467,149 @@ fn test_csd018_section_5_figures_cross_ipc_as_strings_and_none_as_null() {
         .find(|row| row["year"] == 2025)
         .unwrap();
     assert_eq!(row["total_income"], "48000.00");
-    assert_eq!(row["wealth_percent"], "12.5");
+    assert_eq!(row["wealth_percent"], "12.50");
     assert_eq!(row["wealth_growth_percent"], serde_json::Value::Null);
+}
+
+#[test]
+fn test_csd018_ac_2_4_a_record_after_the_current_year_extends_the_series() {
+    let mut data = ProjectData::default();
+    add_expense(&mut data, "05/03/2024", "10.00");
+    add_bank(&mut data, "Example Bank", &[("2027", "7000.00")]);
+    let rows = series(&data);
+    let years: Vec<i32> = rows.iter().map(|row| row.year).collect();
+    assert_eq!(years, [2024, 2025, 2026, 2027]);
+    let partial: Vec<bool> = rows.iter().map(|row| row.is_partial).collect();
+    assert_eq!(partial, [false, false, true, false]);
+}
+
+#[test]
+fn test_csd018_ac_2_5_a_very_old_record_gets_no_column() {
+    let mut data = ProjectData::default();
+    add_expense(&mut data, "01/01/1950", "10.00");
+    add_expense(&mut data, "15/09/2026", "10.00");
+    let years: Vec<i32> = series(&data).iter().map(|row| row.year).collect();
+    assert_eq!(years.len(), 50);
+    assert_eq!((years[0], years[49]), (1977, 2026));
+}
+
+// REQ-10: the percentage labels are built in Rust
+
+#[test]
+fn test_csd018_ac_10_1_a_positive_percentage_has_a_plus_and_none_a_dash() {
+    let mut data = saving_year();
+    add_expense(&mut data, "10/05/2025", "4000.00");
+    add_income(&mut data, "2025", "48000.00");
+    let row = year(&data, 2025);
+    assert_eq!(row.wealth_percent_label, "+12.50%");
+    assert_eq!(row.disposable_percent_label, "+20.83%");
+    assert_eq!(row.wealth_growth_percent, None);
+    assert_eq!(row.wealth_growth_percent_label, "–");
+    assert_eq!(row.investment_growth_percent_label, "–");
+    let first = year(&data, 2024);
+    assert_eq!(
+        first.wealth_percent_label, "–",
+        "2024 has no wealth accumulation"
+    );
+}
+
+#[test]
+fn test_csd018_ac_10_1_a_negative_percentage_has_a_hyphen_minus() {
+    let mut data = ProjectData::default();
+    add_bank(
+        &mut data,
+        "Example Bank",
+        &[("2024", "1000.00"), ("2025", "500.00")],
+    );
+    add_investment(&mut data, &[("2025", "1000.00", "-1000.00")]);
+    add_debt(&mut data, &[("2024", "5000.00"), ("2025", "5200.00")]);
+    add_income(&mut data, "2025", "48000.00");
+    assert_eq!(year(&data, 2025).wealth_percent_label, "-3.54%");
+    let shrinking = net_worth_of("100000.00", "95000.00");
+    assert_eq!(year(&shrinking, 2026).wealth_growth_percent_label, "-5.00%");
+    let growing = net_worth_of("100000.00", "110000.00");
+    assert_eq!(year(&growing, 2026).wealth_growth_percent_label, "+10.00%");
+}
+
+#[test]
+fn test_csd018_ac_10_1_no_change_is_0_00_without_a_sign() {
+    let mut data = ProjectData::default();
+    add_bank(
+        &mut data,
+        "Example Bank",
+        &[("2024", "1000.00"), ("2025", "1000.00")],
+    );
+    add_income(&mut data, "2025", "48000.00");
+    let row = year(&data, 2025);
+    assert_eq!(row.wealth_percent.unwrap().to_string(), "0.00");
+    assert_eq!(row.wealth_percent_label, "0.00%");
+}
+
+#[test]
+fn test_csd018_ac_10_1_a_decrease_that_rounds_to_0_00_has_no_sign() {
+    let mut data = ProjectData::default();
+    add_bank(
+        &mut data,
+        "Example Bank",
+        &[("2024", "1000.00"), ("2025", "999.99")],
+    );
+    add_income(&mut data, "2025", "48000.00");
+    let row = year(&data, 2025);
+    assert_eq!(row.wealth_accumulation.unwrap().to_string(), "-0.01");
+    assert_eq!(row.wealth_percent.unwrap().to_string(), "0.00");
+    assert_eq!(row.wealth_percent_label, "0.00%");
+}
+
+#[test]
+fn test_csd018_section_5_labels_cross_ipc_next_to_the_percentages() {
+    let mut data = saving_year();
+    add_income(&mut data, "2025", "48000.00");
+    let json = serde_json::to_value(Ratios {
+        years: series(&data),
+    })
+    .unwrap();
+    let row = json["years"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["year"] == 2025)
+        .unwrap();
+    assert_eq!(row["wealth_percent_label"], "+12.50%");
+    assert_eq!(row["wealth_growth_percent_label"], "–");
+    assert_eq!(row["investment_growth_percent_label"], "–");
+    assert_eq!(row["disposable_percent_label"], "+12.50%");
+}
+
+/// Every file under `dir`, so a scan sees the whole tree.
+fn files_under(dir: &std::path::Path, found: &mut Vec<std::path::PathBuf>) {
+    for entry in std::fs::read_dir(dir).unwrap() {
+        let path = entry.unwrap().path();
+        if path.is_dir() {
+            if path.file_name().is_some_and(|name| name != "node_modules") {
+                files_under(&path, found);
+            }
+        } else {
+            found.push(path);
+        }
+    }
+}
+
+#[test]
+fn test_csd018_ac_10_1_no_unicode_minus_sign_is_written_anywhere_in_the_sources() {
+    // The minus sign of a figure is the hyphen-minus Rust writes (CSD-007
+    // REQ-10); U+2212 is built from its number so this file does not contain it.
+    let unicode_minus = char::from_u32(0x2212).unwrap();
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut files = Vec::new();
+    files_under(&root.join("src"), &mut files);
+    files_under(&root.join("../ui"), &mut files);
+    let mut checked = 0;
+    for file in files {
+        let Ok(text) = std::fs::read_to_string(&file) else {
+            continue;
+        };
+        checked += 1;
+        assert!(!text.contains(unicode_minus), "{}", file.display());
+    }
+    assert!(checked > 100, "the scan saw {checked} files");
 }

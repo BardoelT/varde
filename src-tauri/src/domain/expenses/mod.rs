@@ -15,10 +15,12 @@ mod overview;
 mod totals;
 
 #[cfg(test)]
+mod ac_tests;
+#[cfg(test)]
 mod tests;
 
 pub use amounts::{expense_note, ExpenseAmount};
-pub use category::Category;
+pub use category::ExpenseCategory;
 pub use date::ExpenseDate;
 pub use expense::{Expense, ExpenseId, ExpenseInput};
 pub use insights::ExpenseInsights;
@@ -28,34 +30,29 @@ pub use totals::ExpenseYearlyTotal;
 use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
-use time::Date;
 
 use crate::domain::error::DomainError;
 
-use crate::domain::series::MAX_NAME_CHARS;
+use crate::domain::common::MAX_NAME_CHARS;
 
 /// All expenses, in the order they were added (CSD-013 section 5).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Expenses {
-    #[serde(default)]
     expenses: Vec<Expense>,
 }
 
 impl Expenses {
-    /// Adds an expense. `today` is the local date; later dates are rejected
-    /// (REQ-1 to REQ-6).
+    /// Adds an expense. Any date from 01/01/0001 is accepted, a later one
+    /// included (REQ-1 to REQ-6).
     ///
     /// # Errors
     /// Returns the first violated rule of the name, amount, date, category or
     /// note.
-    pub fn add_expense(
-        &mut self,
-        input: &ExpenseInput,
-        today: Date,
-    ) -> Result<Expense, DomainError> {
-        let valid = input.validate(today)?;
+    pub fn add_expense(&mut self, input: &ExpenseInput) -> Result<Expense, DomainError> {
+        let valid = input.validate()?;
         let expense = Expense {
-            id: ExpenseId::generate(),
+            id: ExpenseId::new(),
             name: valid.name,
             amount: valid.amount,
             date: valid.date,
@@ -75,9 +72,8 @@ impl Expenses {
         &mut self,
         id: ExpenseId,
         input: &ExpenseInput,
-        today: Date,
     ) -> Result<Expense, DomainError> {
-        let valid = input.validate(today)?;
+        let valid = input.validate()?;
         let expense = self
             .expenses
             .iter_mut()

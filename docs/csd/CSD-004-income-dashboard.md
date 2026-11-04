@@ -3,28 +3,27 @@ id: CSD-004
 title: Income dashboard
 status: approved
 owner: Thijs Bardoel
-version: 0.8
-last_updated: 30/10/2026
-related: [CSD-001, CSD-003, CSD-020]
+version: 1.1
+last_updated: 03/11/2026
+related: [CSD-001, CSD-003, CSD-024]
 ---
 
 # CSD-004: Income dashboard
 
 ## 1. Intent
-The dashboard is the first page of the app, and today it shows example data that has nothing to do with the user's project. The app only tracks employment income so far, so the dashboard should answer two questions at a glance: how much has been earned this year, and how much last month. This capability replaces the example content with those two views, computed from the project, and removes the example pages (accounts, transactions, budget) that have no function yet.
+The dashboard is the first page of the app, and today it shows example data that has nothing to do with the user's project. The app only tracks employment income so far, so the dashboard should answer two questions at a glance: how much has been earned this year, and how much last month. This capability replaces the example content with those two views, computed from the project. The left pane that opens the dashboard and the other pages is specified in CSD-024, not here.
 
 ## 2. Scope
 ### 2.1 In scope
 - The dashboard page: income this year to date and income last month, over all jobs.
 - Its empty states.
-- The left pane: its groups, the order of its items, and offering only the pages that work.
 
 ### 2.2 Non-goals
 - NG-1: Comparisons with an earlier period (such as last year) and percentages.
 - NG-2: Charts and other visualisations (as CSD-001 NG-6).
 - NG-3: A breakdown per job.
 - NG-4: Forecasts and net pay (CSD-001 NG-1, NG-4).
-- NG-5: Any page in the Insights group other than the Net worth page of CSD-017 and the Ratios page of CSD-018.
+- NG-5: *(removed in v1.0, moved to CSD-024 NG-1)*
 
 ## 3. Definitions
 | Term | Meaning |
@@ -52,23 +51,8 @@ sequenceDiagram
     UI->>U: two blocks of figures
 ```
 
-**REQ-1: Structure of the left pane** *(ubiquitous)*
-The app shall group the pages in the left pane under plain, non-collapsible headings, in this order: Overview (Dashboard), Finance (Income, Expenses), Wealth (Bank accounts, Investments, Houses), Liabilities (Debts) and Insights (Net worth, Ratios), with Settings and the project status pinned at the bottom (CSD-003), and shall not offer Accounts, Transactions or Budget. This requirement is the one place that states the order; the capabilities that add a page do not repeat it. The app opens on the Dashboard.
-
-```gherkin
-@AC-1.1
-Scenario: Only working pages are offered
-  Given the app has started
-  Then the left pane shows the headings "Overview", "Finance", "Wealth", "Liabilities" and "Insights" in that order
-  And "Overview" holds "Dashboard", "Finance" holds "Income" and "Expenses", "Wealth" holds "Bank accounts", "Investments" and "Houses", "Liabilities" holds "Debts" and "Insights" holds "Net worth" and "Ratios", each in that order
-  And "Settings" and the project status are pinned at the bottom
-  And there is no "Accounts", "Transactions" or "Budget"
-
-@AC-1.2
-Scenario: No example data
-  Given the app has started
-  Then no page shows example transactions, accounts or budgets
-```
+**REQ-1: Structure of the left pane** *(removed in v1.0, moved to CSD-024 REQ-1)*
+The structure and order of the left pane, and that the app opens on the Dashboard, are now specified in CSD-024 REQ-1 to REQ-4. AC-1.1 is removed (now CSD-024 AC-1.1 and AC-1.2) and AC-1.2 is removed (now CSD-024 AC-1.3).
 
 **REQ-2: This year** *(event-driven)*
 When the user views the dashboard, the app shall show the period totals of this year, summed over all jobs, labelled with the year. An annual statement of this year counts in full. The dashboard shows no count of entries and has no "Entries" card.
@@ -233,17 +217,23 @@ Command: `get_dashboard()` returns whether jobs exist, and the two blocks:
 ## 7. Verification
 The figures are proven by `cargo test`. Tests are named `test_csd004_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-2, REQ-3, REQ-4, REQ-6 and REQ-7 (data), REQ-5 (data) | `cargo test test_csd004_` |
-| AC-1.1, AC-1.2, AC-4.1 and AC-4.2 (wording), AC-5.1 (button), AC-6.1 (titles), AC-7.1, AC-7.2 (display) | Manual checklist: left pane items, no "Entries" card or count (AC-2.1), no example data, the blocks and their titles, the empty prompts, the button to Income, refresh after changes. There is no frontend test setup |
+| Rust tests (figures) | `cargo test test_csd004_` |
+| Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-5.1, the dashboard without jobs prompts for the first job) |
+| Display ACs with a DOM test (titles without a currency, refresh after a new paycheck, refresh after a new project) | `npm test`: `ac-a-dashboard.test.js` (AC-6.1, AC-7.1, AC-7.2) |
+| Display ACs without a DOM test (blocks and their titles, button to Income) | Checked by hand |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (0 of 15 ACs; every AC carries a test name).
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 None.
 
 ## 9. Changelog
+- 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
+- 1.0 (03/11/2026): The navigation moves to the new CSD-024 "Navigation and app shell": REQ-1 (AC-1.1, AC-1.2) and NG-5 are removed here and kept as stubs (CSD-000 CON-6); other CSDs that cite "CSD-004 REQ-1" for the left pane now mean CSD-024 REQ-1. Scope and intent no longer cover the left pane, `related` adds CSD-024, and the verification no longer says there is no frontend test setup: display ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.8 (30/10/2026): The left-pane entry Assets is renamed Houses: wording only. Back to `draft` until re-approved (GitHub issue 31).
 - 0.7 (29/10/2026): The Insights group holds the Ratios page of CSD-018 after Net worth (REQ-1, AC-1.1, NG-5; GitHub issue 25).
 - 0.6 (29/10/2026): The Insights group holds the Net worth page of CSD-017 in place of the Reports placeholder (REQ-1, AC-1.1, NG-5; GitHub issue 24).

@@ -2,28 +2,31 @@
 
 use std::cmp::Reverse;
 
-use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::domain::money::zero;
+use crate::domain::money::Money;
 
-use super::{Category, Expense, Expenses};
+use super::{Expense, ExpenseCategory, Expenses};
 
 /// All expenses with their total (CSD-013 REQ-11).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct ExpenseList {
+    /// The expenses of the overview.
     pub expenses: Vec<Expense>,
     /// The sum of the amounts of `expenses`.
-    pub total: Decimal,
+    pub total: Money,
 }
 
 /// Form values for "Copy previous expense": the date and the note are never
 /// copied (CSD-013 REQ-9).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct ExpensePrefill {
+    /// Name of the expense.
     pub name: String,
-    pub amount: Decimal,
-    pub category: Category,
+    /// The amount of the expense.
+    pub amount: Money,
+    /// The category of the expense.
+    pub category: ExpenseCategory,
 }
 
 impl Expenses {
@@ -33,9 +36,7 @@ impl Expenses {
     pub fn list(&self) -> ExpenseList {
         let mut expenses = self.expenses.clone();
         expenses.sort_by_cached_key(|expense| (Reverse(expense.date), expense.name.to_lowercase()));
-        let total = expenses
-            .iter()
-            .fold(zero(), |sum, expense| sum + expense.amount.value());
+        let total = Money::saturating_sum(expenses.iter().map(|expense| expense.amount.value()));
         ExpenseList { expenses, total }
     }
 

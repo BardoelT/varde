@@ -3,34 +3,22 @@
 // bars, the tooltip, the legend highlight, and loading with its empty note.
 //
 // A page supplies a strategy, described at `createYearlyChart`. Rust returns the
-// figures; this file only stacks and scales them, so the only arithmetic here
-// is turning values into positions.
+// axis, pieces, markers and labels; this file draws them as received, so the only
+// arithmetic here is turning received values into positions (CSD-025 REQ-5).
 import { invoke } from './ipc.js';
 import { t } from './i18n.js';
-import { svg, niceScale, compact, segmentShape, createTooltip, bindHighlight } from './chart.js';
+import { svg, toPosition, segmentShape, createTooltip, bindHighlight } from './chart.js';
 
 const MARGIN = { top: 28, right: 16, left: 48 };
 const MIN_PLOT_WIDTH = 560;
 const MAX_BAR_WIDTH = 44;
 
-/** "6.4" -> "+6.4%", "-2.5" -> "−2.5%", "0.0" -> "0.0%", null -> "–". */
-export function percentLabel(percent) {
-  if (percent === null) return '–';
-  if (percent.startsWith('-')) return `−${percent.slice(1)}%`;
-  return percent === '0.0' ? '0.0%' : `+${percent}%`;
-}
-
-/** Whether a decimal string is below zero. */
+/** Whether a received decimal string or label carries a minus sign (display only: it styles a negative figure). */
 export const isNegative = (text) => text.startsWith('-');
 
 /** "2025", or "2026 YTD" for the running year. */
 export function yearLabel(row) {
   return row.is_partial ? t('{year} YTD', { year: row.year }) : String(row.year);
-}
-
-/** An axis or marker label: compact, with a real minus sign below zero. */
-export function axisLabel(value) {
-  return value < 0 ? `−${compact(-value)}` : compact(value);
 }
 
 /** The size every yearly chart shares: a slot per year is at least this wide, and the plot is never lower than this. */
@@ -59,16 +47,16 @@ function plotHeightFor(inner, margin) {
 }
 
 /**
- * The closing-balance marker of a year: a short line across the bar, wider than the bar,
- * and its value above it. `level` is the value the marker stands at.
+ * The marker of a year as received (`{ value, label }`): a short line across the bar, wider than
+ * the bar, at its value, with its label above it (CSD-025 REQ-7).
  */
-export function levelMarker(level, { centre, barWidth, yOf }) {
-  const y = yOf(level);
+export function levelMarker(marker, { centre, barWidth, yOf }) {
+  const y = yOf(marker.value);
   const half = barWidth * 0.7;
   return [
     svg('line', { class: 'chart-marker-hit', 'data-legend': 'marker', x1: centre - half, x2: centre + half, y1: y, y2: y }),
     svg('line', { class: 'chart-marker', 'data-legend': 'marker', x1: centre - half, x2: centre + half, y1: y, y2: y }),
-    svg('text', { class: 'chart-marker-label', x: centre, y: y - 7 }, axisLabel(level)),
+    svg('text', { class: 'chart-marker-label', x: centre, y: y - 7 }, marker.label),
   ];
 }
 
@@ -77,28 +65,32 @@ export function levelMarker(level, { centre, barWidth, yOf }) {
  * Its parts are found as `${id}-legend`, `${id}-empty`, `${id}-scroll` and
  * `${id}-chart`. The strategy:
  *
- * - `command`, `ariaLabel`: the Rust command that returns `{ years }`, and the chart's name
+ * - `command`, `ariaLabel`: the Rust command that returns `{ axis, years }`, and the chart's name
  * - the size is the same for every chart: slots as wide as `CHART_SIZE` says, and a plot as high as the window allows
- * - `piecesOf(row)`: the stacked pieces `{ key, cssClass, low, high, hangs }` in drawing order;
- *   a piece may also carry `label` (its accessible name) and `rounding` (`'top'`, `'bottom'` or `false`),
- *   which otherwise rounds the top of the highest piece
- * - `extraLevels(row)`: further values the axis must reach (such as a closing balance)
+ * - `pieceStyle(row, piece)`: what the page adds to a received piece `{ series, low, high, hangs, rounding }`:
+ *   `{ cssClass, label? }`, the colour class and the accessible name. The pieces, their order and their
+ *   rounding are Rust's; the page decides only how a series looks
  * - `describe(row)`, `tooltipContent(row)`: the screen-reader text and the tooltip rows
- * - `decorate(row, geometry)`: extra nodes for a bar (growth label, marker)
+ * - `decorate(row, geometry)`: extra nodes for a bar (growth label, marker); `geometry.barTop` is the
+ *   y position of the top of the bar
  * - `labelLines(row)`: the lines under the axis, `[{ text, className }]`
  * - `onLoaded(data)` (optional): runs with the whole response before drawing, for a legend built from it
  */
 export function createYearlyChart(strategy) {
   const part = (suffix) => document.getElementById(suffix ? `${strategy.id}-${suffix}` : strategy.id);
-  let drawnYears = null;
+  let drawnData = null;
 
-  function draw(years) {
-    drawnYears = years;
+  function draw(data) {
+    drawnData = data;
+    const { axis, years } = data;
     const inner = part('chart');
     const lines = strategy.labelLines(years[0]).length;
     const margin = { ...MARGIN, bottom: 30 + 16 * (lines - 1) };
     const count = years.length;
-    // Draw at the real pixel width, so bars, lines and text are never scaled up.
+    // Draw at the real pixel width, so bars, lines and text are never scaled up. The previous
+    // drawing is removed first: its minimum width would otherwise keep the container wide and
+    // the chart could never shrink with the window.
+    inner.replaceChildren();
     inner.style.minWidth = '';
     const available = inner.clientWidth - margin.left - margin.right;
     const plotWidth = Math.max(count * CHART_SIZE.minSlotWidth, MIN_PLOT_WIDTH, available);
@@ -109,27 +101,23 @@ export function createYearlyChart(strategy) {
     const height = margin.top + plotHeight + margin.bottom;
     const bottomEdge = margin.top + plotHeight;
 
-    const pieces = years.map(strategy.piecesOf);
-    const extras = years.flatMap((row) => strategy.extraLevels?.(row) ?? []);
-    const highest = Math.max(1, ...pieces.flat().map((p) => p.high), ...extras);
-    const lowest = Math.min(0, ...pieces.flat().map((p) => p.low));
-    const { top, ticks } = niceScale(highest);
-    const step = ticks[1] - ticks[0];
-    const below = Math.ceil(-lowest / step);
-    const bottom = -below * step;
-    const allTicks = [...Array.from({ length: below }, (_, i) => -(below - i) * step), ...ticks];
-    const yOf = (value) => margin.top + ((top - value) / (top - bottom)) * plotHeight;
+    // The axis is Rust's: its first and last tick are the ends, so a value only becomes a position.
+    const first = toPosition(axis.ticks.at(0)?.value ?? '0.00');
+    const last = toPosition(axis.ticks.at(-1)?.value ?? '1.00');
+    const span = last - first || 1;
+    const yOf = (value) => margin.top + ((last - toPosition(value)) / span) * plotHeight;
 
     const chart = svg('svg', { viewBox: `0 0 ${width} ${height}`, role: 'group', 'aria-label': t(strategy.ariaLabel) });
     // The container is as wide as the chart, so the tooltip is placed against the whole chart.
     inner.style.minWidth = `${width}px`;
     chart.style.minWidth = `${width}px`;
 
-    for (const tick of allTicks) {
-      const lineClass = tick === 0 ? 'chart-zero' : 'chart-grid';
+    for (const tick of axis.ticks) {
+      const y = yOf(tick.value);
+      const lineClass = toPosition(tick.value) === 0 ? 'chart-zero' : 'chart-grid';
       chart.append(
-        svg('line', { class: lineClass, x1: margin.left, x2: margin.left + plotWidth, y1: yOf(tick), y2: yOf(tick) }),
-        svg('text', { class: 'chart-axis-label', x: margin.left - 8, y: yOf(tick) + 4 }, axisLabel(tick)),
+        svg('line', { class: lineClass, x1: margin.left, x2: margin.left + plotWidth, y1: y, y2: y }),
+        svg('text', { class: 'chart-axis-label', x: margin.left - 8, y: y + 4 }, tick.label),
       );
     }
 
@@ -145,30 +133,31 @@ export function createYearlyChart(strategy) {
       const hit = svg('rect', { class: 'chart-hit', x: centre - slot / 2, y: margin.top, width: slot, height: plotHeight + margin.bottom });
       group.append(hit);
 
-      const yearPieces = pieces[index];
-      const highestPiece = Math.max(...yearPieces.map((p) => p.high));
-      const lowestPiece = Math.min(...yearPieces.map((p) => p.low));
-      const topmost = yearPieces.reduce((best, piece, i, all) => (piece.high >= all[best].high ? i : best), 0);
-      yearPieces.forEach((piece, i) =>
+      // Pieces are drawn where Rust says; the box over the bar spans their pixel positions.
+      const yearPieces = row.pieces;
+      for (const piece of yearPieces) {
+        const { cssClass, label } = strategy.pieceStyle(row, piece);
         group.append(
           segmentShape(
-            { class: piece.cssClass, 'data-legend': piece.key, ...(piece.label ? { 'aria-label': piece.label } : {}) },
+            { class: cssClass, 'data-legend': piece.series, ...(label ? { 'aria-label': label } : {}) },
             centre - barWidth / 2,
             barWidth,
             yOf(piece.high),
             yOf(piece.low),
-            { rounded: piece.rounding === undefined ? i === topmost : piece.rounding },
+            { rounded: piece.rounding === 'none' ? false : piece.rounding },
           ),
-        ),
-      );
+        );
+      }
+      const edges = yearPieces.flatMap((piece) => [yOf(piece.high), yOf(piece.low)]);
+      const barTop = edges.length > 0 ? Math.min(...edges) : yOf('0.00');
 
       // An invisible box over the whole bar, so the tooltip can sit beside it.
       const bar = yearPieces.length > 0
-        ? svg('rect', { class: 'chart-bar-box', x: centre - barWidth / 2, y: yOf(highestPiece), width: barWidth, height: yOf(lowestPiece) - yOf(highestPiece) })
+        ? svg('rect', { class: 'chart-bar-box', x: centre - barWidth / 2, y: barTop, width: barWidth, height: Math.max(...edges) - barTop })
         : null;
       if (bar) group.append(bar);
 
-      group.append(...strategy.decorate(row, { centre, barWidth, yOf, highest: yearPieces.length > 0 ? highestPiece : 0 }));
+      group.append(...strategy.decorate(row, { centre, barWidth, yOf, barTop }));
       strategy.labelLines(row).forEach((line, i) =>
         group.append(svg('text', { class: line.className, x: centre, y: bottomEdge + 18 + 16 * i }, line.text)),
       );
@@ -196,7 +185,7 @@ export function createYearlyChart(strategy) {
       part('chart').replaceChildren();
       return;
     }
-    draw(years);
+    draw(data);
   }
 
   /** Reloads only while the chart's page is showing, so a hidden chart is not drawn at zero width. */
@@ -204,11 +193,35 @@ export function createYearlyChart(strategy) {
     if (!part().hidden) await reload();
   }
 
-  /** Redraws at the new width when the window is resized. */
+  /** The size the chart was last drawn for, so a redraw happens only when it changed. */
+  let drawnFor = null;
+
+  const redrawIfSizeChanged = () => {
+    const scroll = part('scroll');
+    // Hidden (another pane or tab, or no data): nothing can be measured; draw when it shows.
+    if (!drawnData || scroll.hidden || scroll.offsetParent === null) {
+      drawnFor = null;
+      return;
+    }
+    const size = `${scroll.clientWidth}x${window.innerHeight}x${Math.round(part('chart').getBoundingClientRect().top)}`;
+    if (size === drawnFor) return;
+    draw(drawnData);
+    drawnFor = `${scroll.clientWidth}x${window.innerHeight}x${Math.round(part('chart').getBoundingClientRect().top)}`;
+  };
+
+  /**
+   * Redraws when the window is resized and when the chart becomes visible or changes width: a chart
+   * loaded while its pane or tab was hidden was measured at zero, and switching back must fix it.
+   */
   function init() {
-    window.addEventListener('resize', () => {
-      if (drawnYears && !part('scroll').hidden && part('scroll').offsetParent !== null) draw(drawnYears);
-    });
+    window.addEventListener('resize', redrawIfSizeChanged);
+    if (typeof ResizeObserver === 'function') {
+      let frame = 0;
+      new ResizeObserver(() => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(redrawIfSizeChanged);
+      }).observe(part('scroll'));
+    }
   }
 
   return { reload, reloadIfOpen, init };

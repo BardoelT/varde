@@ -84,7 +84,7 @@ mod tests {
         let memory = LastProject::in_dir(&dir.path().join("config"));
         assert_eq!(memory.load(), None);
 
-        let path = dir.path().join("example-a.wealth");
+        let path = dir.path().join("example-a.varde");
         memory.store(&path).unwrap();
         assert_eq!(memory.load(), Some(path));
 
@@ -98,7 +98,7 @@ mod tests {
         use std::os::unix::fs::PermissionsExt;
         let dir = TempDir::new().unwrap();
         let memory = LastProject::in_dir(dir.path());
-        memory.store(&dir.path().join("example-a.wealth")).unwrap();
+        memory.store(&dir.path().join("example-a.varde")).unwrap();
 
         let file = dir.path().join(FILE_NAME);
         let value: serde_json::Value =
@@ -118,7 +118,7 @@ mod tests {
             "not json",
             "{}",
             r#"{"path": 5}"#,
-            r#"{"path": "relative/example-a.wealth"}"#,
+            r#"{"path": "relative/example-a.varde"}"#,
             "",
         ] {
             fs::write(&file, content).unwrap();

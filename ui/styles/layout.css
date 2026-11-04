@@ -24,7 +24,7 @@
 
 .logo-mark {
   width: 40px; height: 40px;
-  background: var(--accent);
+  background: #1F2A44;
   border-radius: 10px;
   display: grid; place-items: center;
   flex-shrink: 0;

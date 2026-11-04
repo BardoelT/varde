@@ -1,68 +1,48 @@
 //! Debts: their id, name, statement period and colour slot (CSD-011 REQ-1 to REQ-6).
 
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
+use crate::domain::common::{parse_wire_name, ColourSlot, PayPeriod};
+use crate::domain::common::{Id, IdKind};
 use crate::domain::error::DomainError;
 use crate::domain::houses::HouseId;
-use crate::domain::income::PayPeriod;
-use crate::domain::series::MAX_NAME_CHARS;
+
+use crate::domain::series::{AccountInput, SeriesAccount};
 
 use super::settlement::Settlement;
 
-/// Identifies a debt.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct DebtId(Uuid);
+/// Identifies a Debt.
+pub type DebtId = Id<Debt>;
 
-impl DebtId {
-    pub(super) fn generate() -> Self {
-        Self(Uuid::new_v4())
-    }
-
-    /// Parses the text form returned to the frontend.
-    ///
-    /// # Errors
-    /// Returns `DebtNotFound` for text that is not a debt id.
-    pub fn parse(text: &str) -> Result<Self, DomainError> {
-        Uuid::parse_str(text.trim())
-            .map(Self)
-            .map_err(|_| DomainError::DebtNotFound)
-    }
-}
-
-impl fmt::Display for DebtId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, f)
+impl IdKind for Debt {
+    fn not_found() -> DomainError {
+        DomainError::DebtNotFound
     }
 }
 
 /// The kind of a debt: Mortgage, Loan, Scholarship or Other. Only a Mortgage
 /// or a Loan can be linked to a house (CSD-020 section 3).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Category {
+pub enum DebtCategory {
+    /// A mortgage, which can be linked to a house.
     Mortgage,
+    /// A loan.
     Loan,
+    /// A scholarship debt.
     Scholarship,
+    /// Any other kind.
     #[default]
     Other,
 }
 
-impl Category {
-    /// Parses `Mortgage`, `Loan`, `Scholarship` or `Other`.
+impl DebtCategory {
+    /// Parses `Mortgage`, `Loan`, `Scholarship` or `Other`, the names serde
+    /// writes.
     ///
     /// # Errors
     /// Returns `DebtCategoryInvalid` for any other text.
     pub fn parse(text: &str) -> Result<Self, DomainError> {
-        match text.trim() {
-            "Mortgage" => Ok(Self::Mortgage),
-            "Loan" => Ok(Self::Loan),
-            "Scholarship" => Ok(Self::Scholarship),
-            "Other" => Ok(Self::Other),
-            _ => Err(DomainError::DebtCategoryInvalid),
-        }
+        parse_wire_name(text).ok_or(DomainError::DebtCategoryInvalid)
     }
 
     /// Whether a debt of this category may be linked to a house.
@@ -74,57 +54,85 @@ impl Category {
 
 /// One amount the user owes to one party (CSD-011 REQ-1).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Debt {
+    /// Identifier of the debt.
     pub id: DebtId,
+    /// Name of the debt.
     pub name: String,
-    pub statement_period: PayPeriod,
+    /// Whether the debt is kept per month or per year. Read through
+    /// [`SeriesAccount::period`]; only the debts module changes it, so a
+    /// settled debt keeps the period its settlement was made in.
+    pub(super) period: PayPeriod,
     /// 0 to 7, fixed when the debt is created (CSD-011 REQ-3).
-    pub colour_slot: u8,
-    /// Mortgage, Loan or Other (CSD-020 REQ-1).
-    #[serde(default)]
-    pub category: Category,
-    /// The house this debt is linked to (CSD-020 REQ-1).
+    pub colour_slot: ColourSlot,
+    /// Mortgage, Loan or Other (CSD-020 REQ-15). Only `Debts::set_category`
+    /// changes it.
+    pub(super) category: DebtCategory,
+    /// The house this debt is linked to (CSD-020 REQ-15). Only
+    /// `Debts::set_house` changes it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub house_id: Option<HouseId>,
-    /// How the debt was settled on the sale of its house (CSD-020 REQ-5).
+    pub(super) house_id: Option<HouseId>,
+    /// How the debt was settled on the sale of its house (CSD-026 REQ-3). Only
+    /// `Debts::settle` and `Debts::unsettle` change it, and they change it
+    /// together with the settlement statement.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub settlement: Option<Settlement>,
+    pub(super) settlement: Option<Settlement>,
+}
+
+impl Debt {
+    /// A new debt: unlinked, unsettled and of the default category.
+    pub(super) fn new(
+        id: DebtId,
+        name: String,
+        period: PayPeriod,
+        colour_slot: ColourSlot,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            period,
+            colour_slot,
+            category: DebtCategory::default(),
+            house_id: None,
+            settlement: None,
+        }
+    }
+
+    /// The kind of the debt.
+    #[must_use]
+    pub fn category(&self) -> DebtCategory {
+        self.category
+    }
+
+    /// The house the debt is linked to.
+    #[must_use]
+    pub fn house_id(&self) -> Option<HouseId> {
+        self.house_id
+    }
+
+    /// How the debt was settled on the sale of its house, `None` while open.
+    #[must_use]
+    pub fn settlement(&self) -> Option<&Settlement> {
+        self.settlement.as_ref()
+    }
 }
 
 /// Debt fields as typed by the user, before validation.
-#[derive(Clone, Debug, Default, Deserialize)]
-pub struct DebtInput {
-    #[serde(default)]
-    pub name: String,
-    /// `None` means Monthly when creating and "unchanged" when editing.
-    #[serde(default)]
-    pub statement_period: Option<String>,
-}
+pub type DebtInput = AccountInput;
 
-pub(super) struct ValidDebt {
-    pub(super) name: String,
-    pub(super) statement_period: Option<PayPeriod>,
-}
+impl SeriesAccount for Debt {
+    type Id = DebtId;
 
-impl DebtInput {
-    pub(super) fn validate(&self) -> Result<ValidDebt, DomainError> {
-        let name = self.name.trim();
-        if name.is_empty() {
-            return Err(DomainError::DebtNameRequired);
-        }
-        if name.chars().count() > MAX_NAME_CHARS {
-            return Err(DomainError::DebtNameTooLong);
-        }
-        let statement_period = self
-            .statement_period
-            .as_deref()
-            .map(str::trim)
-            .filter(|text| !text.is_empty())
-            .map(|text| PayPeriod::parse(text).ok_or(DomainError::DebtPeriodUnsupported))
-            .transpose()?;
-        Ok(ValidDebt {
-            name: name.to_owned(),
-            statement_period,
-        })
+    fn id(&self) -> DebtId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn period(&self) -> PayPeriod {
+        self.period
     }
 }

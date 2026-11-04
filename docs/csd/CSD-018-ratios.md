@@ -1,11 +1,11 @@
 ---
 id: CSD-018
 title: Ratios
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.4
-last_updated: 02/11/2026
-related: [CSD-000, CSD-001, CSD-004, CSD-005, CSD-007, CSD-009, CSD-011, CSD-013, CSD-017, CSD-019, CSD-020]
+version: 1.4
+last_updated: 04/11/2026
+related: [CSD-000, CSD-001, CSD-005, CSD-007, CSD-009, CSD-011, CSD-013, CSD-017, CSD-024, CSD-026]
 ---
 
 # CSD-018: Ratios
@@ -15,7 +15,7 @@ The charts show how each area develops, but not how the owner's income relates t
 
 ## 2. Scope
 ### 2.1 In scope
-- A page "Ratios" in the Insights group, after "Net worth" (CSD-004 REQ-1).
+- A page "Ratios" in the Insights group, after "Net worth" (CSD-024).
 - A table with the years as columns and the seven rows of REQ-3, and its empty state.
 - An info icon after each row label that opens a tooltip with how the row is calculated (REQ-13).
 
@@ -26,7 +26,7 @@ The charts show how each area develops, but not how the owner's income relates t
 - NG-4: Estimating a figure for a year in which an area has no record, and carrying a figure forward into such a year (as CSD-016 NG-8).
 - NG-5: Choosing, hiding or reordering rows or years, and exporting the table.
 - NG-6: Tabs on the page.
-- NG-7: Counting houses in the wealth accumulation: only cash, investments and debts count (REQ-5).
+- NG-7: Counting houses in the wealth accumulation from cash: only cash, investments and debts count (REQ-5).
 
 ## 3. Definitions
 | Term | Meaning |
@@ -38,9 +38,9 @@ The charts show how each area develops, but not how the owner's income relates t
 | **Net worth** | As in CSD-017 section 3. |
 | **Bank increase (in a year)** | The sum, over the bank accounts that have an entry in that year and an earlier entry, of the balance of its latest entry in that year minus the balance of its latest entry before that year. It is negative when those accounts shrank. A bank account without an earlier entry adds nothing, because it is not known what it grew from. It is none when no bank account has both. |
 | **Net deposits (in a year)** | The net deposits of the year over all investment accounts (CSD-005 REQ-26). |
-| **Repaid (in a year)** | As in CSD-011 section 3, minus the settled amount of every debt that was Cancelled on the sale of its house in that year and that is part of that sum (CSD-020 REQ-12). A debt that was Repaid counts in full, as any drop in balance does. It is negative when debts grew or when more was cancelled than repaid, and none when no debt has an opening balance in the year. |
-| **Wealth accumulation (from cash)** | Bank increase plus net deposits plus repaid, where a part that is none counts as 0.00. |
-| **Disposable income** | Wealth accumulation plus expenses: what was set aside and what was spent. |
+| **Repaid (in a year)** | As in CSD-011 section 3, minus the settled amount of every debt that was Cancelled on the sale of its house in that year and that is part of that sum (CSD-026 REQ-10). Only a Cancelled debt nets to zero: a debt that was Repaid counts in full, as any drop in balance does (CSD-026 REQ-9). It is the repaid amount the Debts overview shows in its yearly totals (CSD-026 REQ-11). It is negative when debts grew or when more was cancelled than repaid, and none when no debt has an opening balance in the year. |
+| **Wealth accumulation from cash** | Bank increase plus net deposits plus repaid, where a part that is none counts as 0.00. |
+| **Disposable income** | Wealth accumulation from cash plus expenses: what was set aside and what was spent. |
 
 ## 4. Requirements
 
@@ -72,7 +72,7 @@ Scenario: One panel, no tabs
 ```
 
 **REQ-2: Year series** *(ubiquitous)*
-The app shall return, oldest first, one figure set for every calendar year from the earliest year in which any of income, expenses, houses, investments, bank accounts or debts has a record up to and including the current year, computed in Rust, and shall show the years as columns from the oldest on the left to the newest on the right, with the current year labelled with "YTD" (as "2026 YTD").
+The app shall return, oldest first, one figure set for every calendar year from the earliest year in which any of income, expenses, houses, investments, bank accounts or debts has a record up to and including the later of the current year and the latest year in which any of them has a record, but for at most 50 years back from that last year, computed in Rust, and shall show the years as columns from the oldest on the left to the newest on the right, with the current year labelled with "YTD" (as "2026 YTD") and a year after the current year labelled like any other year. A record older than the 50 years gets no column, but still counts in every figure that spans all years.
 
 ```gherkin
 @AC-2.1
@@ -82,6 +82,24 @@ Scenario: Range over all areas
   And the first bank account entry is for 2025-01
   When the series is computed
   Then it holds the years 2024, 2025 and 2026
+
+@AC-2.4
+Scenario: A record after the current year extends the series
+  Given today is 29/10/2026
+  And the first expense is dated 05/03/2024
+  And the last record is a bank account entry for 2027-02
+  When the series is computed
+  Then it holds the years 2024, 2025, 2026 and 2027
+  And the columns end with "2026 YTD" and "2027"
+
+@AC-2.5
+Scenario: A very old record gets no column
+  Given today is 29/10/2026
+  And the first record is an expense dated 01/01/1950
+  And the last record is an expense dated 15/09/2026
+  When the series is computed
+  Then it holds the years 1977 to 2026, which is 50 years
+  And 1950 to 1976 have no column
 
 @AC-2.2
 Scenario: Column order and label
@@ -126,7 +144,7 @@ Scenario: A year without income
 ```
 
 **REQ-5: Wealth accumulation from cash** *(ubiquitous)*
-For each year the app shall compute the wealth accumulation as the bank increase plus the net deposits plus the repaid amount of the year, and shall give it none when no bank account has a bank increase, no investment account has a statement and no debt has a repaid amount in that year.
+For each year the app shall compute the wealth accumulation from cash as the bank increase plus the net deposits plus the repaid amount of the year (the one the Debts overview shows, CSD-026 REQ-11), and shall give it none when no bank account has a bank increase, no investment account has a statement and no debt has a repaid amount in that year.
 
 ```gherkin
 @AC-5.1
@@ -135,7 +153,7 @@ Scenario: The three parts
   And the net deposits of the investments in 2025 are 3000.00
   And 1000.00 of debt was repaid in 2025
   When the series is computed
-  Then the wealth accumulation of 2025 is 6000.00
+  Then the wealth accumulation from cash of 2025 is 6000.00
 
 @AC-5.2
 Scenario: Parts can be negative
@@ -143,7 +161,7 @@ Scenario: Parts can be negative
   And the net deposits of the investments in 2025 are -1000.00
   And the debts grew by 200.00 in 2025, so the repaid amount is -200.00
   When the series is computed
-  Then the wealth accumulation of 2025 is -1700.00
+  Then the wealth accumulation from cash of 2025 is -1700.00
 
 @AC-5.3
 Scenario: Bank increase against the last earlier entry
@@ -178,32 +196,51 @@ Scenario: A debt cancelled in the year it started adds nothing
   When the series is computed
   Then the repaid amount of 2026 is none, as the debt has no opening balance in 2026
 
+@AC-5.9
+Scenario: Same repaid amount as the Debts overview
+  Given debt "Example Mortgage" with a statement for 2025-12 with balance 200000.00 and Cancelled on the sale of its house on 10/06/2026 (settled amount 190000.00)
+  When the series is computed
+  Then the repaid amount of 2026 is 10000.00
+  And the yearly total of 2026 in the Debts overview shows repaid 10000.00
+
 @AC-5.5
 Scenario: No part available
   Given 2024 has only an expense
   When the series is computed
-  Then the wealth accumulation of 2024 is none
+  Then the wealth accumulation from cash of 2024 is none
 ```
 
 **REQ-6: Percentage of income to wealth** *(ubiquitous)*
-For each year the app shall compute the wealth accumulation divided by the total income, times 100, rounded to one decimal as the growth percentage of CSD-007 REQ-6, and shall give it none when the wealth accumulation is none or the total income is 0.00.
+For each year the app shall compute the wealth accumulation from cash divided by the total income, times 100, rounded to two decimals half-up (CSD-000 CON-8), and shall give it none when the wealth accumulation from cash is none or the total income is 0.00.
 
 ```gherkin
 @AC-6.1
 Scenario: A share of the income
-  Given the wealth accumulation of 2025 is 6000.00 and the total income is 48000.00
+  Given the wealth accumulation from cash of 2025 is 6000.00 and the total income is 48000.00
   When the series is computed
-  Then the percentage of income to wealth of 2025 is "12.5"
+  Then the percentage of income to wealth of 2025 is "12.50"
 
 @AC-6.2
 Scenario: A negative share
-  Given the wealth accumulation of 2025 is -1700.00 and the total income is 48000.00
+  Given the wealth accumulation from cash of 2025 is -1700.00 and the total income is 48000.00
   When the series is computed
-  Then the percentage of income to wealth of 2025 is "-3.5"
+  Then the percentage of income to wealth of 2025 is "-3.54"
+
+@AC-6.4
+Scenario Outline: Rounding half-up
+  Given the wealth accumulation from cash of 2025 is <accumulation> and the total income is <income>
+  When the series is computed
+  Then the percentage of income to wealth of 2025 is "<percent>"
+
+  Examples:
+    | accumulation | income | percent |
+    | 1.00         | 800.00 | 0.13    |
+    | -1.00        | 800.00 | -0.13   |
+    | -1.00        | 48000.00 | 0.00  |
 
 @AC-6.3
 Scenario: No income
-  Given the total income of 2024 is 0.00 and its wealth accumulation is 500.00
+  Given the total income of 2024 is 0.00 and its wealth accumulation from cash is 500.00
   When the series is computed
   Then the percentage of income to wealth of 2024 is none
 ```
@@ -214,9 +251,9 @@ For each year the app shall show the growth percentage of the investments as the
 ```gherkin
 @AC-7.1
 Scenario: Same figure as the Investments chart
-  Given the Investments chart shows a growth percentage of "4.2" for 2026
+  Given the Investments chart shows a growth percentage of "4.17" for 2026
   When the series is computed
-  Then the growth of investments of 2026 is "4.2"
+  Then the growth of investments of 2026 is "4.17"
 
 @AC-7.2
 Scenario: First year
@@ -226,20 +263,26 @@ Scenario: First year
 ```
 
 **REQ-8: Growth of total wealth** *(ubiquitous)*
-For each year the app shall compute the net worth of the year minus the net worth of the year before, divided by the net worth of the year before, times 100, rounded to one decimal, and shall give it none when the year or the year before has no records, or when the net worth of the year before is 0.00 or negative.
+For each year the app shall compute the net worth of the year minus the net worth of the year before, divided by the net worth of the year before, times 100, rounded to two decimals half-up (CSD-000 CON-8), and shall give it none when the year or the year before has no records, or when the net worth of the year before is 0.00 or negative.
 
 ```gherkin
 @AC-8.1
 Scenario: Growth of the net worth
   Given the net worth of 2025 is 100000.00 and that of 2026 is 110000.00
   When the series is computed
-  Then the growth of total wealth of 2026 is "10.0"
+  Then the growth of total wealth of 2026 is "10.00"
 
 @AC-8.2
 Scenario: Shrinking net worth
   Given the net worth of 2025 is 100000.00 and that of 2026 is 95000.00
   When the series is computed
-  Then the growth of total wealth of 2026 is "-5.0"
+  Then the growth of total wealth of 2026 is "-5.00"
+
+@AC-8.5
+Scenario: A decrease that rounds to zero shows no sign
+  Given the net worth of 2025 is 100000.00 and that of 2026 is 99999.00
+  When the series is computed
+  Then the growth of total wealth of 2026 is "0.00"
 
 @AC-8.3
 Scenario: Year before not positive
@@ -255,12 +298,12 @@ Scenario: Year before has no records
 ```
 
 **REQ-9: Free income** *(ubiquitous)*
-For each year the app shall show the disposable income as the wealth accumulation plus the expenses, and the percentage of disposable income as the disposable income divided by the total income, times 100, rounded to one decimal, and shall give the disposable income none when the wealth accumulation is none, and the percentage none when the disposable income is none or the total income is 0.00.
+For each year the app shall show the disposable income as the wealth accumulation from cash plus the expenses, and the percentage of disposable income as the disposable income divided by the total income, times 100, rounded to two decimals half-up (CSD-000 CON-8), and shall give the disposable income none when the wealth accumulation from cash is none, and the percentage none when the disposable income is none or the total income is 0.00.
 
 ```gherkin
 @AC-9.1
 Scenario: Set aside plus spent
-  Given the wealth accumulation of 2025 is 6000.00 and the expenses are 4000.00
+  Given the wealth accumulation from cash of 2025 is 6000.00 and the expenses are 4000.00
   When the series is computed
   Then the disposable income of 2025 is 10000.00
 
@@ -268,34 +311,34 @@ Scenario: Set aside plus spent
 Scenario: Percentage of the income
   Given the disposable income of 2025 is 10000.00 and the total income is 48000.00
   When the series is computed
-  Then the percentage of disposable income of 2025 is "20.8"
+  Then the percentage of disposable income of 2025 is "20.83"
 
 @AC-9.3
 Scenario: No expenses
-  Given the wealth accumulation of 2025 is 6000.00 and 2025 has no expenses
+  Given the wealth accumulation from cash of 2025 is 6000.00 and 2025 has no expenses
   When the series is computed
   Then the disposable income of 2025 is 6000.00
 
 @AC-9.4
-Scenario: No wealth accumulation
-  Given the wealth accumulation of 2024 is none
+Scenario: No wealth accumulation from cash
+  Given the wealth accumulation from cash of 2024 is none
   When the series is computed
   Then the disposable income and its percentage of 2024 are none
 ```
 
 **REQ-10: Display** *(ubiquitous)*
-The app shall show amounts in the project currency as the other tables do, percentages with one decimal and a sign as CSD-007 REQ-10 labels them (+6.4%, −2.5%, 0.0%), negative figures in the negative colour, a figure that is none as "–", and no count of records. While the table is wider than the page, the app shall scroll it sideways and keep the row labels in view.
+The app shall show amounts in the project currency as the other tables do, percentages as the labels Rust delivers (two decimals and a sign as CSD-007 REQ-10 labels them: +6.09%, -2.50%, 0.00%, the last also for a decrease that rounds to 0.00), negative figures in the negative colour, a figure that is none as "–", and no count of records. While the table is wider than the page, the app shall scroll it sideways and keep the row labels in view.
 
 ```gherkin
 @AC-10.1
 Scenario: Percentages and none
-  Given the percentage of income to wealth of 2025 is "12.5" and that of 2024 is none
+  Given the percentage of income to wealth of 2025 is "12.50" and that of 2024 is none
   When the user opens "Ratios"
-  Then the 2025 cell shows "+12.5%" and the 2024 cell shows "–"
+  Then the 2025 cell shows "+12.50%" and the 2024 cell shows "–"
 
 @AC-10.2
 Scenario: Negative figures
-  Given the wealth accumulation of 2025 is -1700.00
+  Given the wealth accumulation from cash of 2025 is -1700.00
   When the user opens "Ratios"
   Then that cell is shown in the negative colour
 
@@ -360,38 +403,48 @@ Command: `get_ratios()` returns the series, oldest year first, and an empty list
 {
   "years": [
     { "year": 2025, "is_partial": false, "total_income": "48000.00",
-      "wealth_accumulation": "6000.00", "wealth_percent": "12.5",
-      "investment_growth_percent": "4.2", "wealth_growth_percent": "10.0",
-      "disposable_income": "10000.00", "disposable_percent": "20.8" }
+      "wealth_accumulation": "6000.00", "wealth_percent": "12.50",
+      "wealth_percent_label": "+12.50%",
+      "investment_growth_percent": "4.17", "investment_growth_percent_label": "+4.17%",
+      "wealth_growth_percent": "10.00", "wealth_growth_percent_label": "+10.00%",
+      "disposable_income": "10000.00", "disposable_percent": "20.83",
+      "disposable_percent_label": "+20.83%" }
   ]
 }
 ```
 
-Amounts are decimal strings in the project currency (CSD-003) and percentages decimal strings with one decimal. A figure that is none is `null`. The command only reads the project and the project file is unchanged.
+Amounts are decimal strings in the project currency (CSD-003) and percentages decimal strings with two decimals, both rounded as CSD-000 CON-8 says. A figure that is none is `null`, and its label is "–". Every percentage comes with a `<what>_label` string built by Rust (CSD-025 section 5; sign "-"), which the table shows as received. The command only reads the project and the project file is unchanged.
 
 ## 6. Constraints
 - CON-1: The frontend displays figures computed in Rust and computes none itself, not even a percentage or a sum. Rationale: `CLAUDE.md` layout rule.
 - CON-2: The figures of each area come from the same code that gives them to its own page (CSD-001, 005, 007, 011, 013, 017), and the bank increase is defined in this CSD alone. Rationale: the figures can never differ between pages.
-- CON-3: Percentages are rounded to one decimal with banker's rounding, as in CSD-007. Rationale: `CLAUDE.md` money rule, and one rounding rule for all percentages.
+- CON-3: Amounts, ratios and percentages are rounded as CSD-000 CON-8 says (2 decimals, half-up, no sign on a decrease that rounds to 0.00). Rationale: one rounding rule for the whole application.
 - CON-4: No network access, no new dependency. Rationale: `CLAUDE.md` Tauri security rules and dependency rule.
 - CON-5: Tests and fixtures use synthetic data only. Rationale: the repo is public.
 
 ## 7. Verification
-The figures are computed in Rust, so REQ-2 and REQ-4 to REQ-9 are proven by `cargo test`. Tests are named `test_csd018_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
+Tests are named `test_csd018_ac_<n>_<m>_<description>` (CSD-000 REQ-6) and run with `cargo test test_csd018_`; display ACs are checked by DOM tests (`npm test`, dev-only test harness in `ui/tests/`, a tests-only exception to the no-npm rule) whose titles carry the AC id.
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-2 (AC-2.1, AC-2.3), REQ-4 to REQ-9, AC-12.1 (the data) | `cargo test test_csd018_` |
-| REQ-1, AC-2.2, REQ-3, REQ-10, REQ-11, AC-12.1 (the screen) | Manual checklist: page without tabs, column order and "YTD", rows and sub-headings, signs and "–", negative colour, sideways scrolling with the labels in view, info tooltips (open, close, one at a time), empty state. There is no frontend test setup |
-| One requirement, e.g. REQ-5 | `cargo test test_csd018_ac_5_` |
+| Rust tests (the figures) | `cargo test test_csd018_` |
+| Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-11.1, empty project), `ratios.test.js` (AC-10.1, AC-10.2) and `ac-c2-ratios.test.js` (the page without tabs, the rows and sub-headings, the sticky row labels, fresh figures, the info tooltips) |
+| Display ACs without a DOM test (the real sideways scrolling of the table: jsdom has no layout, so only the sticky rule of the stylesheet is checked) | Checked by hand |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Every AC is covered by a named test.
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 None.
 
 ## 9. Changelog
+- 1.4 (04/11/2026): Rust delivers the percentage labels of the table (`wealth_percent_label`, `investment_growth_percent_label`, `wealth_growth_percent_label`, `disposable_percent_label`; REQ-10 and section 5), so the frontend formats nothing and the sign is "-" like the charts. Back to `draft` until re-approved.
+- 1.3 (04/11/2026): Live references follow the split of the former CSD-020: the Cancelled and Repaid treatment is CSD-026 REQ-9, REQ-10 and REQ-11 (definition of Repaid, REQ-5); no behaviour change. Back to `draft` until re-approved.
+- 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
+- 1.1 (03/11/2026): The series runs to the later of the current year and the latest year with a record, so future years get a column labelled like any other year, and spans at most 50 years back from its last year, older records still count in the figures that span all years (REQ-2, new AC-2.4, AC-2.5; owner decision). Back to `draft` until re-approved.
+- 1.0 (03/11/2026): Ratios and growth percentages are rounded to two decimals half-up (CSD-000 CON-8) instead of one decimal with banker's rounding: REQ-6, REQ-8, REQ-9, REQ-10 and CON-3 rewritten. AC values changed: AC-6.1 "12.5" to "12.50", AC-6.2 "-3.5" to "-3.54" (the exact value was -3.5417), AC-7.1 "4.2" to "4.17", AC-8.1 "10.0" to "10.00", AC-8.2 "-5.0" to "-5.00", AC-9.2 "20.8" to "20.83", AC-10.1 "+12.5%" to "+12.50%", and the JSON example; new AC-6.4 (half-up and no sign) and AC-8.5. One term, "wealth accumulation from cash", everywhere. Only a Cancelled debt nets to zero, a Repaid debt counts in full; references point to the merged CSD-020 (REQ-26, REQ-27, formerly CSD-020 REQ-11 and REQ-12), and the repaid amount equals the Cancelled-adjusted yearly total of the Debts overview (CSD-020 REQ-28, new AC-5.9). Navigation moved to CSD-024. The display ACs are covered by DOM tests. Back to `draft` until re-approved.
 - 0.4 (02/11/2026): Each row gets an info icon with a tooltip that explains its calculation (REQ-13, GitHub issue 33).
 - 0.3 (30/10/2026): Houses replace assets in the wording. The definition of Repaid and REQ-5 gain the treatment of a Cancelled debt (CSD-020): its settled amount is subtracted from the repaid amount of the sale year (AC-5.6 to AC-5.8). NG-7 is unchanged. Back to `draft` until re-approved (GitHub issue 31).
-- 0.2 (29/10/2026): Wealth growth follows the net worth, which no longer counts a sold house from its sale year (CSD-017, CSD-019 REQ-11; GitHub issue 27). No requirement changes.
+- 0.2 (29/10/2026): Wealth growth follows the net worth, which no longer counts a sold house from its sale year (CSD-017, CSD-020 REQ-10; GitHub issue 27). No requirement changes.
 - 0.1 (29/10/2026): initial draft, from GitHub issue 25 and the grill-me interview. Beyond the interview, a year in which no bank account has an increase, no investment account has a statement and no debt has a repaid amount has no wealth accumulation (REQ-5, AC-5.5), and the growth of total wealth is none when the year itself has no records (REQ-8). Approving it also changes CSD-004 REQ-1 (the Insights group holds Net worth and Ratios).

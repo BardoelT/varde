@@ -3,12 +3,12 @@
     reason = "Tauri commands receive their arguments by value"
 )]
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 use tauri::State;
 
 use super::AppState;
-use crate::domain::bank_accounts::{bank_note, parse_period, AccountInput};
+use crate::domain::bank_accounts::{bank_note, parse_period, BankAccountInput};
 use crate::domain::{
     BankAccount, BankAccountId, BankAccounts, BankBalance, BankEntry, BankInsights, BankOverview,
     BankYearlyTotal, EntryPrefill,
@@ -24,7 +24,7 @@ pub struct EntryView {
     account_name: String,
     /// `YYYY-MM` for a monthly account, `YYYY` for a yearly one.
     period: String,
-    balance: Decimal,
+    balance: Money,
     note: String,
 }
 
@@ -50,7 +50,7 @@ pub fn list_bank_accounts(state: State<'_, AppState>) -> Result<BankOverview, Ap
 #[tauri::command]
 pub fn create_bank_account(
     state: State<'_, AppState>,
-    input: AccountInput,
+    input: BankAccountInput,
 ) -> Result<BankAccount, AppError> {
     let mut project = state.project()?;
     Ok(project.bank_accounts_mut().create_account(&input)?)
@@ -60,7 +60,7 @@ pub fn create_bank_account(
 pub fn update_bank_account(
     state: State<'_, AppState>,
     account_id: String,
-    input: AccountInput,
+    input: BankAccountInput,
 ) -> Result<BankAccount, AppError> {
     let mut project = state.project()?;
     Ok(project
@@ -97,7 +97,6 @@ pub fn add_bank_entry(
     balance: String,
     note: Option<String>,
 ) -> Result<EntryView, AppError> {
-    let today = state.today();
     let account_id = BankAccountId::parse(&account_id)?;
     let period = parse_period(&period)?;
     let balance = BankBalance::parse(&balance)?;
@@ -105,7 +104,7 @@ pub fn add_bank_entry(
     let mut project = state.project()?;
     let entry = project
         .bank_accounts_mut()
-        .add_entry(account_id, period, balance, note, today)?;
+        .add_entry(account_id, period, balance, note)?;
     entry_view(&project, &entry)
 }
 
@@ -118,7 +117,6 @@ pub fn update_bank_entry(
     balance: String,
     note: Option<String>,
 ) -> Result<EntryView, AppError> {
-    let today = state.today();
     let account_id = BankAccountId::parse(&account_id)?;
     let period = parse_period(&period)?;
     let new_period = parse_period(&new_period)?;
@@ -127,7 +125,7 @@ pub fn update_bank_entry(
     let mut project = state.project()?;
     let entry = project
         .bank_accounts_mut()
-        .update_entry(account_id, period, new_period, balance, note, today)?;
+        .update_entry(account_id, period, new_period, balance, note)?;
     entry_view(&project, &entry)
 }
 

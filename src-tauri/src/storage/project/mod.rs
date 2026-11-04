@@ -8,7 +8,7 @@ use crate::domain::{
 };
 
 /// The extension of project files.
-const EXTENSION: &str = "wealth";
+const EXTENSION: &str = "varde";
 
 /// Whether the project differs from disk, and whether it has a file yet.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -23,6 +23,15 @@ pub enum SaveOutcome {
     Saved,
     /// The user cancelled the path dialog; nothing was written.
     Cancelled,
+}
+
+/// Where a save would write, and whether it would replace another file (REQ-14).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SaveTarget {
+    /// The path with the `.varde` extension (REQ-15).
+    pub path: PathBuf,
+    /// A file other than the project's own already exists there.
+    pub replaces_other_file: bool,
 }
 
 /// Result of an open that asks for a file first.
@@ -114,7 +123,7 @@ impl Project {
     }
 
     /// The houses and the debts together, for the changes that touch both
-    /// (CSD-020).
+    /// (CSD-019, CSD-020, CSD-026).
     pub fn houses_and_debts_mut(&mut self) -> (&mut Houses, &mut Debts) {
         (&mut self.data.houses, &mut self.data.debts)
     }
@@ -164,9 +173,11 @@ impl Project {
 
     /// Starts using `memory` and reopens the file it remembers, if any (REQ-8).
     ///
-    /// If that file cannot be opened the project stays empty, the path is
-    /// forgotten so the error does not repeat, and the reason is kept for
-    /// [`Project::take_startup_notice`] (REQ-11).
+    /// If that file cannot be opened the project stays empty and the reason is
+    /// kept for [`Project::take_startup_notice`] (REQ-11). The path is forgotten
+    /// only when the file is gone for good, that is its folder exists and the
+    /// file does not (REQ-12); in every other case, such as an unmounted drive or
+    /// an unusable file, it is kept (REQ-13).
     pub fn restore(&mut self, memory: LastProject) {
         let remembered = memory.load();
         self.memory = Some(memory);
@@ -174,8 +185,10 @@ impl Project {
             return;
         };
         if let Err(error) = self.open(&path) {
-            if let Some(memory) = &self.memory {
-                memory.clear();
+            if is_gone_for_good(&path, &error) {
+                if let Some(memory) = &self.memory {
+                    memory.clear();
+                }
             }
             self.startup_notice = Some(error);
         }
@@ -217,24 +230,35 @@ impl Project {
         Ok(())
     }
 
+    /// The file a save to `path` writes, and whether that replaces a file that
+    /// is not the project's own (REQ-14, REQ-15).
+    #[must_use]
+    pub fn save_target(&self, path: PathBuf) -> SaveTarget {
+        let path = with_extension(path);
+        let replaces_other_file = path.exists() && self.path.as_deref() != Some(path.as_path());
+        SaveTarget {
+            path,
+            replaces_other_file,
+        }
+    }
+
     /// Saves to the current path, or asks for one if there is none yet. A
-    /// `None` from `ask_path` means the user cancelled (AC-1.3, AC-1.5).
+    /// `None` from `ask_path` means the user cancelled (AC-1.3, AC-1.5);
+    /// `confirm_overwrite` is asked with the final path before another file is
+    /// replaced, and a `false` cancels the save (REQ-14).
     ///
     /// # Errors
     /// Returns `SaveFailed`.
     pub fn save_asking(
         &mut self,
         ask_path: impl FnOnce() -> Option<PathBuf>,
+        confirm_overwrite: impl FnOnce(&Path) -> bool,
     ) -> Result<SaveOutcome, StorageError> {
         if self.path.is_some() {
             self.save()?;
-        } else {
-            let Some(path) = ask_path() else {
-                return Ok(SaveOutcome::Cancelled);
-            };
-            self.save_as(path)?;
+            return Ok(SaveOutcome::Saved);
         }
-        Ok(SaveOutcome::Saved)
+        self.save_as_asking(ask_path, confirm_overwrite)
     }
 
     /// Always asks for a path, even if there is one (Save As, AC-1.4).
@@ -244,11 +268,16 @@ impl Project {
     pub fn save_as_asking(
         &mut self,
         ask_path: impl FnOnce() -> Option<PathBuf>,
+        confirm_overwrite: impl FnOnce(&Path) -> bool,
     ) -> Result<SaveOutcome, StorageError> {
         let Some(path) = ask_path() else {
             return Ok(SaveOutcome::Cancelled);
         };
-        self.save_as(path)?;
+        let target = self.save_target(path);
+        if target.replaces_other_file && !confirm_overwrite(&target.path) {
+            return Ok(SaveOutcome::Cancelled);
+        }
+        self.save_as(target.path)?;
         Ok(SaveOutcome::Saved)
     }
 
@@ -281,14 +310,38 @@ impl Project {
     }
 }
 
-fn with_extension(path: PathBuf) -> PathBuf {
-    if path.extension().is_some() {
-        path
-    } else {
-        path.with_extension(EXTENSION)
-    }
+/// Whether a remembered file that failed to open is gone for good: its folder
+/// exists and the file does not (REQ-12). Anything else, such as a missing
+/// folder, an unreadable folder or a file that exists but is unusable, may be
+/// temporary (REQ-13).
+fn is_gone_for_good(path: &Path, error: &StorageError) -> bool {
+    let missing = matches!(
+        error,
+        StorageError::OpenFailed(cause) if cause.kind() == std::io::ErrorKind::NotFound
+    );
+    missing && path.parent().is_some_and(Path::is_dir)
 }
 
+/// Appends `.varde` unless the name already ends in it (REQ-15).
+fn with_extension(path: PathBuf) -> PathBuf {
+    let has_extension = path
+        .extension()
+        .is_some_and(|extension| extension.eq_ignore_ascii_case(EXTENSION));
+    if has_extension {
+        return path;
+    }
+    let mut name = path.into_os_string();
+    name.push(".");
+    name.push(EXTENSION);
+    PathBuf::from(name)
+}
+
+#[cfg(test)]
+mod ac_tests;
+#[cfg(test)]
+mod ac_tests_csd003;
+#[cfg(test)]
+mod ac_tests_csd013;
 #[cfg(test)]
 mod bank_accounts_tests;
 #[cfg(test)]

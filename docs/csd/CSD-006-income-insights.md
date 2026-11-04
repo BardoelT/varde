@@ -3,9 +3,9 @@ id: CSD-006
 title: Income insights
 status: approved
 owner: Thijs Bardoel
-version: 0.6
-last_updated: 29/10/2026
-related: [CSD-001, CSD-003, CSD-004, CSD-007]
+version: 1.3
+last_updated: 03/11/2026
+related: [CSD-000, CSD-001, CSD-003, CSD-004, CSD-007, CSD-025]
 ---
 
 # CSD-006: Income insights
@@ -25,7 +25,7 @@ The Income page lists jobs, paychecks and a table of yearly totals, but a table 
 - NG-3: Summary growth figures such as the compound annual growth rate, and forecasts (CSD-001 NG-4).
 - NG-4: Like-for-like comparison of the current year to date with the same months of last year.
 - NG-5: Click-through, zooming, or exporting the chart.
-- NG-6: Charts on the Dashboard (CSD-004 NG-2 stays) or on the Reports page.
+- NG-6: Charts on the Dashboard (CSD-004 NG-2 stays) or on the Net worth page, which has its own chart (CSD-017).
 - NG-7: A chart library or any other new dependency.
 
 ## 3. Definitions
@@ -33,7 +33,7 @@ The Income page lists jobs, paychecks and a table of yearly totals, but a table 
 |---|---|
 | **Year** | A calendar year. Entries are summed per year over all jobs, as in the yearly totals (CSD-001 REQ-11). |
 | **Current year** | The calendar year of today, in local time. Its figures run up to and including the current month, and are therefore partial. |
-| **Growth** | The change in total gross of a year against the year before, in percent. |
+| **Growth** | The change in total gross of a year against the year before, in percent, with two decimals (CSD-000 CON-8). |
 | **Entry** | A paycheck of a monthly job or an annual statement of a yearly job (CSD-001). |
 
 ## 4. Requirements
@@ -80,7 +80,7 @@ Scenario: No jobs yet
 ```
 
 **REQ-2: Year series** *(ubiquitous)*
-The app shall return one set of figures for every calendar year from the year of the earliest entry up to and including the current year, oldest year first, holding the sums over all jobs of gross salary, holiday pay, bonus and total gross, and the number of entries. The number of entries is part of the data only: the Insights tab does not display it.
+The app shall return one set of figures for every calendar year from the year of the earliest entry up to and including the later of the current year and the year of the latest entry, but for at most 50 years back from that last year, oldest year first, holding the sums over all jobs of gross salary, holiday pay, bonus and total gross, and the number of entries. The number of entries is part of the data only: the Insights tab does not display it. An entry older than the 50 years gets no slot, but still counts in every total of CSD-001 and CSD-004 that spans all years.
 
 ```gherkin
 @AC-2.1
@@ -105,6 +105,24 @@ Scenario: A single year
   And the only entry is a paycheck for 2026-09
   When the insights are requested
   Then the series holds only the year 2026
+
+@AC-2.4
+Scenario: An entry after the current year extends the series
+  Given today is 26/10/2026
+  And the earliest entry is a paycheck for 2024-03
+  And the latest entry is an annual statement for 2027
+  When the insights are requested
+  Then the series holds the years 2024, 2025, 2026 and 2027
+
+@AC-2.5
+Scenario: A very old entry gets no slot but still counts
+  Given today is 26/10/2026
+  And "Example Employer" has an annual statement for 1950 of salary 1000.00, holiday pay 0.00 and bonus 0.00
+  And the only other entry is an annual statement for 2026
+  When the insights are requested
+  Then the series holds the years 1977 to 2026, which is 50 years
+  And 1950 to 1976 have no slot
+  And the 1950 statement still counts in the totals of CSD-001
 ```
 
 **REQ-3: Years without entries** *(unwanted behaviour)*
@@ -121,7 +139,7 @@ Scenario: Gap year
 ```
 
 **REQ-4: Current year is partial** *(state-driven)*
-While a year is the current year, the app shall mark it as partial.
+While a year is the current year, the app shall mark it as partial. A year after the current year is not marked partial and looks like any other year.
 
 ```gherkin
 @AC-4.1
@@ -131,10 +149,17 @@ Scenario: Current year is marked
   When the insights are requested
   Then the year 2026 is marked partial
   And the year 2025 is not
+
+@AC-4.2
+Scenario: A future year is not marked partial
+  Given today is 26/10/2026
+  And an annual statement for 2027
+  When the insights are requested
+  Then the year 2027 is not marked partial
 ```
 
 **REQ-5: Growth** *(ubiquitous)*
-The app shall calculate the growth of a year as (total gross − total gross of the year before) ÷ total gross of the year before × 100, rounded to one decimal place with banker's rounding.
+The app shall calculate the growth of a year as (total gross − total gross of the year before) ÷ total gross of the year before × 100, rounded to two decimal places half-up (CSD-000 CON-8), where a decrease that rounds to 0.00 is given as 0.00 without a sign.
 
 ```gherkin
 @AC-5.1
@@ -146,11 +171,13 @@ Scenario Outline: Growth per year
   Then the growth of 2024 is "<growth>"
 
   Examples:
-    | previous | current  | growth |
-    | 32400.00 | 34480.00 | 6.4    |
-    | 40000.00 | 39000.00 | -2.5   |
-    | 20000.00 | 20090.00 | 0.4    |
-    | 20000.00 | 20000.00 | 0.0    |
+    | previous  | current   | growth |
+    | 32400.00  | 34480.00  | 6.42   |
+    | 40000.00  | 39000.00  | -2.50  |
+    | 20000.00  | 20090.00  | 0.45   |
+    | 20000.00  | 20000.00  | 0.00   |
+    | 40000.00  | 40002.00  | 0.01   |
+    | 100000.00 | 99999.00  | 0.00   |
 ```
 
 **REQ-6: No growth available** *(unwanted behaviour)*
@@ -180,7 +207,7 @@ Scenario: Year after a gap has no growth
 ```
 
 **REQ-7: Chart** *(ubiquitous)*
-The Insights tab shall draw one stacked bar per year in the order received, built from gross salary, holiday pay and bonus, on a y-axis from 0 to a rounded-up value of at least the largest total gross, with gridlines, compact axis labels (such as "10k"), a legend naming the three amounts, and no currency. The chart has the size and the zero line of every yearly chart (REQ-17).
+The Insights tab shall draw one stacked bar per year in the order received, built from gross salary, holiday pay and bonus, on a y-axis from 0 to a rounded-up value of at least the largest total gross, with gridlines, short axis labels whose text is provided by the backend (format in CSD-025), a legend naming the three amounts, and no currency. The chart has the size and the zero line of every yearly chart (REQ-17).
 
 ```gherkin
 @AC-7.1
@@ -213,7 +240,7 @@ Scenario: Current year is marked
 ```
 
 **REQ-8: Growth labels** *(ubiquitous)*
-The Insights tab shall show the growth of each year with a growth value next to its bar as "+x.x%" or "−x.x%", "0.0%" for no change and "–" for no growth, using the negative colour only for decreases.
+The Insights tab shall show the growth of each year with a growth value next to its bar as "+x.xx%" or "-x.xx%", "0.00%" for no change (also for a decrease that rounds to 0.00, without a sign) and "–" for no growth, using the negative colour only for decreases.
 
 ```gherkin
 @AC-8.1
@@ -223,15 +250,15 @@ Scenario Outline: Growth label
   Then the label of that year reads "<label>"
 
   Examples:
-    | growth | label |
-    | 6.4    | +6.4% |
-    | -2.5   | −2.5% |
-    | 0.0    | 0.0%  |
-    | none   | –     |
+    | growth | label  |
+    | 6.42   | +6.42% |
+    | -2.50  | -2.50% |
+    | 0.00   | 0.00%  |
+    | none   | –      |
 
 @AC-8.2
 Scenario: Only decreases are red
-  Given the growth of 2023 is -2.5 and of 2024 is 6.4
+  Given the growth of 2023 is -2.50 and of 2024 is 6.42
   When the user opens the Insights tab
   Then the label of 2023 uses the negative colour
   And the label of 2024 does not
@@ -264,7 +291,7 @@ Scenario: Tooltip on keyboard focus
 
 @AC-9.3
 Scenario: Accessible label
-  Given the year 2025 has total gross 34480.00 and growth 6.4
+  Given the year 2025 has total gross 34480.00 and growth 6.42
   When a screen reader reads the 2025 bar
   Then it announces the year, the four amounts and the growth
 ```
@@ -344,150 +371,30 @@ Scenario: Keyboard focus shows the same tooltip
   Then the tooltip is shown beside that bar with the same swatches
 ```
 
-**REQ-13: Highlight while hovering** *(event-driven)*
-When the mouse is over a segment of a bar or over a legend item, or keyboard focus is on a legend item, the Insights tab shall keep all segments of that series (Gross salary, Holiday pay or Bonus) at full colour in every year and ease all other segments to 70% opacity, set the legend item of that series in the full text colour and a heavier font weight in the tooltip and in the legend, and ease the other items of the legend down to 70% opacity, and while no segment or legend item is hovered or focused, the Insights tab shall highlight nothing. Keyboard focus on a year highlights nothing.
+**REQ-13: Highlight while hovering** *(removed in v1.3)*
+Moved to CSD-025 REQ-9, which holds the highlight of one series for every chart. AC-13.1 to AC-13.7 are replaced by CSD-025 AC-9.1 to AC-9.4.
+
+**REQ-14: Motion** *(removed in v1.3)*
+Moved to CSD-025 REQ-10. AC-14.1 to AC-14.3 are replaced by CSD-025 AC-10.1.
+
+**REQ-15: Reduced motion** *(removed in v1.3)*
+Moved to CSD-025 REQ-10. AC-15.1 is replaced by CSD-025 AC-10.2.
+
+**REQ-16: Refined look** *(removed in v1.3)*
+Moved to CSD-025 REQ-11 and REQ-12. AC-16.1 to AC-16.4 and AC-17.1, AC-17.2 are replaced by CSD-025 AC-11.x and AC-12.x.
+
+**REQ-17: Size, look and legend of the chart** *(ubiquitous)*
+The Insights tab shall draw the chart with the size and the look of CSD-025 REQ-11 and REQ-12 and list in its legend (CSD-025 REQ-13) the series Gross salary, Holiday pay and Bonus, each with its colour swatch.
 
 ```gherkin
-@AC-13.1
-Scenario: Hovering a segment
-  Given the 2025 bar is stacked from gross salary, holiday pay and bonus
-  When the user hovers over the holiday pay segment
-  Then the Holiday pay item is set in the full text colour and a heavier font weight in the tooltip and in the legend
-  And the Gross salary and Bonus items of the legend are eased down to 70% opacity
-  And the holiday pay segments keep their full colour in every year
-  And the gross salary and bonus segments, in every year, are eased down to 70% opacity
-
-@AC-13.2
-Scenario: Moving to another segment
-  Given the user hovers over the holiday pay segment of 2025
-  When the user moves the mouse to the bonus segment
-  Then only the Bonus item is highlighted
-
-@AC-13.3
-Scenario: Leaving the segment
-  Given the user hovers over a segment
-  When the user moves the mouse to empty space in the year's column
-  Then no legend item is highlighted and no segment is dimmed
-  And the tooltip is still shown
-
-@AC-13.4
-Scenario: Not colour alone
-  Given the user hovers over a segment
-  Then the highlighted item has a heavier font weight than the other items
-  And the other segments are lighter, not differently coloured
-  And no outline and no background chip is drawn
-
-@AC-13.5
-Scenario: Keyboard focus on a year highlights nothing
-  Given the Insights tab shows the chart
-  When the user moves focus to the 2025 bar with the Tab key
-  Then no legend item is highlighted
-
-@AC-13.6
-Scenario: Hovering a legend item
-  Given the 2025 and 2026 bars both have gross salary, holiday pay and bonus segments
-  When the user hovers over the legend item "Bonus"
-  Then the bonus segments of 2025 and 2026 keep their full colour
-  And the gross salary and holiday pay segments of both years are eased down to 70% opacity
-  And the other legend items are eased down to 70% opacity
-
-@AC-13.7
-Scenario: Focusing a legend item
-  Given the Insights tab shows the chart
-  When the user moves keyboard focus to the legend item "Bonus"
-  Then the highlight is the same as when hovering over it
-  And it ends when focus leaves the legend item
-```
-
-**REQ-14: Motion** *(event-driven)*
-When a tooltip appears or moves to another year, or the highlight of REQ-13 changes, the Insights tab shall animate the change over 120 to 150 ms with an ease-out curve: the tooltip fades in and slides 4 px towards its place, it glides to its new place when the user moves from one year to another, and the opacity of segments and legend items eases.
-
-```gherkin
-@AC-14.1
-Scenario: Tooltip fades in
-  Given the Insights tab shows the chart
-  When the user hovers over the 2025 bar
-  Then the tooltip fades in over 120 to 150 ms while it slides 4 px towards its place
-
-@AC-14.2
-Scenario: Tooltip glides between years
-  Given the tooltip of 2025 is shown
-  When the user moves the mouse to the 2026 bar
-  Then the tooltip glides to its new place over 120 to 150 ms instead of jumping
-
-@AC-14.3
-Scenario: Dimming eases
-  Given the user hovers over the holiday pay segment of 2025
-  When the user moves the mouse away from the segment
-  Then the other segments and the legend items ease back to full opacity over 120 to 150 ms
-```
-
-**REQ-15: Reduced motion** *(state-driven)*
-While the user prefers reduced motion, the Insights tab shall show tooltips and highlight changes at once, without fading, sliding or gliding.
-
-```gherkin
-@AC-15.1
-Scenario: Reduced motion
-  Given the user prefers reduced motion
-  When the user hovers over the 2025 bar and then over the 2026 bar
-  Then each tooltip appears at once at its place without sliding or gliding
-  And the dimming of segments and legend items changes at once
-```
-
-**REQ-16: Refined look** *(ubiquitous)*
-The Insights tab shall draw the chart with bars at most 50% of the width of their slot and at most 44 px wide, with the top corners of the topmost segment rounded by 3 px and a 1 px gap between stacked segments in place of an outline, with 1 px gridlines at 55% opacity of the border colour and a 1 px zero line in the muted text colour at 70% opacity if one is drawn (styled as in CSD-010), with axis and year labels in the muted text colour at regular font weight, with tooltips of 10 px corner radius, 12 px by 14 px padding, a shadow of at least 16 px blur and at most 12% opacity, a 12 px title in semibold and row labels in the muted text colour, and with series colours of at most 60% HSL saturation and gain and loss colours of at most 55% HSL saturation, in light and in dark mode.
-
-```gherkin
-@AC-16.1
-Scenario: Bars
-  Given the series holds the years 2024, 2025 and 2026
-  When the user opens the Insights tab
-  Then no bar is wider than 50% of its slot or 44 px
-  And the top corners of each bar are rounded by 3 px
-  And stacked segments are separated by a 1 px gap and have no outline
-
-@AC-16.2
-Scenario: Gridlines and labels
-  Given the Insights tab shows the chart
-  Then the gridlines are 1 px lines at 55% opacity of the border colour
-  And the axis labels and the year labels are in the muted text colour at regular font weight
-
-@AC-16.3
-Scenario: Tooltip
-  Given the user hovers over a year
-  Then the tooltip has a 10 px corner radius, 12 px by 14 px padding and a soft shadow
-  And its title is semibold and its row labels are in the muted text colour
-
-@AC-16.4
-Scenario: Colours in both modes
-  Given the Insights tab shows the chart
-  When the app is in light mode and then in dark mode
-  Then the series colours have at most 60% HSL saturation
-  And the gain and loss colours have at most 55% HSL saturation
-```
-
-**REQ-17: One size for every yearly chart** *(ubiquitous)*
-The Insights tab shall draw the chart with a plot height that scales with the height of the window and a minimum slot width of 64 px, with the legend (one item per series, generated by the app) above the plot, the same as the bank accounts chart (CSD-010), so that the yearly charts of all pages have the same size and behaviour.
-
-```gherkin
-@AC-17.1
-Scenario: Same plot height and slot width as the bank accounts chart
-  Given the Insights tab shows the chart
-  Then the plot height scales with the height of the window
-  And each year's slot is at least 64 px wide
-  And the zero line, if drawn, is styled as on the bank accounts chart
-
-@AC-17.2
-Scenario: Many years scroll
-  Given the series holds more years than fit at 64 px per slot
-  When the user opens the Insights tab
-  Then the chart scrolls sideways and no slot is narrower than 64 px
-
 @AC-17.3
 Scenario: Legend lists the series
   Given the Insights tab shows the chart
   Then the legend lists Gross salary, Holiday pay and Bonus, each with its colour swatch
 ```
+
+# @AC-17.1 (removed in v1.3): the size and the zero line are in CSD-025 REQ-11 and REQ-12 (AC-11.x, AC-12.x).
+# @AC-17.2 (removed in v1.3): the size and the zero line are in CSD-025 REQ-11 and REQ-12 (AC-11.x, AC-12.x).
 
 **REQ-18: Tooltip rows in the order of the bar** *(ubiquitous)*
 The tooltip of a year shall list its rows in the order the bar shows them, top to bottom: Bonus, Holiday pay and Gross salary, followed by Total gross and Growth.
@@ -508,38 +415,44 @@ Command: `get_income_insights()` returns the series, oldest year first:
 {
   "years": [
     { "year": 2024, "gross_salary": "30000.00", "holiday_pay": "2400.00", "bonus": "0.00", "total_gross": "32400.00", "entry_count": 12, "is_partial": false, "growth_percent": null },
-    { "year": 2025, "gross_salary": "31000.00", "holiday_pay": "2480.00", "bonus": "1000.00", "total_gross": "34480.00", "entry_count": 12, "is_partial": false, "growth_percent": "6.4" },
+    { "year": 2025, "gross_salary": "31000.00", "holiday_pay": "2480.00", "bonus": "1000.00", "total_gross": "34480.00", "entry_count": 12, "is_partial": false, "growth_percent": "6.42" },
     { "year": 2026, "gross_salary": "26000.00", "holiday_pay": "0.00", "bonus": "0.00", "total_gross": "26000.00", "entry_count": 10, "is_partial": true, "growth_percent": null }
   ]
 }
 ```
 
-`entry_count` stays in the payload (Rust-side use and tests) but the frontend does not display it, not in the tooltip and not elsewhere. `years` is empty when there are no entries. `growth_percent` is a decimal string or `null`. Amounts are decimal strings. Rust decides "today" (local time), the years, the partial flag and the growth, and the frontend only displays what it receives.
+`entry_count` stays in the payload (Rust-side use and tests) but the frontend does not display it, not in the tooltip and not elsewhere. `years` is empty when there are no entries. `growth_percent` is a decimal string with two decimals or `null`. Amounts are decimal strings. The text of the short axis labels is built by Rust and delivered with the series, and the frontend only displays it (format: CSD-025). Rust decides "today" (local time), the years, the partial flag and the growth, and the frontend only displays what it receives.
 
 ## 6. Constraints
 - CON-1: Figures and growth are computed in Rust and displayed as received; the frontend only scales values to positions on the chart. Rationale: `CLAUDE.md` layout rule.
-- CON-2: Amounts and growth use `rust_decimal::Decimal`. Rationale: `CLAUDE.md` money rules.
+- CON-2: Amounts and growth use `rust_decimal::Decimal` and are rounded as CSD-000 CON-8 states (two decimals, half-up). Rationale: `CLAUDE.md` money rules and one rounding rule project-wide.
 - CON-3: The chart is plain SVG drawn in `ui/`, with no chart library, no new crate and no network access. Rationale: `CLAUDE.md` dependency and Tauri security rules.
 - CON-4: Chart colours come from CSS variables and are legible in light and dark mode. Rationale: the app already supports both.
 - CON-5: The Overview tab behaves as before (CSD-001 is unchanged apart from NG-6). Rationale: this capability adds a view and changes no income behaviour.
 - CON-6: Tests and fixtures use synthetic data only. Rationale: the repo is public.
-- CON-7: The highlight of REQ-13 is drawn with CSS classes and carries no meaning by colour alone. Rationale: readers who cannot tell the colours apart, and no new dependency.
-- CON-8: Motion is drawn with CSS transitions only and respects the reduced-motion preference of REQ-15. Rationale: no new dependency, and users who ask for less motion.
+- CON-7: The highlight of CSD-025 REQ-9 is drawn with CSS classes and carries no meaning by colour alone. Rationale: readers who cannot tell the colours apart, and no new dependency.
+- CON-8: Motion is drawn with CSS transitions only and respects the reduced-motion preference of CSD-025 REQ-10. Rationale: no new dependency, and users who ask for less motion.
 
 ## 7. Verification
 The figures are proven by `cargo test`. Tests are named `test_csd006_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-2 to REQ-6 (data) | `cargo test test_csd006_` |
-| AC-1.1 to AC-1.3, REQ-7, REQ-8, REQ-9, REQ-10, REQ-11, REQ-12, REQ-13, REQ-14, REQ-15, REQ-16, REQ-17, REQ-18 (display) | Manual checklist: motion of the tooltip and the dimming, reduced motion, bar shape, gridlines, labels, tooltip look and colours in both modes, tabs, bars and legend, axis, gap and YTD years, growth labels and colours, tooltip by mouse and keyboard, swatches and placement of the tooltip, chart size (plot height scaling with the window, 64 px slots) and legend, tooltip row order and "No entries" note without counts, legend and segment highlight on hover and legend-item focus across all years, no highlight on keyboard focus, empty note, refresh after a change, light and dark mode. There is no frontend test setup |
+| Rust tests (data) | `cargo test test_csd006_` |
+| Display ACs (REQ-7 to REQ-18 and AC-1.1 to AC-1.3) | `npm test`: `ac-a-income-insights.test.js` (AC-1.1 to AC-1.3, AC-7.1 to AC-7.4, AC-8.2, AC-9.1 to AC-9.3, AC-11.1, AC-11.2, AC-12.1, AC-12.5, AC-12.6, AC-17.3, AC-18.1). Manual checklist (jsdom has no layout: AC-12.2 to AC-12.4, the placement and centring of the tooltip; and the look and motion): motion of the tooltip and the dimming, reduced motion, bar shape, gridlines, labels, tooltip look and colours in both modes, tabs, bars and legend, axis, gap and YTD years, growth labels and colours, tooltip by mouse and keyboard, swatches and placement of the tooltip, chart size (plot height scaling with the window, 64 px slots) and legend, tooltip row order and "No entries" note without counts, legend and segment highlight on hover and legend-item focus across all years, no highlight on keyboard focus, empty note, refresh after a change, light and dark mode. The shared chart behaviour has DOM tests under CSD-025 |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (3 of 36 ACs; no test carries the AC id): AC-12.2 to AC-12.4 (placement of the tooltip, needs layout: checked by hand).
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
 None.
 
 ## 9. Changelog
+- 1.3 (03/11/2026): The copies of the look, size and motion text are gone; this CSD points to CSD-025 (REQ-13 to REQ-15 removed in favour of CSD-025 REQ-9 and REQ-10, REQ-16 and REQ-17 reduced to the pointer and the legend items, AC-16.x and AC-17.1, 17.2 removed). Back to `draft` until re-approved.
+- 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. NG-6 names the Net worth page (CSD-017) instead of the Reports page, which no longer exists. Back to `draft` until re-approved.
+- 1.1 (03/11/2026): The series runs to the later of the current year and the latest year with an entry, so future years get a slot, and spans at most 50 years back from its last year, older entries still count in the totals (REQ-2, new AC-2.4, AC-2.5; owner decision). A future year is not partial (REQ-4, new AC-4.2). Back to `draft` until re-approved.
+- 1.0 (03/11/2026): Growth is rounded to two decimals half-up instead of one decimal with banker's rounding (CSD-000 CON-8): REQ-5 (AC-5.1 values and two new rows), REQ-8 (label "+x.xx%", AC-8.1, AC-8.2), AC-9.3, the JSON example and CON-2; a decrease that rounds to 0.00 shows no sign. The text of the short axis labels is provided by the backend, the format is in CSD-025 (REQ-7, section 5). Back to draft for re-approval.
 - 0.6 (29/10/2026): The plot height scales with the height of the window instead of being a fixed 390 px: with the page scrolled to the top the chart ends at the bottom of the window, and the plot is never lower than 260 px. It is recomputed when the window is resized.
 - 0.5 (29/10/2026): The plot of every yearly chart is 390 px high (was 260 px), 50% taller. No other behaviour change.
 - 0.4 (29/10/2026): The yearly charts share one size and behaviour with the bank accounts chart (CSD-010). New REQ-17 (plot height 260 px, minimum slot width 64 px, zero line, generated legend) and REQ-18 (tooltip rows in the order of the bar). REQ-13 now highlights a series in every year and also on hovering or focusing a legend item (AC-13.1 amended, AC-13.6 and AC-13.7 added). The tooltip shows no entry count and the note "No entries" for an empty year (REQ-9, AC-9.1, AC-9.4). `entry_count` stays in the payload but is not displayed. All new ACs are on the manual checklist.

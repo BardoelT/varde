@@ -3,7 +3,7 @@
     reason = "Tauri commands receive their arguments by value"
 )]
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 use tauri::State;
 
@@ -26,16 +26,16 @@ pub struct StatementView {
     debt_name: String,
     /// `YYYY-MM` for a monthly debt, `YYYY` for a yearly one.
     period: String,
-    balance: Decimal,
+    balance: Money,
     /// The previous statement's balance minus this one; `None` for a first
     /// statement (REQ-25).
-    change: Option<Decimal>,
+    change: Option<Money>,
     note: String,
-    /// The settlement statement a sale added (CSD-020 REQ-5).
+    /// The settlement statement a sale added (CSD-026 REQ-3).
     settlement: bool,
     /// `Repaid` or `Cancelled` on the settlement statement.
     outcome: Option<Outcome>,
-    /// Whether the statement can no longer change (CSD-020 REQ-18).
+    /// Whether the statement can no longer change (CSD-026 REQ-14).
     locked: bool,
 }
 
@@ -48,10 +48,10 @@ impl StatementView {
             balance: statement.balance.value(),
             change: debts.change(statement),
             note: statement.note.as_str().to_owned(),
-            settlement: statement.settlement,
+            settlement: statement.is_settlement(),
             outcome: statement
-                .settlement
-                .then(|| debt.settlement.as_ref().map(|settled| settled.outcome))
+                .is_settlement()
+                .then(|| debt.settlement().map(|settled| settled.outcome))
                 .flatten(),
             locked: debts.statement_locked(statement),
         }
@@ -96,7 +96,7 @@ pub fn delete_debt(state: State<'_, AppState>, debt_id: String) -> Result<(), Ap
 }
 
 /// The open balance of a debt at the sale of the house it would be linked to,
-/// for the settlement prompt (CSD-020 REQ-15, REQ-17).
+/// for the settlement prompt (CSD-026 REQ-13, CSD-020 REQ-17).
 #[tauri::command]
 pub fn debt_open_balance(
     state: State<'_, AppState>,
@@ -132,7 +132,6 @@ pub fn add_debt_statement(
     balance: String,
     note: Option<String>,
 ) -> Result<StatementView, AppError> {
-    let today = state.today();
     let debt_id = DebtId::parse(&debt_id)?;
     let period = parse_period(&period)?;
     let balance = DebtBalance::parse(&balance)?;
@@ -140,7 +139,7 @@ pub fn add_debt_statement(
     let mut project = state.project()?;
     let statement = project
         .debts_mut()
-        .add_statement(debt_id, period, balance, note, today)?;
+        .add_statement(debt_id, period, balance, note)?;
     statement_view(&project, &statement)
 }
 
@@ -153,7 +152,6 @@ pub fn update_debt_statement(
     balance: String,
     note: Option<String>,
 ) -> Result<StatementView, AppError> {
-    let today = state.today();
     let debt_id = DebtId::parse(&debt_id)?;
     let period = parse_period(&period)?;
     let new_period = parse_period(&new_period)?;
@@ -162,7 +160,7 @@ pub fn update_debt_statement(
     let mut project = state.project()?;
     let statement = project
         .debts_mut()
-        .update_statement(debt_id, period, new_period, balance, note, today)?;
+        .update_statement(debt_id, period, new_period, balance, note)?;
     statement_view(&project, &statement)
 }
 

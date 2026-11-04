@@ -1,21 +1,21 @@
 ---
 id: CSD-015
 title: Houses
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.5
-last_updated: 30/10/2026
-related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-016, CSD-019, CSD-020]
+version: 2.1
+last_updated: 04/11/2026
+related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-016, CSD-019, CSD-020, CSD-026]
 ---
 
 # CSD-015: Houses
 
 ## 1. Intent
-The app tracks bank accounts, investments and debts, but has no view of the houses the user owns. This capability, which replaces the former Assets capability (the app tracks houses only), lets the user record houses and, per house, one value per month or per year, with an optional note. From these the app derives, per valuation, how much the value changed since the previous one and, per calendar year, the yearly values with the closing value and the change. It is for a single person keeping a private, local history of what their houses are worth. It records values as the user estimates or reads them, such as a valuation report. It does not model the house: no depreciation, no address. The purchase and the sale of a house are CSD-019. The result is a value history per house, which the Insights chart of CSD-016 and later features (net-worth linkage) can build on. It follows the structure of Debts (CSD-011), with a value that cannot be negative and with the change counted as growth.
+The app tracks bank accounts, investments and debts, but has no view of the houses the user owns. This capability, which replaces the former Assets capability (the app tracks houses only), lets the user record houses, each with its purchase, and, per house, one value per month or per year, with an optional note. From these the app derives, per valuation, how much the value changed since the previous one and, per calendar year, the yearly values with the closing value and the change. It is for a single person keeping a private, local history of what their houses are worth. It records values as the user estimates or reads them, such as a valuation report. It does not model the house: no depreciation, no address. The purchase and the sale of a house are specified in CSD-019. The result is a value history per house, which the Insights chart of CSD-016 and the Net worth page of CSD-017 build on. It follows the structure of Debts (CSD-011), with a value that cannot be negative and with the change counted as growth.
 
 ## 2. Scope
 ### 2.1 In scope
-- Create, edit and delete houses, each with a name and a valuation period (Monthly or Yearly).
+- Create, edit and delete houses, each with a name, a valuation period (Monthly or Yearly), a purchase date and a purchase amount (CSD-019).
 - Create, edit and delete one valuation per house per period: the value (0.00 or more) and an optional note.
 - Change the period of an existing valuation (REQ-12).
 - Copy the previous valuation into the add form.
@@ -28,7 +28,7 @@ The app tracks bank accounts, investments and debts, but has no view of the hous
 - NG-1: Depreciation, appreciation rates and any forecast of a value. (The purchase price is part of the purchase of CSD-019.)
 - NG-2: Any kind of property other than a house (a car, land, a business), a house type, an address and other details of the house: a name is the only identifier. Every record of this capability is a house.
 - NG-3: (removed in v0.5) A debt linked to a house is now CSD-020.
-- NG-4: Netting the houses against debts, bank accounts and investments, and integration with net worth and the dashboard (CSD-004).
+- NG-4: Netting the houses against debts, bank accounts and investments on the Houses page, and integration with the dashboard (CSD-004). The integration with net worth is specified in CSD-017.
 - NG-5: Data fetched from a valuation service, and import of valuations (CSV, PDF).
 - NG-6: Archiving a house. A house at 0.00 stays a normal row, and a sold house stays listed (CSD-019).
 - NG-7: A currency per house. All amounts are in the project currency (CSD-003).
@@ -49,7 +49,7 @@ The app tracks bank accounts, investments and debts, but has no view of the hous
 | **Previous valuation** | The valuation of the same house with the latest period before that of the valuation at hand, also when periods in between have none. |
 | **Change** | For a valuation: its value minus the value of its previous valuation. Positive when the value grew, negative when it fell. It is derived and never stored. A first valuation has no change. |
 | **Latest value** | The value of the valuation with the most recent period of a house. |
-| **Total value** | The sum of the latest values of all houses that have at least one valuation. |
+| **Total value** | The sum of the latest values of all held houses (CSD-019 REQ-9) that have at least one valuation. |
 | **Yearly value** | One row per calendar year: the closing value and the change of that year, over all houses. See REQ-20. |
 | **Closing value (of a year)** | The sum, over the houses that have a valuation in that year, of the value of each house's latest valuation in that year. |
 | **Opening value (of a house in a year)** | The value of the latest valuation of the house before that year. A house without an earlier valuation has none. |
@@ -60,7 +60,7 @@ The app tracks bank accounts, investments and debts, but has no view of the hous
 
 ## 4. Requirements
 
-> CSD-020 extends REQ-4 and REQ-6 (linked debts: link in the form, no delete while linked) and REQ-21 (linked debts in the view). CSD-019 extends REQ-1 and REQ-4 (purchase and sale fields), REQ-7 and REQ-13 (valuations lie in the holding window), REQ-17 (the total counts held houses only), REQ-20 (yearly figures count houses held at year end) and REQ-24 (purchase and sale in the project file). Where they differ, CSD-019 applies.
+> CSD-019, CSD-020 and CSD-026 extend REQ-1 and REQ-4 (the purchase, which every house has, and the sale: CSD-019 REQ-1 to REQ-5 and REQ-12), REQ-4 and REQ-6 (linked debts: link in the debt form, no delete while linked: CSD-020 REQ-15, CSD-026 REQ-7), REQ-7 and REQ-13 (valuations lie in the holding window: CSD-019 REQ-6 and REQ-7), REQ-17 (the total counts held houses only: CSD-019 REQ-9), REQ-20 (yearly figures count houses held at year end: CSD-019 REQ-10) and REQ-21 (held or sold, linked debts in the view: CSD-019 REQ-8, CSD-026 REQ-12), and REQ-24 (purchase and sale in the project file: CSD-019 REQ-13). Where they differ, those CSDs apply. In the scenarios below, a house was bought before its first valuation unless stated.
 
 ### 4.0 Overview flow
 ```mermaid
@@ -84,26 +84,32 @@ sequenceDiagram
 ### 4.1 Houses
 
 **REQ-1: Add a house** *(event-driven)*
-When the user submits a new house with a name and a valuation period, the app shall create the house with valuation period Monthly unless Yearly is chosen, and with a colour slot under REQ-3.
+When the user submits a new house with a name, a valuation period, a purchase date and a purchase amount, the app shall create the house with valuation period Monthly unless Yearly is chosen, with the purchase as given (CSD-019 REQ-1 to REQ-4) and with a colour slot under REQ-3.
 
 ```gherkin
 @AC-1.1
 Scenario: House created with the default period
   Given no houses exist
-  When the user adds a house named "Example House" without choosing a period
-  Then the house "Example House" exists with valuation period "Monthly"
+  When the user adds a house named "Example House" with purchase date 15/03/2024 and purchase amount 250000.00 without choosing a period
+  Then the house "Example House" exists with valuation period "Monthly", purchase date 15/03/2024 and purchase amount 250000.00
   And it has no valuations
 
 @AC-1.2
 Scenario: Yearly house
   Given no houses exist
-  When the user adds a house named "Example Lodge" with valuation period "Yearly"
+  When the user adds a house named "Example Lodge" with valuation period "Yearly", purchase date 01/06/2020 and purchase amount 60000.00
   Then the house "Example Lodge" exists with valuation period "Yearly"
 
 @AC-1.3
 Scenario: Unknown period rejected
-  When the user adds a house named "Example House" with valuation period "Weekly"
+  When the user adds a house named "Example House" with valuation period "Weekly", purchase date 15/03/2024 and purchase amount 250000.00
   Then it is rejected with error code "HOUSE_PERIOD_UNSUPPORTED"
+  And no house exists
+
+@AC-1.4
+Scenario: A house always has a purchase
+  When the user adds a house named "Example House" without a purchase date
+  Then it is rejected with error code "HOUSE_PURCHASE_DATE_REQUIRED"
   And no house exists
 ```
 
@@ -187,7 +193,7 @@ Scenario: Renaming keeps the slot
 ```
 
 **REQ-4: Edit a house** *(event-driven)*
-When the user edits a house, the app shall apply a changed name under REQ-2 and a changed valuation period under REQ-5, and shall keep the house's valuations.
+When the user edits a house, the app shall apply a changed name under REQ-2, a changed valuation period under REQ-5 and a changed purchase under CSD-019 REQ-1 to REQ-4, and shall keep the house's valuations.
 
 ```gherkin
 @AC-4.1
@@ -269,42 +275,37 @@ Scenario Outline: The confirmation states no count
 ### 4.2 Valuations
 
 **REQ-7: Add a valuation** *(event-driven)*
-When the user submits a valuation for the house chosen in the add form, a period and a value, the app shall store it with the given note, or with an empty note if none is given, and shall accept any period that is not later than the current month (monthly house) or the current year (yearly house), including periods before the house existed in the app.
+When the user submits a valuation for the house chosen in the add form, a period and a value, the app shall store it with the given note, or with an empty note if none is given. Any period of the kind of the house is accepted, in the past or in the future, within the holding window of CSD-019 REQ-6.
 
 ```gherkin
 @AC-7.1
 Scenario: Monthly valuation with a note
-  Given the current date is 29/10/2026
-  And a monthly house "Example House"
+  Given a monthly house "Example House"
   When the user adds a valuation for 2026-09 with value 300000.00 and note "Valuation report"
   Then the valuation for 2026-09 has value 300000.00 and note "Valuation report"
 
 @AC-7.2
 Scenario: Yearly valuation without a note
-  Given the current date is 29/10/2026
-  And a yearly house "Example Lodge"
+  Given a yearly house "Example Lodge"
   When the user adds a valuation for 2025 with value 80000.00 and no note
   Then the valuation for 2025 has value 80000.00 and an empty note
 
 @AC-7.3
 Scenario: Old periods are accepted
-  Given a monthly house "Example House"
+  Given a monthly house "Example House" bought on 15/03/2010
   When the user adds a valuation for 2019-01 with value 200000.00
   Then the valuation for 2019-01 exists
 
 @AC-7.4
-Scenario Outline: Current period accepted, later period rejected
-  Given the current date is 29/10/2026
-  And a <period_type> house "Example House"
+Scenario Outline: A period in the future is accepted
+  Given a <period_type> house "Example House"
   When the user adds a valuation for "<period>" with value 1000.00
-  Then <outcome>
+  Then the valuation for "<period>" exists
 
   Examples:
-    | period_type | period  | outcome                                                      |
-    | monthly     | 2026-10 | the valuation for 2026-10 exists                             |
-    | monthly     | 2026-11 | it is rejected with error code "HOUSE_VALUATION_IN_FUTURE"   |
-    | yearly      | 2026    | the valuation for 2026 exists                                |
-    | yearly      | 2027    | it is rejected with error code "HOUSE_VALUATION_IN_FUTURE"   |
+    | period_type | period  |
+    | monthly     | 2040-11 |
+    | yearly      | 2040    |
 
 @AC-7.5
 Scenario Outline: Invalid period rejected
@@ -319,7 +320,6 @@ Scenario Outline: Invalid period rejected
     | monthly     | abcd    |
     | yearly      | 26      |
     | yearly      | abcd    |
-    | yearly      | 1899    |
 ```
 
 **REQ-8: One valuation per house per period** *(unwanted behaviour)*
@@ -358,12 +358,12 @@ Scenario: Yearly valuation for a monthly house rejected
 ```
 
 **REQ-10: Value validation** *(unwanted behaviour)*
-If the value of a valuation is not a plain number such as 300000.00, is negative, has more than two decimal places or exceeds 1,000,000,000.00, then the app shall reject the valuation or edit without rounding or storing it. A value of 0.00 is valid.
+If the value of a valuation is not a plain number such as 300000.00, is negative or exceeds 1,000,000,000.00, then the app shall reject the valuation or edit without storing it. A value of 0.00 is valid. The rules apply to the value after rounding (REQ-28).
 
 ```gherkin
 @AC-10.1
 Scenario Outline: Invalid values rejected
-  Given a monthly house "Example House" and the current date 29/10/2026
+  Given a monthly house "Example House"
   When the user adds a valuation for 2026-09 with value "<value>"
   Then it is rejected with error code "<code>"
   And no valuation for 2026-09 exists
@@ -375,12 +375,11 @@ Scenario Outline: Invalid values rejected
     | 1e3            | HOUSE_VALUATION_VALUE_INVALID   |
     | 2500,50        | HOUSE_VALUATION_VALUE_INVALID   |
     | -0.01          | HOUSE_VALUATION_VALUE_NEGATIVE  |
-    | 1000.999       | HOUSE_VALUATION_VALUE_PRECISION |
     | 1000000000.01  | HOUSE_VALUATION_VALUE_TOO_LARGE |
 
 @AC-10.2
 Scenario Outline: Boundary values accepted
-  Given a monthly house "Example House" and the current date 29/10/2026
+  Given a monthly house "Example House"
   When the user adds a valuation for 2026-09 with value "<value>"
   Then the valuation for 2026-09 has value <value>
 
@@ -397,13 +396,54 @@ Scenario: Invalid value in an edit rejected
   And the valuation still has value 300000.00
 ```
 
+The row of AC-10.1 with 1000.999 (`HOUSE_VALUATION_VALUE_PRECISION`) is removed in v2.0: a typed value with more than two decimals is rounded, not rejected (REQ-28).
+
+**REQ-28: Typed values are rounded** *(event-driven)*
+When the user enters a value with more than two decimal places, the app shall round it half-up to two decimals (CSD-000 CON-8) before it applies the rules of REQ-10.
+
+```gherkin
+@AC-28.1
+Scenario Outline: A typed amount is rounded half-up
+  Given a monthly house "Example House"
+  When the user adds a valuation for 2026-09 with value "<typed>"
+  Then the valuation for 2026-09 has value <stored>
+
+  Examples:
+    | typed | stored |
+    | 300000.505 | 300000.51 |
+    | 1.004      | 1.00 |
+    | 1.005      | 1.01 |
+    | 1000.999   | 1001.00 |
+    | 0.004      | 0.00 |
+    | -0.004     | 0.00 |
+    | 300000.5   | 300000.50 |
+
+@AC-28.2
+Scenario Outline: The limit is checked after rounding
+  Given a monthly house "Example House"
+  When the user adds a valuation for 2026-09 with value "<typed>"
+  Then <outcome>
+
+  Examples:
+    | typed | outcome |
+    | 1000000000.004 | the valuation has value 1000000000.00 |
+    | 1000000000.005 | it is rejected with error code "HOUSE_VALUATION_VALUE_TOO_LARGE" |
+    | -0.005         | it is rejected with error code "HOUSE_VALUATION_VALUE_NEGATIVE" |
+
+@AC-28.3
+Scenario: A typed amount in an edit is rounded
+  Given a valuation for 2026-09 with value 300000.00
+  When the user sets the value to "1000.999"
+  Then the valuation has value 1001.00
+```
+
 **REQ-11: Note validation** *(unwanted behaviour)*
 If the note of a valuation is longer than 2,000 characters, then the app shall reject the valuation or edit with the error code `HOUSE_VALUATION_NOTE_TOO_LONG`, without shortening or storing it. Line breaks in a note are kept as typed.
 
 ```gherkin
 @AC-11.1
 Scenario: Note length boundary
-  Given a monthly house "Example House" and the current date 29/10/2026
+  Given a monthly house "Example House"
   When the user adds a valuation for 2026-08 with value 1000.00 and a note of 2000 characters
   Then the valuation for 2026-08 exists with that note
   When the user adds a valuation for 2026-09 with value 1000.00 and a note of 2001 characters
@@ -488,22 +528,11 @@ Scenario: An edit is an unsaved change
 ```
 
 **REQ-13: Invalid new period** *(unwanted behaviour)*
-If the new period of an edited valuation is later than the current month (monthly house) or the current year (yearly house), or is not a valid period, or the house already has another valuation for it, or it does not match the valuation period of the house, or the edit also has an invalid value, then the app shall reject the whole edit with the error code of the violated rule and leave the valuation, with its period and its values, as it was. Another house may have a valuation for the same period.
+If the new period of an edited valuation is not a valid period, or lies outside the holding window of CSD-019 REQ-6, or the house already has another valuation for it, or it does not match the valuation period of the house, or the edit also has an invalid value, then the app shall reject the whole edit with the error code of the violated rule and leave the valuation, with its period and its values, as it was. Another house may have a valuation for the same period.
+
+AC-13.1 (removed in v1.0): a period in the future is accepted (REQ-7, AC-7.4), so there is no rejection to specify.
 
 ```gherkin
-@AC-13.1
-Scenario Outline: A period in the future is rejected
-  Given the current date is 29/10/2026
-  And <house> with a valuation for <old> with value 1000.00
-  When the user changes its period to "<new>"
-  Then the edit is rejected with error code "HOUSE_VALUATION_IN_FUTURE"
-  And the valuation for <old> still has value 1000.00
-
-  Examples:
-    | house           | old     | new     |
-    | a monthly house | 2026-09 | 2026-11 |
-    | a yearly house  | 2025    | 2027    |
-
 @AC-13.2
 Scenario: A period that already has a valuation is rejected
   Given a monthly house with a valuation for 2026-08 with value 299000.00 and one for 2026-09 with value 300000.00
@@ -596,14 +625,14 @@ When the user chooses a house in the add form, the app shall ask for a month if 
 Scenario: Monthly house
   Given a "Monthly" house
   When the user chooses it in the add form
-  Then the form asks for "Month (YYYY-MM)"
+  Then the form asks for "Month" with the placeholder "yyyy-mm" (maximum length 7)
   And the copy button reads "Copy previous month"
 
 @AC-16.2
 Scenario: Yearly house
   Given a "Yearly" house
   When the user chooses it in the add form
-  Then the form asks for "Year (YYYY)"
+  Then the form asks for "Year" with a four-digit year as placeholder (maximum length 4)
   And the copy button reads "Copy previous year"
 
 @AC-16.3
@@ -806,32 +835,32 @@ Scenario: Newest year first
 ```
 
 **REQ-21: Houses view layout** *(ubiquitous)*
-The app shall offer Houses as its own item in the left pane with a house icon (position: CSD-004 REQ-1), and shall show the Overview tab as the sections Houses, Yearly values and Valuations in that order, with the valuation period, the latest value with its period in smaller muted text beside it (as on the Debts rows) and the icon buttons Edit (pencil) and Delete (trash) (flush right) on each house row, the button "Add house" in the header of the Houses section, the button "Add valuation" in the header of the Valuations section, the icon buttons Edit (pencil) and Delete (trash) flush right on each valuation row, the total value in a footer row of the Houses section labelled "Total value", the columns Year, Closing value and Change and no actions in the Yearly values section, no count of valuations anywhere in the view, the columns Period, House, Value, Change and Note in the Valuations section, and no house selection that changes what the sections show. A note longer than one line is cut to one line in the table and shown in full when the valuation is edited. A change of none is shown as a dash. The page shall use the same layout, components and styles as the Debts page.
+The app shall offer Houses as its own item in the left pane with a house icon (position: CSD-024 REQ-1), and shall show the Overview tab as the sections Houses, Yearly values and Valuations in that order, with the valuation period, the latest value with its period in smaller muted text beside it (as on the Debts rows) and the icon buttons Edit (pencil) and Delete (trash) (flush right) on each house row, the button "Add house" in the header of the Houses section, the button "Add valuation" in the header of the Valuations section, the icon buttons Edit (pencil) and Delete (trash) flush right on each valuation row, the total value in a footer row of the Houses section labelled "Total value", the columns Year, Closing value and Change and no actions in the Yearly values section, no count of valuations anywhere in the view, the columns Period, House, Value, Change and Note in the Valuations section, and no house selection that changes what the sections show. A note longer than one line is cut to one line in the table and shown in full when the valuation is edited. A change of none is shown as a dash. The page shall use the same layout, components and styles as the Debts page.
 
 ```gherkin
 @AC-21.1
 Scenario: Sections in order
   Given a house with a valuation
   Then the sections appear in the order Houses, Yearly values, Valuations
-  And Houses is an item with a house icon in the left pane (CSD-004 REQ-1)
+  And Houses is an item with a house icon in the left pane (CSD-024 REQ-1)
 
 @AC-21.2
 Scenario: House rows carry their period, latest value and actions
   Given monthly house "Example House" with 2 valuations, the latest for 2026-09 with value 300000.00
   And yearly house "Example Lodge" with 1 valuation for 2025 with value 80000.00
-  Then the row of "Example House" shows "Monthly" and "300000.00" for 2026-09
-  And the row of "Example Lodge" shows "Yearly" and "80000.00" for 2025
+  Then the row of "Example House" shows "Monthly" and "300,000.00" for 2026-09
+  And the row of "Example Lodge" shows "Yearly" and "80,000.00" for 2025
   And in each row the value is followed by its period in smaller muted text
   And no row shows a number of valuations
   And each row has the icon buttons Edit (pencil) and Delete (trash) at its right edge, each named for screen readers and in a tooltip, such as "Edit Example Lodge"
-  And the footer row reads "Total value" with "380000.00"
+  And the footer row reads "Total value" with "380,000.00"
 
 @AC-21.3
 Scenario: Valuations of all houses with their period, house and change
   Given monthly house "Example House" with valuations for 2026-08 (value 299500.00) and 2026-09 (value 300000.00)
   Then the Valuations section shows the columns Period, House, Value, Change and Note in that order
   And the row for 2026-09 shows change "500.00"
-  And the row for 2026-08 shows a dash as change
+  And the row for 2026-08 shows a dash ("—") as change
 
 @AC-21.4
 Scenario: Long note cut to one line
@@ -862,7 +891,7 @@ Scenario: Yearly values section
   Given a monthly house "Example House" with valuations for 2025-12 and 2026-09
   Then the Yearly values section shows the columns Year, Closing value and Change in that order
   And the section has no column with a number of valuations
-  And a year with change none shows a dash
+  And a year with change none shows a dash ("—")
   And its header holds no button and its rows hold no Edit or Delete button
   And the section is not shown while no houses exist
 ```
@@ -880,7 +909,7 @@ Scenario: No houses
 @AC-22.2
 Scenario: House without valuations
   Given a house with no valuations
-  Then its row shows a dash as latest value
+  Then its row shows a dash ("—") as latest value
   And its row shows its valuation period and no "No valuations yet"
   And the Valuations section shows "No valuations yet."
   And no error is shown
@@ -906,27 +935,16 @@ Scenario: No currency in the sections
 ### 4.4 Saving, loading and currency
 
 **REQ-24: Houses are part of the project file** *(event-driven)*
-When the user saves and later opens a project, the app shall restore all houses and valuations exactly, including colour slots, values and notes. When the project file has no `houses` section, the app shall open the project with no houses, and when it has the former `assets` section instead, the app shall open its entries as houses.
+When the user saves and later opens a project, the app shall restore all houses and valuations exactly, including colour slots, purchases and sales (CSD-019 REQ-13), values and notes.
 
 ```gherkin
 @AC-24.1
 Scenario: Round trip
-  Given a project with a yearly house "Example Lodge" (colour slot 1) with a valuation for 2025 (value 80000.00, note "Line one" and "Line two" on two lines)
+  Given a project with a yearly house "Example Lodge" (colour slot 1, bought on 01/06/2020 for 60000.00) with a valuation for 2025 (value 80000.00, note "Line one" and "Line two" on two lines)
   When the user saves the project and opens it again
-  Then the house, its colour slot and the valuation exist unchanged, including the two-line note
+  Then the house, its colour slot, its purchase and the valuation exist unchanged, including the two-line note
 
-@AC-24.2
-Scenario: File without the section
-  Given a project file made before this capability, without an "houses" section
-  When the user opens it
-  Then it opens with no houses and no error
-
-@AC-24.6
-Scenario: A file with the former section opens as houses
-  Given a project file with an "assets" section holding an entry "Example House" with a valuation for 2026-09 (value 300000.00) and no "houses" section
-  When the user opens it and saves the project
-  Then the house "Example House" and its valuation exist
-  And the saved file has a "houses" section and no "assets" section
+AC-24.2 (removed in v1.0): a file without the section is now invalid, see AC-27.1.
 
 @AC-24.3
 Scenario: A value of 0.00 round trip
@@ -939,13 +957,9 @@ Scenario: Other sections are untouched
   Given a project with an employment job, an investment account, a bank account, a debt, an expense and a house
   When the user saves the project and opens it again
   Then all six exist unchanged
-
-@AC-24.5
-Scenario: A damaged section is an invalid file
-  Given a project file whose "houses" section has a valuation for a house that does not exist
-  When the user opens it
-  Then it is rejected with the error code "PROJECT_INVALID_FILE"
 ```
+
+AC-24.5 (removed in v1.0): moved to AC-27.3. AC-24.6 (removed in v1.0): the former `assets` section is not read any more (first release, no legacy).
 
 **REQ-25: Valuations count for the currency confirmation** *(event-driven)*
 When the project has house valuations and the user chooses another currency, the app shall ask for the confirmation of CSD-003 REQ-5, explaining that amounts are not converted, and a house without valuations shall need no confirmation.
@@ -966,7 +980,7 @@ Scenario: A house without valuations needs no confirmation
 ```
 
 **REQ-26: Position in the left pane** *(ubiquitous)*
-The app shall show the Houses item in the left pane as CSD-004 REQ-1 orders it: in the group Wealth, after Bank accounts and Investments, and apart from Debts, which sits in the group Liabilities.
+The app shall show the Houses item in the left pane as CSD-024 REQ-1 orders it: in the group Wealth, after Bank accounts and Investments, and apart from Debts, which sits in the group Liabilities.
 
 ```gherkin
 @AC-26.1
@@ -974,9 +988,38 @@ Scenario: Order of the left pane
   Then Houses is the last item of the group "Wealth", after "Bank accounts" and "Investments"
 ```
 
+**REQ-27: Invalid house data in the project file** *(unwanted behaviour)*
+If the project file has no `houses` section, has an unknown field in it, or holds a house without a purchase date or purchase amount or a valuation for a house that does not exist, then the app shall reject the file with the error code `PROJECT_INVALID_FILE` (all sections are required and unknown fields are rejected, CSD-002).
+
+```gherkin
+@AC-27.1
+Scenario: File without the section
+  Given a project file without a "houses" section
+  When the user opens it
+  Then it is rejected with the error code "PROJECT_INVALID_FILE"
+
+@AC-27.2
+Scenario: An unknown field
+  Given a project file whose "houses" section has a house with the unknown field "colour"
+  When the user opens it
+  Then it is rejected with the error code "PROJECT_INVALID_FILE"
+
+@AC-27.3
+Scenario: A damaged section is an invalid file
+  Given a project file whose "houses" section has a valuation for a house that does not exist
+  When the user opens it
+  Then it is rejected with the error code "PROJECT_INVALID_FILE"
+
+@AC-27.4
+Scenario: A house without a purchase is an invalid file
+  Given a project file whose "houses" section has a house without a purchase date
+  When the user opens it
+  Then it is rejected with the error code "PROJECT_INVALID_FILE"
+```
+
 ## 5. Interfaces and contracts
 
-Periods: a monthly valuation has period `YYYY-MM` and a yearly one `YYYY`, everywhere (UI, commands, project file). The year must be 1900 or later, like statements in CSD-005, CSD-009 and CSD-011. Months are shown to the user as `YYYY-MM` (CSD-000 CON-7).
+Periods: a monthly valuation has period `YYYY-MM` and a yearly one `YYYY`, everywhere (UI, commands, project file). There is no lower or upper bound on a period. Months are shown to the user as `YYYY-MM` (CSD-000 CON-7).
 
 ```mermaid
 erDiagram
@@ -984,12 +1027,16 @@ erDiagram
     HOUSE {
         HouseId id
         string name "required, trimmed, max 100, unique ignoring case"
-        PayPeriod valuation_period "Monthly or Yearly; default Monthly"
+        PayPeriod period "Monthly or Yearly; default Monthly (the valuation period)"
+        Date purchase_date "required (CSD-019 REQ-1)"
+        Decimal purchase_amount "required, 0.00 to 1000000000.00 (CSD-019 REQ-4)"
+        Date sell_date "optional, set with sell_amount (CSD-019 REQ-2)"
+        Decimal sell_amount "optional, set with sell_date"
         u8 colour_slot "0 to 7; assigned at creation (REQ-3)"
     }
     HOUSE_VALUATION {
         HouseId house_id
-        Period period "YYYY-MM or YYYY, unique per house, must match the house"
+        Period period "YYYY-MM or YYYY, unique per house, must match the house, inside the holding window"
         Decimal value "0.00 to 1000000000.00, two decimals"
         string note "optional, max 2000 characters"
     }
@@ -997,11 +1044,11 @@ erDiagram
 
 The change per valuation, the opening value and the change in a year are not part of the model: they are derived (REQ-19, REQ-20).
 
-The project file section is `houses` with the lists `houses` and `valuations`, houses in the order they were created. The reader also accepts the former key `assets` (with the lists `assets` and `valuations`) and the app always writes `houses`; a file saved by this version is therefore not readable by a build from before the rename, and no downgrade is supported. Values are decimal strings. `format_version` stays 1 and nothing is migrated: a file without the section opens with no houses, as the app is not released yet.
+The project file section is `houses` with the lists `houses` and `valuations`, houses in the order they were created. The section is required and unknown fields are rejected (CSD-002, REQ-27). The house field for the valuation period is named `period` in the project file and in IPC, as the period of a valuation is (CSD-002), and the sale fields are named `sell_date` and `sell_amount` there too. Dates are ISO 8601 and values are decimal strings.
 
 Commands (all inputs validated in Rust; amounts cross IPC as decimal strings): `list_houses()` (each house with its valuation count, latest value and period and colour slot, plus the total value; the count is used to lock the period (REQ-5) and is not displayed), `create_house`, `update_house`, `delete_house`, `list_house_valuations()` (valuations of all houses, each with its house name and its change, or null), `add_house_valuation`, `update_house_valuation` (keeps the period that identifies the valuation as an argument and takes the new period as an extra one, equal to it when the period does not change, and applies the edit as a whole or not at all, REQ-13), `delete_house_valuation`, `copy_previous_house_valuation(house_id)` and `yearly_house_values()` (over all houses; each row has the year, closing value, change or null and valuation count, newest year first; the count is not displayed). The insights command is in CSD-016. Project commands (save, open, new) are in CSD-002.
 
-Error codes (returned as code plus safe message): `HOUSE_NAME_REQUIRED`, `HOUSE_NAME_TOO_LONG`, `HOUSE_NAME_DUPLICATE`, `HOUSE_NOT_FOUND`, `HOUSE_PERIOD_UNSUPPORTED`, `HOUSE_PERIOD_LOCKED`, `HOUSE_PERIOD_MISMATCH`, `HOUSE_VALUATION_IN_FUTURE`, `HOUSE_VALUATION_PERIOD_INVALID`, `HOUSE_VALUATION_DUPLICATE`, `HOUSE_VALUATION_NOT_FOUND`, `HOUSE_VALUATION_VALUE_INVALID`, `HOUSE_VALUATION_VALUE_NEGATIVE`, `HOUSE_VALUATION_VALUE_PRECISION`, `HOUSE_VALUATION_VALUE_TOO_LARGE`, `HOUSE_VALUATION_NOTE_TOO_LONG`. `HOUSE_NOT_FOUND` and `HOUSE_VALUATION_NOT_FOUND` are returned for a house or a valuation that does not exist (a stale screen). Project error codes are in CSD-002.
+Error codes (returned as code plus safe message): `HOUSE_NAME_REQUIRED`, `HOUSE_NAME_TOO_LONG`, `HOUSE_NAME_DUPLICATE`, `HOUSE_NOT_FOUND`, `HOUSE_PERIOD_UNSUPPORTED`, `HOUSE_PERIOD_LOCKED`, `HOUSE_PERIOD_MISMATCH`, `HOUSE_VALUATION_PERIOD_INVALID`, `HOUSE_VALUATION_DUPLICATE`, `HOUSE_VALUATION_NOT_FOUND`, `HOUSE_VALUATION_VALUE_INVALID`, `HOUSE_VALUATION_VALUE_NEGATIVE`, `HOUSE_VALUATION_VALUE_PRECISION` (removed in v2.0), `HOUSE_VALUATION_VALUE_TOO_LARGE`, `HOUSE_VALUATION_NOTE_TOO_LONG`. `HOUSE_NOT_FOUND` and `HOUSE_VALUATION_NOT_FOUND` are returned for a house or a valuation that does not exist (a stale screen). `HOUSE_VALUATION_IN_FUTURE` is removed in v1.0: future periods are allowed. The codes for the purchase, the sale and the holding window are in CSD-019. Project error codes are in CSD-002.
 
 ## 6. Constraints
 - CON-1: Amounts use `rust_decimal::Decimal` and are in the project currency (CSD-003), so adding values across houses never mixes currencies. Rationale: `CLAUDE.md` money rules.
@@ -1014,26 +1061,37 @@ Error codes (returned as code plus safe message): `HOUSE_NAME_REQUIRED`, `HOUSE_
 - CON-8: The length of a name or a note is counted in characters (Unicode scalar values), not bytes. Rationale: names and notes in any language must fit the stated limits.
 - CON-9: The change, the yearly values and the total value are computed in Rust each time they are needed and are never stored in the project file. Rationale: CON-2, and stored figures would go stale when a valuation changes.
 - CON-10: Houses get their own module, commands and page. Shared helpers may be reused or extracted when that is small, and Debts, Bank accounts and Investments are not refactored. Rationale: `CLAUDE.md` asks before large refactors across modules.
+- CON-11: Money amounts, totals and changes follow the rounding rule of CSD-000 CON-8 (two decimals, half-up; a typed value with more than two decimals is rounded, REQ-28). Rationale: one rounding rule project-wide.
 
 ## 7. Verification
-All ACs are proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd015_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
+The data and the domain logic are proven by `cargo test`, with domain logic tested in `domain/`. Tests are named `test_csd015_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
-| Requirement | Command |
+| What | How |
 |---|---|
-| REQ-1 to REQ-20, REQ-24, REQ-25 (data) | `cargo test test_csd015_` |
-| AC-17.1 to AC-17.4, AC-21.2, AC-21.3 (data of the houses and valuations tables) | `cargo test test_csd015_ac_17_` and `cargo test test_csd015_ac_21_` |
-| AC-6.4, AC-12.7, AC-16.1 to AC-16.3, REQ-21 (all ACs), REQ-22, REQ-23, REQ-26, AC-25.1 (the dialog) | Manual checklist: form labels, period field in the edit form, section order and contents, no counts anywhere, the latest value with its period in muted text, delete confirmation text, titles without a currency, button placement, left-pane item and its position, empty states, note cut-off, plain-text note, dashes for none, the currency confirmation dialog. There is no frontend test setup |
-| The currency confirmation for house valuations | Governed by CSD-003 REQ-5 (AC-5.13, AC-5.14), verified there |
-| One requirement, e.g. REQ-7 | `cargo test test_csd015_ac_7_` |
+| Rust tests | `cargo test test_csd015_`. One requirement, e.g. REQ-7: `cargo test test_csd015_ac_7_` |
+| REQ-9, REQ-11 and REQ-15 (the test names carry the requirement but no AC number) | `cargo test test_csd015_ac_9_`, `test_csd015_ac_11_` and `test_csd015_ac_15_` |
+| Yearly values (AC-20.1 to AC-20.11) | `cargo test test_csd015_ac_20_` |
+| Display ACs (REQ-21 to REQ-23, REQ-26, the rows of the tables, the dialogs) | `npm test`: `ac-c2-houses.test.js` (sections, rows, tables, empty states, the delete confirmations, the valuation form, the left pane) and `empty-states.test.js` (AC-22.1) |
+| AC-25.1, AC-25.2 (currency confirmation) | Governed by CSD-003 REQ-5; the DOM tests `test_csd015_ac_25_` in `ac-c2-houses.test.js` check the confirmation, and the count of house valuations is checked over IPC in `test_csd003_ac_5_13_` |
+| Unsaved indicator, invalid edits and invalid files (AC-12.9, AC-13.4, AC-27.1, AC-27.2, AC-27.4) | `cargo test ipc_ac_tests_c2` |
 
-Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
+Not covered by a named test yet (2 of 111 ACs; no test carries the AC id): AC-16.1, AC-16.2 (the scenarios now match the add form: label "Month" or "Year" with the format as its placeholder; no test carries their id yet).
+
+Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
-None. (OQ-1, the position in the left pane, is settled by REQ-26 and CSD-004 REQ-1.)
+None open. (OQ-1, the position in the left pane, is settled by REQ-26 and CSD-024 REQ-1.)
+- OQ-2: (resolved 03/11/2026) The sale fields keep the names `sell_date` and `sell_amount` in the data model, IPC and the project file (section 5, CSD-002, CSD-019).
 
 ## 9. Changelog
+- 2.1 (04/11/2026): Wording follows the UI; no behaviour change: period field label and placeholder (AC-16.1, AC-16.2), amounts grouped as in CSD-022 AC-10.1 and the table dash written as "—" (AC-21.2, AC-21.3, AC-21.8, AC-22.2). Back to `draft` until re-approved.
+- 2.0 (04/11/2026): A typed value with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-28 (AC-28.1 to AC-28.3), REQ-10 applies to the rounded value, the AC-10.1 row for 1000.999 and the code `HOUSE_VALUATION_VALUE_PRECISION` are removed, CON-11 updated. CSD-019 REQ-15 does the same for purchase and sell amounts. Owner decision. Back to `draft` until re-approved.
+- 1.3 (04/11/2026): Live references follow the split of the former CSD-020: the purchase, the sale, the holding window and the house totals are CSD-019 (REQ-1 to REQ-14, numbers unchanged), the debt link is CSD-020 (REQ-15) and linked debts in the view and the delete rule are CSD-026 (REQ-7, REQ-12); no behaviour change. Back to `draft` until re-approved.
+- 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed `ac_21_` and `ac_25_` coverage is removed; the intro and NG-4 point to CSD-017 for net worth. Back to `draft` until re-approved.
+- 1.1 (03/11/2026): Owner decision: the sale fields keep the names `sell_date` and `sell_amount` (OQ-2 resolved, section 5 names them for IPC and the project file, matching CSD-002 and CSD-020). The house field `period` is confirmed as the valuation period name in the data model, replacing any `pay_period` or `valuation_period`. No behaviour change. Back to `draft` until re-approved.
+- 1.0 (03/11/2026): A house always has a purchase: `purchase_date` and `purchase_amount` are mandatory (REQ-1, new AC-1.4, REQ-4, section 5 data model, the section 4 note); house purchase and sale are specified in CSD-020. No date bounds: the future-period rejection and the year-1900 bound are removed (REQ-7, AC-7.4, AC-7.5, REQ-13, AC-13.1 removed, error code `HOUSE_VALUATION_IN_FUTURE` removed). First release, no legacy: the former `assets` section is not read (REQ-24, AC-24.6 removed), a file without the section, with an unknown field or with a house without purchase is invalid (new REQ-27, AC-24.2 and AC-24.5 moved to AC-27.1 and AC-27.3). The valuation period of a house is the field `period` in the file and IPC (section 5). Money rounding references CSD-000 CON-8 (new CON-11). Verification table rewritten to what is covered (the claimed ac_21_ coverage and the CSD-003 currency tests are corrected; display ACs are covered by DOM tests). Back to `draft` for re-approval.
 - 0.5 (30/10/2026): Assets are renamed to houses everywhere (labels, error codes `HOUSE_*`, commands, the `houses` section of the project file, which also reads the old `assets` key; CSD-002). The app tracks houses only: every existing asset becomes a house, and NG-2 excludes any other kind of property. NG-3 is removed: CSD-020 links existing debts to a house. Back to `draft` until re-approved (GitHub issue 31).
-- 0.4 (29/10/2026): CSD-019 adds a purchase and a sale to every house (GitHub issue 27). NG-1, NG-6 and NG-8 no longer exclude them, the Intent says so, and a note in section 4 lists the requirements CSD-019 extends.
+- 0.4 (29/10/2026): CSD-020 adds a purchase and a sale to every house (GitHub issue 27). NG-1, NG-6 and NG-8 no longer exclude them, the Intent says so, and a note in section 4 lists the requirements CSD-020 extends.
 - 0.3 (29/10/2026): The position in the left pane follows CSD-004 REQ-1: Houses is in the group Wealth, after Bank accounts and Investments (REQ-26, AC-26.1; GitHub issue 21).
 - 0.1 (29/10/2026): initial draft, from GitHub issue 17 and the grill-me interview. It follows CSD-011 (houses, colour slot, period lock, valuations, changing the period, copy previous, yearly values, layout), with a value of 0.00 or more, a change per valuation (REQ-19) counted as growth, and a yearly change in the yearly values. The Insights tab is CSD-016.
 - 0.2 (29/10/2026): No counts are displayed any more: the yearly values have the columns Year, Closing value and Change (REQ-20, REQ-21, AC-12.6, AC-20.x, AC-21.2, AC-21.8), house rows show only the period and the latest value with its period in smaller muted text (REQ-21, AC-21.2), the "No valuations yet." note stays in the Valuations section only (REQ-22, AC-22.2), and the delete confirmation states no count (REQ-6, new AC-6.4, manual checklist). The count fields stay in IPC but are not displayed (section 5).

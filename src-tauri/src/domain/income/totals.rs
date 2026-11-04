@@ -2,27 +2,28 @@
 
 use std::collections::BTreeMap;
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 
-use crate::domain::money::{zero, Amounts};
+use crate::domain::money::Amounts;
 
-use super::{Entry, Income, Job, YearMonth};
+use super::{Entry, Income, Job};
+use crate::domain::common::YearMonth;
 
 /// The sums of some entries, or `None` if there are none.
 fn totals_of<'a>(amounts: impl Iterator<Item = &'a Amounts>) -> Option<IncomePeriodTotals> {
     let mut totals = IncomePeriodTotals {
-        gross_salary: zero(),
-        holiday_pay: zero(),
-        bonus: zero(),
-        total_gross: zero(),
+        gross_salary: Money::ZERO,
+        holiday_pay: Money::ZERO,
+        bonus: Money::ZERO,
+        total_gross: Money::ZERO,
         entry_count: 0,
     };
     for amounts in amounts {
-        totals.gross_salary += amounts.gross_salary();
-        totals.holiday_pay += amounts.holiday_pay();
-        totals.bonus += amounts.bonus();
-        totals.total_gross += amounts.total_gross();
+        totals.gross_salary = totals.gross_salary.saturating_add(amounts.gross_salary());
+        totals.holiday_pay = totals.holiday_pay.saturating_add(amounts.holiday_pay());
+        totals.bonus = totals.bonus.saturating_add(amounts.bonus());
+        totals.total_gross = totals.total_gross.saturating_add(amounts.total_gross());
         totals.entry_count += 1;
     }
     (totals.entry_count > 0).then_some(totals)
@@ -31,21 +32,27 @@ fn totals_of<'a>(amounts: impl Iterator<Item = &'a Amounts>) -> Option<IncomePer
 /// Totals over all jobs for one calendar year (CSD-001 REQ-11).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct IncomeYearlyTotal {
+    /// The calendar year.
     pub year: i32,
-    pub gross_salary: Decimal,
-    pub holiday_pay: Decimal,
-    pub bonus: Decimal,
-    pub total_gross: Decimal,
+    /// Gross salary.
+    pub gross_salary: Money,
+    /// Holiday pay.
+    pub holiday_pay: Money,
+    /// Bonus.
+    pub bonus: Money,
+    /// Gross salary, holiday pay and bonus together.
+    pub total_gross: Money,
+    /// Number of entries in the year.
     pub entry_count: usize,
 }
 
 /// Sums of a set of entries over all jobs (CSD-004).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct IncomePeriodTotals {
-    pub gross_salary: Decimal,
-    pub holiday_pay: Decimal,
-    pub bonus: Decimal,
-    pub total_gross: Decimal,
+    pub gross_salary: Money,
+    pub holiday_pay: Money,
+    pub bonus: Money,
+    pub total_gross: Money,
     pub entry_count: usize,
 }
 
@@ -53,9 +60,13 @@ pub struct IncomePeriodTotals {
 /// month, and last month. A period without entries has no totals.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct IncomeOverview {
+    /// The calendar year.
     pub year: i32,
+    /// Totals from January up to the current month, `None` without entries.
     pub year_to_date: Option<IncomePeriodTotals>,
+    /// The latest month with entries.
     pub last_month: Option<YearMonth>,
+    /// Totals of that month.
     pub last_month_totals: Option<IncomePeriodTotals>,
 }
 
@@ -125,16 +136,16 @@ impl Income {
             let amounts = entry.amounts();
             let total = by_year.entry(year).or_insert_with(|| IncomeYearlyTotal {
                 year,
-                gross_salary: zero(),
-                holiday_pay: zero(),
-                bonus: zero(),
-                total_gross: zero(),
+                gross_salary: Money::ZERO,
+                holiday_pay: Money::ZERO,
+                bonus: Money::ZERO,
+                total_gross: Money::ZERO,
                 entry_count: 0,
             });
-            total.gross_salary += amounts.gross_salary();
-            total.holiday_pay += amounts.holiday_pay();
-            total.bonus += amounts.bonus();
-            total.total_gross += amounts.total_gross();
+            total.gross_salary = total.gross_salary.saturating_add(amounts.gross_salary());
+            total.holiday_pay = total.holiday_pay.saturating_add(amounts.holiday_pay());
+            total.bonus = total.bonus.saturating_add(amounts.bonus());
+            total.total_gross = total.total_gross.saturating_add(amounts.total_gross());
             total.entry_count += 1;
         }
         by_year.into_values().rev().collect()

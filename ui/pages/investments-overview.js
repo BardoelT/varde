@@ -1,100 +1,67 @@
 // Investments: accounts with a monthly or yearly statement, each a balance, net deposits and a note (CSD-005).
-import { invoke, errorText } from '../shared/ipc.js';
-import { h, iconButton, confirmAction, showToast, showError } from '../shared/dom.js';
-import { formatAmount, currentYear, currentMonth } from '../shared/format.js';
+import { invoke } from '../shared/ipc.js';
+import { $, h, showError, setHint, submitOnce } from '../shared/dom.js';
+import { formatAmount, noteSummary } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
-
-const $ = (id) => document.getElementById(id);
+import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
+import { createRecordForm } from '../shared/record-form.js';
+import { accountRow, latestAmount, numCell, recordActions, renderTable, rowHeader, showTotal, toggleEmpty } from '../shared/list-rows.js';
 
 let accounts = [];
 let statementRows = [];
 let onChanged = async () => {};
 
-/** The first line of a note, with an ellipsis when there is more (CSD-005 REQ-17). */
-function noteSummary(note) {
-  const [first, ...rest] = note.split('\n');
-  return rest.length > 0 ? `${first} …` : first;
-}
-
 // ---- Rendering ----
-
-function latestBalance(account) {
-  if (account.latest_balance === null) return h('span', { class: 'account-amount' }, '—');
-  return h(
-    'span',
-    { class: 'account-amount' },
-    formatAmount(account.latest_balance),
-    h('small', {}, account.latest_period),
-  );
-}
 
 function renderAccounts(overview) {
   accounts = overview.accounts;
   const hasAccounts = accounts.length > 0;
-  $('investments-empty').hidden = hasAccounts;
-  $('investments-content').hidden = !hasAccounts;
+  toggleEmpty('investments-empty', 'investments-content', hasAccounts);
   $('account-add').hidden = !hasAccounts;
   $('account-list').replaceChildren(
     ...accounts.map((account) =>
-      h(
-        'li',
-        { class: 'job-row' },
-        h('span', { class: 'job-name' }, account.name),
-        h('span', { class: 'job-meta' }, account.statement_period),
-        latestBalance(account),
-        h(
-          'span',
-          { class: 'job-actions' },
-          iconButton('edit', t('Edit {name}', { name: account.name }), () => openAccountDialog(account)),
-          iconButton('delete', t('Delete {name}', { name: account.name }), () => deleteAccount(account)),
-        ),
-      ),
+      accountRow({
+        name: account.name,
+        meta: account.period,
+        amount: latestAmount(account.latest_balance, account.latest_period),
+        edit: { label: t('Edit {name}', { name: account.name }), onClick: () => openAccountDialog(account) },
+        remove: { label: t('Delete {name}', { name: account.name }), onClick: () => deleteAccount(account) },
+      }),
     ),
   );
-  $('account-total').hidden = !hasAccounts;
-  $('account-total-value').textContent = overview.total === null ? '—' : formatAmount(overview.total);
+  showTotal('account-total', 'account-total-value', overview.total, hasAccounts);
 }
 
 /** Yearly totals over all accounts, as returned by Rust (CSD-005 REQ-26). */
 function renderTotals(totals) {
-  $('investment-totals-empty').hidden = totals.length > 0;
-  $('investment-totals-table').hidden = totals.length === 0;
-  $('investment-totals-rows').replaceChildren(
-    ...totals.map((t) =>
-      h(
-        'tr',
-        {},
-        h('th', { scope: 'row' }, String(t.year)),
-        h('td', { class: 'num' }, formatAmount(t.closing_balance)),
-        h('td', { class: 'num' }, formatAmount(t.net_deposits)),
-        h('td', { class: 'num' }, formatAmount(t.capital_growth)),
-      ),
+  renderTable({ empty: 'investment-totals-empty', table: 'investment-totals-table', body: 'investment-totals-rows' }, totals, (total) =>
+    h(
+      'tr',
+      {},
+      rowHeader(String(total.year)),
+      numCell(formatAmount(total.closing_balance)),
+      numCell(formatAmount(total.net_deposits)),
+      numCell(formatAmount(total.capital_growth)),
     ),
   );
 }
 
 function renderStatements(statements) {
   statementRows = statements;
-  $('statements-empty').hidden = statements.length > 0;
-  $('statements-table').hidden = statements.length === 0;
-  $('statements-rows').replaceChildren(
-    ...statements.map((s) =>
-      h(
-        'tr',
-        {},
-        h('th', { scope: 'row' }, s.period),
-        h('td', { class: 'wrap' }, s.account_name),
-        h('td', { class: 'num' }, formatAmount(s.balance)),
-        h('td', { class: 'num' }, formatAmount(s.net_deposits)),
-        h('td', { class: 'num' }, formatAmount(s.capital_growth)),
-        h('td', { class: 'note-cell' }, noteSummary(s.note)),
-        h(
-          'td',
-          { class: 'row-actions' },
-          iconButton('edit', t('Edit {account} {period}', { account: s.account_name, period: s.period }), () => openStatementDialog(s)),
-          iconButton('delete', t('Delete {account} {period}', { account: s.account_name, period: s.period }), () => deleteStatement(s)),
-        ),
-      ),
+  renderTable({ empty: 'statements-empty', table: 'statements-table', body: 'statements-rows' }, statements, (s) =>
+    h(
+      'tr',
+      {},
+      rowHeader(s.period),
+      h('td', { class: 'wrap' }, s.account_name),
+      numCell(formatAmount(s.balance)),
+      numCell(formatAmount(s.net_deposits)),
+      numCell(formatAmount(s.capital_growth)),
+      h('td', { class: 'note-cell' }, noteSummary(s.note)),
+      recordActions({
+        edit: { label: t('Edit {account} {period}', { account: s.account_name, period: s.period }), onClick: () => statementForm.open(s) },
+        remove: { label: t('Delete {account} {period}', { account: s.account_name, period: s.period }), onClick: () => deleteStatement(s) },
+      }),
     ),
   );
 }
@@ -126,97 +93,84 @@ let editingAccount = null;
 
 function openAccountDialog(account) {
   editingAccount = account;
-  const form = $('account-form');
-  form.reset();
-  $('account-error').hidden = true;
-  $('account-dialog-title').textContent = account ? t('Edit account') : t('Add account');
-  // The statement period is locked once the account has statements (CSD-005 REQ-4).
-  const locked = Boolean(account && account.statement_count > 0);
-  form.elements.statement_period.disabled = locked;
-  $('account-period-hint').hidden = !locked;
-  if (account) {
-    form.elements.name.value = account.name;
-    form.elements.statement_period.value = account.statement_period;
-  }
-  $('account-dialog').showModal();
-  form.elements.name.focus();
+  openDialog({
+    dialog: 'account-dialog',
+    form: 'account-form',
+    error: 'account-error',
+    title: 'account-dialog-title',
+    titleText: account ? t('Edit account') : t('Add account'),
+    focus: 'name',
+    fill(form) {
+      // The statement period is locked once the account has statements (CSD-005 REQ-4).
+      const locked = Boolean(account && account.statement_count > 0);
+      form.elements.period.disabled = locked;
+      setHint('account-period-hint', locked);
+      if (account) {
+        form.elements.name.value = account.name;
+        form.elements.period.value = account.period;
+      }
+    },
+  });
 }
 
-async function submitAccount(event) {
-  event.preventDefault();
+function submitAccount() {
   const form = $('account-form');
   const input = { name: form.elements.name.value };
-  if (!form.elements.statement_period.disabled) {
-    input.statement_period = form.elements.statement_period.value;
+  if (!form.elements.period.disabled) {
+    input.period = form.elements.period.value;
   }
-  try {
-    if (editingAccount) {
-      await invoke('update_investment_account', { accountId: editingAccount.id, input });
-    } else {
-      await invoke('create_investment_account', { input });
-    }
-    $('account-dialog').close();
-    await changed();
-  } catch (error) {
-    showError('account-error', error);
-  }
+  return saveDialog({
+    dialog: 'account-dialog',
+    error: 'account-error',
+    changed,
+    save: () =>
+      editingAccount
+        ? invoke('update_investment_account', { accountId: editingAccount.id, input })
+        : invoke('create_investment_account', { input }),
+  });
 }
 
-async function deleteAccount(account) {
-  const confirmed = await confirmAction({
+function deleteAccount(account) {
+  return deleteWithConfirm({
     title: t('Delete {name}?', { name: account.name }),
     message: t('This account and all its statements will be deleted.'),
     confirmLabel: t('Delete account'),
-    danger: true,
+    command: 'delete_investment_account',
+    args: { accountId: account.id },
+    changed,
   });
-  if (!confirmed) return;
-  try {
-    await invoke('delete_investment_account', { accountId: account.id });
-    await changed();
-  } catch (error) {
-    showToast(errorText(error));
-  }
 }
 
 // ---- Statement dialog ----
-
-let editingStatement = null;
-/** Whether the form currently asks for a year, so the period resets only when it changes. */
-let formIsYearly = false;
-
-function fillAccountChoices(selectedId) {
-  // The list is alphabetical, so the first option is the first account by name.
-  const select = $('statement-form').elements.account_id;
-  select.replaceChildren(...accounts.map((account) => h('option', { value: account.id }, account.name)));
-  select.value = selectedId ?? accounts[0]?.id ?? '';
-}
-
-function chosenAccount() {
-  return accounts.find((account) => account.id === $('statement-form').elements.account_id.value);
-}
-
-/** Asks for a month or a year, following the chosen account (CSD-005 REQ-14). */
-function applyStatementPeriod({ resetPeriod }) {
-  const form = $('statement-form');
-  const yearly = chosenAccount()?.statement_period === 'Yearly';
-  $('statement-period-label').textContent = yearly ? t('Year') : t('Month');
-  form.elements.period.placeholder = yearly ? String(new Date().getFullYear() - 1) : t('yyyy-mm');
-  form.elements.period.maxLength = yearly ? 4 : 7;
-  $('statement-copy').textContent = yearly ? t('Copy previous year') : t('Copy previous month');
-  if (resetPeriod && yearly !== formIsYearly) {
-    form.elements.period.value = yearly ? currentYear() : currentMonth();
-  }
-  formIsYearly = yearly;
-}
-
-// ---- Balance, net deposits and capital growth (CSD-005 REQ-24, REQ-25) ----
 
 /** Which of balance and growth the user typed in last; the other one is calculated. */
 let typedField = 'balance';
 let calculationRun = 0;
 
+const statementForm = createRecordForm({
+  form: 'statement-form',
+  dialog: 'statement-dialog',
+  title: 'statement-dialog-title',
+  error: 'statement-error',
+  periodLabel: 'statement-period-label',
+  copy: 'statement-copy',
+  parentField: 'account_id',
+  parents: () => accounts,
+  valueFields: ['balance', 'net_deposits', 'note'],
+  focusField: 'balance',
+  titleText: (statement) => (statement ? t('Edit statement {period}', { period: statement.period }) : t('Add statement')),
+  beforeFill() {
+    typedField = 'balance';
+    calculationRun += 1; // drop any calculation still under way
+    markCalculated(null);
+  },
+  afterFill: () => recalculate(),
+});
+
+// ---- Balance, net deposits and capital growth (CSD-005 REQ-24, REQ-25) ----
+
 function periodLooksComplete(period) {
-  return (formIsYearly ? /^\d{4}$/ : /^\d{4}-\d{2}$/).test(period);
+  return (statementForm.isYearly() ? /^\d{4}$/ : /^\d{4}-\d{2}$/).test(period);
 }
 
 /**
@@ -230,12 +184,12 @@ function updateEarlierNote() {
   const accountId = form.elements.account_id.value;
   // The statement being edited never counts as an earlier one (CSD-005 REQ-24).
   const others = statementRows.filter(
-    (s) => s.account_id === accountId && s.period !== period && s.period !== editingStatement?.period,
+    (s) => s.account_id === accountId && s.period !== period && s.period !== statementForm.editing?.period,
   );
   const hasEarlier = periodLooksComplete(period)
     ? others.some((s) => s.period < period)
     : others.length > 0;
-  $('statement-growth-hint').hidden = hasEarlier;
+  setHint('statement-growth-hint', !hasEarlier);
 }
 
 function markCalculated(field) {
@@ -264,7 +218,7 @@ async function recalculate() {
       netDeposits: form.elements.net_deposits.value,
       input: source,
       value,
-      ignorePeriod: editingStatement?.period,
+      ignorePeriod: statementForm.editing?.period,
     });
     if (run !== calculationRun) return; // a newer calculation is under way
     if (target === 'growth') {
@@ -287,41 +241,7 @@ function typedIn(field) {
   recalculate();
 }
 
-/** Opens the form to add a statement, or to edit `statement` when given. */
-function openStatementDialog(statement = null) {
-  editingStatement = statement;
-  const form = $('statement-form');
-  form.reset();
-  $('statement-error').hidden = true;
-  fillAccountChoices(statement?.account_id);
-  form.elements.account_id.disabled = Boolean(statement);
-  $('statement-copy').hidden = Boolean(statement);
-  typedField = 'balance';
-  calculationRun += 1; // drop any calculation still under way
-  markCalculated(null);
-  if (statement) {
-    $('statement-dialog-title').textContent = t('Edit statement {period}', { period: statement.period });
-    $('statement-period-label').textContent = statement.period.length === 4 ? t('Year') : t('Month');
-    form.elements.period.maxLength = statement.period.length;
-    form.elements.period.value = statement.period;
-    formIsYearly = statement.period.length === 4;
-    form.elements.balance.value = statement.balance;
-    form.elements.net_deposits.value = statement.net_deposits;
-    form.elements.note.value = statement.note;
-    recalculate();
-  } else {
-    $('statement-dialog-title').textContent = t('Add statement');
-    formIsYearly = null; // force the period to its default for the first account
-    form.elements.period.value = '';
-    applyStatementPeriod({ resetPeriod: true });
-    recalculate();
-  }
-  $('statement-dialog').showModal();
-  (statement ? form.elements.balance : form.elements.period).focus();
-}
-
-async function submitStatement(event) {
-  event.preventDefault();
+function submitStatement() {
   const form = $('statement-form');
   const args = {
     accountId: form.elements.account_id.value,
@@ -330,22 +250,17 @@ async function submitStatement(event) {
     netDeposits: form.elements.net_deposits.value,
     note: form.elements.note.value,
   };
-  try {
-    if (editingStatement) {
-      // The statement is found by its current period; the field holds the new one (CSD-005 REQ-28).
-      await invoke('update_investment_statement', {
-        ...args,
-        period: editingStatement.period,
-        newPeriod: args.period,
-      });
-    } else {
-      await invoke('add_investment_statement', args);
-    }
-    $('statement-dialog').close();
-    await changed();
-  } catch (error) {
-    showError('statement-error', error);
-  }
+  const editing = statementForm.editing;
+  return saveDialog({
+    dialog: 'statement-dialog',
+    error: 'statement-error',
+    changed,
+    save: () =>
+      editing
+        ? // The statement is found by its current period; the field holds the new one (CSD-005 REQ-28).
+          invoke('update_investment_statement', { ...args, period: editing.period, newPeriod: args.period })
+        : invoke('add_investment_statement', args),
+  });
 }
 
 /** Fills the balance from the latest statement of the account chosen in the form (CSD-005 REQ-13). */
@@ -364,36 +279,28 @@ async function copyPrevious() {
   }
 }
 
-async function deleteStatement(statement) {
-  const confirmed = await confirmAction({
+function deleteStatement(statement) {
+  return deleteWithConfirm({
     title: t('Delete the statement of {period}?', { period: statement.period }),
     message: t('The statement of {period} of {account} and its note will be deleted.', { period: statement.period, account: statement.account_name }),
     confirmLabel: t('Delete statement'),
-    danger: true,
+    command: 'delete_investment_statement',
+    args: { accountId: statement.account_id, period: statement.period },
+    changed,
   });
-  if (!confirmed) return;
-  try {
-    await invoke('delete_investment_statement', {
-      accountId: statement.account_id,
-      period: statement.period,
-    });
-    await changed();
-  } catch (error) {
-    showToast(errorText(error));
-  }
 }
 
 export function initInvestmentsOverview({ onChanged: callback }) {
   onChanged = callback;
   $('account-add').addEventListener('click', () => openAccountDialog(null));
   $('account-add-first').addEventListener('click', () => openAccountDialog(null));
-  $('account-form').addEventListener('submit', submitAccount);
-  $('statement-add').addEventListener('click', () => openStatementDialog());
+  submitOnce($('account-form'), submitAccount);
+  $('statement-add').addEventListener('click', () => statementForm.open());
   $('statement-copy').addEventListener('click', copyPrevious);
-  $('statement-form').addEventListener('submit', submitStatement);
+  submitOnce($('statement-form'), submitStatement);
   const form = $('statement-form');
   form.elements.account_id.addEventListener('change', () => {
-    applyStatementPeriod({ resetPeriod: true });
+    statementForm.apply({ resetPeriod: true });
     recalculate();
   });
   form.elements.period.addEventListener('input', recalculate);

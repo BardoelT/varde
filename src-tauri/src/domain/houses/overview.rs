@@ -1,9 +1,10 @@
 //! The houses with their latest values and the total house (CSD-015 REQ-17).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 
-use crate::domain::investments::Period;
+use crate::domain::common::Period;
+use crate::domain::series::{self, SeriesData};
 
 use super::{House, Houses};
 
@@ -11,24 +12,28 @@ use super::{House, Houses};
 /// REQ-17).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HouseSummary {
+    /// The house itself.
     #[serde(flatten)]
     pub house: House,
+    /// Number of valuations of the house.
     pub valuation_count: usize,
+    /// Period of the latest valuation, `None` without valuations.
     pub latest_period: Option<Period>,
-    pub latest_value: Option<Decimal>,
-    /// Whether the house has no sale (CSD-019 REQ-9).
+    /// The latest value, `None` without valuations.
+    pub latest_value: Option<Money>,
+    /// Whether the house has no sale (CSD-019 REQ-8).
     pub held: bool,
     /// The sell amount minus the purchase amount of a sold house.
-    pub result: Option<Decimal>,
+    pub result: Option<Money>,
 }
 
 /// The houses with the total of the latest values of the held houses (CSD-015
-/// REQ-17, CSD-019 REQ-10). The total is `None` while no held house has a
+/// REQ-17, CSD-019 REQ-9). The total is `None` while no held house has a
 /// valuation.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HousesOverview {
     pub houses: Vec<HouseSummary>,
-    pub total: Option<Decimal>,
+    pub total: Option<Money>,
 }
 
 impl Houses {
@@ -51,13 +56,12 @@ impl Houses {
                 }
             })
             .collect();
-        let mut values = houses
-            .iter()
-            .filter(|summary| summary.held)
-            .filter_map(|summary| summary.latest_value);
-        let total = values
-            .next()
-            .map(|first| values.fold(first, |sum, value| sum + value));
+        let total = series::total_of(
+            houses
+                .iter()
+                .filter(|summary| summary.held)
+                .filter_map(|summary| summary.latest_value),
+        );
         HousesOverview { houses, total }
     }
 }

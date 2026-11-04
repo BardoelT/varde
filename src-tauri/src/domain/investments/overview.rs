@@ -1,9 +1,11 @@
 //! The accounts with their latest balances and the total (CSD-005 REQ-15).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 
-use super::{InvestmentAccount, Investments, Period};
+use super::{InvestmentAccount, Investments};
+use crate::domain::common::Period;
+use crate::domain::series::{self, SeriesData};
 
 /// One account row of the Investments view: its latest balance and period
 /// (CSD-005 REQ-15).
@@ -13,15 +15,17 @@ pub struct AccountSummary {
     pub account: InvestmentAccount,
     pub statement_count: usize,
     pub latest_period: Option<Period>,
-    pub latest_balance: Option<Decimal>,
+    pub latest_balance: Option<Money>,
 }
 
 /// The accounts with the total of their latest balances (CSD-005 REQ-15). The
 /// total is `None` while no account has a statement.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct InvestmentsOverview {
+    /// The accounts of the overview.
     pub accounts: Vec<AccountSummary>,
-    pub total: Option<Decimal>,
+    /// The total of the latest values, `None` when there is nothing to total.
+    pub total: Option<Money>,
 }
 
 impl Investments {
@@ -42,10 +46,7 @@ impl Investments {
                 }
             })
             .collect();
-        let mut balances = accounts.iter().filter_map(|summary| summary.latest_balance);
-        let total = balances
-            .next()
-            .map(|first| balances.fold(first, |sum, balance| sum + balance));
+        let total = series::total_of(accounts.iter().filter_map(|summary| summary.latest_balance));
         InvestmentsOverview { accounts, total }
     }
 }

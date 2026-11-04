@@ -1,0 +1,367 @@
+{
+  "format_version": 1,
+  "income": {
+    "jobs": [
+      {
+        "id": "id-1",
+        "employer": "Example Employer",
+        "title": "Engineer",
+        "start_date": "2024-01-01",
+        "end_date": null,
+        "period": "Monthly"
+      },
+      {
+        "id": "id-2",
+        "employer": "Example Consultancy",
+        "title": null,
+        "start_date": "2023-01-01",
+        "end_date": "2025-12-31",
+        "period": "Yearly"
+      }
+    ],
+    "paychecks": [
+      {
+        "job_id": "id-1",
+        "month": "2024-06",
+        "gross_salary": "3000.00",
+        "holiday_pay": "0.00",
+        "bonus": "0.00"
+      },
+      {
+        "job_id": "id-1",
+        "month": "2025-06",
+        "gross_salary": "3200.00",
+        "holiday_pay": "2400.00",
+        "bonus": "500.00"
+      },
+      {
+        "job_id": "id-1",
+        "month": "2026-03",
+        "gross_salary": "3300.00",
+        "holiday_pay": "0.00",
+        "bonus": "1000.00"
+      },
+      {
+        "job_id": "id-1",
+        "month": "2026-08",
+        "gross_salary": "3300.00",
+        "holiday_pay": "0.00",
+        "bonus": "0.00"
+      }
+    ],
+    "statements": [
+      {
+        "job_id": "id-2",
+        "year": "2023",
+        "gross_salary": "36000.00",
+        "holiday_pay": "0.00",
+        "bonus": "2000.00"
+      },
+      {
+        "job_id": "id-2",
+        "year": "2024",
+        "gross_salary": "38000.00",
+        "holiday_pay": "0.00",
+        "bonus": "2000.00"
+      },
+      {
+        "job_id": "id-2",
+        "year": "2025",
+        "gross_salary": "40000.00",
+        "holiday_pay": "0.00",
+        "bonus": "2000.00"
+      }
+    ]
+  },
+  "investments": {
+    "accounts": [
+      {
+        "id": "id-3",
+        "name": "Example Brokerage",
+        "period": "Monthly"
+      },
+      {
+        "id": "id-4",
+        "name": "Example Pension",
+        "period": "Yearly"
+      }
+    ],
+    "statements": [
+      {
+        "account_id": "id-3",
+        "period": "2025-12",
+        "balance": "10000.00",
+        "net_deposits": "0.00",
+        "note": ""
+      },
+      {
+        "account_id": "id-3",
+        "period": "2026-06",
+        "balance": "12500.50",
+        "net_deposits": "0.00",
+        "note": "Bought example fund"
+      },
+      {
+        "account_id": "id-3",
+        "period": "2026-08",
+        "balance": "12000.00",
+        "net_deposits": "0.00",
+        "note": ""
+      },
+      {
+        "account_id": "id-4",
+        "period": "2024",
+        "balance": "5000.00",
+        "net_deposits": "0.00",
+        "note": ""
+      },
+      {
+        "account_id": "id-4",
+        "period": "2025",
+        "balance": "6000.00",
+        "net_deposits": "0.00",
+        "note": ""
+      }
+    ]
+  },
+  "bank_accounts": {
+    "accounts": [
+      {
+        "id": "id-5",
+        "name": "Example Current Account",
+        "period": "Monthly",
+        "colour_slot": 0
+      },
+      {
+        "id": "id-6",
+        "name": "Example Savings",
+        "period": "Yearly",
+        "colour_slot": 1
+      },
+      {
+        "id": "id-7",
+        "name": "Example Old Bank",
+        "period": "Yearly",
+        "colour_slot": 2
+      }
+    ],
+    "entries": [
+      {
+        "account_id": "id-5",
+        "period": "2025-12",
+        "balance": "2000.00",
+        "note": ""
+      },
+      {
+        "account_id": "id-5",
+        "period": "2026-08",
+        "balance": "2500.50",
+        "note": ""
+      },
+      {
+        "account_id": "id-6",
+        "period": "2024",
+        "balance": "-400.00",
+        "note": "Overdrawn"
+      },
+      {
+        "account_id": "id-6",
+        "period": "2025",
+        "balance": "1000.00",
+        "note": ""
+      },
+      {
+        "account_id": "id-6",
+        "period": "2027",
+        "balance": "1500.00",
+        "note": "Future entry"
+      },
+      {
+        "account_id": "id-7",
+        "period": "1950",
+        "balance": "100.00",
+        "note": "Very old entry"
+      }
+    ]
+  },
+  "debts": {
+    "debts": [
+      {
+        "id": "id-8",
+        "name": "Example Mortgage",
+        "period": "Monthly",
+        "colour_slot": 0,
+        "category": "Mortgage",
+        "house_id": "id-9",
+        "settlement": {
+          "outcome": "Repaid",
+          "date": "2026-06-10",
+          "amount": "148000.50"
+        }
+      },
+      {
+        "id": "id-10",
+        "name": "Example Home Loan",
+        "period": "Monthly",
+        "colour_slot": 1,
+        "category": "Loan",
+        "house_id": "id-9",
+        "settlement": {
+          "outcome": "Cancelled",
+          "date": "2026-06-10",
+          "amount": "20000.00"
+        }
+      },
+      {
+        "id": "id-11",
+        "name": "Example Student Loan",
+        "period": "Yearly",
+        "colour_slot": 2,
+        "category": "Other"
+      }
+    ],
+    "statements": [
+      {
+        "debt_id": "id-8",
+        "period": "2025-12",
+        "balance": "150000.00",
+        "note": ""
+      },
+      {
+        "debt_id": "id-8",
+        "period": "2026-04",
+        "balance": "148000.50",
+        "note": ""
+      },
+      {
+        "debt_id": "id-10",
+        "period": "2026-04",
+        "balance": "20000.00",
+        "note": ""
+      },
+      {
+        "debt_id": "id-11",
+        "period": "2025",
+        "balance": "8000.00",
+        "note": ""
+      },
+      {
+        "debt_id": "id-11",
+        "period": "2026",
+        "balance": "7000.00",
+        "note": ""
+      },
+      {
+        "debt_id": "id-10",
+        "period": "2026-06",
+        "balance": "0.00",
+        "note": "Cancelled on sale of Example House",
+        "settlement": true
+      },
+      {
+        "debt_id": "id-8",
+        "period": "2026-06",
+        "balance": "0.00",
+        "note": "Repaid on sale of Example House",
+        "settlement": true
+      }
+    ]
+  },
+  "expenses": {
+    "expenses": [
+      {
+        "id": "id-12",
+        "name": "Example Bike",
+        "amount": "500.00",
+        "date": "2025-03-05",
+        "category": "Vehicle",
+        "note": ""
+      },
+      {
+        "id": "id-13",
+        "name": "Example Trip",
+        "amount": "1250.50",
+        "date": "2025-07-20",
+        "category": "Holiday",
+        "note": ""
+      },
+      {
+        "id": "id-14",
+        "name": "Example Sofa",
+        "amount": "800.00",
+        "date": "2026-02-11",
+        "category": "Home",
+        "note": ""
+      },
+      {
+        "id": "id-15",
+        "name": "Example Class",
+        "amount": "120.00",
+        "date": "2026-09-02",
+        "category": "Study",
+        "note": ""
+      },
+      {
+        "id": "id-16",
+        "name": "Example Heirloom",
+        "amount": "100.00",
+        "date": "1950-01-01",
+        "category": "Other",
+        "note": ""
+      }
+    ]
+  },
+  "houses": {
+    "houses": [
+      {
+        "id": "id-9",
+        "name": "Example House",
+        "period": "Monthly",
+        "colour_slot": 0,
+        "purchase_date": "2024-03-15",
+        "purchase_amount": "250000.00",
+        "sell_date": "2026-06-10",
+        "sell_amount": "300000.00"
+      },
+      {
+        "id": "id-17",
+        "name": "Example Lodge",
+        "period": "Yearly",
+        "colour_slot": 1,
+        "purchase_date": "2025-01-01",
+        "purchase_amount": "100000.00",
+        "sell_date": null,
+        "sell_amount": null
+      }
+    ],
+    "valuations": [
+      {
+        "house_id": "id-9",
+        "period": "2025-12",
+        "value": "260000.00",
+        "note": ""
+      },
+      {
+        "house_id": "id-9",
+        "period": "2026-04",
+        "value": "270000.00",
+        "note": "Valued by an example agent"
+      },
+      {
+        "house_id": "id-17",
+        "period": "2025",
+        "value": "105000.00",
+        "note": ""
+      },
+      {
+        "house_id": "id-17",
+        "period": "2026",
+        "value": "110000.00",
+        "note": ""
+      }
+    ]
+  },
+  "settings": {
+    "currency": "EUR"
+  }
+}

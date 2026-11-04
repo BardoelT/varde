@@ -15,33 +15,31 @@ mod statement;
 mod totals;
 
 #[cfg(test)]
+mod ac_tests_debts;
+#[cfg(test)]
 mod tests;
 
 pub use amounts::{debt_note, DebtBalance};
-pub use debt::{Category, Debt, DebtId, DebtInput};
+pub use debt::{Debt, DebtCategory, DebtId, DebtInput};
 pub use insights::DebtInsights;
 pub use overview::DebtSummary;
 pub use settlement::{OpenDebt, Outcome, Settlement};
-pub use statement::{parse_period, DebtStatement, StatementPrefill};
+pub use statement::{parse_period, DebtStatement, DebtStatementPrefill};
 pub use totals::DebtYearlyTotal;
-
-use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
+use crate::domain::common::{Note, Period};
 use crate::domain::error::DomainError;
-use crate::domain::income::YearMonth;
-use crate::domain::investments::{Note, Period};
-
-use crate::domain::series::{self, COLOUR_SLOTS, MAX_NAME_CHARS};
+use crate::domain::series::{self, SeriesData, SeriesError};
 
 /// All debts with their statements. Debts are kept in the order they were
-/// created (CSD-011 section 5).
+/// created (CSD-011 section 5). The rules every series shares are those of
+/// [`SeriesData`]; the settlement of a debt (CSD-026) is added in `settlement`.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Debts {
-    #[serde(default)]
     debts: Vec<Debt>,
-    #[serde(default)]
     statements: Vec<DebtStatement>,
 }
 
@@ -52,19 +50,14 @@ impl Debts {
     /// # Errors
     /// Returns the name errors of REQ-2 or `DebtPeriodUnsupported`.
     pub fn create_debt(&mut self, input: &DebtInput) -> Result<Debt, DomainError> {
-        let valid = input.validate()?;
-        if self.name_taken(&valid.name, None) {
-            return Err(DomainError::DebtNameDuplicate);
-        }
-        let debt = Debt {
-            id: DebtId::generate(),
-            name: valid.name,
-            statement_period: valid.statement_period.unwrap_or_default(),
-            colour_slot: self.next_colour_slot(),
-            category: Category::default(),
-            house_id: None,
-            settlement: None,
-        };
+        let valid = series::validate_identity::<Self>(&input.name, input.period.as_deref())?;
+        self.check_name_free(&valid.name, None)?;
+        let debt = Debt::new(
+            DebtId::new(),
+            valid.name,
+            valid.period.unwrap_or_default(),
+            series::next_colour_slot(self.debts.iter().map(|debt| debt.colour_slot)),
+        );
         self.debts.push(debt.clone());
         Ok(debt)
     }
@@ -74,24 +67,20 @@ impl Debts {
     /// (REQ-4, REQ-5).
     ///
     /// # Errors
-    /// Returns a validation error, `DebtNotFound`, `DebtNameDuplicate` or
-    /// `DebtPeriodLocked`.
+    /// Returns a validation error, `DebtNotFound`, `DebtNameDuplicate`,
+    /// `DebtSettledLocked` or `DebtPeriodLocked`.
     pub fn update_debt(&mut self, id: DebtId, input: &DebtInput) -> Result<Debt, DomainError> {
-        let valid = input.validate()?;
-        let current = self.debt(id)?.statement_period;
-        if self.name_taken(&valid.name, Some(id)) {
-            return Err(DomainError::DebtNameDuplicate);
-        }
-        let statement_period = valid.statement_period.unwrap_or(current);
-        if statement_period != current && self.debt(id)?.settlement.is_some() {
+        let valid = series::validate_identity::<Self>(&input.name, input.period.as_deref())?;
+        let current = self.account(id)?.period;
+        self.check_name_free(&valid.name, Some(id))?;
+        let period = valid.period.unwrap_or(current);
+        if period != current && self.account(id)?.settlement.is_some() {
             return Err(DomainError::DebtSettledLocked);
         }
-        if statement_period != current && self.statement_count(id) > 0 {
-            return Err(DomainError::DebtPeriodLocked);
-        }
-        let debt = self.debt_mut(id)?;
+        self.check_period_unlocked(id, current, period)?;
+        let debt = self.account_mut(id)?;
         debt.name = valid.name;
-        debt.statement_period = statement_period;
+        debt.period = period;
         Ok(debt.clone())
     }
 
@@ -100,27 +89,19 @@ impl Debts {
     /// # Errors
     /// Returns `DebtNotFound`.
     pub fn delete_debt(&mut self, id: DebtId) -> Result<(), DomainError> {
-        self.debt(id)?;
-        self.debts.retain(|debt| debt.id != id);
-        self.statements.retain(|statement| statement.debt_id != id);
-        Ok(())
+        self.remove_account(id)
     }
 
     /// Debts alphabetically by name, ignoring case (REQ-18).
     #[must_use]
     pub fn debts(&self) -> Vec<&Debt> {
-        let mut debts: Vec<&Debt> = self.debts.iter().collect();
-        debts.sort_by_cached_key(|debt| debt_order(debt));
-        debts
+        self.sorted_accounts()
     }
 
     /// How many statements a debt has.
     #[must_use]
     pub fn statement_count(&self, id: DebtId) -> usize {
-        self.statements
-            .iter()
-            .filter(|statement| statement.debt_id == id)
-            .count()
+        self.record_count(id)
     }
 
     /// How many statements all debts have together.
@@ -129,42 +110,31 @@ impl Debts {
         self.statements.len()
     }
 
-    /// Adds the statement of a period. `today` is the current month; later
-    /// periods are rejected. Any earlier period is accepted (REQ-7 to REQ-9).
+    /// Adds the statement of a period. Any period is accepted, a later one
+    /// included (REQ-7 to REQ-9).
     ///
     /// # Errors
-    /// Returns `DebtNotFound`, `DebtPeriodMismatch`, `DebtStatementInFuture`
-    /// or `DebtStatementDuplicate`.
+    /// Returns `DebtNotFound`, `DebtPeriodMismatch`, `DebtStatementDuplicate`
+    /// or `DebtSettledLocked`.
     pub fn add_statement(
         &mut self,
         debt_id: DebtId,
         period: Period,
         balance: DebtBalance,
         note: Note,
-        today: YearMonth,
     ) -> Result<DebtStatement, DomainError> {
-        self.check_new_period(debt_id, period, today)?;
-        self.check_unsettled_at(debt_id, period)?;
-        let statement = DebtStatement {
-            debt_id,
-            period,
-            balance,
-            note,
-            settlement: false,
-        };
-        self.statements.push(statement.clone());
-        Ok(statement)
+        self.add_record(DebtStatement::regular(debt_id, period, balance, note))
     }
 
     /// Changes the balance and note of a statement and, when `new_period` is a
     /// different period, moves it there. The new period follows the rules of
-    /// adding a statement: the kind of the debt, not after `today` and not
-    /// taken by another statement of the debt. The edit is applied as a whole
-    /// or not at all (REQ-12, REQ-13).
+    /// adding a statement: the kind of the debt, not taken by another
+    /// statement of the debt. The edit is applied as a whole or not at all
+    /// (REQ-12, REQ-13).
     ///
     /// # Errors
     /// Returns `DebtNotFound`, `DebtStatementNotFound`, `DebtPeriodMismatch`,
-    /// `DebtStatementInFuture` or `DebtStatementDuplicate`.
+    /// `DebtStatementDuplicate` or `DebtSettledLocked`.
     pub fn update_statement(
         &mut self,
         debt_id: DebtId,
@@ -172,43 +142,20 @@ impl Debts {
         new_period: Period,
         balance: DebtBalance,
         note: Note,
-        today: YearMonth,
     ) -> Result<DebtStatement, DomainError> {
-        self.debt(debt_id)?;
-        self.check_target_editable(debt_id, period)?;
-        if self.statement(debt_id, period).is_none() {
-            return Err(DomainError::DebtStatementNotFound);
-        }
-        if new_period != period {
-            self.check_new_period(debt_id, new_period, today)?;
-            self.check_unsettled_at(debt_id, new_period)?;
-        }
-        let statement = self
-            .statements
-            .iter_mut()
-            .find(|s| s.debt_id == debt_id && s.period == period && !s.settlement)
-            .ok_or(DomainError::DebtStatementNotFound)?;
-        statement.period = new_period;
-        statement.balance = balance;
-        statement.note = note;
-        Ok(statement.clone())
+        self.update_record(debt_id, period, new_period, |statement| {
+            statement.balance = balance;
+            statement.note = note;
+        })
     }
 
     /// Removes one statement and nothing else (REQ-14). The caller asks for
     /// the confirmation.
     ///
     /// # Errors
-    /// Returns `DebtNotFound` or `DebtStatementNotFound`.
+    /// Returns `DebtNotFound`, `DebtStatementNotFound` or `DebtSettledLocked`.
     pub fn delete_statement(&mut self, debt_id: DebtId, period: Period) -> Result<(), DomainError> {
-        self.debt(debt_id)?;
-        self.check_target_editable(debt_id, period)?;
-        let before = self.statements.len();
-        self.statements
-            .retain(|s| !(s.debt_id == debt_id && s.period == period && !s.settlement));
-        if self.statements.len() == before {
-            return Err(DomainError::DebtStatementNotFound);
-        }
-        Ok(())
+        self.delete_record(debt_id, period)
     }
 
     /// The statements of all debts, newest period first. A yearly statement
@@ -216,20 +163,7 @@ impl Debts {
     /// the debts (REQ-18).
     #[must_use]
     pub fn all_statements(&self) -> Vec<(&Debt, &DebtStatement)> {
-        let mut rows: Vec<(&Debt, &DebtStatement)> = self
-            .statements
-            .iter()
-            .filter_map(|statement| {
-                self.debts
-                    .iter()
-                    .find(|debt| debt.id == statement.debt_id)
-                    .map(|debt| (debt, statement))
-            })
-            .collect();
-        rows.sort_by_cached_key(|(debt, statement)| {
-            (std::cmp::Reverse(statement.order_key()), debt_order(debt))
-        });
-        rows
+        self.all_records()
     }
 
     /// Checks that data read from a file follows the rules of CSD-011, so a
@@ -238,102 +172,55 @@ impl Debts {
     /// # Errors
     /// Returns `DebtDataInvalid` for the first inconsistency found.
     pub fn validate(&self) -> Result<(), DomainError> {
-        let invalid = DomainError::DebtDataInvalid;
-        let mut ids = HashSet::new();
-        let mut names = HashSet::new();
-        for debt in &self.debts {
-            let name = debt.name.trim();
-            if name.is_empty()
-                || name.chars().count() > MAX_NAME_CHARS
-                || debt.colour_slot >= COLOUR_SLOTS
-                || !ids.insert(debt.id)
-                || !names.insert(name.to_lowercase())
-            {
-                return Err(invalid);
-            }
-        }
-        let mut seen = HashSet::new();
-        for statement in &self.statements {
-            let matches_debt = self
-                .debt(statement.debt_id)
-                .is_ok_and(|debt| debt.statement_period == statement.period.kind());
-            if !matches_debt
-                || !seen.insert((statement.debt_id, statement.period, statement.settlement))
-                || DebtBalance::new(statement.balance.value()).is_err()
-                || debt_note(statement.note.as_str()).is_err()
-            {
-                return Err(invalid);
-            }
-        }
-        Ok(())
-    }
-
-    fn debt(&self, id: DebtId) -> Result<&Debt, DomainError> {
-        self.debts
-            .iter()
-            .find(|debt| debt.id == id)
-            .ok_or(DomainError::DebtNotFound)
-    }
-
-    fn debt_mut(&mut self, id: DebtId) -> Result<&mut Debt, DomainError> {
-        self.debts
-            .iter_mut()
-            .find(|debt| debt.id == id)
-            .ok_or(DomainError::DebtNotFound)
-    }
-
-    /// The regular statement of a period; the settlement statement is not one
-    /// (CSD-011 REQ-8).
-    fn statement(&self, debt_id: DebtId, period: Period) -> Option<&DebtStatement> {
-        self.statements
-            .iter()
-            .find(|s| s.debt_id == debt_id && s.period == period && !s.settlement)
-    }
-
-    /// The rules a period must follow for a debt to hold a statement for it:
-    /// the kind of the debt, not after `today`, not taken (REQ-7 to REQ-9).
-    fn check_new_period(
-        &self,
-        debt_id: DebtId,
-        period: Period,
-        today: YearMonth,
-    ) -> Result<(), DomainError> {
-        if self.debt(debt_id)?.statement_period != period.kind() {
-            return Err(DomainError::DebtPeriodMismatch);
-        }
-        if period.is_after(today) {
-            return Err(DomainError::DebtStatementInFuture);
-        }
-        if self.statement(debt_id, period).is_some() {
-            return Err(DomainError::DebtStatementDuplicate);
-        }
-        Ok(())
-    }
-
-    /// The statement with the most recent period of a debt.
-    fn latest(&self, id: DebtId) -> Option<&DebtStatement> {
-        self.statements
-            .iter()
-            .filter(|statement| statement.debt_id == id)
-            .max_by_key(|statement| statement.order_key())
-    }
-
-    /// The lowest colour slot used by the fewest debts (REQ-3).
-    fn next_colour_slot(&self) -> u8 {
-        series::next_colour_slot(self.debts.iter().map(|debt| debt.colour_slot))
-    }
-
-    /// Whether another debt already has this name, ignoring case (REQ-2).
-    fn name_taken(&self, name: &str, except: Option<DebtId>) -> bool {
-        series::name_taken(
-            self.debts.iter().map(|debt| (debt.id, debt.name.as_str())),
-            name,
-            except,
-        )
+        SeriesData::validate(self)
     }
 }
 
-/// Alphabetical order ignoring case, with the id as a stable tie-break.
-fn debt_order(debt: &Debt) -> (String, String) {
-    series::name_order(&debt.name, &debt.id)
+impl SeriesData for Debts {
+    type Account = Debt;
+    type Record = DebtStatement;
+
+    const PIECE_PREFIX: &'static str = "debt";
+
+    fn error(kind: SeriesError) -> DomainError {
+        match kind {
+            SeriesError::AccountNotFound => DomainError::DebtNotFound,
+            SeriesError::NameRequired => DomainError::DebtNameRequired,
+            SeriesError::NameTooLong => DomainError::DebtNameTooLong,
+            SeriesError::NameDuplicate => DomainError::DebtNameDuplicate,
+            SeriesError::PeriodUnsupported => DomainError::DebtPeriodUnsupported,
+            SeriesError::PeriodLocked => DomainError::DebtPeriodLocked,
+            SeriesError::PeriodMismatch => DomainError::DebtPeriodMismatch,
+            SeriesError::RecordNotFound => DomainError::DebtStatementNotFound,
+            SeriesError::RecordDuplicate => DomainError::DebtStatementDuplicate,
+            SeriesError::DataInvalid => DomainError::DebtDataInvalid,
+        }
+    }
+
+    fn accounts_list(&self) -> &[Debt] {
+        &self.debts
+    }
+
+    fn accounts_list_mut(&mut self) -> &mut Vec<Debt> {
+        &mut self.debts
+    }
+
+    fn records_list(&self) -> &[DebtStatement] {
+        &self.statements
+    }
+
+    fn records_list_mut(&mut self) -> &mut Vec<DebtStatement> {
+        &mut self.statements
+    }
+
+    /// A settled debt takes no regular statement after its settlement period.
+    fn check_period_allowed(&self, id: DebtId, period: Period) -> Result<(), DomainError> {
+        self.check_unsettled_at(id, period)
+    }
+
+    /// The settlement statement and the statements after the settlement period
+    /// of a settled debt cannot change.
+    fn check_record_editable(&self, id: DebtId, period: Period) -> Result<(), DomainError> {
+        self.check_target_editable(id, period)
+    }
 }

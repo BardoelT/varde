@@ -1,0 +1,3748 @@
+{
+  "get_bank_insights": {
+    "axis": {
+      "ticks": [
+        {
+          "label": "-1k",
+          "value": "-1000.00"
+        },
+        {
+          "label": "0",
+          "value": "0.00"
+        },
+        {
+          "label": "1k",
+          "value": "1000.00"
+        },
+        {
+          "label": "2k",
+          "value": "2000.00"
+        },
+        {
+          "label": "3k",
+          "value": "3000.00"
+        }
+      ]
+    },
+    "banks": [
+      {
+        "colour_slot": 0,
+        "id": "id-1",
+        "name": "Example Current Account"
+      },
+      {
+        "colour_slot": 1,
+        "id": "id-2",
+        "name": "Example Savings"
+      }
+    ],
+    "years": [
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1978
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1979
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1980
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1981
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1982
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1983
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1984
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1985
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1986
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1987
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1988
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1989
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1990
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1991
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1992
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1993
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1994
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1995
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1996
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1997
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1998
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 1999
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2000
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2001
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2002
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2003
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2004
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2005
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2006
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2007
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2008
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2009
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2010
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2011
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2012
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2013
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2014
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2015
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2016
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2017
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2018
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2019
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2020
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2021
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2022
+      },
+      {
+        "closing_balance": "0.00",
+        "entry_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "year": 2023
+      },
+      {
+        "closing_balance": "-400.00",
+        "entry_count": 1,
+        "is_partial": false,
+        "marker": {
+          "label": "-400.00",
+          "value": "-400.00"
+        },
+        "pieces": [
+          {
+            "hangs": true,
+            "high": "0.00",
+            "low": "-400.00",
+            "rounding": "bottom",
+            "series": "bank-id-2"
+          }
+        ],
+        "segments": [
+          {
+            "account_id": "id-2",
+            "balance": "-400.00"
+          }
+        ],
+        "year": 2024
+      },
+      {
+        "closing_balance": "3000.00",
+        "entry_count": 2,
+        "is_partial": false,
+        "marker": {
+          "label": "3.00k",
+          "value": "3000.00"
+        },
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "2000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "bank-id-1"
+          },
+          {
+            "hangs": false,
+            "high": "3000.00",
+            "low": "2000.00",
+            "rounding": "top",
+            "series": "bank-id-2"
+          }
+        ],
+        "segments": [
+          {
+            "account_id": "id-1",
+            "balance": "2000.00"
+          },
+          {
+            "account_id": "id-2",
+            "balance": "1000.00"
+          }
+        ],
+        "year": 2025
+      },
+      {
+        "closing_balance": "2500.50",
+        "entry_count": 1,
+        "is_partial": true,
+        "marker": {
+          "label": "2.50k",
+          "value": "2500.50"
+        },
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "2500.50",
+            "low": "0.00",
+            "rounding": "top",
+            "series": "bank-id-1"
+          }
+        ],
+        "segments": [
+          {
+            "account_id": "id-1",
+            "balance": "2500.50"
+          }
+        ],
+        "year": 2026
+      },
+      {
+        "closing_balance": "1500.00",
+        "entry_count": 1,
+        "is_partial": false,
+        "marker": {
+          "label": "1.50k",
+          "value": "1500.00"
+        },
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "1500.00",
+            "low": "0.00",
+            "rounding": "top",
+            "series": "bank-id-2"
+          }
+        ],
+        "segments": [
+          {
+            "account_id": "id-2",
+            "balance": "1500.00"
+          }
+        ],
+        "year": 2027
+      }
+    ]
+  },
+  "get_dashboard": {
+    "has_jobs": true,
+    "last_month": "2026-08",
+    "last_month_totals": {
+      "bonus": "0.00",
+      "entry_count": 1,
+      "gross_salary": "3300.00",
+      "holiday_pay": "0.00",
+      "total_gross": "3300.00"
+    },
+    "year": 2026,
+    "year_to_date": {
+      "bonus": "1000.00",
+      "entry_count": 2,
+      "gross_salary": "6600.00",
+      "holiday_pay": "0.00",
+      "total_gross": "7600.00"
+    }
+  },
+  "get_debt_insights": {
+    "axis": {
+      "ticks": [
+        {
+          "label": "0",
+          "value": "0.00"
+        },
+        {
+          "label": "50k",
+          "value": "50000.00"
+        },
+        {
+          "label": "100k",
+          "value": "100000.00"
+        },
+        {
+          "label": "150k",
+          "value": "150000.00"
+        },
+        {
+          "label": "200k",
+          "value": "200000.00"
+        }
+      ]
+    },
+    "debts": [
+      {
+        "colour_slot": 0,
+        "id": "id-3",
+        "name": "Example Mortgage"
+      },
+      {
+        "colour_slot": 1,
+        "id": "id-4",
+        "name": "Example Home Loan"
+      },
+      {
+        "colour_slot": 2,
+        "id": "id-5",
+        "name": "Example Student Loan"
+      }
+    ],
+    "years": [
+      {
+        "closing_balance": "158000.00",
+        "is_partial": false,
+        "marker": {
+          "label": "158.00k",
+          "value": "158000.00"
+        },
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "150000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "debt-id-3"
+          },
+          {
+            "hangs": false,
+            "high": "158000.00",
+            "low": "150000.00",
+            "rounding": "top",
+            "series": "debt-id-5"
+          }
+        ],
+        "repaid": null,
+        "segments": [
+          {
+            "balance": "150000.00",
+            "debt_id": "id-3"
+          },
+          {
+            "balance": "8000.00",
+            "debt_id": "id-5"
+          }
+        ],
+        "statement_count": 2,
+        "year": 2025
+      },
+      {
+        "closing_balance": "7000.00",
+        "is_partial": true,
+        "marker": {
+          "label": "7.00k",
+          "value": "7000.00"
+        },
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "7000.00",
+            "low": "0.00",
+            "rounding": "top",
+            "series": "debt-id-5"
+          }
+        ],
+        "repaid": "151000.00",
+        "segments": [
+          {
+            "balance": "0.00",
+            "debt_id": "id-3"
+          },
+          {
+            "balance": "0.00",
+            "debt_id": "id-4"
+          },
+          {
+            "balance": "7000.00",
+            "debt_id": "id-5"
+          }
+        ],
+        "statement_count": 5,
+        "year": 2026
+      }
+    ]
+  },
+  "get_expense_insights": {
+    "axis": {
+      "ticks": [
+        {
+          "label": "0",
+          "value": "0.00"
+        },
+        {
+          "label": "500",
+          "value": "500.00"
+        },
+        {
+          "label": "1000",
+          "value": "1000.00"
+        },
+        {
+          "label": "1500",
+          "value": "1500.00"
+        },
+        {
+          "label": "2000",
+          "value": "2000.00"
+        }
+      ]
+    },
+    "categories": [
+      {
+        "colour_slot": 0,
+        "name": "Home"
+      },
+      {
+        "colour_slot": 1,
+        "name": "Vehicle"
+      },
+      {
+        "colour_slot": 2,
+        "name": "Holiday"
+      },
+      {
+        "colour_slot": 3,
+        "name": "Sport"
+      },
+      {
+        "colour_slot": 4,
+        "name": "Study"
+      },
+      {
+        "colour_slot": 5,
+        "name": "Appliances"
+      },
+      {
+        "colour_slot": 6,
+        "name": "Hobby"
+      },
+      {
+        "colour_slot": 7,
+        "name": "Other"
+      }
+    ],
+    "years": [
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1977
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1978
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1979
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1980
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1981
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1982
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1983
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1984
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1985
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1986
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1987
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1988
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1989
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1990
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1991
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1992
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1993
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1994
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1995
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1996
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1997
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1998
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 1999
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2000
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2001
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2002
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2003
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2004
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2005
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2006
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2007
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2008
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2009
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2010
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2011
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2012
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2013
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2014
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2015
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2016
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2017
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2018
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2019
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2020
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2021
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2022
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2023
+      },
+      {
+        "expense_count": 0,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [],
+        "segments": [],
+        "total": "0.00",
+        "year": 2024
+      },
+      {
+        "expense_count": 2,
+        "is_partial": false,
+        "marker": null,
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "500.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "category-Vehicle"
+          },
+          {
+            "hangs": false,
+            "high": "1750.50",
+            "low": "500.00",
+            "rounding": "top",
+            "series": "category-Holiday"
+          }
+        ],
+        "segments": [
+          {
+            "amount": "500.00",
+            "category": "Vehicle"
+          },
+          {
+            "amount": "1250.50",
+            "category": "Holiday"
+          }
+        ],
+        "total": "1750.50",
+        "year": 2025
+      },
+      {
+        "expense_count": 2,
+        "is_partial": true,
+        "marker": null,
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "800.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "category-Home"
+          },
+          {
+            "hangs": false,
+            "high": "920.00",
+            "low": "800.00",
+            "rounding": "top",
+            "series": "category-Study"
+          }
+        ],
+        "segments": [
+          {
+            "amount": "800.00",
+            "category": "Home"
+          },
+          {
+            "amount": "120.00",
+            "category": "Study"
+          }
+        ],
+        "total": "920.00",
+        "year": 2026
+      }
+    ]
+  },
+  "get_house_insights": {
+    "axis": {
+      "ticks": [
+        {
+          "label": "0",
+          "value": "0.00"
+        },
+        {
+          "label": "100k",
+          "value": "100000.00"
+        },
+        {
+          "label": "200k",
+          "value": "200000.00"
+        },
+        {
+          "label": "300k",
+          "value": "300000.00"
+        },
+        {
+          "label": "400k",
+          "value": "400000.00"
+        }
+      ]
+    },
+    "houses": [
+      {
+        "colour_slot": 0,
+        "id": "id-6",
+        "name": "Example House"
+      },
+      {
+        "colour_slot": 1,
+        "id": "id-7",
+        "name": "Example Lodge"
+      }
+    ],
+    "years": [
+      {
+        "change": null,
+        "closing_value": "365000.00",
+        "is_partial": false,
+        "marker": {
+          "label": "365.00k",
+          "value": "365000.00"
+        },
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "260000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "house-id-6"
+          },
+          {
+            "hangs": false,
+            "high": "365000.00",
+            "low": "260000.00",
+            "rounding": "top",
+            "series": "house-id-7"
+          }
+        ],
+        "segments": [
+          {
+            "house_id": "id-6",
+            "value": "260000.00"
+          },
+          {
+            "house_id": "id-7",
+            "value": "105000.00"
+          }
+        ],
+        "valuation_count": 2,
+        "year": 2025
+      },
+      {
+        "change": "5000.00",
+        "closing_value": "110000.00",
+        "is_partial": true,
+        "marker": {
+          "label": "110.00k",
+          "value": "110000.00"
+        },
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "110000.00",
+            "low": "0.00",
+            "rounding": "top",
+            "series": "house-id-7"
+          }
+        ],
+        "segments": [
+          {
+            "house_id": "id-7",
+            "value": "110000.00"
+          }
+        ],
+        "valuation_count": 1,
+        "year": 2026
+      }
+    ]
+  },
+  "get_income_insights": {
+    "axis": {
+      "ticks": [
+        {
+          "label": "0",
+          "value": "0.00"
+        },
+        {
+          "label": "10k",
+          "value": "10000.00"
+        },
+        {
+          "label": "20k",
+          "value": "20000.00"
+        },
+        {
+          "label": "30k",
+          "value": "30000.00"
+        },
+        {
+          "label": "40k",
+          "value": "40000.00"
+        },
+        {
+          "label": "50k",
+          "value": "50000.00"
+        }
+      ]
+    },
+    "years": [
+      {
+        "bonus": "2000.00",
+        "entry_count": 1,
+        "gross_salary": "36000.00",
+        "growth_label": "–",
+        "growth_percent": null,
+        "holiday_pay": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "36000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "salary"
+          },
+          {
+            "hangs": false,
+            "high": "38000.00",
+            "low": "36000.00",
+            "rounding": "top",
+            "series": "bonus"
+          }
+        ],
+        "total_gross": "38000.00",
+        "year": 2023
+      },
+      {
+        "bonus": "2000.00",
+        "entry_count": 2,
+        "gross_salary": "41000.00",
+        "growth_label": "+13.16%",
+        "growth_percent": "13.16",
+        "holiday_pay": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "41000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "salary"
+          },
+          {
+            "hangs": false,
+            "high": "43000.00",
+            "low": "41000.00",
+            "rounding": "top",
+            "series": "bonus"
+          }
+        ],
+        "total_gross": "43000.00",
+        "year": 2024
+      },
+      {
+        "bonus": "2500.00",
+        "entry_count": 2,
+        "gross_salary": "43200.00",
+        "growth_label": "+11.86%",
+        "growth_percent": "11.86",
+        "holiday_pay": "2400.00",
+        "is_partial": false,
+        "marker": null,
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "43200.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "salary"
+          },
+          {
+            "hangs": false,
+            "high": "45600.00",
+            "low": "43200.00",
+            "rounding": "none",
+            "series": "holiday"
+          },
+          {
+            "hangs": false,
+            "high": "48100.00",
+            "low": "45600.00",
+            "rounding": "top",
+            "series": "bonus"
+          }
+        ],
+        "total_gross": "48100.00",
+        "year": 2025
+      },
+      {
+        "bonus": "1000.00",
+        "entry_count": 2,
+        "gross_salary": "6600.00",
+        "growth_label": "–",
+        "growth_percent": null,
+        "holiday_pay": "0.00",
+        "is_partial": true,
+        "marker": null,
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "6600.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "salary"
+          },
+          {
+            "hangs": false,
+            "high": "7600.00",
+            "low": "6600.00",
+            "rounding": "top",
+            "series": "bonus"
+          }
+        ],
+        "total_gross": "7600.00",
+        "year": 2026
+      }
+    ]
+  },
+  "get_investment_insights": {
+    "axis": {
+      "ticks": [
+        {
+          "label": "0",
+          "value": "0.00"
+        },
+        {
+          "label": "5k",
+          "value": "5000.00"
+        },
+        {
+          "label": "10k",
+          "value": "10000.00"
+        },
+        {
+          "label": "15k",
+          "value": "15000.00"
+        },
+        {
+          "label": "20k",
+          "value": "20000.00"
+        }
+      ]
+    },
+    "years": [
+      {
+        "capital_growth": "5000.00",
+        "closing_balance": "5000.00",
+        "growth_label": "–",
+        "growth_percent": null,
+        "is_partial": false,
+        "marker": {
+          "label": "5.00k",
+          "value": "5000.00"
+        },
+        "net_deposits": "0.00",
+        "opening_balance": "0.00",
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "5000.00",
+            "low": "0.00",
+            "rounding": "top",
+            "series": "growth-up"
+          }
+        ],
+        "statement_count": 1,
+        "year": 2024
+      },
+      {
+        "capital_growth": "11000.00",
+        "closing_balance": "16000.00",
+        "growth_label": "+20.00%",
+        "growth_percent": "20.00",
+        "is_partial": false,
+        "marker": {
+          "label": "16.00k",
+          "value": "16000.00"
+        },
+        "net_deposits": "0.00",
+        "opening_balance": "5000.00",
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "5000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "opening"
+          },
+          {
+            "hangs": false,
+            "high": "16000.00",
+            "low": "5000.00",
+            "rounding": "top",
+            "series": "growth-up"
+          }
+        ],
+        "statement_count": 2,
+        "year": 2025
+      },
+      {
+        "capital_growth": "2000.00",
+        "closing_balance": "12000.00",
+        "growth_label": "+20.00%",
+        "growth_percent": "20.00",
+        "is_partial": true,
+        "marker": {
+          "label": "12.00k",
+          "value": "12000.00"
+        },
+        "net_deposits": "0.00",
+        "opening_balance": "10000.00",
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "10000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "opening"
+          },
+          {
+            "hangs": false,
+            "high": "12000.00",
+            "low": "10000.00",
+            "rounding": "top",
+            "series": "growth-up"
+          }
+        ],
+        "statement_count": 2,
+        "year": 2026
+      }
+    ]
+  },
+  "get_net_worth_insights": {
+    "axis": {
+      "ticks": [
+        {
+          "label": "-200k",
+          "value": "-200000.00"
+        },
+        {
+          "label": "0",
+          "value": "0.00"
+        },
+        {
+          "label": "200k",
+          "value": "200000.00"
+        },
+        {
+          "label": "400k",
+          "value": "400000.00"
+        }
+      ]
+    },
+    "years": [
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1978
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1979
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1980
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1981
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1982
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1983
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1984
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1985
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1986
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1987
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1988
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1989
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1990
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1991
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1992
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1993
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1994
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1995
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1996
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1997
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1998
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 1999
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2000
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2001
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2002
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2003
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2004
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2005
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2006
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2007
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2008
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2009
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2010
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2011
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2012
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2013
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2014
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2015
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2016
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2017
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2018
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2019
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2020
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2021
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2022
+      },
+      {
+        "cash": "0.00",
+        "debts": "0.00",
+        "has_records": false,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": null,
+        "net_worth": "0.00",
+        "pieces": [],
+        "year": 2023
+      },
+      {
+        "cash": "-400.00",
+        "debts": "0.00",
+        "has_records": true,
+        "houses": "0.00",
+        "investments": "5000.00",
+        "is_partial": false,
+        "marker": {
+          "label": "4.60k",
+          "value": "4600.00"
+        },
+        "net_worth": "4600.00",
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "5000.00",
+            "low": "0.00",
+            "rounding": "top",
+            "series": "investments"
+          },
+          {
+            "hangs": true,
+            "high": "0.00",
+            "low": "-400.00",
+            "rounding": "bottom",
+            "series": "cash"
+          }
+        ],
+        "year": 2024
+      },
+      {
+        "cash": "3000.00",
+        "debts": "158000.00",
+        "has_records": true,
+        "houses": "365000.00",
+        "investments": "16000.00",
+        "is_partial": false,
+        "marker": {
+          "label": "226.00k",
+          "value": "226000.00"
+        },
+        "net_worth": "226000.00",
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "365000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "houses"
+          },
+          {
+            "hangs": false,
+            "high": "381000.00",
+            "low": "365000.00",
+            "rounding": "none",
+            "series": "investments"
+          },
+          {
+            "hangs": false,
+            "high": "384000.00",
+            "low": "381000.00",
+            "rounding": "top",
+            "series": "cash"
+          },
+          {
+            "hangs": true,
+            "high": "0.00",
+            "low": "-158000.00",
+            "rounding": "bottom",
+            "series": "debts"
+          }
+        ],
+        "year": 2025
+      },
+      {
+        "cash": "2500.50",
+        "debts": "7000.00",
+        "has_records": true,
+        "houses": "110000.00",
+        "investments": "12000.00",
+        "is_partial": true,
+        "marker": {
+          "label": "117.50k",
+          "value": "117500.50"
+        },
+        "net_worth": "117500.50",
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "110000.00",
+            "low": "0.00",
+            "rounding": "none",
+            "series": "houses"
+          },
+          {
+            "hangs": false,
+            "high": "122000.00",
+            "low": "110000.00",
+            "rounding": "none",
+            "series": "investments"
+          },
+          {
+            "hangs": false,
+            "high": "124500.50",
+            "low": "122000.00",
+            "rounding": "top",
+            "series": "cash"
+          },
+          {
+            "hangs": true,
+            "high": "0.00",
+            "low": "-7000.00",
+            "rounding": "bottom",
+            "series": "debts"
+          }
+        ],
+        "year": 2026
+      },
+      {
+        "cash": "1500.00",
+        "debts": "0.00",
+        "has_records": true,
+        "houses": "0.00",
+        "investments": "0.00",
+        "is_partial": false,
+        "marker": {
+          "label": "1.50k",
+          "value": "1500.00"
+        },
+        "net_worth": "1500.00",
+        "pieces": [
+          {
+            "hangs": false,
+            "high": "1500.00",
+            "low": "0.00",
+            "rounding": "top",
+            "series": "cash"
+          }
+        ],
+        "year": 2027
+      }
+    ]
+  },
+  "get_ratios": {
+    "years": [
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1978
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1979
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1980
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1981
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1982
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1983
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1984
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1985
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1986
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1987
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1988
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1989
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1990
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1991
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1992
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1993
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1994
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1995
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1996
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1997
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1998
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 1999
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2000
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2001
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2002
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2003
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2004
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2005
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2006
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2007
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2008
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2009
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2010
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2011
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2012
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2013
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2014
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2015
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2016
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2017
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2018
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2019
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2020
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2021
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2022
+      },
+      {
+        "disposable_income": null,
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "38000.00",
+        "wealth_accumulation": null,
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2023
+      },
+      {
+        "disposable_income": "0.00",
+        "disposable_percent": "0.00",
+        "disposable_percent_label": "0.00%",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "43000.00",
+        "wealth_accumulation": "0.00",
+        "wealth_growth_percent": null,
+        "wealth_growth_percent_label": "–",
+        "wealth_percent": "0.00",
+        "wealth_percent_label": "0.00%",
+        "year": 2024
+      },
+      {
+        "disposable_income": "3150.50",
+        "disposable_percent": "6.55",
+        "disposable_percent_label": "+6.55%",
+        "investment_growth_percent": "20.00",
+        "investment_growth_percent_label": "+20.00%",
+        "is_partial": false,
+        "total_income": "48100.00",
+        "wealth_accumulation": "1400.00",
+        "wealth_growth_percent": "4813.04",
+        "wealth_growth_percent_label": "+4813.04%",
+        "wealth_percent": "2.91",
+        "wealth_percent_label": "+2.91%",
+        "year": 2025
+      },
+      {
+        "disposable_income": "152420.50",
+        "disposable_percent": "2005.53",
+        "disposable_percent_label": "+2005.53%",
+        "investment_growth_percent": "20.00",
+        "investment_growth_percent_label": "+20.00%",
+        "is_partial": true,
+        "total_income": "7600.00",
+        "wealth_accumulation": "151500.50",
+        "wealth_growth_percent": "-48.01",
+        "wealth_growth_percent_label": "-48.01%",
+        "wealth_percent": "1993.43",
+        "wealth_percent_label": "+1993.43%",
+        "year": 2026
+      },
+      {
+        "disposable_income": "500.00",
+        "disposable_percent": null,
+        "disposable_percent_label": "–",
+        "investment_growth_percent": null,
+        "investment_growth_percent_label": "–",
+        "is_partial": false,
+        "total_income": "0.00",
+        "wealth_accumulation": "500.00",
+        "wealth_growth_percent": "-98.72",
+        "wealth_growth_percent_label": "-98.72%",
+        "wealth_percent": null,
+        "wealth_percent_label": "–",
+        "year": 2027
+      }
+    ]
+  },
+  "get_settings": {
+    "currency": "EUR",
+    "entry_count": 34
+  },
+  "list_bank_accounts": {
+    "accounts": [
+      {
+        "colour_slot": 0,
+        "entry_count": 2,
+        "id": "id-1",
+        "latest_balance": "2500.50",
+        "latest_period": "2026-08",
+        "name": "Example Current Account",
+        "period": "Monthly"
+      },
+      {
+        "colour_slot": 2,
+        "entry_count": 1,
+        "id": "id-8",
+        "latest_balance": "100.00",
+        "latest_period": "1950",
+        "name": "Example Old Bank",
+        "period": "Yearly"
+      },
+      {
+        "colour_slot": 1,
+        "entry_count": 3,
+        "id": "id-2",
+        "latest_balance": "1500.00",
+        "latest_period": "2027",
+        "name": "Example Savings",
+        "period": "Yearly"
+      }
+    ],
+    "total": "4100.50"
+  },
+  "list_bank_entries": [
+    {
+      "account_id": "id-2",
+      "account_name": "Example Savings",
+      "balance": "1500.00",
+      "note": "Future entry",
+      "period": "2027"
+    },
+    {
+      "account_id": "id-1",
+      "account_name": "Example Current Account",
+      "balance": "2500.50",
+      "note": "",
+      "period": "2026-08"
+    },
+    {
+      "account_id": "id-1",
+      "account_name": "Example Current Account",
+      "balance": "2000.00",
+      "note": "",
+      "period": "2025-12"
+    },
+    {
+      "account_id": "id-2",
+      "account_name": "Example Savings",
+      "balance": "1000.00",
+      "note": "",
+      "period": "2025"
+    },
+    {
+      "account_id": "id-2",
+      "account_name": "Example Savings",
+      "balance": "-400.00",
+      "note": "Overdrawn",
+      "period": "2024"
+    },
+    {
+      "account_id": "id-8",
+      "account_name": "Example Old Bank",
+      "balance": "100.00",
+      "note": "Very old entry",
+      "period": "1950"
+    }
+  ],
+  "list_debt_statements": [
+    {
+      "balance": "7000.00",
+      "change": "1000.00",
+      "debt_id": "id-5",
+      "debt_name": "Example Student Loan",
+      "locked": false,
+      "note": "",
+      "outcome": null,
+      "period": "2026",
+      "settlement": false
+    },
+    {
+      "balance": "0.00",
+      "change": "20000.00",
+      "debt_id": "id-4",
+      "debt_name": "Example Home Loan",
+      "locked": true,
+      "note": "Cancelled on sale of Example House",
+      "outcome": "Cancelled",
+      "period": "2026-06",
+      "settlement": true
+    },
+    {
+      "balance": "0.00",
+      "change": "148000.50",
+      "debt_id": "id-3",
+      "debt_name": "Example Mortgage",
+      "locked": true,
+      "note": "Repaid on sale of Example House",
+      "outcome": "Repaid",
+      "period": "2026-06",
+      "settlement": true
+    },
+    {
+      "balance": "20000.00",
+      "change": null,
+      "debt_id": "id-4",
+      "debt_name": "Example Home Loan",
+      "locked": false,
+      "note": "",
+      "outcome": null,
+      "period": "2026-04",
+      "settlement": false
+    },
+    {
+      "balance": "148000.50",
+      "change": "1999.50",
+      "debt_id": "id-3",
+      "debt_name": "Example Mortgage",
+      "locked": false,
+      "note": "",
+      "outcome": null,
+      "period": "2026-04",
+      "settlement": false
+    },
+    {
+      "balance": "150000.00",
+      "change": null,
+      "debt_id": "id-3",
+      "debt_name": "Example Mortgage",
+      "locked": false,
+      "note": "",
+      "outcome": null,
+      "period": "2025-12",
+      "settlement": false
+    },
+    {
+      "balance": "8000.00",
+      "change": null,
+      "debt_id": "id-5",
+      "debt_name": "Example Student Loan",
+      "locked": false,
+      "note": "",
+      "outcome": null,
+      "period": "2025",
+      "settlement": false
+    }
+  ],
+  "list_debts": {
+    "debts": [
+      {
+        "category": "Loan",
+        "colour_slot": 1,
+        "house_id": "id-6",
+        "house_name": "Example House",
+        "id": "id-4",
+        "latest_balance": "0.00",
+        "latest_period": "2026-06",
+        "name": "Example Home Loan",
+        "period": "Monthly",
+        "repaid": true,
+        "settlement": {
+          "amount": "20000.00",
+          "date": "2026-06-10",
+          "outcome": "Cancelled"
+        },
+        "statement_count": 2
+      },
+      {
+        "category": "Mortgage",
+        "colour_slot": 0,
+        "house_id": "id-6",
+        "house_name": "Example House",
+        "id": "id-3",
+        "latest_balance": "0.00",
+        "latest_period": "2026-06",
+        "name": "Example Mortgage",
+        "period": "Monthly",
+        "repaid": true,
+        "settlement": {
+          "amount": "148000.50",
+          "date": "2026-06-10",
+          "outcome": "Repaid"
+        },
+        "statement_count": 3
+      },
+      {
+        "category": "Other",
+        "colour_slot": 2,
+        "house_name": null,
+        "id": "id-5",
+        "latest_balance": "7000.00",
+        "latest_period": "2026",
+        "name": "Example Student Loan",
+        "period": "Yearly",
+        "repaid": false,
+        "statement_count": 2
+      }
+    ],
+    "total": "7000.00"
+  },
+  "list_entries": [
+    {
+      "bonus": "0.00",
+      "employer": "Example Employer",
+      "gross_salary": "3300.00",
+      "holiday_pay": "0.00",
+      "job_id": "id-9",
+      "kind": "paycheck",
+      "period": "2026-08",
+      "total_gross": "3300.00"
+    },
+    {
+      "bonus": "1000.00",
+      "employer": "Example Employer",
+      "gross_salary": "3300.00",
+      "holiday_pay": "0.00",
+      "job_id": "id-9",
+      "kind": "paycheck",
+      "period": "2026-03",
+      "total_gross": "4300.00"
+    },
+    {
+      "bonus": "2000.00",
+      "employer": "Example Consultancy",
+      "gross_salary": "40000.00",
+      "holiday_pay": "0.00",
+      "job_id": "id-10",
+      "kind": "statement",
+      "period": "2025",
+      "total_gross": "42000.00"
+    },
+    {
+      "bonus": "500.00",
+      "employer": "Example Employer",
+      "gross_salary": "3200.00",
+      "holiday_pay": "2400.00",
+      "job_id": "id-9",
+      "kind": "paycheck",
+      "period": "2025-06",
+      "total_gross": "6100.00"
+    },
+    {
+      "bonus": "2000.00",
+      "employer": "Example Consultancy",
+      "gross_salary": "38000.00",
+      "holiday_pay": "0.00",
+      "job_id": "id-10",
+      "kind": "statement",
+      "period": "2024",
+      "total_gross": "40000.00"
+    },
+    {
+      "bonus": "0.00",
+      "employer": "Example Employer",
+      "gross_salary": "3000.00",
+      "holiday_pay": "0.00",
+      "job_id": "id-9",
+      "kind": "paycheck",
+      "period": "2024-06",
+      "total_gross": "3000.00"
+    },
+    {
+      "bonus": "2000.00",
+      "employer": "Example Consultancy",
+      "gross_salary": "36000.00",
+      "holiday_pay": "0.00",
+      "job_id": "id-10",
+      "kind": "statement",
+      "period": "2023",
+      "total_gross": "38000.00"
+    }
+  ],
+  "list_expenses": {
+    "expenses": [
+      {
+        "amount": "120.00",
+        "category": "Study",
+        "date": "2026-09-02",
+        "id": "id-11",
+        "name": "Example Class",
+        "note": ""
+      },
+      {
+        "amount": "800.00",
+        "category": "Home",
+        "date": "2026-02-11",
+        "id": "id-12",
+        "name": "Example Sofa",
+        "note": ""
+      },
+      {
+        "amount": "1250.50",
+        "category": "Holiday",
+        "date": "2025-07-20",
+        "id": "id-13",
+        "name": "Example Trip",
+        "note": ""
+      },
+      {
+        "amount": "500.00",
+        "category": "Vehicle",
+        "date": "2025-03-05",
+        "id": "id-14",
+        "name": "Example Bike",
+        "note": ""
+      },
+      {
+        "amount": "100.00",
+        "category": "Other",
+        "date": "1950-01-01",
+        "id": "id-15",
+        "name": "Example Heirloom",
+        "note": ""
+      }
+    ],
+    "total": "2770.50"
+  },
+  "list_house_valuations": [
+    {
+      "change": "5000.00",
+      "house_id": "id-7",
+      "house_name": "Example Lodge",
+      "note": "",
+      "period": "2026",
+      "value": "110000.00"
+    },
+    {
+      "change": "10000.00",
+      "house_id": "id-6",
+      "house_name": "Example House",
+      "note": "Valued by an example agent",
+      "period": "2026-04",
+      "value": "270000.00"
+    },
+    {
+      "change": null,
+      "house_id": "id-6",
+      "house_name": "Example House",
+      "note": "",
+      "period": "2025-12",
+      "value": "260000.00"
+    },
+    {
+      "change": null,
+      "house_id": "id-7",
+      "house_name": "Example Lodge",
+      "note": "",
+      "period": "2025",
+      "value": "105000.00"
+    }
+  ],
+  "list_houses": {
+    "houses": [
+      {
+        "colour_slot": 0,
+        "held": false,
+        "id": "id-6",
+        "latest_period": "2026-04",
+        "latest_value": "270000.00",
+        "linked_debts": [
+          {
+            "category": "Loan",
+            "debt_id": "id-4",
+            "debt_name": "Example Home Loan",
+            "latest_balance": "0.00",
+            "settlement": {
+              "amount": "20000.00",
+              "date": "2026-06-10",
+              "outcome": "Cancelled"
+            }
+          },
+          {
+            "category": "Mortgage",
+            "debt_id": "id-3",
+            "debt_name": "Example Mortgage",
+            "latest_balance": "0.00",
+            "settlement": {
+              "amount": "148000.50",
+              "date": "2026-06-10",
+              "outcome": "Repaid"
+            }
+          }
+        ],
+        "name": "Example House",
+        "period": "Monthly",
+        "purchase_amount": "250000.00",
+        "purchase_date": "2024-03-15",
+        "result": "50000.00",
+        "sell_amount": "300000.00",
+        "sell_date": "2026-06-10",
+        "valuation_count": 2
+      },
+      {
+        "colour_slot": 1,
+        "held": true,
+        "id": "id-7",
+        "latest_period": "2026",
+        "latest_value": "110000.00",
+        "linked_debts": [],
+        "name": "Example Lodge",
+        "period": "Yearly",
+        "purchase_amount": "100000.00",
+        "purchase_date": "2025-01-01",
+        "result": null,
+        "sell_amount": null,
+        "sell_date": null,
+        "valuation_count": 2
+      }
+    ],
+    "total": "110000.00"
+  },
+  "list_investment_accounts": {
+    "accounts": [
+      {
+        "id": "id-16",
+        "latest_balance": "12000.00",
+        "latest_period": "2026-08",
+        "name": "Example Brokerage",
+        "period": "Monthly",
+        "statement_count": 3
+      },
+      {
+        "id": "id-17",
+        "latest_balance": "6000.00",
+        "latest_period": "2025",
+        "name": "Example Pension",
+        "period": "Yearly",
+        "statement_count": 2
+      }
+    ],
+    "total": "18000.00"
+  },
+  "list_investment_statements": [
+    {
+      "account_id": "id-16",
+      "account_name": "Example Brokerage",
+      "balance": "12000.00",
+      "capital_growth": "-500.50",
+      "net_deposits": "0.00",
+      "note": "",
+      "period": "2026-08"
+    },
+    {
+      "account_id": "id-16",
+      "account_name": "Example Brokerage",
+      "balance": "12500.50",
+      "capital_growth": "2500.50",
+      "net_deposits": "0.00",
+      "note": "Bought example fund",
+      "period": "2026-06"
+    },
+    {
+      "account_id": "id-16",
+      "account_name": "Example Brokerage",
+      "balance": "10000.00",
+      "capital_growth": "10000.00",
+      "net_deposits": "0.00",
+      "note": "",
+      "period": "2025-12"
+    },
+    {
+      "account_id": "id-17",
+      "account_name": "Example Pension",
+      "balance": "6000.00",
+      "capital_growth": "1000.00",
+      "net_deposits": "0.00",
+      "note": "",
+      "period": "2025"
+    },
+    {
+      "account_id": "id-17",
+      "account_name": "Example Pension",
+      "balance": "5000.00",
+      "capital_growth": "5000.00",
+      "net_deposits": "0.00",
+      "note": "",
+      "period": "2024"
+    }
+  ],
+  "list_jobs": [
+    {
+      "employer": "Example Employer",
+      "end_date": null,
+      "entry_count": 4,
+      "id": "id-9",
+      "period": "Monthly",
+      "start_date": "2024-01-01",
+      "title": "Engineer"
+    },
+    {
+      "employer": "Example Consultancy",
+      "end_date": "2025-12-31",
+      "entry_count": 3,
+      "id": "id-10",
+      "period": "Yearly",
+      "start_date": "2023-01-01",
+      "title": null
+    }
+  ],
+  "project_status": {
+    "has_path": true,
+    "unsaved_changes": false
+  },
+  "yearly_bank_totals": [
+    {
+      "closing_balance": "1500.00",
+      "entry_count": 1,
+      "year": 2027
+    },
+    {
+      "closing_balance": "2500.50",
+      "entry_count": 1,
+      "year": 2026
+    },
+    {
+      "closing_balance": "3000.00",
+      "entry_count": 2,
+      "year": 2025
+    },
+    {
+      "closing_balance": "-400.00",
+      "entry_count": 1,
+      "year": 2024
+    },
+    {
+      "closing_balance": "100.00",
+      "entry_count": 1,
+      "year": 1950
+    }
+  ],
+  "yearly_debt_totals": [
+    {
+      "closing_balance": "7000.00",
+      "repaid": "151000.00",
+      "statement_count": 5,
+      "year": 2026
+    },
+    {
+      "closing_balance": "158000.00",
+      "repaid": null,
+      "statement_count": 2,
+      "year": 2025
+    }
+  ],
+  "yearly_expense_totals": [
+    {
+      "expense_count": 2,
+      "largest": "800.00",
+      "total": "920.00",
+      "year": 2026
+    },
+    {
+      "expense_count": 2,
+      "largest": "1250.50",
+      "total": "1750.50",
+      "year": 2025
+    },
+    {
+      "expense_count": 1,
+      "largest": "100.00",
+      "total": "100.00",
+      "year": 1950
+    }
+  ],
+  "yearly_house_values": [
+    {
+      "change": "5000.00",
+      "closing_value": "110000.00",
+      "valuation_count": 1,
+      "year": 2026
+    },
+    {
+      "change": null,
+      "closing_value": "365000.00",
+      "valuation_count": 2,
+      "year": 2025
+    }
+  ],
+  "yearly_investment_totals": [
+    {
+      "capital_growth": "2000.00",
+      "closing_balance": "12000.00",
+      "net_deposits": "0.00",
+      "statement_count": 2,
+      "year": 2026
+    },
+    {
+      "capital_growth": "11000.00",
+      "closing_balance": "16000.00",
+      "net_deposits": "0.00",
+      "statement_count": 2,
+      "year": 2025
+    },
+    {
+      "capital_growth": "5000.00",
+      "closing_balance": "5000.00",
+      "net_deposits": "0.00",
+      "statement_count": 1,
+      "year": 2024
+    }
+  ],
+  "yearly_totals": [
+    {
+      "bonus": "1000.00",
+      "entry_count": 2,
+      "gross_salary": "6600.00",
+      "holiday_pay": "0.00",
+      "total_gross": "7600.00",
+      "year": 2026
+    },
+    {
+      "bonus": "2500.00",
+      "entry_count": 2,
+      "gross_salary": "43200.00",
+      "holiday_pay": "2400.00",
+      "total_gross": "48100.00",
+      "year": 2025
+    },
+    {
+      "bonus": "2000.00",
+      "entry_count": 2,
+      "gross_salary": "41000.00",
+      "holiday_pay": "0.00",
+      "total_gross": "43000.00",
+      "year": 2024
+    },
+    {
+      "bonus": "2000.00",
+      "entry_count": 1,
+      "gross_salary": "36000.00",
+      "holiday_pay": "0.00",
+      "total_gross": "38000.00",
+      "year": 2023
+    }
+  ]
+}

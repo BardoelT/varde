@@ -5,21 +5,18 @@ use tempfile::TempDir;
 use super::*;
 use crate::domain::houses::linking::{self, DebtFormInput, DebtLinksInput, SettlementChoice};
 use crate::domain::houses::{house_note, parse_period, HouseInput, HouseValue};
-use crate::domain::{HouseId, YearMonth};
+use crate::domain::HouseId;
 
 fn house(project: &mut Project, name: &str, period: &str) -> HouseId {
     project
         .houses_mut()
-        .create_house(
-            &HouseInput {
-                name: name.to_owned(),
-                valuation_period: Some(period.to_owned()),
-                purchase_date: Some("01/01/1900".to_owned()),
-                purchase_amount: Some("0.00".to_owned()),
-                ..HouseInput::default()
-            },
-            time::macros::date!(2026 - 10 - 29),
-        )
+        .create_house(&HouseInput {
+            name: name.to_owned(),
+            period: Some(period.to_owned()),
+            purchase_date: Some("01/01/1900".to_owned()),
+            purchase_amount: Some("0.00".to_owned()),
+            ..HouseInput::default()
+        })
         .unwrap()
         .id
 }
@@ -37,10 +34,9 @@ fn test_csd015_ac_24_1_houses_survive_save_and_open_including_notes_and_slots() 
             parse_period("2025").unwrap(),
             HouseValue::parse("8000.00").unwrap(),
             house_note("Line one\nLine two").unwrap(),
-            YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
 
     let mut fresh = Project::new();
@@ -48,7 +44,7 @@ fn test_csd015_ac_24_1_houses_survive_save_and_open_including_notes_and_slots() 
     assert_eq!(fresh.houses(), project.houses());
     let rows = fresh.houses().all_valuations();
     assert_eq!(rows[0].1.note.as_str(), "Line one\nLine two");
-    assert_eq!(rows[0].0.colour_slot, 1);
+    assert_eq!(rows[0].0.colour_slot.get(), 1);
     assert!(!fresh.status().unsaved_changes);
 
     // The section sits next to the others; the version stays 1.
@@ -58,47 +54,6 @@ fn test_csd015_ac_24_1_houses_survive_save_and_open_including_notes_and_slots() 
     assert_eq!(value["houses"]["houses"][1]["name"], "Example Lodge");
     assert_eq!(value["houses"]["houses"][1]["colour_slot"], 1);
     assert_eq!(value["houses"]["valuations"][0]["value"], "8000.00");
-}
-
-#[test]
-fn test_csd015_ac_24_2_a_file_without_the_section_opens_without_houses() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
-    fs::write(
-        &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]}}"#,
-    )
-    .unwrap();
-    let mut project = Project::new();
-    project.open(&path).unwrap();
-    assert_eq!(project.houses().houses().len(), 0);
-    assert!(!project.status().unsaved_changes);
-}
-
-#[test]
-fn test_csd015_ac_24_6_a_file_with_the_former_section_opens_as_houses() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
-    fs::write(
-        &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
-            "assets":{"assets":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
-            "name":"Example House","valuation_period":"Monthly","colour_slot":0}],
-            "valuations":[{"asset_id":"671166f4-5827-4794-bcdc-54d7824fb650",
-            "period":"2026-09","value":"300000.00"}]}}"#,
-    )
-    .unwrap();
-    let mut project = Project::new();
-    project.open(&path).unwrap();
-    assert_eq!(project.houses().houses().len(), 1);
-    project
-        .save_as(dir.path().join("example-b.wealth"))
-        .unwrap();
-    let text = fs::read_to_string(dir.path().join("example-b.wealth")).unwrap();
-    let value: serde_json::Value = serde_json::from_str(&text).unwrap();
-    assert!(value.get("assets").is_none());
-    assert_eq!(value["houses"]["houses"][0]["name"], "Example House");
-    assert_eq!(value["houses"]["valuations"][0]["value"], "300000.00");
 }
 
 #[test]
@@ -113,10 +68,9 @@ fn test_csd015_ac_24_3_a_zero_value_survives_the_round_trip() {
             parse_period("2026-09").unwrap(),
             HouseValue::parse("0.00").unwrap(),
             house_note("").unwrap(),
-            YearMonth::parse("2026-10").unwrap(),
         )
         .unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
     let mut fresh = Project::new();
     fresh.open(&path).unwrap();
@@ -131,19 +85,19 @@ fn test_csd015_ac_24_4_the_other_sections_are_untouched() {
     house(&mut project, "Example House", "Monthly");
     project
         .bank_accounts_mut()
-        .create_account(&crate::domain::bank_accounts::AccountInput {
+        .create_account(&crate::domain::bank_accounts::BankAccountInput {
             name: "Example Current Account".to_owned(),
-            entry_period: None,
+            period: None,
         })
         .unwrap();
     project
         .investments_mut()
-        .create_account(&crate::domain::AccountInput {
+        .create_account(&crate::domain::InvestmentAccountInput {
             name: "Example Brokerage".to_owned(),
-            statement_period: None,
+            period: None,
         })
         .unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
     let mut fresh = Project::new();
     fresh.open(&path).unwrap();
@@ -153,9 +107,9 @@ fn test_csd015_ac_24_4_the_other_sections_are_untouched() {
 }
 
 #[test]
-fn test_csd015_ac_24_5_a_damaged_section_is_an_invalid_file() {
+fn test_csd015_ac_27_3_a_damaged_section_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     // A valuation of a house that does not exist.
     fs::write(
         &path,
@@ -170,16 +124,14 @@ fn test_csd015_ac_24_5_a_damaged_section_is_an_invalid_file() {
 }
 
 #[test]
-fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
+fn test_csd020_ac_33_1_links_and_settlements_survive_the_round_trip() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
-    let today = time::macros::date!(2026 - 10 - 29);
-    let month = YearMonth::parse("2026-10").unwrap();
     let loan = project
         .debts_mut()
         .create_debt(&crate::domain::debts::DebtInput {
             name: "Example Loan".to_owned(),
-            statement_period: None,
+            period: None,
         })
         .unwrap()
         .id;
@@ -190,7 +142,6 @@ fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
             crate::domain::debts::parse_period("2026-06").unwrap(),
             crate::domain::debts::DebtBalance::parse("3500.00").unwrap(),
             crate::domain::debts::debt_note("Mid-June").unwrap(),
-            month,
         )
         .unwrap();
     let input = HouseInput {
@@ -200,7 +151,7 @@ fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
         ..HouseInput::default()
     };
     let (houses, debts) = project.houses_and_debts_mut();
-    let house = linking::create_house(houses, debts, &input, &DebtLinksInput::default(), today)
+    let house = linking::create_house(houses, debts, &input, &DebtLinksInput::default())
         .unwrap()
         .id;
     let (houses, debts) = project.houses_and_debts_mut();
@@ -211,7 +162,7 @@ fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
         &DebtFormInput {
             debt: crate::domain::debts::DebtInput {
                 name: "Example Loan".to_owned(),
-                statement_period: None,
+                period: None,
             },
             category: Some("Loan".to_owned()),
             house_id: Some(house.to_string()),
@@ -232,8 +183,8 @@ fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
         ..DebtLinksInput::default()
     };
     let (houses, debts) = project.houses_and_debts_mut();
-    linking::update_house(houses, debts, house, &sold, &settle, today).unwrap();
-    let path = dir.path().join("example-a.wealth");
+    linking::update_house(houses, debts, house, &sold, &settle).unwrap();
+    let path = dir.path().join("example-a.varde");
     project.save_as(path.clone()).unwrap();
     let mut reopened = Project::new();
     reopened.open(&path).unwrap();
@@ -243,33 +194,14 @@ fn test_csd020_ac_16_1_links_and_settlements_survive_the_round_trip() {
 }
 
 #[test]
-fn test_csd020_ac_16_2_a_file_without_links_opens_without_links() {
+fn test_csd020_ac_33_2_a_damaged_link_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
         r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
             "debts":{"debts":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
-            "name":"Example Loan","statement_period":"Monthly","colour_slot":0}],
-            "statements":[]}}"#,
-    )
-    .unwrap();
-    let mut project = Project::new();
-    project.open(&path).unwrap();
-    let debt_id = project.debts().debts()[0].id;
-    assert_eq!(project.debts().house_of(debt_id), None);
-    assert!(!project.debts().is_settled(debt_id));
-}
-
-#[test]
-fn test_csd020_ac_16_3_a_damaged_link_is_an_invalid_file() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
-    fs::write(
-        &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
-            "debts":{"debts":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
-            "name":"Example Loan","statement_period":"Monthly","colour_slot":0,
+            "name":"Example Loan","period":"Monthly","colour_slot":0,
             "house_id":"11111111-1111-4111-8111-111111111111"}],
             "statements":[]}}"#,
     )
@@ -280,17 +212,17 @@ fn test_csd020_ac_16_3_a_damaged_link_is_an_invalid_file() {
 }
 
 #[test]
-fn test_csd020_ac_16_4_a_link_on_a_debt_of_category_other_is_an_invalid_file() {
+fn test_csd020_ac_33_2_a_link_on_a_debt_of_category_other_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
         r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
             "houses":{"houses":[{"id":"11111111-1111-4111-8111-111111111111",
-            "name":"Example House","valuation_period":"Monthly","colour_slot":0}],
+            "name":"Example House","period":"Monthly","colour_slot":0}],
             "valuations":[]},
             "debts":{"debts":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
-            "name":"Example Loan","statement_period":"Monthly","colour_slot":0,
+            "name":"Example Loan","period":"Monthly","colour_slot":0,
             "category":"Other","house_id":"11111111-1111-4111-8111-111111111111"}],
             "statements":[]}}"#,
     )
@@ -304,23 +236,21 @@ fn test_csd020_ac_16_4_a_link_on_a_debt_of_category_other_is_an_invalid_file() {
 fn test_csd015_a_house_change_is_an_unsaved_change() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
-    project
-        .save_as(dir.path().join("example-a.wealth"))
-        .unwrap();
+    project.save_as(dir.path().join("example-a.varde")).unwrap();
     assert!(!project.status().unsaved_changes);
     house(&mut project, "Example House", "Monthly");
     assert!(project.status().unsaved_changes);
 }
 
 #[test]
-fn test_csd020_ac_16_5_a_settlement_statement_without_a_settlement_is_an_invalid_file() {
+fn test_csd020_ac_33_2_a_settlement_statement_without_a_settlement_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
+    let path = dir.path().join("example-a.varde");
     fs::write(
         &path,
         r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
             "debts":{"debts":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
-            "name":"Example Loan","statement_period":"Monthly","colour_slot":0}],
+            "name":"Example Loan","period":"Monthly","colour_slot":0}],
             "statements":[{"debt_id":"671166f4-5827-4794-bcdc-54d7824fb650",
             "period":"2026-06","balance":"0.00","note":"","settlement":true}]}}"#,
     )
@@ -331,54 +261,92 @@ fn test_csd020_ac_16_5_a_settlement_statement_without_a_settlement_is_an_invalid
 }
 
 #[test]
-fn test_csd020_ac_16_6_a_debt_settled_by_an_earlier_version_opens_in_the_current_form() {
+fn test_csd019_ac_13_4_a_house_without_a_purchase_is_an_invalid_file() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("example-a.wealth");
-    fs::write(
-        &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
-            "houses":{"houses":[{"id":"11111111-1111-4111-8111-111111111111",
-            "name":"Example House","valuation_period":"Yearly","colour_slot":0,
-            "purchase_date":"2020-01-01","purchase_amount":"100000.00",
-            "sell_date":"2026-08-01","sell_amount":"200000.00"}],"valuations":[]},
-            "debts":{"debts":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650",
-            "name":"Example Mortgage","statement_period":"Yearly","colour_slot":0,
-            "category":"Mortgage","house_id":"11111111-1111-4111-8111-111111111111",
-            "settlement":{"outcome":"Cancelled","date":"2026-08-01","amount":"5000.00",
-            "replaced":{"balance":"5000.00","note":"Year end"}}}],
-            "statements":[
-            {"debt_id":"671166f4-5827-4794-bcdc-54d7824fb650","period":"2025","balance":"6000.00"},
-            {"debt_id":"671166f4-5827-4794-bcdc-54d7824fb650","period":"2026","balance":"0.00",
-            "note":"Cancelled on sale of Example House"}]}}"#,
-    )
-    .unwrap();
     let mut project = Project::new();
-    project.open(&path).unwrap();
-    let rows: Vec<_> = project
-        .debts()
-        .all_statements()
-        .into_iter()
-        .map(|(_, s)| {
-            (
-                s.period.to_string(),
-                s.balance.value().to_string(),
-                s.settlement,
-            )
-        })
-        .collect();
+    house(&mut project, "Example House", "Monthly");
+    let path = dir.path().join("example-a.varde");
+    project.save_as(path.clone()).unwrap();
+    let mut value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+    for field in ["purchase_date", "purchase_amount"] {
+        let mut damaged = value.clone();
+        damaged["houses"]["houses"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove(field);
+        let bad = dir.path().join("bad.varde");
+        fs::write(&bad, damaged.to_string()).unwrap();
+        let error = Project::new().open(&bad).unwrap_err();
+        assert_eq!(error.code(), "PROJECT_INVALID_FILE", "{field}");
+    }
+    value["houses"]["houses"][0]["former_field"] = serde_json::json!("x");
+    let bad = dir.path().join("bad.varde");
+    fs::write(&bad, value.to_string()).unwrap();
     assert_eq!(
-        rows,
-        vec![
-            ("2026".to_owned(), "0.00".to_owned(), true),
-            ("2026".to_owned(), "5000.00".to_owned(), false),
-            ("2025".to_owned(), "6000.00".to_owned(), false),
-        ]
+        Project::new().open(&bad).unwrap_err().code(),
+        "PROJECT_INVALID_FILE"
     );
-    let saved = dir.path().join("example-b.wealth");
-    project.save_as(saved.clone()).unwrap();
-    let text = fs::read_to_string(saved).unwrap();
-    assert!(!text.contains("replaced"));
-    let mut reopened = Project::new();
-    reopened.open(&dir.path().join("example-b.wealth")).unwrap();
-    assert_eq!(reopened.debts(), project.debts());
+}
+
+/// Saves a project with one house, lets `change` edit the file's JSON and
+/// opens the result.
+fn open_changed_house_file(
+    change: impl FnOnce(&mut serde_json::Value),
+) -> Result<(), StorageError> {
+    let dir = TempDir::new().unwrap();
+    let mut project = Project::new();
+    house(&mut project, "Example House", "Monthly");
+    let path = dir.path().join("example-a.varde");
+    project.save_as(path.clone()).unwrap();
+    let mut value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+    change(&mut value);
+    fs::write(&path, value.to_string()).unwrap();
+    Project::new().open(&path)
+}
+
+#[test]
+fn test_csd019_ac_5_1_a_file_with_only_a_sell_date_or_only_a_sell_amount_is_invalid() {
+    for (field, value) in [
+        ("sell_date", serde_json::json!("2026-06-10")),
+        ("sell_amount", serde_json::json!("300000.00")),
+    ] {
+        let error = open_changed_house_file(|file| {
+            file["houses"]["houses"][0][field] = value;
+        })
+        .err()
+        .unwrap();
+        assert_eq!(error.code(), "PROJECT_INVALID_FILE", "{field}");
+    }
+}
+
+#[test]
+fn test_csd019_ac_5_1_a_file_with_both_sale_fields_or_none_opens() {
+    assert!(open_changed_house_file(|_| {}).is_ok());
+    assert!(open_changed_house_file(|file| {
+        file["houses"]["houses"][0]["sell_date"] = serde_json::json!("2026-06-10");
+        file["houses"]["houses"][0]["sell_amount"] = serde_json::json!("300000.00");
+    })
+    .is_ok());
+    assert!(open_changed_house_file(|file| {
+        let house = file["houses"]["houses"][0].as_object_mut().unwrap();
+        house.remove("sell_date");
+        house.remove("sell_amount");
+    })
+    .is_ok());
+}
+
+#[test]
+fn test_csd015_ac_3_1_a_house_colour_slot_of_8_is_an_invalid_file() {
+    let error = open_changed_house_file(|file| {
+        file["houses"]["houses"][0]["colour_slot"] = serde_json::json!(8);
+    })
+    .err()
+    .unwrap();
+    assert_eq!(error.code(), "PROJECT_INVALID_FILE");
+    assert!(open_changed_house_file(|file| {
+        file["houses"]["houses"][0]["colour_slot"] = serde_json::json!(7);
+    })
+    .is_ok());
 }

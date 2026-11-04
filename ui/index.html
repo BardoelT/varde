@@ -16,7 +16,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header">
-        <div class="logo-mark" style="background:#1F2A44">
+        <div class="logo-mark">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <ellipse cx="12" cy="18.5" rx="8" ry="2.6" fill="#B8B2A7"/>
             <ellipse cx="12.6" cy="13.8" rx="6" ry="2.3" fill="#D2CCC0"/>
@@ -781,12 +781,12 @@
         </label>
       </div>
       <label class="field">Pay period
-        <select name="pay_period">
+        <select name="period">
           <option value="Monthly">Monthly</option>
           <option value="Yearly">Yearly</option>
         </select>
-        <span class="field-hint" id="job-period-hint" hidden>The pay period cannot change once the job has paychecks or annual statements.</span>
       </label>
+      <p class="field-hint field-hint-attached" id="job-period-hint" data-describes="period" hidden>The pay period cannot change once the job has paychecks or annual statements.</p>
       <p class="form-error" id="job-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
@@ -808,15 +808,15 @@
         <input data-mask="month" type="text" name="period" inputmode="numeric" placeholder="yyyy-mm" maxlength="7" autocomplete="off" required>
       </label>
       <label class="field">Gross salary
-        <input type="text" name="gross_salary" inputmode="decimal" placeholder="0.00" autocomplete="off" required>
+        <input type="text" name="gross_salary" aria-describedby="paycheck-hint" inputmode="decimal" placeholder="0.00" autocomplete="off" required>
       </label>
       <label class="field">Holiday pay (optional)
-        <input type="text" name="holiday_pay" inputmode="decimal" placeholder="0.00" autocomplete="off">
+        <input type="text" name="holiday_pay" aria-describedby="paycheck-hint" inputmode="decimal" placeholder="0.00" autocomplete="off">
       </label>
       <label class="field">Bonus (optional)
-        <input type="text" name="bonus" inputmode="decimal" placeholder="0.00" autocomplete="off">
+        <input type="text" name="bonus" aria-describedby="paycheck-hint" inputmode="decimal" placeholder="0.00" autocomplete="off">
       </label>
-      <p class="field-hint">Use a dot for decimals, for example 3000.00.</p>
+      <p class="field-hint" id="paycheck-hint">Use a dot for decimals, for example 3000.00.</p>
       <p class="form-error" id="paycheck-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
@@ -832,12 +832,12 @@
         <input type="text" name="name" maxlength="100" autocomplete="off" required>
       </label>
       <label class="field">Statement period
-        <select name="statement_period">
+        <select name="period">
           <option value="Monthly">Monthly</option>
           <option value="Yearly">Yearly</option>
         </select>
-        <span class="field-hint" id="account-period-hint" hidden>The statement period cannot change once the account has statements.</span>
       </label>
+      <p class="field-hint field-hint-attached" id="account-period-hint" data-describes="period" hidden>The statement period cannot change once the account has statements.</p>
       <p class="form-error" id="account-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
@@ -859,21 +859,21 @@
         <input data-mask="month" type="text" name="period" inputmode="numeric" placeholder="yyyy-mm" maxlength="7" autocomplete="off" required>
       </label>
       <label class="field">Balance <span class="calc-tag" id="balance-calculated" hidden>calculated</span>
-        <input type="text" name="balance" inputmode="decimal" placeholder="0.00" autocomplete="off" required>
+        <input type="text" name="balance" aria-describedby="statement-hint" inputmode="decimal" placeholder="0.00" autocomplete="off" required>
       </label>
       <div class="field-row">
         <label class="field">Net deposits (optional)
-          <input type="text" name="net_deposits" inputmode="decimal" value="0.00" placeholder="0.00" autocomplete="off">
+          <input type="text" name="net_deposits" aria-describedby="statement-hint" inputmode="decimal" value="0.00" placeholder="0.00" autocomplete="off">
         </label>
         <label class="field">Capital growth <span class="calc-tag" id="growth-calculated" hidden>calculated</span>
-          <input type="text" name="growth" inputmode="decimal" placeholder="0.00" autocomplete="off">
+          <input type="text" name="growth" aria-describedby="statement-hint" inputmode="decimal" placeholder="0.00" autocomplete="off">
         </label>
       </div>
-      <p class="field-hint" id="statement-growth-hint" hidden>No earlier statement, so the account is taken to start at 0.00. Enter money that was already in the account as net deposits.</p>
+      <p class="field-hint" id="statement-growth-hint" data-describes="net_deposits growth" hidden>No earlier statement, so the account is taken to start at 0.00. Enter money that was already in the account as net deposits.</p>
       <label class="field">Note (optional)
-        <textarea name="note" rows="4" autocomplete="off"></textarea>
+        <textarea name="note" aria-describedby="statement-hint" rows="4" autocomplete="off"></textarea>
       </label>
-      <p class="field-hint">Use a dot for decimals, for example 12500.00. Net deposits is what you put in minus what you took out, so a withdrawal is negative. Enter the balance or the capital growth and the other is calculated. A note can be up to 2000 characters.</p>
+      <p class="field-hint" id="statement-hint">Use a dot for decimals, for example 12500.00. Net deposits is what you put in minus what you took out, so a withdrawal is negative. Enter the balance or the capital growth and the other is calculated. A note can be up to 2000 characters.</p>
       <p class="form-error" id="statement-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
@@ -889,12 +889,12 @@
         <input type="text" name="name" maxlength="100" autocomplete="off" required>
       </label>
       <label class="field">Entry period
-        <select name="entry_period">
+        <select name="period">
           <option value="Monthly">Monthly</option>
           <option value="Yearly">Yearly</option>
         </select>
-        <span class="field-hint" id="bank-account-period-hint" hidden>The entry period cannot change once the account has entries.</span>
       </label>
+      <p class="field-hint field-hint-attached" id="bank-account-period-hint" data-describes="period" hidden>The entry period cannot change once the account has entries.</p>
       <p class="form-error" id="bank-account-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
@@ -916,12 +916,12 @@
         <input data-mask="month" type="text" name="period" inputmode="numeric" placeholder="yyyy-mm" maxlength="7" autocomplete="off" required>
       </label>
       <label class="field">Balance
-        <input type="text" name="balance" inputmode="decimal" placeholder="0.00" autocomplete="off" required>
+        <input type="text" name="balance" aria-describedby="bank-entry-hint" inputmode="decimal" placeholder="0.00" autocomplete="off" required>
       </label>
       <label class="field">Note (optional)
-        <textarea name="note" rows="4" autocomplete="off"></textarea>
+        <textarea name="note" aria-describedby="bank-entry-hint" rows="4" autocomplete="off"></textarea>
       </label>
-      <p class="field-hint">Use a dot for decimals, for example 2500.00. The balance is the closing balance of the period. A negative balance, such as -150.25, means the account is overdrawn. A note can be up to 2000 characters.</p>
+      <p class="field-hint" id="bank-entry-hint">Use a dot for decimals, for example 2500.00. The balance is the closing balance of the period. A negative balance, such as -150.25, means the account is overdrawn. A note can be up to 2000 characters.</p>
       <p class="form-error" id="bank-entry-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
@@ -937,12 +937,12 @@
         <input type="text" name="name" maxlength="100" autocomplete="off" required>
       </label>
       <label class="field">Valuation period
-        <select name="valuation_period">
+        <select name="period">
           <option value="Monthly">Monthly</option>
           <option value="Yearly">Yearly</option>
         </select>
-        <span class="field-hint" id="house-period-hint" hidden>The valuation period cannot change once the house has valuations.</span>
       </label>
+      <p class="field-hint field-hint-attached" id="house-period-hint" data-describes="period" hidden>The valuation period cannot change once the house has valuations.</p>
       <div class="field-row">
         <label class="field">Purchase date
           <input data-mask="date" type="text" name="purchase_date" inputmode="numeric" placeholder="dd/mm/yyyy" maxlength="10" autocomplete="off" required>
@@ -987,7 +987,7 @@
   <dialog id="house-settle-dialog" aria-labelledby="house-settle-title">
     <form method="dialog" id="house-settle-form" novalidate>
       <h2 id="house-settle-title">Settle linked debts</h2>
-      <p class="field-hint">Repaid counts as wealth accumulation from cash, Cancelled does not.</p>
+      <p class="field-hint">Repaid counts in full in the wealth accumulation from cash, Cancelled nets to zero.</p>
       <div id="house-settle-rows"></div>
       <div class="dialog-actions">
         <button type="button" class="btn" id="house-settle-back">Back</button>
@@ -1009,12 +1009,12 @@
         <input data-mask="month" type="text" name="period" inputmode="numeric" placeholder="yyyy-mm" maxlength="7" autocomplete="off" required>
       </label>
       <label class="field">Value
-        <input type="text" name="value" inputmode="decimal" placeholder="0.00" autocomplete="off" required>
+        <input type="text" name="value" aria-describedby="house-valuation-hint" inputmode="decimal" placeholder="0.00" autocomplete="off" required>
       </label>
       <label class="field">Note (optional)
-        <textarea name="note" rows="4" autocomplete="off"></textarea>
+        <textarea name="note" aria-describedby="house-valuation-hint" rows="4" autocomplete="off"></textarea>
       </label>
-      <p class="field-hint">Use a dot for decimals, for example 150000.00. The value is what the house is worth at the end of the period, so it cannot be negative. A note can be up to 2000 characters.</p>
+      <p class="field-hint" id="house-valuation-hint">Use a dot for decimals, for example 150000.00. The value is what the house is worth at the end of the period, so it cannot be negative. A note can be up to 2000 characters.</p>
       <p class="form-error" id="house-valuation-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
@@ -1030,12 +1030,12 @@
         <input type="text" name="name" maxlength="100" autocomplete="off" required>
       </label>
       <label class="field">Statement period
-        <select name="statement_period">
+        <select name="period">
           <option value="Monthly">Monthly</option>
           <option value="Yearly">Yearly</option>
         </select>
-        <span class="field-hint" id="debt-period-hint" hidden>The statement period cannot change once the debt has statements.</span>
       </label>
+      <p class="field-hint field-hint-attached" id="debt-period-hint" data-describes="period" hidden>The statement period cannot change once the debt has statements.</p>
       <label class="field">Category
         <select name="category">
           <option value="Other">Other</option>
@@ -1044,10 +1044,12 @@
           <option value="Scholarship">Scholarship</option>
         </select>
       </label>
-      <label class="field" id="debt-house-field" hidden>House (optional)
-        <select name="house_id"></select>
-        <span class="field-hint" id="debt-house-hint" hidden>This debt was settled on the sale of its house, so category and house can no longer change.</span>
-      </label>
+      <div id="debt-house-field" hidden>
+        <label class="field">House (optional)
+          <select name="house_id"></select>
+        </label>
+        <p class="field-hint field-hint-attached" id="debt-house-hint" data-describes="house_id" hidden>This debt was settled on the sale of its house, so category and house can no longer change.</p>
+      </div>
       <p class="form-error" id="debt-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
@@ -1069,12 +1071,12 @@
         <input data-mask="month" type="text" name="period" inputmode="numeric" placeholder="yyyy-mm" maxlength="7" autocomplete="off" required>
       </label>
       <label class="field">Balance
-        <input type="text" name="balance" inputmode="decimal" placeholder="0.00" autocomplete="off" required>
+        <input type="text" name="balance" aria-describedby="debt-statement-hint" inputmode="decimal" placeholder="0.00" autocomplete="off" required>
       </label>
       <label class="field">Note (optional)
-        <textarea name="note" rows="4" autocomplete="off"></textarea>
+        <textarea name="note" aria-describedby="debt-statement-hint" rows="4" autocomplete="off"></textarea>
       </label>
-      <p class="field-hint">Use a dot for decimals, for example 150000.00. The balance is what you still owe at the end of the period, so it cannot be negative. A note can be up to 2000 characters.</p>
+      <p class="field-hint" id="debt-statement-hint">Use a dot for decimals, for example 150000.00. The balance is what you still owe at the end of the period, so it cannot be negative. A note can be up to 2000 characters.</p>
       <p class="form-error" id="debt-statement-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
@@ -1094,7 +1096,7 @@
       </label>
       <div class="field-row">
         <label class="field">Amount
-          <input type="text" name="amount" inputmode="decimal" placeholder="0.00" autocomplete="off" required>
+          <input type="text" name="amount" aria-describedby="expense-hint" inputmode="decimal" placeholder="0.00" autocomplete="off" required>
         </label>
         <label class="field">Date
           <input data-mask="date" type="text" name="date" inputmode="numeric" placeholder="dd/mm/yyyy" maxlength="10" autocomplete="off" required>
@@ -1113,9 +1115,9 @@
         </select>
       </label>
       <label class="field">Note (optional)
-        <textarea name="note" rows="4" autocomplete="off"></textarea>
+        <textarea name="note" aria-describedby="expense-hint" rows="4" autocomplete="off"></textarea>
       </label>
-      <p class="field-hint">Use a dot for decimals, for example 4500.00. The amount must be above 0.00, and the date cannot be in the future. A note can be up to 2000 characters.</p>
+      <p class="field-hint" id="expense-hint">Use a dot for decimals, for example 4500.00. The amount must be above 0.00. A note can be up to 2000 characters.</p>
       <p class="form-error" id="expense-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>

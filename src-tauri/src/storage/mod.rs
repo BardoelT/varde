@@ -25,6 +25,8 @@ pub enum StorageError {
     OpenFailed(#[source] io::Error),
     #[error("This is not a valid project file.")]
     InvalidFile,
+    #[error("This file was made by a newer version of the app.")]
+    FileNewer,
     #[error("The project has no file yet.")]
     NoPath,
     #[error("The theme could not be saved.")]
@@ -39,6 +41,7 @@ impl StorageError {
             Self::SaveFailed(_) => "PROJECT_SAVE_FAILED",
             Self::OpenFailed(_) => "PROJECT_OPEN_FAILED",
             Self::InvalidFile => "PROJECT_INVALID_FILE",
+            Self::FileNewer => "PROJECT_FILE_NEWER",
             Self::NoPath => "PROJECT_NO_PATH",
             Self::PreferencesSaveFailed(_) => "PREFERENCES_SAVE_FAILED",
         }

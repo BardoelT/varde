@@ -46,17 +46,6 @@
   border-bottom: 1px solid var(--border);
 }
 .panel-actions { display: flex; align-items: center; gap: 10px; }
-.filter-select {
-  padding: 6px 10px;
-  font: inherit;
-  font-size: 13px;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-.filter-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.filter-select:disabled { opacity: .5; }
 .panel-title {
   font-size: 14px;
   font-weight: 600;
@@ -116,7 +105,6 @@
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.danger { color: var(--negative); }
 .btn.danger:hover { border-color: var(--negative); }
-.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -125,7 +113,6 @@
 /* ── Rows and lists (Income jobs, Investment accounts) ── */
 
 .placeholder .btn { margin-top: 16px; }
-.panel-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .job-list { list-style: none; }
 .job-list li { border-bottom: 1px solid var(--border); }
 .job-list li:last-child { border-bottom: none; }
@@ -273,3 +260,5 @@ dialog p { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
   z-index: 1000;
 }
 .note-cell .badge { margin-left: 8px; }
+/* A hint that follows its field's label (not inside it, so it stays out of the field's name). */
+.field-hint-attached { margin: -7px 0 12px; }

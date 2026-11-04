@@ -1,12 +1,11 @@
 //! The yearly series behind the Debts Insights chart (CSD-012).
 
-use std::collections::BTreeMap;
-
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 
-use crate::domain::income::YearMonth;
-use crate::domain::money::zero;
+use crate::domain::charts::{Axis, ChartYear, Marker, Piece};
+use crate::domain::common::{ColourSlot, YearMonth};
+use crate::domain::series::SeriesData;
 
 use super::{DebtId, Debts};
 
@@ -15,91 +14,93 @@ use super::{DebtId, Debts};
 pub struct InsightsDebt {
     pub id: DebtId,
     pub name: String,
-    pub colour_slot: u8,
+    pub colour_slot: ColourSlot,
 }
 
 /// The part of a year's bar that belongs to one debt (CSD-012 REQ-5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct InsightsSegment {
     pub debt_id: DebtId,
-    pub balance: Decimal,
+    pub balance: Money,
 }
 
 /// One year of the insights chart (CSD-012 REQ-2).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtInsightsYear {
     pub year: i32,
-    pub closing_balance: Decimal,
-    pub repaid: Option<Decimal>,
+    pub closing_balance: Money,
+    pub repaid: Option<Money>,
     pub statement_count: usize,
     pub is_partial: bool,
     pub segments: Vec<InsightsSegment>,
+    /// The stacked pieces of the bar (CSD-025 section 5).
+    pub pieces: Vec<Piece>,
+    /// The total debt, for a year with statements.
+    pub marker: Option<Marker>,
+}
+
+impl ChartYear for DebtInsightsYear {
+    fn pieces(&self) -> &[Piece] {
+        &self.pieces
+    }
+
+    fn marker(&self) -> Option<&Marker> {
+        self.marker.as_ref()
+    }
 }
 
 /// The payload of `get_debt_insights` (CSD-012 section 5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtInsights {
+    /// The debts shown in the chart.
     pub debts: Vec<InsightsDebt>,
+    /// The axis of the chart (CSD-025 REQ-3).
+    pub axis: Axis,
+    /// The years of the chart, one entry per year.
     pub years: Vec<DebtInsightsYear>,
 }
 
 impl Debts {
     /// One figure set per calendar year from the first statement up to and
-    /// including the current year, oldest first, and the debts that have a
-    /// segment in them, in creation order (CSD-012). Years without statements
-    /// are zero and have no segments. The current year is partial. Statements
-    /// after the current year, which only a project file can contain, are not
-    /// shown.
+    /// including the later of the current year and the latest statement, at
+    /// most 50 years back from it, oldest first, and the debts that have a
+    /// segment in them, in creation order (CSD-012, with the series range of
+    /// CSD-017 REQ-2 so the net worth can show the debts of a later year). Years
+    /// without statements are zero and have no segments. The current year is
+    /// partial; a year after it is not.
     #[must_use]
     pub fn insights(&self, today: YearMonth) -> DebtInsights {
-        let mut counts: BTreeMap<i32, usize> = BTreeMap::new();
-        for statement in &self.statements {
-            *counts.entry(statement.period.year()).or_default() += 1;
-        }
-        let Some(&first) = counts.keys().next() else {
-            return DebtInsights {
-                debts: Vec::new(),
-                years: Vec::new(),
-            };
-        };
-        let years: Vec<DebtInsightsYear> = (first..=today.year())
-            .map(|year| {
-                let segments: Vec<InsightsSegment> = self
-                    .year_segments(year)
-                    .into_iter()
-                    .map(|(debt, balance)| InsightsSegment {
-                        debt_id: debt.id,
-                        balance,
-                    })
-                    .collect();
-                DebtInsightsYear {
-                    year,
-                    closing_balance: segments
-                        .iter()
-                        .fold(zero(), |sum, segment| sum + segment.balance),
-                    repaid: self.repaid(year),
-                    statement_count: counts.get(&year).copied().unwrap_or(0),
-                    is_partial: year == today.year(),
-                    segments,
-                }
-            })
-            .collect();
+        let figures = self.year_figures(today);
         let debts = self
-            .debts
-            .iter()
-            .filter(|debt| {
-                years.iter().any(|year| {
-                    year.segments
-                        .iter()
-                        .any(|segment| segment.debt_id == debt.id)
-                })
-            })
+            .legend(&figures)
+            .into_iter()
             .map(|debt| InsightsDebt {
                 id: debt.id,
                 name: debt.name.clone(),
                 colour_slot: debt.colour_slot,
             })
             .collect();
-        DebtInsights { debts, years }
+        let years: Vec<DebtInsightsYear> = figures
+            .into_iter()
+            .map(|figure| DebtInsightsYear {
+                year: figure.year,
+                closing_balance: figure.closing,
+                repaid: self.repaid(figure.year),
+                statement_count: figure.count,
+                is_partial: figure.is_partial,
+                segments: figure
+                    .segments
+                    .iter()
+                    .map(|(debt, balance)| InsightsSegment {
+                        debt_id: debt.id,
+                        balance: *balance,
+                    })
+                    .collect(),
+                pieces: figure.pieces,
+                marker: figure.marker,
+            })
+            .collect();
+        let axis = Axis::of_years(&years);
+        DebtInsights { debts, axis, years }
     }
 }

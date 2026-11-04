@@ -1,68 +1,57 @@
 //! One expense and the fields the user types for it (CSD-013 REQ-1 to REQ-7).
 
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
-use time::Date;
-use uuid::Uuid;
 
+use crate::domain::common::Note;
+use crate::domain::common::MAX_NAME_CHARS;
+use crate::domain::common::{Id, IdKind};
 use crate::domain::error::DomainError;
-use crate::domain::investments::Note;
-use crate::domain::series::MAX_NAME_CHARS;
 
-use super::{expense_note, Category, ExpenseAmount, ExpenseDate};
+use super::{expense_note, ExpenseAmount, ExpenseCategory, ExpenseDate};
 
-/// Identifies an expense.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct ExpenseId(Uuid);
+/// Identifies a Expense.
+pub type ExpenseId = Id<Expense>;
 
-impl ExpenseId {
-    pub(super) fn generate() -> Self {
-        Self(Uuid::new_v4())
-    }
-
-    /// Parses the text form returned to the frontend.
-    ///
-    /// # Errors
-    /// Returns `ExpenseNotFound` for text that is not an expense id.
-    pub fn parse(text: &str) -> Result<Self, DomainError> {
-        Uuid::parse_str(text.trim())
-            .map(Self)
-            .map_err(|_| DomainError::ExpenseNotFound)
-    }
-}
-
-impl fmt::Display for ExpenseId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, f)
+impl IdKind for Expense {
+    fn not_found() -> DomainError {
+        DomainError::ExpenseNotFound
     }
 }
 
 /// One purchase or cost (CSD-013 section 3).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Expense {
+    /// Identifier of the expense.
     pub id: ExpenseId,
+    /// Name of the expense.
     pub name: String,
+    /// The amount spent.
     pub amount: ExpenseAmount,
+    /// The date of the expense.
     pub date: ExpenseDate,
-    pub category: Category,
-    #[serde(default)]
+    /// The category of the expense.
+    pub category: ExpenseCategory,
+    /// Free-text note, possibly empty.
     pub note: Note,
 }
 
 /// Expense fields as typed by the user, before validation.
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct ExpenseInput {
+    /// Name of the expense.
     #[serde(default)]
     pub name: String,
+    /// Amount as typed, before validation.
     #[serde(default)]
     pub amount: String,
     /// `dd/mm/yyyy`.
     #[serde(default)]
     pub date: String,
+    /// Category name as typed, before validation.
     #[serde(default)]
     pub category: String,
+    /// Note as typed, before validation.
     #[serde(default)]
     pub note: Option<String>,
 }
@@ -72,14 +61,14 @@ pub(super) struct ValidExpense {
     pub(super) name: String,
     pub(super) amount: ExpenseAmount,
     pub(super) date: ExpenseDate,
-    pub(super) category: Category,
+    pub(super) category: ExpenseCategory,
     pub(super) note: Note,
 }
 
 impl ExpenseInput {
     /// Checks every field, in the order name, amount, date, category and note,
-    /// and returns the first violated rule. `today` is the local date.
-    pub(super) fn validate(&self, today: Date) -> Result<ValidExpense, DomainError> {
+    /// and returns the first violated rule.
+    pub(super) fn validate(&self) -> Result<ValidExpense, DomainError> {
         let name = self.name.trim();
         if name.is_empty() {
             return Err(DomainError::ExpenseNameRequired);
@@ -90,8 +79,8 @@ impl ExpenseInput {
         Ok(ValidExpense {
             name: name.to_owned(),
             amount: ExpenseAmount::parse(&self.amount)?,
-            date: ExpenseDate::parse(&self.date, today)?,
-            category: Category::parse(&self.category)?,
+            date: ExpenseDate::parse(&self.date)?,
+            category: ExpenseCategory::parse(&self.category)?,
             note: expense_note(self.note.as_deref().unwrap_or_default())?,
         })
     }

@@ -3,34 +3,24 @@
 // shared/yearly-chart.js; this file supplies what is specific to income.
 import { h } from '../shared/dom.js';
 import { formatAmount } from '../shared/format.js';
-import { svg, swatch, noSwatch, legendLabel, legendItem, tooltipRow } from '../shared/chart.js';
-import { createYearlyChart, percentLabel, isNegative, yearLabel } from '../shared/yearly-chart.js';
-import { initTabs } from '../shared/tabs.js';
+import { svg, swatch, noSwatch, legendLabel, tooltipRow } from '../shared/chart.js';
+import { createYearlyChart, isNegative, yearLabel } from '../shared/yearly-chart.js';
+import { fillLegend, initInsightsTabs, tooltipFrame, yearLabelLines } from '../shared/insights-page.js';
 import { t } from '../shared/i18n.js';
 
-/** The stacked series, bottom to top: the Rust field, the legend key and the label (in the chosen language). */
+/** The stacked series, bottom to top: the Rust field, the legend key (the series of its pieces) and the label (in the chosen language). */
 const segments = () => [
   ['gross_salary', 'salary', t('Gross salary')],
   ['holiday_pay', 'holiday', t('Holiday pay')],
   ['bonus', 'bonus', t('Bonus')],
 ];
 
-/** The stacked pieces of a year, bottom to top. */
-function piecesOf(row) {
-  let level = 0;
-  const pieces = [];
-  for (const [field, key] of segments()) {
-    const value = Number(row[field]);
-    if (value <= 0) continue;
-    pieces.push({ key, cssClass: `bar-${key}`, low: level, high: level + value });
-    level += value;
-  }
-  return pieces;
-}
+/** How a received piece looks: its series is the legend key, which names the colour class. */
+const pieceStyle = (row, piece) => ({ cssClass: `bar-${piece.series}` });
 
 function describe(row) {
   const growth =
-    row.growth_percent === null ? t('no growth figure') : t('growth {percent}', { percent: percentLabel(row.growth_percent) });
+    row.growth_percent === null ? t('no growth figure') : t('growth {percent}', { percent: row.growth_label });
   return t('{year}: gross salary {salary}, holiday pay {holiday}, bonus {bonus}, total gross {total}, {growth}', {
     year: yearLabel(row),
     salary: formatAmount(row.gross_salary),
@@ -41,26 +31,23 @@ function describe(row) {
   });
 }
 
-/** The rows read like the bar: the top piece first. */
+/** The rows read like the bar: the top piece first. A year without entries shows the note and no rows. */
 function tooltipContent(row) {
-  const negative = row.growth_percent !== null && isNegative(row.growth_percent);
-  return [
-    h('div', { class: 'tip-title' }, yearLabel(row)),
-    h(
-      'dl',
-      {},
-      ...segments().reverse().flatMap(([field, key, label]) => tooltipRow(key, swatch(key), label, formatAmount(row[field]))),
-      ...tooltipRow(null, noSwatch(), t('Total gross'), formatAmount(row.total_gross)),
-      ...tooltipRow(null, noSwatch(), t('Growth'), percentLabel(row.growth_percent), negative ? 'negative' : ''),
-    ),
-  ];
+  const negative = isNegative(row.growth_label);
+  const isEmpty = row.entry_count === 0;
+  const rows = isEmpty
+    ? []
+    : [
+        ...segments().reverse().flatMap(([field, key, label]) => tooltipRow(key, swatch(key), label, formatAmount(row[field]))),
+        ...tooltipRow(null, noSwatch(), t('Total gross'), formatAmount(row.total_gross)),
+        ...tooltipRow(null, noSwatch(), t('Growth'), row.growth_label, negative ? 'negative' : ''),
+      ];
+  return tooltipFrame({ row, partialNote: t('Partial year: entries so far'), emptyNote: t('No entries'), isEmpty, rows });
 }
 
 /** The legend: one item per stacked series; hovering one highlights it in every year. */
 function buildLegend() {
-  const legendList = document.getElementById('income-insights-legend');
-  const scopes = () => [legendList, document.getElementById('income-insights-chart')];
-  legendList.replaceChildren(...segments().map(([, key, label]) => legendItem(key, swatch(key), legendLabel(label), scopes)));
+  fillLegend('income-insights', segments().map(([, key, label]) => [key, swatch(key), legendLabel(label)]));
 }
 
 const chart = createYearlyChart({
@@ -70,15 +57,15 @@ const chart = createYearlyChart({
     return t('Income per year');
   },
   onLoaded: buildLegend,
-  piecesOf,
+  pieceStyle,
   describe,
   tooltipContent,
   /** The growth percentage above the bar. */
-  decorate(row, { centre, yOf, highest }) {
-    const negative = row.growth_percent !== null && isNegative(row.growth_percent);
-    return [svg('text', { class: `chart-growth${negative ? ' negative' : ''}`, x: centre, y: yOf(highest) - 6 }, percentLabel(row.growth_percent))];
+  decorate(row, { centre, barTop }) {
+    const negative = isNegative(row.growth_label);
+    return [svg('text', { class: `chart-growth${negative ? ' negative' : ''}`, x: centre, y: barTop - 6 }, row.growth_label)];
   },
-  labelLines: (row) => [{ text: yearLabel(row), className: 'chart-year' }],
+  labelLines: yearLabelLines,
 });
 
 /** Reloads the chart only while the Insights tab is showing (after a project is opened). */
@@ -86,9 +73,5 @@ export const reloadIncomeInsightsIfOpen = chart.reloadIfOpen;
 
 export function initIncomeInsights() {
   chart.init();
-  initTabs([
-    { tab: 'income-tab-overview', panel: 'income-overview' },
-    // Opening Insights recomputes it, so it never shows stale figures (REQ-11).
-    { tab: 'income-tab-insights', panel: 'income-insights', onOpen: chart.reload },
-  ]);
+  initInsightsTabs('income', chart); // opening Insights recomputes it (CSD-006 REQ-11)
 }

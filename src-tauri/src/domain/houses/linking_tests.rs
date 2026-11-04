@@ -1,36 +1,31 @@
-//! Tests for CSD-020: debts linked to a house and settled on its sale.
+//! Tests for CSD-020 and CSD-026: debts linked to a house and settled on its sale.
 
-use rust_decimal::Decimal;
-use time::macros::date;
+use crate::domain::money::Money;
 
+use crate::domain::common::Note;
+use crate::domain::common::YearMonth;
 use crate::domain::debts::{
-    debt_note, parse_period, Category, DebtBalance, DebtId, DebtInput, Outcome,
+    debt_note, parse_period, DebtBalance, DebtCategory, DebtId, DebtInput, Outcome,
 };
 use crate::domain::houses::linking::{self, DebtFormInput, DebtLinksInput, SettlementChoice};
 use crate::domain::houses::{HouseId, HouseInput, HouseValue};
-use crate::domain::income::YearMonth;
-use crate::domain::investments::Note;
 use crate::domain::net_worth::net_worth_insights;
 use crate::domain::ratios::{ratios, RatioSources};
 use crate::domain::ProjectData;
-
-fn today_date() -> time::Date {
-    date!(2026 - 10 - 29)
-}
 
 fn today() -> YearMonth {
     YearMonth::parse("2026-10").unwrap()
 }
 
-fn dec(text: &str) -> Decimal {
-    text.parse().unwrap()
+fn dec(text: &str) -> Money {
+    Money::parse(text).unwrap()
 }
 
 fn debt(data: &mut ProjectData, name: &str, kind: &str) -> DebtId {
     data.debts
         .create_debt(&DebtInput {
             name: name.to_owned(),
-            statement_period: Some(kind.to_owned()),
+            period: Some(kind.to_owned()),
         })
         .unwrap()
         .id
@@ -43,7 +38,6 @@ fn statement(data: &mut ProjectData, id: DebtId, at: &str, balance: &str, note: 
             parse_period(at).unwrap(),
             DebtBalance::parse(balance).unwrap(),
             debt_note(note).unwrap(),
-            today(),
         )
         .unwrap();
 }
@@ -67,7 +61,7 @@ fn statements_of(data: &ProjectData, id: DebtId, at: &str) -> Vec<(String, Strin
             (
                 s.balance.value().to_string(),
                 s.note.as_str().to_owned(),
-                s.settlement,
+                s.is_settlement(),
             )
         })
         .collect()
@@ -110,10 +104,7 @@ fn link_with(
         &mut data.debts,
         id,
         &DebtFormInput {
-            debt: DebtInput {
-                name,
-                statement_period: None,
-            },
+            debt: DebtInput { name, period: None },
             category: Some(category.to_owned()),
             house_id: house.map(|house| house.to_string()),
             settlement: outcome.map(str::to_owned),
@@ -125,7 +116,7 @@ fn link_with(
 fn input(name: &str, sold: (&str, &str)) -> HouseInput {
     HouseInput {
         name: name.to_owned(),
-        valuation_period: Some("Monthly".to_owned()),
+        period: Some("Monthly".to_owned()),
         purchase_date: Some("15/03/2024".to_owned()),
         purchase_amount: Some("250000.00".to_owned()),
         sell_date: Some(sold.0.to_owned()),
@@ -139,7 +130,6 @@ fn add_house(data: &mut ProjectData, name: &str, ids: &[DebtId]) -> HouseId {
         &mut data.debts,
         &input(name, ("", "")),
         &links(&[], false),
-        today_date(),
     )
     .unwrap()
     .id;
@@ -162,7 +152,6 @@ fn save(
         id,
         &input(name, sold),
         links,
-        today_date(),
     )
     .map(|_| ())
 }
@@ -188,45 +177,45 @@ fn settlement_of(data: &ProjectData, id: DebtId) -> Option<(Outcome, String)> {
         .debts()
         .into_iter()
         .find(|d| d.id == id)
-        .and_then(|d| d.settlement.as_ref())
+        .and_then(|d| d.settlement())
         .map(|s| (s.outcome, s.amount.value().to_string()))
 }
 
 // REQ-1: link a debt in the debt form
 
-fn category_of(data: &ProjectData, id: DebtId) -> crate::domain::debts::Category {
-    data.debts.get(id).unwrap().category
+fn category_of(data: &ProjectData, id: DebtId) -> crate::domain::debts::DebtCategory {
+    data.debts.get(id).unwrap().category()
 }
 
 #[test]
-fn test_csd020_ac_1_1_link_a_mortgage() {
+fn test_csd020_ac_15_1_link_a_mortgage() {
     let mut data = ProjectData::default();
     let mortgage = debt(&mut data, "Example Mortgage", "Monthly");
     let house = add_house(&mut data, "Example House", &[]);
     link(&mut data, mortgage, "Mortgage", Some(house)).unwrap();
-    assert_eq!(category_of(&data, mortgage), Category::Mortgage);
+    assert_eq!(category_of(&data, mortgage), DebtCategory::Mortgage);
     assert_eq!(data.debts.house_of(mortgage), Some(house));
 }
 
 #[test]
-fn test_csd020_ac_1_2_unlink_a_debt() {
+fn test_csd020_ac_15_2_unlink_a_debt() {
     let (mut data, _house, _mortgage, loan) = house_with_two_debts();
     link(&mut data, loan, "Loan", None).unwrap();
     assert_eq!(data.debts.house_of(loan), None);
-    assert_eq!(category_of(&data, loan), Category::Loan);
+    assert_eq!(category_of(&data, loan), DebtCategory::Loan);
     assert!(balance_of(&data, loan, "2026-03").is_some());
 }
 
 #[test]
-fn test_csd020_ac_1_3_changing_the_category_to_other_removes_the_link() {
+fn test_csd020_ac_15_3_changing_the_category_to_other_removes_the_link() {
     let (mut data, _house, _mortgage, loan) = house_with_two_debts();
     link(&mut data, loan, "Other", None).unwrap();
-    assert_eq!(category_of(&data, loan), Category::Other);
+    assert_eq!(category_of(&data, loan), DebtCategory::Other);
     assert_eq!(data.debts.house_of(loan), None);
 }
 
 #[test]
-fn test_csd020_ac_1_4_link_while_adding_a_debt() {
+fn test_csd020_ac_15_4_link_while_adding_a_debt() {
     let mut data = ProjectData::default();
     let house = add_house(&mut data, "Example House", &[]);
     let created = linking::create_debt(
@@ -235,7 +224,7 @@ fn test_csd020_ac_1_4_link_while_adding_a_debt() {
         &DebtFormInput {
             debt: DebtInput {
                 name: "Example Mortgage".to_owned(),
-                statement_period: None,
+                period: None,
             },
             category: Some("Mortgage".to_owned()),
             house_id: Some(house.to_string()),
@@ -243,12 +232,12 @@ fn test_csd020_ac_1_4_link_while_adding_a_debt() {
         },
     )
     .unwrap();
-    assert_eq!(created.house_id, Some(house));
-    assert_eq!(created.category, Category::Mortgage);
+    assert_eq!(created.house_id(), Some(house));
+    assert_eq!(created.category(), DebtCategory::Mortgage);
 }
 
 #[test]
-fn test_csd020_ac_1_5_the_category_defaults_to_other() {
+fn test_csd020_ac_15_5_the_category_defaults_to_other() {
     let mut data = ProjectData::default();
     let created = linking::create_debt(
         &data.houses,
@@ -256,20 +245,20 @@ fn test_csd020_ac_1_5_the_category_defaults_to_other() {
         &DebtFormInput {
             debt: DebtInput {
                 name: "Example Card".to_owned(),
-                statement_period: None,
+                period: None,
             },
             ..DebtFormInput::default()
         },
     )
     .unwrap();
-    assert_eq!(created.category, Category::Other);
-    assert_eq!(created.house_id, None);
+    assert_eq!(created.category(), DebtCategory::Other);
+    assert_eq!(created.house_id(), None);
 }
 
 // REQ-2: category and link rules
 
 #[test]
-fn test_csd020_ac_2_1_a_forbidden_category_or_link_is_rejected() {
+fn test_csd020_ac_16_1_a_forbidden_category_or_link_is_rejected() {
     let mut data = ProjectData::default();
     let house = add_house(&mut data, "Example House", &[]);
     let sold = add_house(&mut data, "Example Guesthouse", &[]);
@@ -304,7 +293,7 @@ fn test_csd020_ac_2_1_a_forbidden_category_or_link_is_rejected() {
 }
 
 #[test]
-fn test_csd020_ac_2_1_a_debt_of_a_sold_house_cannot_change_its_link() {
+fn test_csd020_ac_16_1_a_debt_of_a_sold_house_cannot_change_its_link() {
     let mut data = ProjectData::default();
     let loan = debt(&mut data, "Example Cabin Loan", "Monthly");
     let sold = add_house(&mut data, "Example Guesthouse", &[loan]);
@@ -326,7 +315,7 @@ fn test_csd020_ac_2_1_a_debt_of_a_sold_house_cannot_change_its_link() {
 // REQ-3, REQ-4: the sale asks for a choice per open debt
 
 #[test]
-fn test_csd020_ac_3_1_sell_with_two_outcomes() {
+fn test_csd026_ac_1_1_sell_with_two_outcomes() {
     let (mut data, house, mortgage, loan) = house_with_two_debts();
     save(
         &mut data,
@@ -348,7 +337,7 @@ fn test_csd020_ac_3_1_sell_with_two_outcomes() {
 }
 
 #[test]
-fn test_csd020_ac_3_2_a_missing_choice_saves_nothing() {
+fn test_csd026_ac_1_2_a_missing_choice_saves_nothing() {
     let (mut data, house, mortgage, _loan) = house_with_two_debts();
     let before = data.clone();
     let result = save(
@@ -363,7 +352,7 @@ fn test_csd020_ac_3_2_a_missing_choice_saves_nothing() {
 }
 
 #[test]
-fn test_csd020_ac_3_3_a_choice_for_a_debt_that_needs_none_is_rejected() {
+fn test_csd026_ac_1_3_a_choice_for_a_debt_that_needs_none_is_rejected() {
     let mut data = ProjectData::default();
     let loan = debt(&mut data, "Example Loan", "Monthly");
     let house = add_house(&mut data, "Example House", &[loan]);
@@ -380,7 +369,7 @@ fn test_csd020_ac_3_3_a_choice_for_a_debt_that_needs_none_is_rejected() {
 }
 
 #[test]
-fn test_csd020_ac_3_4_a_house_without_open_debts_is_sold_directly() {
+fn test_csd026_ac_1_4_a_house_without_open_debts_is_sold_directly() {
     let mut data = ProjectData::default();
     let house = add_house(&mut data, "Example House", &[]);
     save(
@@ -395,7 +384,7 @@ fn test_csd020_ac_3_4_a_house_without_open_debts_is_sold_directly() {
 }
 
 #[test]
-fn test_csd020_ac_4_1_which_debts_need_a_choice() {
+fn test_csd026_ac_2_1_which_debts_need_a_choice() {
     type Case<'a> = (&'a [(&'a str, &'a str)], Option<&'a str>);
     let cases: [Case; 4] = [
         (
@@ -413,7 +402,7 @@ fn test_csd020_ac_4_1_which_debts_need_a_choice() {
             statement(&mut data, loan, at, balance, "");
         }
         let house = add_house(&mut data, "Example House", &[loan]);
-        let open = linking::open_debts(&data.debts, house, "10/06/2026", today_date()).unwrap();
+        let open = linking::open_debts(&data.debts, house, "10/06/2026").unwrap();
         assert_eq!(
             open.first().map(|row| row.amount.to_string()).as_deref(),
             expected
@@ -422,7 +411,7 @@ fn test_csd020_ac_4_1_which_debts_need_a_choice() {
 }
 
 #[test]
-fn test_csd020_ac_4_2_a_statement_after_the_sale_period_blocks_the_sale() {
+fn test_csd026_ac_2_2_a_statement_after_the_sale_period_blocks_the_sale() {
     let mut data = ProjectData::default();
     let loan = debt(&mut data, "Example Loan", "Monthly");
     statement(&mut data, loan, "2026-04", "4000.00", "");
@@ -443,7 +432,7 @@ fn test_csd020_ac_4_2_a_statement_after_the_sale_period_blocks_the_sale() {
 // REQ-5: the settlement
 
 #[test]
-fn test_csd020_ac_5_1_the_settlement_statement() {
+fn test_csd026_ac_3_1_the_settlement_statement() {
     let (mut data, house, mortgage, loan) = house_with_two_debts();
     save(
         &mut data,
@@ -469,7 +458,7 @@ fn test_csd020_ac_5_1_the_settlement_statement() {
 }
 
 #[test]
-fn test_csd020_ac_5_2_a_statement_in_the_sale_period_stays() {
+fn test_csd026_ac_3_2_a_statement_in_the_sale_period_stays() {
     let mut data = ProjectData::default();
     let loan = debt(&mut data, "Example Loan", "Monthly");
     statement(&mut data, loan, "2026-06", "3500.00", "Mid-June");
@@ -506,7 +495,7 @@ fn test_csd020_ac_5_2_a_statement_in_the_sale_period_stays() {
 }
 
 #[test]
-fn test_csd020_ac_5_3_a_yearly_debt_gets_a_second_statement_in_the_sale_year() {
+fn test_csd026_ac_3_3_a_yearly_debt_gets_a_second_statement_in_the_sale_year() {
     let mut data = ProjectData::default();
     let mortgage = debt(&mut data, "Example Mortgage", "Yearly");
     statement(&mut data, mortgage, "2025", "200000.00", "");
@@ -533,7 +522,7 @@ fn test_csd020_ac_5_3_a_yearly_debt_gets_a_second_statement_in_the_sale_year() {
 // REQ-6: undo
 
 #[test]
-fn test_csd020_ac_6_1_undo_removes_only_the_settlement_statement() {
+fn test_csd026_ac_4_1_undo_removes_only_the_settlement_statement() {
     let mut data = ProjectData::default();
     let loan = debt(&mut data, "Example Loan", "Monthly");
     statement(&mut data, loan, "2026-06", "3500.00", "Mid-June");
@@ -564,7 +553,7 @@ fn test_csd020_ac_6_1_undo_removes_only_the_settlement_statement() {
 }
 
 #[test]
-fn test_csd020_ac_6_2_undo_without_confirmation() {
+fn test_csd026_ac_4_2_undo_without_confirmation() {
     let (mut data, house, mortgage, loan) = house_with_two_debts();
     save(
         &mut data,
@@ -605,7 +594,7 @@ fn sold_house() -> (ProjectData, HouseId, DebtId) {
 }
 
 #[test]
-fn test_csd020_ac_7_1_the_sell_date_is_locked() {
+fn test_csd026_ac_5_1_the_sell_date_is_locked() {
     let (mut data, house, _mortgage) = sold_house();
     let result = save(
         &mut data,
@@ -618,7 +607,7 @@ fn test_csd020_ac_7_1_the_sell_date_is_locked() {
 }
 
 #[test]
-fn test_csd020_ac_7_2_the_sell_amount_can_change() {
+fn test_csd026_ac_5_2_the_sell_amount_can_change() {
     let (mut data, house, mortgage) = sold_house();
     save(
         &mut data,
@@ -632,8 +621,9 @@ fn test_csd020_ac_7_2_the_sell_amount_can_change() {
         data.houses
             .get(house)
             .unwrap()
-            .sell_amount
+            .sale
             .unwrap()
+            .amount
             .value()
             .to_string(),
         "310000.00"
@@ -642,14 +632,13 @@ fn test_csd020_ac_7_2_the_sell_amount_can_change() {
 }
 
 #[test]
-fn test_csd020_ac_8_1_a_settled_debt_is_locked() {
+fn test_csd026_ac_6_1_a_settled_debt_is_locked() {
     let (mut data, house, mortgage) = sold_house();
     let add = data.debts.add_statement(
         mortgage,
         parse_period("2026-07").unwrap(),
         DebtBalance::parse("0.00").unwrap(),
         Note::default(),
-        today(),
     );
     assert_eq!(add.unwrap_err().code(), "DEBT_SETTLED_LOCKED");
     let edit = data.debts.update_statement(
@@ -658,7 +647,6 @@ fn test_csd020_ac_8_1_a_settled_debt_is_locked() {
         parse_period("2026-06").unwrap(),
         DebtBalance::parse("5.00").unwrap(),
         Note::default(),
-        today(),
     );
     assert_eq!(edit.unwrap_err().code(), "DEBT_SETTLED_LOCKED");
     let delete = data
@@ -677,7 +665,7 @@ fn test_csd020_ac_8_1_a_settled_debt_is_locked() {
 }
 
 #[test]
-fn test_csd020_ac_8_2_earlier_statements_stay_editable() {
+fn test_csd026_ac_6_2_earlier_statements_stay_editable() {
     let (mut data, _house, mortgage) = sold_house();
     data.debts
         .update_statement(
@@ -686,7 +674,6 @@ fn test_csd020_ac_8_2_earlier_statements_stay_editable() {
             parse_period("2026-03").unwrap(),
             DebtBalance::parse("189000.00").unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
     assert_eq!(
@@ -698,7 +685,7 @@ fn test_csd020_ac_8_2_earlier_statements_stay_editable() {
 // REQ-9: deleting
 
 #[test]
-fn test_csd020_ac_9_1_a_house_with_linked_debts_cannot_be_deleted() {
+fn test_csd026_ac_7_1_a_house_with_linked_debts_cannot_be_deleted() {
     let (mut data, house, _mortgage, _loan) = house_with_two_debts();
     let result = linking::delete_house(&mut data.houses, &data.debts, house);
     assert_eq!(result.unwrap_err().code(), "HOUSE_HAS_LINKED_DEBTS");
@@ -706,7 +693,7 @@ fn test_csd020_ac_9_1_a_house_with_linked_debts_cannot_be_deleted() {
 }
 
 #[test]
-fn test_csd020_ac_9_2_deleting_a_settled_debt_removes_its_settlement() {
+fn test_csd026_ac_7_2_deleting_a_settled_debt_removes_its_settlement() {
     let (mut data, house, mortgage) = sold_house();
     data.debts.delete_debt(mortgage).unwrap();
     assert_eq!(data.debts.debts().len(), 0);
@@ -716,7 +703,7 @@ fn test_csd020_ac_9_2_deleting_a_settled_debt_removes_its_settlement() {
 // REQ-10: net worth and total debt
 
 #[test]
-fn test_csd020_ac_10_1_both_outcomes_drop_to_zero() {
+fn test_csd026_ac_8_1_both_outcomes_drop_to_zero() {
     for outcome in ["Repaid", "Cancelled"] {
         let mut data = ProjectData::default();
         let mortgage = debt(&mut data, "Example Mortgage", "Monthly");
@@ -728,7 +715,6 @@ fn test_csd020_ac_10_1_both_outcomes_drop_to_zero() {
                 crate::domain::houses::parse_period("2026-03").unwrap(),
                 HouseValue::parse("300000.00").unwrap(),
                 Note::default(),
-                today(),
             )
             .unwrap();
         save(
@@ -751,15 +737,15 @@ fn test_csd020_ac_10_1_both_outcomes_drop_to_zero() {
             today(),
         );
         let row = net.years.iter().find(|row| row.year == 2026).unwrap();
-        assert_eq!(row.debts, Decimal::ZERO);
-        assert_eq!(row.houses, Decimal::ZERO);
-        assert_eq!(row.net_worth, Decimal::ZERO);
+        assert_eq!(row.debts, Money::ZERO);
+        assert_eq!(row.houses, Money::ZERO);
+        assert_eq!(row.net_worth, Money::ZERO);
     }
 }
 
 // REQ-11, REQ-12: wealth accumulation
 
-fn repaid_2026(data: &ProjectData) -> Option<Decimal> {
+fn repaid_2026(data: &ProjectData) -> Option<Money> {
     ratios(
         &RatioSources {
             income: &data.income,
@@ -796,7 +782,7 @@ fn settle_mortgage(outcome: &str, first: &[(&str, &str)], sold_on: &str) -> Proj
 }
 
 #[test]
-fn test_csd020_ac_11_1_a_repaid_debt_counts_in_full() {
+fn test_csd026_ac_9_1_a_repaid_debt_counts_in_full() {
     let data = settle_mortgage(
         "Repaid",
         &[("2025-12", "200000.00"), ("2026-03", "190000.00")],
@@ -806,7 +792,7 @@ fn test_csd020_ac_11_1_a_repaid_debt_counts_in_full() {
 }
 
 #[test]
-fn test_csd020_ac_12_1_a_cancelled_debt_is_taken_out_of_the_repaid_amount() {
+fn test_csd026_ac_10_1_a_cancelled_debt_is_taken_out_of_the_repaid_amount() {
     let data = settle_mortgage(
         "Cancelled",
         &[("2025-12", "200000.00"), ("2026-03", "190000.00")],
@@ -816,13 +802,13 @@ fn test_csd020_ac_12_1_a_cancelled_debt_is_taken_out_of_the_repaid_amount() {
 }
 
 #[test]
-fn test_csd020_ac_12_2_a_debt_without_an_opening_balance_adds_nothing() {
+fn test_csd026_ac_10_2_a_debt_without_an_opening_balance_adds_nothing() {
     let data = settle_mortgage("Cancelled", &[("2026-02", "5000.00")], "10/06/2026");
     assert_eq!(repaid_2026(&data), None);
 }
 
 #[test]
-fn test_csd020_ac_12_3_more_cancelled_than_repaid_is_shown_as_is() {
+fn test_csd026_ac_10_3_more_cancelled_than_repaid_is_shown_as_is() {
     let data = settle_mortgage(
         "Cancelled",
         &[("2025-12", "200000.00"), ("2026-02", "200000.00")],
@@ -840,7 +826,7 @@ fn test_csd020_ac_12_3_more_cancelled_than_repaid_is_shown_as_is() {
 // REQ-13, REQ-14: views
 
 #[test]
-fn test_csd020_ac_13_1_the_houses_view_lists_the_linked_debts() {
+fn test_csd026_ac_12_2_the_houses_view_lists_the_linked_debts() {
     let (mut data, house, mortgage, loan) = house_with_two_debts();
     save(
         &mut data,
@@ -854,7 +840,7 @@ fn test_csd020_ac_13_1_the_houses_view_lists_the_linked_debts() {
     let rows = &view.houses[0].linked_debts;
     assert_eq!(rows.len(), 2);
     assert!(rows.iter().any(|row| row.debt_name == "Example Loan"
-        && row.category == Category::Loan
+        && row.category == DebtCategory::Loan
         && row.latest_balance == Some(dec("0.00"))
         && row.settlement.as_ref().is_some_and(
             |s| s.outcome == Outcome::Cancelled && s.amount.value() == dec("10000.00")
@@ -862,7 +848,7 @@ fn test_csd020_ac_13_1_the_houses_view_lists_the_linked_debts() {
 }
 
 #[test]
-fn test_csd020_ac_14_1_the_debts_view_names_the_house() {
+fn test_csd020_ac_30_1_the_debts_view_names_the_house() {
     let (data, _house, _mortgage, _loan) = house_with_two_debts();
     let view = linking::debts_view(&data.debts, &data.houses);
     assert!(view
@@ -984,12 +970,12 @@ fn test_csd020_ac_17_5_undoing_the_sale_later_undoes_the_settlement() {
 }
 
 #[test]
-fn test_csd020_ac_1_6_a_scholarship_cannot_be_linked() {
+fn test_csd020_ac_15_6_a_scholarship_cannot_be_linked() {
     let mut data = ProjectData::default();
     let house = add_house(&mut data, "Example House", &[]);
     let study = debt(&mut data, "Example Study Debt", "Yearly");
     link(&mut data, study, "Scholarship", None).unwrap();
-    assert_eq!(category_of(&data, study), Category::Scholarship);
+    assert_eq!(category_of(&data, study), DebtCategory::Scholarship);
     assert_eq!(data.debts.house_of(study), None);
     assert_eq!(
         code(link(&mut data, study, "Scholarship", Some(house))),
@@ -998,17 +984,17 @@ fn test_csd020_ac_1_6_a_scholarship_cannot_be_linked() {
 }
 
 #[test]
-fn test_csd020_ac_1_6_changing_a_linked_loan_to_scholarship_removes_the_link() {
+fn test_csd020_ac_15_6_changing_a_linked_loan_to_scholarship_removes_the_link() {
     let (mut data, _house, _mortgage, loan) = house_with_two_debts();
     link(&mut data, loan, "Scholarship", None).unwrap();
-    assert_eq!(category_of(&data, loan), Category::Scholarship);
+    assert_eq!(category_of(&data, loan), DebtCategory::Scholarship);
     assert_eq!(data.debts.house_of(loan), None);
 }
 
 // REQ-8, REQ-18: the settlement statement
 
 #[test]
-fn test_csd020_ac_8_1_the_settlement_statement_cannot_be_deleted() {
+fn test_csd026_ac_3_4_the_settlement_statement_cannot_be_deleted() {
     let (mut data, _house, mortgage) = sold_house();
     assert_eq!(
         data.debts
@@ -1021,7 +1007,7 @@ fn test_csd020_ac_8_1_the_settlement_statement_cannot_be_deleted() {
 }
 
 #[test]
-fn test_csd020_ac_18_1_both_rows_show_and_are_locked() {
+fn test_csd026_ac_14_1_both_rows_show_and_are_locked() {
     let mut data = ProjectData::default();
     let loan = debt(&mut data, "Example Loan", "Monthly");
     statement(&mut data, loan, "2026-05", "4000.00", "");
@@ -1042,7 +1028,7 @@ fn test_csd020_ac_18_1_both_rows_show_and_are_locked() {
         .map(|(_, s)| {
             (
                 s.period.to_string(),
-                s.settlement,
+                s.is_settlement(),
                 data.debts.statement_locked(s),
             )
         })
@@ -1058,7 +1044,7 @@ fn test_csd020_ac_18_1_both_rows_show_and_are_locked() {
 }
 
 #[test]
-fn test_csd020_ac_18_2_the_change_of_the_settlement_statement() {
+fn test_csd026_ac_14_2_the_change_of_the_settlement_statement() {
     let mut data = ProjectData::default();
     let loan = debt(&mut data, "Example Loan", "Monthly");
     statement(&mut data, loan, "2026-05", "4000.00", "");
@@ -1085,7 +1071,7 @@ fn test_csd020_ac_18_2_the_change_of_the_settlement_statement() {
 }
 
 #[test]
-fn test_csd020_ac_8_3_the_regular_statement_of_the_settlement_period_stays_editable() {
+fn test_csd026_ac_6_3_the_regular_statement_of_the_settlement_period_stays_editable() {
     let mut data = ProjectData::default();
     let loan = debt(&mut data, "Example Loan", "Monthly");
     statement(&mut data, loan, "2026-06", "3500.00", "Mid-June");
@@ -1105,7 +1091,6 @@ fn test_csd020_ac_8_3_the_regular_statement_of_the_settlement_period_stays_edita
             parse_period("2026-06").unwrap(),
             DebtBalance::parse("3400.00").unwrap(),
             Note::default(),
-            today(),
         )
         .unwrap();
     let rows = statements_of(&data, loan, "2026-06");
@@ -1128,4 +1113,147 @@ fn test_csd020_ac_8_3_the_regular_statement_of_the_settlement_period_stays_edita
             .code(),
         "DEBT_SETTLED_LOCKED"
     );
+}
+
+// REQ-33: the file
+
+fn debts_json(data: &ProjectData) -> serde_json::Value {
+    serde_json::to_value(&data.debts).unwrap()
+}
+
+fn links_valid(data: &ProjectData, debts: serde_json::Value) -> Result<(), &'static str> {
+    let debts: crate::domain::Debts = serde_json::from_value(debts).unwrap();
+    debts
+        .validate_links(&data.houses)
+        .map_err(|error| error.code())
+}
+
+#[test]
+fn test_csd020_ac_33_1_a_statement_keeps_its_boolean_settlement_key_on_the_wire() {
+    let (data, _house, mortgage) = sold_house();
+    let json = debts_json(&data);
+    let statements = json["statements"].as_array().unwrap();
+    let settlement: Vec<bool> = statements
+        .iter()
+        .map(|s| s.get("settlement") == Some(&serde_json::json!(true)))
+        .collect();
+    assert_eq!(settlement, [false, true]);
+    assert!(statements[0].get("settlement").is_none());
+    assert!(statements[0].get("kind").is_none());
+    assert!(links_valid(&data, json).is_ok());
+    assert!(settlement_of(&data, mortgage).is_some());
+}
+
+#[test]
+fn test_csd020_ac_33_2_a_settlement_statement_without_a_settlement_is_invalid() {
+    let (data, _house, _mortgage) = sold_house();
+    let mut json = debts_json(&data);
+    json["debts"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("settlement");
+    assert_eq!(links_valid(&data, json), Err("DEBT_DATA_INVALID"));
+}
+
+#[test]
+fn test_csd020_ac_33_2_a_settlement_without_a_settlement_statement_is_invalid() {
+    let (data, _house, _mortgage) = sold_house();
+    let mut json = debts_json(&data);
+    json["statements"][1]
+        .as_object_mut()
+        .unwrap()
+        .remove("settlement");
+    assert_eq!(links_valid(&data, json), Err("DEBT_DATA_INVALID"));
+}
+
+// A settlement and its statement only come to be together (CSD-026 REQ-3,
+// REQ-6; CSD-020 REQ-33): `Debts::settle` is the only way to make either, and
+// it takes the date and the period from the sold house itself.
+
+/// The sold house of `sold_house_and_mortgage` with the mortgage linked to it
+/// by the lowest-level calls, not yet settled.
+fn linked_unsettled() -> (ProjectData, HouseId, DebtId) {
+    let (mut data, house, mortgage) = sold_house_and_mortgage(&[("2026-03", "190000.00")]);
+    data.debts
+        .set_category(mortgage, DebtCategory::Mortgage)
+        .unwrap();
+    data.debts.set_house(mortgage, Some(house)).unwrap();
+    (data, house, mortgage)
+}
+
+#[test]
+fn test_csd026_ac_3_1_settle_takes_the_date_and_the_period_from_the_sold_house() {
+    let (mut data, house, mortgage) = linked_unsettled();
+    let sold = data.houses.get(house).unwrap().clone();
+    data.debts.settle(mortgage, Outcome::Repaid, &sold).unwrap();
+    let settlement = data.debts.get(mortgage).unwrap().settlement().unwrap();
+    assert_eq!(Some(settlement.date), sold.sale.map(|sale| sale.date));
+    assert_eq!(settlement.amount.value().to_string(), "190000.00");
+    assert_eq!(
+        statements_of(&data, mortgage, "2026-06"),
+        [(
+            "0.00".to_owned(),
+            "Repaid on sale of Example House".to_owned(),
+            true
+        )]
+    );
+    assert!(data.debts.validate_links(&data.houses).is_ok());
+}
+
+#[test]
+fn test_csd026_ac_3_1_a_debt_is_settled_once_and_gets_one_settlement_statement() {
+    let (mut data, house, mortgage) = linked_unsettled();
+    let sold = data.houses.get(house).unwrap().clone();
+    data.debts.settle(mortgage, Outcome::Repaid, &sold).unwrap();
+    let again = data.debts.settle(mortgage, Outcome::Cancelled, &sold);
+    assert_eq!(again.unwrap_err().code(), "HOUSE_SETTLEMENT_INVALID");
+    assert_eq!(statements_of(&data, mortgage, "2026-06").len(), 1);
+    assert_eq!(
+        settlement_of(&data, mortgage),
+        Some((Outcome::Repaid, "190000.00".to_owned()))
+    );
+}
+
+#[test]
+fn test_csd026_ac_3_1_only_a_debt_linked_to_a_sold_house_is_settled() {
+    let (mut data, house, mortgage) = sold_house_and_mortgage(&[("2026-03", "190000.00")]);
+    let sold = data.houses.get(house).unwrap().clone();
+    // Not linked to the house.
+    let unlinked = data.debts.settle(mortgage, Outcome::Repaid, &sold);
+    assert_eq!(unlinked.unwrap_err().code(), "HOUSE_SETTLEMENT_INVALID");
+    // Linked, but the house is held.
+    let held = add_house(&mut data, "Held House", &[]);
+    data.debts
+        .set_category(mortgage, DebtCategory::Mortgage)
+        .unwrap();
+    data.debts.set_house(mortgage, Some(held)).unwrap();
+    let held_house = data.houses.get(held).unwrap().clone();
+    let result = data.debts.settle(mortgage, Outcome::Repaid, &held_house);
+    assert_eq!(result.unwrap_err().code(), "HOUSE_SETTLEMENT_INVALID");
+    assert!(data.debts.get(mortgage).unwrap().settlement().is_none());
+    assert!(data
+        .debts
+        .all_statements()
+        .iter()
+        .all(|(_, s)| !s.is_settlement()));
+}
+
+#[test]
+fn test_csd026_ac_6_1_a_settled_debt_cannot_be_unlinked_or_relinked() {
+    let (mut data, house, mortgage) = sold_house();
+    let other = add_house(&mut data, "Other House", &[]);
+    for wanted in [None, Some(other)] {
+        let result = data.debts.set_house(mortgage, wanted);
+        assert_eq!(result.unwrap_err().code(), "DEBT_SETTLED_LOCKED");
+    }
+    assert_eq!(data.debts.house_of(mortgage), Some(house));
+    assert!(data.debts.validate_links(&data.houses).is_ok());
+}
+
+#[test]
+fn test_csd020_ac_15_6_the_link_itself_refuses_a_debt_that_is_not_a_mortgage_or_a_loan() {
+    let (mut data, house, mortgage) = sold_house_and_mortgage(&[("2026-03", "190000.00")]);
+    let result = data.debts.set_house(mortgage, Some(house));
+    assert_eq!(result.unwrap_err().code(), "DEBT_LINK_CATEGORY_INVALID");
+    assert_eq!(data.debts.house_of(mortgage), None);
 }

@@ -1,21 +1,16 @@
 // Debts: debts with a monthly or yearly statement, each a remaining balance and a note (CSD-011).
-import { invoke, errorText } from '../shared/ipc.js';
-import { h, iconButton, confirmAction, showToast, showError } from '../shared/dom.js';
-import { formatAmount, currentYear, currentMonth } from '../shared/format.js';
+import { invoke } from '../shared/ipc.js';
+import { $, h, showError, setHint, submitOnce } from '../shared/dom.js';
+import { formatAmount, noteSummary } from '../shared/format.js';
 import { askSettlements } from '../shared/settle.js';
 import { t } from '../shared/i18n.js';
-
-const $ = (id) => document.getElementById(id);
+import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
+import { createRecordForm } from '../shared/record-form.js';
+import { accountRow, latestAmount, numCell, recordActions, renderTable, rowHeader, showTotal, toggleEmpty } from '../shared/list-rows.js';
 
 let debts = [];
 let houses = [];
 let onChanged = async () => {};
-
-/** The first line of a note, with an ellipsis when there is more (CSD-011 REQ-20). */
-function noteSummary(note) {
-  const [first, ...rest] = note.split('\n');
-  return rest.length > 0 ? `${first} …` : first;
-}
 
 /** An amount that Rust may leave out (a change or a repaid amount of none): a dash then. */
 function optionalAmount(value) {
@@ -23,11 +18,6 @@ function optionalAmount(value) {
 }
 
 // ---- Rendering ----
-
-function latestBalance(debt) {
-  if (debt.latest_balance === null) return h('span', { class: 'account-amount' }, '—');
-  return h('span', { class: 'account-amount' }, formatAmount(debt.latest_balance), h('small', {}, debt.latest_period));
-}
 
 /** The settlement badge of a settled debt, else Repaid while the latest balance is 0.00 (CSD-011 REQ-26). */
 function debtBadge(debt) {
@@ -38,77 +28,55 @@ function debtBadge(debt) {
 function renderDebts(overview) {
   debts = overview.debts;
   const hasDebts = debts.length > 0;
-  $('debts-empty').hidden = hasDebts;
-  $('debts-content').hidden = !hasDebts;
+  toggleEmpty('debts-empty', 'debts-content', hasDebts);
   $('debt-list').replaceChildren(
     ...debts.map((debt) =>
-      h(
-        'li',
-        { class: 'job-row' },
-        h('span', { class: 'job-name' }, debt.name),
-        h(
-          'span',
-          { class: 'job-meta' },
-          `${t(debt.category)} · ${t(debt.statement_period)}${debt.house_name ? ` · ${debt.house_name}` : ''} `,
-          debtBadge(debt),
-        ),
-        latestBalance(debt),
-        h(
-          'span',
-          { class: 'job-actions' },
-          iconButton('edit', t('Edit {name}', { name: debt.name }), () => openDebtDialog(debt)),
-          iconButton('delete', t('Delete {name}', { name: debt.name }), () => deleteDebt(debt)),
-        ),
-      ),
+      accountRow({
+        name: debt.name,
+        meta: [`${t(debt.category)} · ${t(debt.period)}${debt.house_name ? ` · ${debt.house_name}` : ''} `, debtBadge(debt)],
+        amount: latestAmount(debt.latest_balance, debt.latest_period),
+        edit: { label: t('Edit {name}', { name: debt.name }), onClick: () => openDebtDialog(debt) },
+        remove: { label: t('Delete {name}', { name: debt.name }), onClick: () => deleteDebt(debt) },
+      }),
     ),
   );
-  $('debt-total').hidden = !hasDebts;
-  $('debt-total-value').textContent = overview.total === null ? '—' : formatAmount(overview.total);
+  showTotal('debt-total', 'debt-total-value', overview.total, hasDebts);
 }
 
 /** Yearly totals over all debts, as returned by Rust (CSD-011 REQ-19). */
 function renderTotals(totals) {
-  $('debt-totals-empty').hidden = totals.length > 0;
-  $('debt-totals-table').hidden = totals.length === 0;
-  $('debt-totals-rows').replaceChildren(
-    ...totals.map((t) =>
-      h(
-        'tr',
-        {},
-        h('th', { scope: 'row' }, String(t.year)),
-        h('td', { class: 'num' }, formatAmount(t.closing_balance)),
-        h('td', { class: 'num' }, optionalAmount(t.repaid)),
-      ),
+  renderTable({ empty: 'debt-totals-empty', table: 'debt-totals-table', body: 'debt-totals-rows' }, totals, (total) =>
+    h(
+      'tr',
+      {},
+      rowHeader(String(total.year)),
+      numCell(formatAmount(total.closing_balance)),
+      numCell(optionalAmount(total.repaid)),
     ),
   );
 }
 
 function renderStatements(statements) {
-  $('debt-statements-empty').hidden = statements.length > 0;
-  $('debt-statements-table').hidden = statements.length === 0;
-  $('debt-statements-rows').replaceChildren(
-    ...statements.map((s) =>
+  renderTable({ empty: 'debt-statements-empty', table: 'debt-statements-table', body: 'debt-statements-rows' }, statements, (s) =>
+    h(
+      'tr',
+      {},
+      rowHeader(s.period),
+      h('td', { class: 'wrap' }, s.debt_name),
+      numCell(formatAmount(s.balance)),
+      numCell(optionalAmount(s.change)),
       h(
-        'tr',
-        {},
-        h('th', { scope: 'row' }, s.period),
-        h('td', { class: 'wrap' }, s.debt_name),
-        h('td', { class: 'num' }, formatAmount(s.balance)),
-        h('td', { class: 'num' }, optionalAmount(s.change)),
-        h(
-          'td',
-          { class: 'note-cell' },
-          noteSummary(s.note),
-          s.settlement && s.outcome ? h('span', { class: 'badge' }, t(s.outcome)) : '',
-        ),
-        // A statement of a settled debt, from its settlement period on, cannot change (CSD-020 REQ-18).
-        h(
-          'td',
-          { class: 'row-actions' },
-          s.locked ? '' : iconButton('edit', t('Edit {name} {period}', { name: s.debt_name, period: s.period }), () => openStatementDialog(s)),
-          s.locked ? '' : iconButton('delete', t('Delete {name} {period}', { name: s.debt_name, period: s.period }), () => deleteStatement(s)),
-        ),
+        'td',
+        { class: 'note-cell' },
+        noteSummary(s.note),
+        s.settlement && s.outcome ? h('span', { class: 'badge' }, t(s.outcome)) : '',
       ),
+      // A statement of a settled debt, from its settlement period on, cannot change (CSD-026 REQ-14).
+      recordActions({
+        locked: s.locked,
+        edit: { label: t('Edit {name} {period}', { name: s.debt_name, period: s.period }), onClick: () => statementForm.open(s) },
+        remove: { label: t('Delete {name} {period}', { name: s.debt_name, period: s.period }), onClick: () => deleteStatement(s) },
+      }),
     ),
   );
 }
@@ -133,7 +101,7 @@ async function changed() {
 
 let editingDebt = null;
 
-/** The House dropdown: no house and all houses, a sold one marked (CSD-020 REQ-14). */
+/** The House dropdown: no house and all houses, a sold one marked (CSD-020 REQ-30). */
 function fillHouseChoices(debt) {
   const form = $('debt-form');
   const select = form.elements.house_id;
@@ -142,15 +110,15 @@ function fillHouseChoices(debt) {
     ...houses.map((house) => h('option', { value: house.id }, house.held ? house.name : t('{name} (sold)', { name: house.name }))),
   );
   select.value = debt?.house_id ?? '';
-  // The link of a settled debt, or of a debt whose house is sold, cannot change (CSD-020 REQ-2, REQ-8).
+  // The link of a settled debt, or of a debt whose house is sold, cannot change (CSD-020 REQ-16, CSD-026 REQ-6).
   const locked = Boolean(debt && (debt.settlement || (debt.house_id && !houses.find((house) => house.id === debt.house_id)?.held)));
   select.disabled = locked;
   form.elements.category.disabled = locked && Boolean(debt.house_id);
-  $('debt-house-hint').hidden = !locked;
+  setHint('debt-house-hint', locked);
   applyCategory();
 }
 
-/** The House dropdown shows only for a Mortgage or a Loan (CSD-020 REQ-14). */
+/** The House dropdown shows only for a Mortgage or a Loan (CSD-020 REQ-30). */
 function applyCategory() {
   const form = $('debt-form');
   const linkable = ['Mortgage', 'Loan'].includes(form.elements.category.value);
@@ -160,26 +128,29 @@ function applyCategory() {
 
 function openDebtDialog(debt) {
   editingDebt = debt;
-  const form = $('debt-form');
-  form.reset();
-  $('debt-error').hidden = true;
-  $('debt-dialog-title').textContent = debt ? t('Edit debt') : t('Add debt');
-  // The statement period is locked once the debt has statements (CSD-011 REQ-5).
-  const locked = Boolean(debt && debt.statement_count > 0);
-  form.elements.statement_period.disabled = locked;
-  $('debt-period-hint').hidden = !locked;
-  if (debt) {
-    form.elements.name.value = debt.name;
-    form.elements.statement_period.value = debt.statement_period;
-    form.elements.category.value = debt.category;
-  }
-  fillHouseChoices(debt);
-  $('debt-dialog').showModal();
-  form.elements.name.focus();
+  openDialog({
+    dialog: 'debt-dialog',
+    form: 'debt-form',
+    error: 'debt-error',
+    title: 'debt-dialog-title',
+    titleText: debt ? t('Edit debt') : t('Add debt'),
+    focus: 'name',
+    fill(form) {
+      // The statement period is locked once the debt has statements (CSD-011 REQ-5).
+      const locked = Boolean(debt && debt.statement_count > 0);
+      form.elements.period.disabled = locked;
+      setHint('debt-period-hint', locked);
+      if (debt) {
+        form.elements.name.value = debt.name;
+        form.elements.period.value = debt.period;
+        form.elements.category.value = debt.category;
+      }
+      fillHouseChoices(debt);
+    },
+  });
 }
 
-async function submitDebt(event) {
-  event.preventDefault();
+function submitDebt() {
   const form = $('debt-form');
   const category = form.elements.category.value;
   const input = {
@@ -187,109 +158,59 @@ async function submitDebt(event) {
     category,
     house_id: ['Mortgage', 'Loan'].includes(category) ? form.elements.house_id.value : '',
   };
-  if (!form.elements.statement_period.disabled) {
-    input.statement_period = form.elements.statement_period.value;
+  if (!form.elements.period.disabled) {
+    input.period = form.elements.period.value;
   }
-  try {
-    // Linking to a house that is already sold settles the debt: Repaid or Cancelled (CSD-020 REQ-17).
-    const chosen = houses.find((house) => house.id === input.house_id);
-    if (editingDebt && chosen && !chosen.held && editingDebt.house_id !== chosen.id) {
-      const open = await invoke('debt_open_balance', { debtId: editingDebt.id, houseId: chosen.id });
-      if (open) {
-        const choices = await askSettlements([open]);
-        if (choices === null) return;
-        input.settlement = choices[0].outcome;
+  return saveDialog({
+    dialog: 'debt-dialog',
+    error: 'debt-error',
+    changed,
+    async save() {
+      // Linking to a house that is already sold settles the debt: Repaid or Cancelled (CSD-020 REQ-17).
+      const chosen = houses.find((house) => house.id === input.house_id);
+      if (editingDebt && chosen && !chosen.held && editingDebt.house_id !== chosen.id) {
+        const open = await invoke('debt_open_balance', { debtId: editingDebt.id, houseId: chosen.id });
+        if (open) {
+          const choices = await askSettlements([open]);
+          if (choices === null) return false;
+          input.settlement = choices[0].outcome;
+        }
       }
-    }
-    if (editingDebt) {
-      await invoke('update_debt', { debtId: editingDebt.id, input });
-    } else {
-      await invoke('create_debt', { input });
-    }
-    $('debt-dialog').close();
-    await changed();
-  } catch (error) {
-    showError('debt-error', error);
-  }
+      return editingDebt
+        ? invoke('update_debt', { debtId: editingDebt.id, input })
+        : invoke('create_debt', { input });
+    },
+  });
 }
 
-async function deleteDebt(debt) {
-  const confirmed = await confirmAction({
+function deleteDebt(debt) {
+  return deleteWithConfirm({
     title: t('Delete {name}?', { name: debt.name }),
     message: t('This debt and all its statements will be deleted.'),
     confirmLabel: t('Delete debt'),
-    danger: true,
+    command: 'delete_debt',
+    args: { debtId: debt.id },
+    changed,
   });
-  if (!confirmed) return;
-  try {
-    await invoke('delete_debt', { debtId: debt.id });
-    await changed();
-  } catch (error) {
-    showToast(errorText(error));
-  }
 }
 
 // ---- Statement dialog ----
 
-let editingStatement = null;
-/** Whether the form currently asks for a year, so the period resets only when it changes. */
-let formIsYearly = false;
+const statementForm = createRecordForm({
+  form: 'debt-statement-form',
+  dialog: 'debt-statement-dialog',
+  title: 'debt-statement-dialog-title',
+  error: 'debt-statement-error',
+  periodLabel: 'debt-statement-period-label',
+  copy: 'debt-statement-copy',
+  parentField: 'debt_id',
+  parents: () => debts,
+  valueFields: ['balance', 'note'],
+  focusField: 'balance',
+  titleText: (statement) => (statement ? t('Edit statement {period}', { period: statement.period }) : t('Add statement')),
+});
 
-function fillDebtChoices(selectedId) {
-  // The list is alphabetical, so the first option is the first debt by name.
-  const select = $('debt-statement-form').elements.debt_id;
-  select.replaceChildren(...debts.map((debt) => h('option', { value: debt.id }, debt.name)));
-  select.value = selectedId ?? debts[0]?.id ?? '';
-}
-
-function chosenDebt() {
-  return debts.find((debt) => debt.id === $('debt-statement-form').elements.debt_id.value);
-}
-
-/** Asks for a month or a year, following the chosen debt (CSD-011 REQ-16). */
-function applyStatementPeriod({ resetPeriod }) {
-  const form = $('debt-statement-form');
-  const yearly = chosenDebt()?.statement_period === 'Yearly';
-  $('debt-statement-period-label').textContent = yearly ? t('Year') : t('Month');
-  form.elements.period.placeholder = yearly ? String(new Date().getFullYear() - 1) : t('yyyy-mm');
-  form.elements.period.maxLength = yearly ? 4 : 7;
-  $('debt-statement-copy').textContent = yearly ? t('Copy previous year') : t('Copy previous month');
-  if (resetPeriod && yearly !== formIsYearly) {
-    form.elements.period.value = yearly ? currentYear() : currentMonth();
-  }
-  formIsYearly = yearly;
-}
-
-/** Opens the form to add a statement, or to edit `statement` when given. */
-function openStatementDialog(statement = null) {
-  editingStatement = statement;
-  const form = $('debt-statement-form');
-  form.reset();
-  $('debt-statement-error').hidden = true;
-  fillDebtChoices(statement?.debt_id);
-  form.elements.debt_id.disabled = Boolean(statement);
-  $('debt-statement-copy').hidden = Boolean(statement);
-  if (statement) {
-    // The period is editable too; the debt is not (CSD-011 REQ-12).
-    $('debt-statement-dialog-title').textContent = t('Edit statement {period}', { period: statement.period });
-    $('debt-statement-period-label').textContent = statement.period.length === 4 ? t('Year') : t('Month');
-    form.elements.period.maxLength = statement.period.length;
-    form.elements.period.value = statement.period;
-    formIsYearly = statement.period.length === 4;
-    form.elements.balance.value = statement.balance;
-    form.elements.note.value = statement.note;
-  } else {
-    $('debt-statement-dialog-title').textContent = t('Add statement');
-    formIsYearly = null; // force the period to its default for the first debt
-    form.elements.period.value = '';
-    applyStatementPeriod({ resetPeriod: true });
-  }
-  $('debt-statement-dialog').showModal();
-  (statement ? form.elements.balance : form.elements.period).focus();
-}
-
-async function submitStatement(event) {
-  event.preventDefault();
+function submitStatement() {
   const form = $('debt-statement-form');
   const args = {
     debtId: form.elements.debt_id.value,
@@ -297,18 +218,17 @@ async function submitStatement(event) {
     balance: form.elements.balance.value,
     note: form.elements.note.value,
   };
-  try {
-    if (editingStatement) {
-      // The statement is found by its current period; the field holds the new one (CSD-011 REQ-12).
-      await invoke('update_debt_statement', { ...args, period: editingStatement.period, newPeriod: args.period });
-    } else {
-      await invoke('add_debt_statement', args);
-    }
-    $('debt-statement-dialog').close();
-    await changed();
-  } catch (error) {
-    showError('debt-statement-error', error);
-  }
+  const editing = statementForm.editing;
+  return saveDialog({
+    dialog: 'debt-statement-dialog',
+    error: 'debt-statement-error',
+    changed,
+    save: () =>
+      editing
+        ? // The statement is found by its current period; the field holds the new one (CSD-011 REQ-12).
+          invoke('update_debt_statement', { ...args, period: editing.period, newPeriod: args.period })
+        : invoke('add_debt_statement', args),
+  });
 }
 
 /** Fills the balance from the latest statement of the debt chosen in the form (CSD-011 REQ-15). */
@@ -323,30 +243,25 @@ async function copyPrevious() {
   }
 }
 
-async function deleteStatement(statement) {
-  const confirmed = await confirmAction({
+function deleteStatement(statement) {
+  return deleteWithConfirm({
     title: t('Delete the statement of {period}?', { period: statement.period }),
     message: t('The statement of {period} of {name} and its note will be deleted.', { period: statement.period, name: statement.debt_name }),
     confirmLabel: t('Delete statement'),
-    danger: true,
+    command: 'delete_debt_statement',
+    args: { debtId: statement.debt_id, period: statement.period },
+    changed,
   });
-  if (!confirmed) return;
-  try {
-    await invoke('delete_debt_statement', { debtId: statement.debt_id, period: statement.period });
-    await changed();
-  } catch (error) {
-    showToast(errorText(error));
-  }
 }
 
 export function initDebtsOverview({ onChanged: callback }) {
   onChanged = callback;
   $('debt-add').addEventListener('click', () => openDebtDialog(null));
   $('debt-add-first').addEventListener('click', () => openDebtDialog(null));
-  $('debt-form').addEventListener('submit', submitDebt);
+  submitOnce($('debt-form'), submitDebt);
   $('debt-form').elements.category.addEventListener('change', applyCategory);
-  $('debt-statement-add').addEventListener('click', () => openStatementDialog());
+  $('debt-statement-add').addEventListener('click', () => statementForm.open());
   $('debt-statement-copy').addEventListener('click', copyPrevious);
-  $('debt-statement-form').addEventListener('submit', submitStatement);
-  $('debt-statement-form').elements.debt_id.addEventListener('change', () => applyStatementPeriod({ resetPeriod: true }));
+  submitOnce($('debt-statement-form'), submitStatement);
+  $('debt-statement-form').elements.debt_id.addEventListener('change', () => statementForm.apply({ resetPeriod: true }));
 }

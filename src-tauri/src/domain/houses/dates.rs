@@ -8,9 +8,9 @@ use time::Date;
 
 use crate::domain::error::DomainError;
 
-const FIRST_YEAR: i32 = 1900;
+const FIRST_YEAR: i32 = 1;
 
-/// A calendar day from 01/01/1900. The user types and sees `dd/mm/yyyy`; the
+/// A calendar day from 01/01/0001. The user types and sees `dd/mm/yyyy`; the
 /// project file and IPC hold `YYYY-MM-DD`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct HouseDate(Date);
@@ -23,20 +23,15 @@ impl HouseDate {
         Ok(Self(date))
     }
 
-    /// Parses `dd/mm/yyyy` as typed by the user. `today` is valid, a later
-    /// date is not.
+    /// Parses `dd/mm/yyyy` as typed by the user.
     ///
     /// # Errors
     /// Returns `HouseDateInvalid` for text that is not a real date from
-    /// 01/01/1900, and `HouseDateInFuture` for a date after `today`.
-    pub fn parse(text: &str, today: Date) -> Result<Self, DomainError> {
-        let date = Date::parse(text.trim(), format_description!("[day]/[month]/[year]"))
+    /// 01/01/0001.
+    pub fn parse(text: &str) -> Result<Self, DomainError> {
+        Date::parse(text.trim(), format_description!("[day]/[month]/[year]"))
             .map_err(|_| DomainError::HouseDateInvalid)
-            .and_then(Self::new)?;
-        if date.0 > today {
-            return Err(DomainError::HouseDateInFuture);
-        }
-        Ok(date)
+            .and_then(Self::new)
     }
 
     /// The calendar year.

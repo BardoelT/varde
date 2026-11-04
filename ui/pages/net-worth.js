@@ -3,12 +3,13 @@
 // shared/yearly-chart.js; this file supplies what is specific to it: the four
 // series (houses, investments and cash above the zero line, debts below it) and
 // the net worth marker.
-import { h, showToast } from '../shared/dom.js';
+import { showToast } from '../shared/dom.js';
 import { errorText } from '../shared/ipc.js';
 import { formatAmount } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
-import { swatch, legendLabel, legendItem, tooltipRow, topToBottom } from '../shared/chart.js';
-import { createYearlyChart, levelMarker, isNegative, yearLabel } from '../shared/yearly-chart.js';
+import { swatch, legendLabel, tooltipRow, topToBottom } from '../shared/chart.js';
+import { createYearlyChart, isNegative, yearLabel } from '../shared/yearly-chart.js';
+import { fillLegend, markerDecorator, tooltipFrame, yearLabelLines } from '../shared/insights-page.js';
 
 /** The series from the bottom of the bar up: the Rust field, the legend key, the colour class and the label (English; shown through `t`). */
 const SERIES = [
@@ -18,17 +19,17 @@ const SERIES = [
   ['debts', 'debts', 'nw-debts', 'Debts'],
 ];
 
-/** The signed value of a series: debts count below the zero line (CSD-017 REQ-6). */
-const signed = (row, field) => (field === 'debts' ? -Number(row.debts) : Number(row[field]));
+/** Whether Rust drew a piece of the series below the zero line: that is a debt (or an overdrawn bank's cash) with a figure. */
+const hangs = (row, field) => row.pieces.some((piece) => piece.series === field && piece.hangs);
 
-/** A debt is shown with a minus sign (CSD-017 REQ-10); the other amounts as they are. */
-const shown = (row, field) => (field === 'debts' && Number(row.debts) !== 0 ? `−${formatAmount(row.debts)}` : formatAmount(row[field]));
+/** A debt is shown with a minus sign when it has a figure (CSD-017 REQ-10); the other amounts as they are. */
+const shown = (row, field) => (field === 'debts' && hangs(row, 'debts') ? `-${formatAmount(row.debts)}` : formatAmount(row[field]));
 
 /** The series in the order the bar shows them, top to bottom; debts, which hang below the zero line, come last. */
 function rowsTopToBottom(row) {
   const [debts] = SERIES.filter(([field]) => field === 'debts');
   const others = SERIES.filter(([field]) => field !== 'debts');
-  return [...topToBottom(others, ([field]) => signed(row, field)), debts];
+  return [...topToBottom(others, ([field]) => field, row.pieces), debts];
 }
 
 function describe(row) {
@@ -50,50 +51,21 @@ function tooltipContent(row) {
         ...tooltipRow('marker', swatch('marker'), t('Net worth'), formatAmount(row.net_worth), isNegative(row.net_worth) ? 'negative' : ''),
       ]
     : [];
-  return [
-    h('div', { class: 'tip-title' }, yearLabel(row)),
-    row.is_partial ? h('div', { class: 'tip-note' }, t('Partial year: figures so far')) : null,
-    row.has_records ? null : h('div', { class: 'tip-note' }, t('No records')),
-    h('dl', {}, ...rows),
-  ].filter(Boolean);
+  return tooltipFrame({ row, partialNote: t('Partial year: figures so far'), emptyNote: t('No records'), isEmpty: !row.has_records, rows });
 }
 
-/**
- * The segments of a year: positive values rise from the zero line in the order of
- * `SERIES`, negative ones (debts, and cash of an overdrawn bank) hang down from it.
- * The outer corners of the highest and the lowest segment are rounded.
- */
-function piecesOf(row) {
-  let up = 0;
-  let down = 0;
-  const pieces = [];
-  for (const [field, key, cssClass, label] of SERIES) {
-    const value = signed(row, field);
-    if (value === 0) continue;
-    const piece = { key, cssClass: `bar-${cssClass}`, label: `${t(label)}, ${row.year}, ${shown(row, field)}`, rounding: false };
-    if (value > 0) {
-      pieces.push({ ...piece, low: up, high: up + value, hangs: false });
-      up += value;
-    } else {
-      pieces.push({ ...piece, low: down + value, high: down, hangs: true });
-      down += value;
-    }
-  }
-  const highest = pieces.filter((piece) => !piece.hangs).at(-1);
-  const lowest = pieces.filter((piece) => piece.hangs).at(-1);
-  if (highest) highest.rounding = 'top';
-  if (lowest) lowest.rounding = 'bottom';
-  return pieces;
+/** How a received piece looks: the colour class of its series, and its accessible name. */
+function pieceStyle(row, piece) {
+  const [field, , cssClass, label] = SERIES.find(([key]) => key === piece.series);
+  return { cssClass: `bar-${cssClass}`, label: `${t(label)}, ${row.year}, ${shown(row, field)}` };
 }
 
 /** The legend: the four series and the net worth marker; hovering one highlights it in every year. */
 function buildLegend() {
-  const legendList = document.getElementById('net-worth-insights-legend');
-  const scopes = () => [legendList, document.getElementById('net-worth-insights-chart')];
-  legendList.replaceChildren(
-    ...SERIES.map(([, key, cssClass, label]) => legendItem(key, swatch(cssClass), legendLabel(t(label)), scopes)),
-    legendItem('marker', swatch('marker'), legendLabel(t('Net worth')), scopes),
-  );
+  fillLegend('net-worth-insights', [
+    ...SERIES.map(([, key, cssClass, label]) => [key, swatch(cssClass), legendLabel(t(label))]),
+    ['marker', swatch('marker'), legendLabel(t('Net worth'))],
+  ]);
 }
 
 const chart = createYearlyChart({
@@ -101,13 +73,12 @@ const chart = createYearlyChart({
   command: 'get_net_worth_insights',
   ariaLabel: 'Net worth per year', // shown through `t` by the chart
   onLoaded: buildLegend,
-  piecesOf,
-  extraLevels: (row) => [Number(row.net_worth)],
+  pieceStyle,
   describe,
   tooltipContent,
-  /** The net worth marker, drawn for each year that has records. */
-  decorate: (row, geometry) => (row.has_records ? levelMarker(Number(row.net_worth), geometry) : []),
-  labelLines: (row) => [{ text: yearLabel(row), className: 'chart-year' }],
+  /** The net worth marker, as Rust delivers it. */
+  decorate: markerDecorator,
+  labelLines: yearLabelLines,
 });
 
 

@@ -1,11 +1,10 @@
-// Small helpers shared by the SVG charts (CSD-006 and CSD-007). They turn
-// numbers into positions and labels and handle the tooltip and the legend
-// highlight; the figures themselves come from Rust.
+// Small helpers shared by the SVG charts (CSD-006 and CSD-007). They draw what Rust
+// returned (CSD-025): positions, shapes, the tooltip and the legend highlight. Figures
+// and labels come from Rust and are not computed here.
 
 import { h } from './dom.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
-const TICK_INTERVALS = 4;
 
 export function svg(tag, attrs = {}, ...children) {
   const node = document.createElementNS(SVG_NS, tag);
@@ -14,22 +13,11 @@ export function svg(tag, attrs = {}, ...children) {
   return node;
 }
 
-/** Axis top and tick values: a round step, with the top at or above `max`. */
-export function niceScale(max) {
-  const rawStep = max / TICK_INTERVALS;
-  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
-  const step = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= rawStep);
-  const intervals = Math.ceil(max / step);
-  return { top: intervals * step, ticks: Array.from({ length: intervals + 1 }, (_, i) => i * step) };
-}
-
-/** 2500 -> "2.5k", 10000 -> "10k", 1500000 -> "1.5M". */
-export function compact(value) {
-  const trim = (n) => String(Number(n.toFixed(2)));
-  if (value >= 1_000_000) return `${trim(value / 1_000_000)}M`;
-  if (value >= 1_000) return `${trim(value / 1_000)}k`;
-  return trim(value);
-}
+/**
+ * The one place a received decimal string becomes a number: for a position on the chart and
+ * nothing else (CSD-025 REQ-5). Nothing shown is ever built from its result.
+ */
+export const toPosition = (text) => Number.parseFloat(text);
 
 const clamp = (value, low, high) => Math.min(Math.max(value, low), Math.max(high, low));
 
@@ -72,14 +60,16 @@ export function tooltipRow(legend, swatchNode, label, value, cssClass = '') {
 }
 
 /**
- * The segments in the order their bars show them from top to bottom: the ones that rise
- * from the zero line, highest first, then the ones that hang below it, nearest first.
- * A tooltip lists its rows in this order, so it reads like the bar.
+ * The items in the order their bars show them from top to bottom: the ones that rise from the
+ * zero line, highest first, then the ones that hang below it, nearest first. A tooltip lists
+ * its rows in this order, so it reads like the bar. Whether an item hangs is what Rust says of
+ * its piece (`hangs`, matched by the legend key `seriesOf(item)`); an item without a piece
+ * (a value of 0.00) rises. No amount is compared.
  */
-export function topToBottom(segments, valueOf) {
-  const rising = segments.filter((segment) => Number(valueOf(segment)) >= 0).reverse();
-  const hanging = segments.filter((segment) => Number(valueOf(segment)) < 0);
-  return [...rising, ...hanging];
+export function topToBottom(items, seriesOf, pieces) {
+  const hanging = new Set(pieces.filter((piece) => piece.hangs).map((piece) => piece.series));
+  const hangs = (item) => hanging.has(seriesOf(item));
+  return [...items.filter((item) => !hangs(item)).reverse(), ...items.filter(hangs)];
 }
 
 /** A legend label whose heavier weight takes no extra width, so highlighting never moves its neighbours. */

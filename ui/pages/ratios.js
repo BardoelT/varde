@@ -1,17 +1,15 @@
 // Ratios: the table on the Ratios page, with the years as columns (CSD-018). The
 // figures come from Rust; this file only lays them out.
 import { invoke, errorText } from '../shared/ipc.js';
-import { h, iconButton, showToast } from '../shared/dom.js';
+import { $, h, iconButton, showToast } from '../shared/dom.js';
 import { formatAmount } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
-import { percentLabel, isNegative, yearLabel } from '../shared/yearly-chart.js';
-
-const $ = (id) => document.getElementById(id);
+import { isNegative, yearLabel } from '../shared/yearly-chart.js';
 
 /** An amount, or a dash when Rust has none (CSD-018 REQ-10). */
 const amountCell = (value) => (value === null ? '–' : formatAmount(value));
-/** A percentage with its sign, or a dash. */
-const percentCell = (value) => percentLabel(value);
+/** A percentage as Rust labels it ("+6.09%", "-2.50%", "0.00%" or a dash): the `<field>_label` of the row, shown as received. */
+const percentCell = (_value, row, field) => row[`${field}_label`];
 
 /** The rows of the table under their sub-headings: label, field, how to show it and how it is calculated (CSD-018 REQ-3, REQ-13). The texts are English; they are shown through `t`. */
 const GROUPS = [
@@ -21,7 +19,7 @@ const GROUPS = [
     ['Wealth accumulation from cash', 'wealth_accumulation', amountCell,
       'The increase of the bank accounts, plus the net deposits to the investments, plus the debt repaid in the year. Houses are not counted. Shown as – when none of these has data.'],
     ['Percentage of income to wealth', 'wealth_percent', percentCell,
-      'The wealth accumulation divided by the total income, times 100. Shown as – when either is missing or the total income is 0.00.'],
+      'The wealth accumulation from cash divided by the total income, times 100. Shown as – when either is missing or the total income is 0.00.'],
   ]],
   ['Growth', [
     ['Growth of investments', 'investment_growth_percent', percentCell,
@@ -31,7 +29,7 @@ const GROUPS = [
   ]],
   ['Free income', [
     ['Disposable income', 'disposable_income', amountCell,
-      'The wealth accumulation plus the expenses of the year: what was set aside plus what was spent. Shown as – when there is no wealth accumulation.'],
+      'The wealth accumulation from cash plus the expenses of the year: what was set aside plus what was spent. Shown as – when there is no wealth accumulation from cash.'],
     ['Percentage of disposable income', 'disposable_percent', percentCell,
       'The disposable income divided by the total income, times 100. Shown as – when either is missing or the total income is 0.00.'],
   ]],
@@ -90,7 +88,7 @@ function renderTable(years) {
         ...years.map((row) => {
           const value = row[field];
           const negative = value !== null && isNegative(value);
-          return h('td', { class: `num${negative ? ' negative' : ''}` }, show(value));
+          return h('td', { class: `num${negative ? ' negative' : ''}` }, show(value, row, field));
         }),
       ),
     ),

@@ -1,6 +1,7 @@
 use super::*;
-use crate::domain::income::PayPeriod;
-use crate::domain::series::COLOUR_SLOTS;
+use crate::domain::common::ColourSlot;
+use crate::domain::common::PayPeriod;
+use crate::domain::YearMonth;
 
 fn period(text: &str) -> Period {
     parse_period(text).unwrap()
@@ -17,7 +18,7 @@ fn balance(text: &str) -> DebtBalance {
 fn input(name: &str, period: &str) -> DebtInput {
     DebtInput {
         name: name.to_owned(),
-        statement_period: Some(period.to_owned()),
+        period: Some(period.to_owned()),
     }
 }
 
@@ -27,14 +28,14 @@ fn debt(debts: &mut Debts, name: &str, period: &str) -> DebtId {
 
 fn add(debts: &mut Debts, id: DebtId, at: &str, amount: &str) {
     debts
-        .add_statement(id, period(at), balance(amount), Note::default(), today())
+        .add_statement(id, period(at), balance(amount), Note::default())
         .unwrap();
 }
 
 fn add_error(debts: &mut Debts, id: DebtId, at: &str, amount: &str) -> DomainError {
     match parse_period(at)
         .and_then(|p| DebtBalance::parse(amount).map(|b| (p, b)))
-        .and_then(|(p, b)| debts.add_statement(id, p, b, Note::default(), today()))
+        .and_then(|(p, b)| debts.add_statement(id, p, b, Note::default()))
     {
         Ok(_) => panic!("expected an error"),
         Err(error) => error,
@@ -58,7 +59,6 @@ fn update(
         period(to),
         balance(amount),
         Note::default(),
-        today(),
     )
 }
 
@@ -82,10 +82,10 @@ fn test_csd011_ac_1_1_a_debt_is_monthly_by_default() {
     let created = debts
         .create_debt(&DebtInput {
             name: "Example Mortgage".to_owned(),
-            statement_period: None,
+            period: None,
         })
         .unwrap();
-    assert_eq!(created.statement_period, PayPeriod::Monthly);
+    assert_eq!(created.period, PayPeriod::Monthly);
     assert_eq!(debts.statement_count(created.id), 0);
 }
 
@@ -93,7 +93,7 @@ fn test_csd011_ac_1_1_a_debt_is_monthly_by_default() {
 fn test_csd011_ac_1_2_a_yearly_debt() {
     let mut debts = Debts::default();
     debt(&mut debts, "Example Student Loan", "Yearly");
-    assert_eq!(debts.debts()[0].statement_period, PayPeriod::Yearly);
+    assert_eq!(debts.debts()[0].period, PayPeriod::Yearly);
 }
 
 #[test]
@@ -173,6 +173,7 @@ fn test_csd011_ac_3_1_slots_follow_creation_order() {
                 .create_debt(&input(name, "Monthly"))
                 .unwrap()
                 .colour_slot
+                .get()
         })
         .collect();
     assert_eq!(slots, [0, 1, 2]);
@@ -181,14 +182,15 @@ fn test_csd011_ac_3_1_slots_follow_creation_order() {
 #[test]
 fn test_csd011_ac_3_2_slots_cycle_after_eight_debts() {
     let mut debts = Debts::default();
-    for index in 0..COLOUR_SLOTS {
+    for index in 0..ColourSlot::COUNT {
         debt(&mut debts, &format!("Debt {index}"), "Monthly");
     }
     assert_eq!(
         debts
             .create_debt(&input("Debt 9", "Monthly"))
             .unwrap()
-            .colour_slot,
+            .colour_slot
+            .get(),
         0
     );
 }
@@ -200,7 +202,7 @@ fn test_csd011_ac_3_3_deleting_a_debt_does_not_recolour_the_others() {
     debt(&mut debts, "B", "Monthly");
     debt(&mut debts, "C", "Monthly");
     debts.delete_debt(first).unwrap();
-    let slots: Vec<u8> = debts.debts().iter().map(|d| d.colour_slot).collect();
+    let slots: Vec<u8> = debts.debts().iter().map(|d| d.colour_slot.get()).collect();
     assert_eq!(slots, [1, 2]);
 }
 
@@ -215,7 +217,8 @@ fn test_csd011_ac_3_4_a_freed_slot_is_used_first() {
         debts
             .create_debt(&input("D", "Monthly"))
             .unwrap()
-            .colour_slot,
+            .colour_slot
+            .get(),
         1
     );
 }
@@ -229,7 +232,7 @@ fn test_csd011_ac_3_5_renaming_keeps_the_slot() {
     let renamed = debts
         .update_debt(third, &input("Renamed", "Monthly"))
         .unwrap();
-    assert_eq!(renamed.colour_slot, 2);
+    assert_eq!(renamed.colour_slot.get(), 2);
 }
 
 // REQ-4 to REQ-6
@@ -253,7 +256,7 @@ fn test_csd011_ac_4_2_the_period_of_a_debt_without_statements_can_change() {
     let changed = debts
         .update_debt(id, &input("Example Mortgage", "Yearly"))
         .unwrap();
-    assert_eq!(changed.statement_period, PayPeriod::Yearly);
+    assert_eq!(changed.period, PayPeriod::Yearly);
 }
 
 #[test]
@@ -278,7 +281,7 @@ fn test_csd011_ac_5_1_the_period_is_locked_once_statements_exist() {
     add(&mut debts, id, "2026-09", "100.00");
     let result = debts.update_debt(id, &input("Example Mortgage", "Yearly"));
     assert_eq!(code(result), "DEBT_PERIOD_LOCKED");
-    assert_eq!(debts.debts()[0].statement_period, PayPeriod::Monthly);
+    assert_eq!(debts.debts()[0].period, PayPeriod::Monthly);
 }
 
 #[test]
@@ -328,7 +331,6 @@ fn test_csd011_ac_7_1_a_monthly_statement_with_a_note() {
             period("2026-09"),
             balance("150000.00"),
             debt_note("Paid extra").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(statement.balance.value().to_string(), "150000.00");
@@ -352,20 +354,31 @@ fn test_csd011_ac_7_3_old_periods_are_accepted() {
 }
 
 #[test]
-fn test_csd011_ac_7_4_the_current_period_is_accepted_and_a_later_one_is_not() {
+fn test_csd011_ac_7_4_current_and_future_periods_are_accepted() {
     let mut debts = Debts::default();
     let monthly = debt(&mut debts, "Monthly", "Monthly");
     let yearly = debt(&mut debts, "Yearly", "Yearly");
-    add(&mut debts, monthly, "2026-10", "1000.00");
-    add(&mut debts, yearly, "2026", "1000.00");
-    assert_eq!(
-        add_error(&mut debts, monthly, "2026-11", "1000.00").code(),
-        "DEBT_STATEMENT_IN_FUTURE"
-    );
-    assert_eq!(
-        add_error(&mut debts, yearly, "2027", "1000.00").code(),
-        "DEBT_STATEMENT_IN_FUTURE"
-    );
+    for (id, text) in [
+        (monthly, "2026-10"),
+        (monthly, "2026-11"),
+        (yearly, "2026"),
+        (yearly, "2027"),
+    ] {
+        add(&mut debts, id, text, "1000.00");
+    }
+    assert_eq!(debts.statement_count(monthly), 2);
+    assert_eq!(debts.statement_count(yearly), 2);
+}
+
+#[test]
+fn test_csd011_ac_7_6_a_period_has_no_date_bounds() {
+    let mut debts = Debts::default();
+    let monthly = debt(&mut debts, "Monthly", "Monthly");
+    let yearly = debt(&mut debts, "Yearly", "Yearly");
+    add(&mut debts, monthly, "1850-03", "1000.00");
+    add(&mut debts, yearly, "1899", "1000.00");
+    assert_eq!(debts.statement_count(monthly), 1);
+    assert_eq!(debts.statement_count(yearly), 1);
 }
 
 #[test]
@@ -379,7 +392,6 @@ fn test_csd011_ac_7_5_an_invalid_period_is_rejected() {
         (monthly, "abcd"),
         (yearly, "26"),
         (yearly, "abcd"),
-        (yearly, "1899"),
     ] {
         assert_eq!(
             add_error(&mut debts, id, text, "1000.00").code(),
@@ -399,7 +411,6 @@ fn test_csd011_ac_8_1_a_duplicate_period_is_rejected() {
             period("2026-09"),
             balance("150000.00"),
             debt_note("First").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(
@@ -422,7 +433,7 @@ fn test_csd011_ac_8_2_the_same_period_on_another_debt_is_allowed() {
 }
 
 #[test]
-fn test_csd011_ac_9_a_statement_must_match_the_statement_period() {
+fn test_csd011_ac_9_1_a_statement_must_match_the_statement_period() {
     let mut debts = Debts::default();
     let yearly = debt(&mut debts, "Yearly", "Yearly");
     let monthly = debt(&mut debts, "Monthly", "Monthly");
@@ -446,11 +457,47 @@ fn test_csd011_ac_10_1_invalid_balances_are_rejected() {
         ("1e3", "DEBT_STATEMENT_BALANCE_INVALID"),
         ("2500,50", "DEBT_STATEMENT_BALANCE_INVALID"),
         ("-0.01", "DEBT_STATEMENT_BALANCE_NEGATIVE"),
-        ("1000.999", "DEBT_STATEMENT_BALANCE_PRECISION"),
         ("1000000000.01", "DEBT_STATEMENT_BALANCE_TOO_LARGE"),
     ] {
         assert_eq!(code(DebtBalance::parse(text)), expected, "{text:?}");
     }
+}
+
+#[test]
+fn test_csd011_ac_29_1_a_typed_balance_is_rounded_half_up() {
+    for (typed, stored) in [
+        ("3000.505", "3000.51"),
+        ("1.004", "1.00"),
+        ("1.005", "1.01"),
+        ("1000.999", "1001.00"),
+        ("0.004", "0.00"),
+        ("-0.004", "0.00"),
+        ("150000.5", "150000.50"),
+    ] {
+        assert_eq!(balance(typed).value().to_string(), stored, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd011_ac_29_2_the_limit_is_checked_after_rounding() {
+    assert_eq!(
+        balance("1000000000.004").value().to_string(),
+        "1000000000.00"
+    );
+    for (typed, expected) in [
+        ("1000000000.005", "DEBT_STATEMENT_BALANCE_TOO_LARGE"),
+        ("-0.005", "DEBT_STATEMENT_BALANCE_NEGATIVE"),
+    ] {
+        assert_eq!(code(DebtBalance::parse(typed)), expected, "{typed}");
+    }
+}
+
+#[test]
+fn test_csd011_ac_29_3_a_typed_balance_in_an_edit_is_rounded() {
+    let mut debts = Debts::default();
+    let id = debt(&mut debts, "Example Mortgage", "Monthly");
+    add(&mut debts, id, "2026-09", "150000.00");
+    assert_eq!(balance("1000.999").value().to_string(), "1001.00");
 }
 
 #[test]
@@ -476,7 +523,7 @@ fn test_csd011_ac_10_3_an_invalid_balance_in_an_edit_changes_nothing() {
 }
 
 #[test]
-fn test_csd011_ac_11_note_length_and_line_breaks() {
+fn test_csd011_ac_11_1_note_length_and_line_breaks() {
     assert!(debt_note(&"a".repeat(2000)).is_ok());
     assert_eq!(
         code(debt_note(&"a".repeat(2001))),
@@ -502,7 +549,6 @@ fn test_csd011_ac_12_1_edit_balance_and_note_and_clear_the_note() {
             period("2026-09"),
             balance("149000.00"),
             debt_note("Corrected").unwrap(),
-            today(),
         )
         .unwrap();
     assert_eq!(edited.balance.value().to_string(), "149000.00");
@@ -521,7 +567,6 @@ fn test_csd011_ac_12_3_a_statement_moves_to_another_month() {
             period("2026-09"),
             balance("150000.00"),
             debt_note("First").unwrap(),
-            today(),
         )
         .unwrap();
     debts
@@ -531,7 +576,6 @@ fn test_csd011_ac_12_3_a_statement_moves_to_another_month() {
             period("2026-08"),
             balance("150000.00"),
             debt_note("First").unwrap(),
-            today(),
         )
         .unwrap();
     let rows = debts.all_statements();
@@ -584,20 +628,16 @@ fn test_csd011_ac_12_8_keeping_the_period_is_not_a_duplicate() {
 }
 
 #[test]
-fn test_csd011_ac_13_1_a_new_period_in_the_future_is_rejected() {
+fn test_csd011_ac_13_1_a_period_in_the_future_is_accepted() {
     let mut debts = Debts::default();
     let monthly = debt(&mut debts, "Monthly", "Monthly");
     let yearly = debt(&mut debts, "Yearly", "Yearly");
     add(&mut debts, monthly, "2026-09", "1000.00");
     add(&mut debts, yearly, "2025", "1000.00");
-    assert_eq!(
-        code(update(&mut debts, monthly, "2026-09", "2026-11", "1.00")),
-        "DEBT_STATEMENT_IN_FUTURE"
-    );
-    assert_eq!(
-        code(update(&mut debts, yearly, "2025", "2027", "1.00")),
-        "DEBT_STATEMENT_IN_FUTURE"
-    );
+    let moved = update(&mut debts, monthly, "2026-09", "2026-11", "1.00").unwrap();
+    assert_eq!(moved.period.to_string(), "2026-11");
+    let moved = update(&mut debts, yearly, "2025", "2027", "1.00").unwrap();
+    assert_eq!(moved.period.to_string(), "2027");
 }
 
 #[test]
@@ -676,7 +716,7 @@ fn test_csd011_ac_14_1_deleting_a_statement_removes_only_that_statement() {
 }
 
 #[test]
-fn test_csd011_ac_15_copy_previous() {
+fn test_csd011_ac_15_1_copy_previous() {
     let mut debts = Debts::default();
     let id = debt(&mut debts, "Example Mortgage", "Monthly");
     // AC-15.2: nothing to copy yet.
@@ -688,7 +728,6 @@ fn test_csd011_ac_15_copy_previous() {
             period("2026-08"),
             balance("150000.00"),
             debt_note("Paid extra").unwrap(),
-            today(),
         )
         .unwrap();
     // AC-15.1: the latest balance, and nothing is stored.
@@ -1061,10 +1100,6 @@ fn test_csd011_a_damaged_section_is_not_consistent() {
     add(&mut debts, id, "2026-09", "150000.00");
     assert!(debts.validate().is_ok());
 
-    let mut bad_slot = debts.clone();
-    bad_slot.debts[0].colour_slot = COLOUR_SLOTS;
-    assert_eq!(code(bad_slot.validate()), "DEBT_DATA_INVALID");
-
     let mut orphan = debts.clone();
     orphan.debts.clear();
     assert_eq!(code(orphan.validate()), "DEBT_DATA_INVALID");
@@ -1078,7 +1113,7 @@ fn test_csd011_a_damaged_section_is_not_consistent() {
 // CSD-012 REQ-2 to REQ-5
 
 #[test]
-fn test_csd012_ac_2_the_series_runs_from_the_first_statement_to_the_current_year() {
+fn test_csd012_ac_2_1_the_series_runs_from_the_first_statement_to_the_current_year() {
     let mut debts = Debts::default();
     let id = debt(&mut debts, "Example Mortgage", "Monthly");
     add(&mut debts, id, "2024-03", "100.00");
@@ -1117,7 +1152,7 @@ fn test_csd012_ac_3_1_a_gap_year_is_zero_without_segments() {
 }
 
 #[test]
-fn test_csd012_ac_4_the_current_year_is_partial_even_without_statements() {
+fn test_csd012_ac_4_2_the_current_year_is_partial_even_without_statements() {
     let mut debts = Debts::default();
     let id = debt(&mut debts, "Example Student Loan", "Yearly");
     add(&mut debts, id, "2025", "100.00");
@@ -1261,4 +1296,129 @@ fn test_csd011_ac_26_3_a_debt_without_statements_has_no_mark() {
     let mut debts = Debts::default();
     debt(&mut debts, "Example Card", "Monthly");
     assert!(!debts.overview().debts[0].repaid);
+}
+
+#[test]
+fn test_csd017_ac_15_2_a_debt_statement_after_the_current_year_extends_the_series() {
+    let mut debts = Debts::default();
+    let id = debt(&mut debts, "Example Loan", "Monthly");
+    add(&mut debts, id, "2024-03", "100.00");
+    add(&mut debts, id, "2027-05", "50.00");
+    let years = debts.insights(today()).years;
+    let numbers: Vec<i32> = years.iter().map(|y| y.year).collect();
+    assert_eq!(numbers, [2024, 2025, 2026, 2027]);
+    assert!(!years[3].is_partial);
+    assert_eq!(years[3].closing_balance.to_string(), "50.00");
+}
+
+#[test]
+fn test_csd017_ac_2_4_a_very_old_debt_statement_gets_no_slot() {
+    let mut debts = Debts::default();
+    let id = debt(&mut debts, "Example Loan", "Monthly");
+    add(&mut debts, id, "1950-01", "100.00");
+    add(&mut debts, id, "2026-03", "50.00");
+    let years = debts.insights(today()).years;
+    assert_eq!(years.len(), 50);
+    assert_eq!(years[0].year, 1977);
+}
+
+#[test]
+fn test_csd020_ac_15_1_category_and_outcome_names_are_the_wire_names() {
+    for (text, category) in [
+        ("Mortgage", DebtCategory::Mortgage),
+        ("Loan", DebtCategory::Loan),
+        ("Scholarship", DebtCategory::Scholarship),
+        ("Other", DebtCategory::Other),
+    ] {
+        assert_eq!(DebtCategory::parse(&format!(" {text} ")).unwrap(), category);
+        assert_eq!(
+            serde_json::to_value(category).unwrap(),
+            serde_json::json!(text)
+        );
+    }
+    for (text, outcome) in [
+        ("Repaid", Outcome::Repaid),
+        ("Cancelled", Outcome::Cancelled),
+    ] {
+        assert_eq!(Outcome::parse(&format!(" {text} ")).unwrap(), outcome);
+        assert_eq!(
+            serde_json::to_value(outcome).unwrap(),
+            serde_json::json!(text)
+        );
+    }
+}
+
+#[test]
+fn test_csd020_ac_15_1_other_category_and_outcome_text_is_rejected_with_its_own_code() {
+    for text in ["mortgage", "LOAN", "", "Savings"] {
+        assert_eq!(
+            code(DebtCategory::parse(text)),
+            "DEBT_CATEGORY_INVALID",
+            "{text}"
+        );
+    }
+    for text in ["repaid", "CANCELLED", "", "Paid"] {
+        assert_eq!(
+            code(Outcome::parse(text)),
+            "HOUSE_SETTLEMENT_INVALID",
+            "{text}"
+        );
+    }
+}
+
+// ---- CSD-025: pieces, marker and axis come from Rust ----
+
+#[test]
+fn test_csd012_ac_7_1_the_marker_is_the_total_debt_with_its_short_label() {
+    let mut debts = Debts::default();
+    let a = debt(&mut debts, "Example Mortgage", "Yearly");
+    let b = debt(&mut debts, "Example Loan", "Yearly");
+    add(&mut debts, a, "2025", "2000.00");
+    add(&mut debts, b, "2025", "8000.00");
+    let insights = debts.insights(today());
+    let year = &insights.years[0];
+    let marker = year.marker.as_ref().unwrap();
+    assert_eq!(
+        (marker.value.to_string(), marker.label.as_str()),
+        ("10000.00".to_owned(), "10.00k")
+    );
+    let spans: Vec<_> = year
+        .pieces
+        .iter()
+        .map(|p| (p.series.clone(), p.high.to_string(), p.rounding))
+        .collect();
+    assert_eq!(
+        spans,
+        [
+            (
+                format!("debt-{a}"),
+                "2000.00".to_owned(),
+                crate::domain::charts::Rounding::None
+            ),
+            (
+                format!("debt-{b}"),
+                "10000.00".to_owned(),
+                crate::domain::charts::Rounding::Top
+            ),
+        ]
+    );
+    assert_eq!(
+        insights.axis.ticks.first().unwrap().value.to_string(),
+        "0.00"
+    );
+}
+
+#[test]
+fn test_csd012_ac_6_2_the_axis_covers_the_highest_level_and_a_repaid_debt_adds_no_piece() {
+    let mut debts = Debts::default();
+    let a = debt(&mut debts, "Example Mortgage", "Yearly");
+    let b = debt(&mut debts, "Example Loan", "Yearly");
+    add(&mut debts, a, "2025", "158000.00");
+    add(&mut debts, b, "2025", "0.00");
+    let insights = debts.insights(today());
+    assert_eq!(insights.years[0].pieces.len(), 1);
+    assert!(
+        insights.axis.ticks.last().unwrap().value
+            >= crate::domain::money::Money::parse("158000.00").unwrap()
+    );
 }

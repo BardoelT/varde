@@ -26,6 +26,10 @@ use crate::storage::Project;
 pub struct AppState {
     project: Mutex<Project>,
     utc_offset: UtcOffset,
+    /// A fixed "today" so tests that compare whole outputs do not depend on
+    /// the clock.
+    #[cfg(test)]
+    fixed_today: Mutex<Option<Date>>,
 }
 
 impl AppState {
@@ -35,6 +39,8 @@ impl AppState {
         Self {
             project: Mutex::new(Project::new()),
             utc_offset,
+            #[cfg(test)]
+            fixed_today: Mutex::new(None),
         }
     }
 
@@ -56,6 +62,18 @@ impl AppState {
     /// The current calendar date in local time (CSD-013 CON-11).
     #[must_use]
     pub fn today_date(&self) -> Date {
+        #[cfg(test)]
+        if let Some(date) = self.fixed_today.lock().ok().and_then(|date| *date) {
+            return date;
+        }
         OffsetDateTime::now_utc().to_offset(self.utc_offset).date()
+    }
+
+    /// Makes `today` return `date` for the rest of a test.
+    #[cfg(test)]
+    pub fn fix_today(&self, date: Date) {
+        if let Ok(mut fixed) = self.fixed_today.lock() {
+            *fixed = Some(date);
+        }
     }
 }

@@ -3,15 +3,16 @@
     reason = "Tauri commands receive their arguments by value"
 )]
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 use tauri::State;
 
 use super::AppState;
+use crate::domain::charts::Axis;
 use crate::domain::{
-    AccountInput, Balance, CalculationInput, InvestmentAccount, InvestmentAccountId,
-    InvestmentInsightsYear, InvestmentStatement, InvestmentYearlyTotal, Investments,
-    InvestmentsOverview, NetDeposits, Note, Period, StatementCalculation, StatementPrefill,
+    Balance, CalculationInput, InvestmentAccount, InvestmentAccountId, InvestmentAccountInput,
+    InvestmentInsightsYear, InvestmentStatement, InvestmentStatementPrefill, InvestmentYearlyTotal,
+    Investments, InvestmentsOverview, NetDeposits, Note, Period, StatementCalculation,
 };
 use crate::error::AppError;
 
@@ -23,11 +24,11 @@ pub struct StatementView {
     account_name: String,
     /// `YYYY-MM` for a monthly account, `YYYY` for a yearly one.
     period: String,
-    balance: Decimal,
-    net_deposits: Decimal,
+    balance: Money,
+    net_deposits: Money,
     /// Derived from the previous statement, or from 0.00 for the first
     /// statement of an account (REQ-23).
-    capital_growth: Decimal,
+    capital_growth: Money,
     note: String,
 }
 
@@ -61,7 +62,7 @@ pub fn list_investment_accounts(
 #[tauri::command]
 pub fn create_investment_account(
     state: State<'_, AppState>,
-    input: AccountInput,
+    input: InvestmentAccountInput,
 ) -> Result<InvestmentAccount, AppError> {
     let mut project = state.project()?;
     Ok(project.investments_mut().create_account(&input)?)
@@ -71,7 +72,7 @@ pub fn create_investment_account(
 pub fn update_investment_account(
     state: State<'_, AppState>,
     account_id: String,
-    input: AccountInput,
+    input: InvestmentAccountInput,
 ) -> Result<InvestmentAccount, AppError> {
     let mut project = state.project()?;
     Ok(project
@@ -114,21 +115,16 @@ pub fn add_investment_statement(
     net_deposits: Option<String>,
     note: Option<String>,
 ) -> Result<StatementView, AppError> {
-    let today = state.today();
     let account_id = InvestmentAccountId::parse(&account_id)?;
     let period = Period::parse(&period)?;
     let balance = Balance::parse(&balance)?;
     let net_deposits = NetDeposits::parse(net_deposits.as_deref().unwrap_or_default())?;
     let note = Note::new(note.as_deref().unwrap_or_default())?;
     let mut project = state.project()?;
-    let statement = project.investments_mut().add_statement(
-        account_id,
-        period,
-        balance,
-        net_deposits,
-        note,
-        today,
-    )?;
+    let statement =
+        project
+            .investments_mut()
+            .add_statement(account_id, period, balance, net_deposits, note)?;
     statement_view(&project, &statement)
 }
 
@@ -142,7 +138,6 @@ pub fn update_investment_statement(
     net_deposits: Option<String>,
     note: Option<String>,
 ) -> Result<StatementView, AppError> {
-    let today = state.today();
     let account_id = InvestmentAccountId::parse(&account_id)?;
     let period = Period::parse(&period)?;
     let new_period = Period::parse(&new_period)?;
@@ -157,7 +152,6 @@ pub fn update_investment_statement(
         balance,
         net_deposits,
         note,
-        today,
     )?;
     statement_view(&project, &statement)
 }
@@ -182,7 +176,7 @@ pub fn delete_investment_statement(
 pub fn copy_previous_investment_statement(
     state: State<'_, AppState>,
     account_id: String,
-) -> Result<StatementPrefill, AppError> {
+) -> Result<InvestmentStatementPrefill, AppError> {
     let project = state.project()?;
     Ok(project
         .investments()
@@ -204,14 +198,18 @@ pub fn yearly_investment_totals(
 pub fn get_investment_insights(state: State<'_, AppState>) -> Result<InvestmentInsights, AppError> {
     let today = state.today();
     let project = state.project()?;
+    let years = project.investments().insights(today);
     Ok(InvestmentInsights {
-        years: project.investments().insights(today),
+        axis: Axis::of_years(&years),
+        years,
     })
 }
 
 /// Payload of `get_investment_insights` (CSD-007 section 5).
 #[derive(Serialize)]
 pub struct InvestmentInsights {
+    /// The axis of the chart (CSD-025 REQ-3).
+    axis: Axis,
     years: Vec<InvestmentInsightsYear>,
 }
 

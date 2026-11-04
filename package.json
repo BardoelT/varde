@@ -1,0 +1,12 @@
+{
+  "name": "varde-ui-tests",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only tooling for the DOM tests of ui/ (CSD-021 CON-5). The app itself has no npm dependency and no build step.",
+  "scripts": {
+    "test": "node --test \"ui/tests/*.test.js\""
+  },
+  "devDependencies": {
+    "jsdom": "30.1.3"
+  }
+}

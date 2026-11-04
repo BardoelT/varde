@@ -1,9 +1,10 @@
 //! The debts with their latest balances and the total debt (CSD-011 REQ-17).
 
-use rust_decimal::Decimal;
+use crate::domain::money::Money;
 use serde::Serialize;
 
-use crate::domain::investments::Period;
+use crate::domain::common::Period;
+use crate::domain::series::{self, SeriesData};
 
 use super::{Debt, Debts};
 
@@ -11,11 +12,15 @@ use super::{Debt, Debts};
 /// REQ-17).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtSummary {
+    /// The debt fields.
     #[serde(flatten)]
     pub debt: Debt,
+    /// Number of statements of the debt.
     pub statement_count: usize,
+    /// Period of the latest statement, `None` without statements.
     pub latest_period: Option<Period>,
-    pub latest_balance: Option<Decimal>,
+    /// The latest balance, `None` without statements.
+    pub latest_balance: Option<Money>,
     /// Whether the latest statement has the balance 0.00 (CSD-011 REQ-26).
     pub repaid: bool,
 }
@@ -25,7 +30,7 @@ pub struct DebtSummary {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DebtsOverview {
     pub debts: Vec<DebtSummary>,
-    pub total: Option<Decimal>,
+    pub total: Option<Money>,
 }
 
 impl Debts {
@@ -47,10 +52,7 @@ impl Debts {
                 }
             })
             .collect();
-        let mut balances = debts.iter().filter_map(|summary| summary.latest_balance);
-        let total = balances
-            .next()
-            .map(|first| balances.fold(first, |sum, balance| sum + balance));
+        let total = series::total_of(debts.iter().filter_map(|summary| summary.latest_balance));
         DebtsOverview { debts, total }
     }
 }
