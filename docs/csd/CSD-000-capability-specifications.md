@@ -1,7 +1,7 @@
 ---
 id: CSD-000
 title: Capability Specification Documents (CSD): reading, interpreting and writing
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 4.0
 last_updated: 04/11/2026

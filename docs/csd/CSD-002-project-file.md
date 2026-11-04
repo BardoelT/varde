@@ -1,9 +1,9 @@
 ---
 id: CSD-002
 title: Project file (save, open, new)
-status: draft
+status: approved
 owner: Thijs Bardoel
-version: 1.3
+version: 1.4
 last_updated: 04/11/2026
 related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-026]
 ---
@@ -24,12 +24,12 @@ The app keeps all of the user's data in one local project file instead of a data
 
 ### 2.2 Non-goals
 - NG-1: Encryption of the project file. (Remembering the last used file moved into scope in v0.4: REQ-8, REQ-10, REQ-11.)
-- NG-2: Autosave and backup or recovery copies (no `.bak`).
+- NG-2: Autosave and backup or recovery copies made by the app (no `.bak`). The one-off script of REQ-20 writes its own backup copy before it changes a file.
 - NG-3: Multiple projects open at once.
 - NG-4: Cloud sync or sharing of the file.
 - NG-5: Buttons for these actions inside the app window, and an Open Recent list.
 - NG-6: Remembering more than one file, and opening a file by double-clicking it in Finder.
-- NG-7: Migrating project files of an older or newer format. The app is not released yet, so there is no legacy, and there is no migration framework.
+- NG-7: Migrating project files of an older or newer format inside the app. There is no migration framework or migration code in the app. The one exception is a one-off script outside the app that upgrades a file by hand (REQ-20), because the first change of the schema after the release (the opening of a debt, CSD-011 REQ-30) makes older files with debts invalid.
 
 ## 3. Definitions
 | Term | Meaning |
@@ -453,6 +453,8 @@ Scenario Outline: A file that does not match the schema is rejected
     | without the section "houses"                        |
     | with an extra top-level field "notes"               |
     | with an extra field inside the section "income"     |
+    | with a debt that has no "opening_date"              |
+    | with a debt that has no "opening_amount"            |
 ```
 
 **REQ-18: Newer file version** *(unwanted behaviour)*
@@ -507,6 +509,46 @@ Scenario: Trailing zeros in a file amount are accepted
 
 Only text typed in a form is rounded (CSD-000 CON-8), because the app itself only ever writes amounts with two decimals.
 
+**REQ-20: A one-off script upgrades a file with debts to hold an opening** *(event-driven)*
+When the owner runs the script `scripts/migrate-debt-opening.mjs` on a project file in which a debt has no `opening_date` and `opening_amount`, the script shall first write a copy of the file next to it with the extension `.bak` added, and then write, for each such debt, the opening date as the first day of the period of its first statement (`2025-03` gives `2025-03-01`, `2025` gives `2025-01-01`) and the opening amount as the balance of that statement, and for a debt without statements the day the script runs and `0.00`, and shall list the names of the debts without statements. The script shall not run when every debt already has an opening, and shall leave the original file unchanged when anything fails.
+
+```gherkin
+@AC-20.1
+Scenario: Opening derived from the first statement
+  Given a project file with the monthly debt "Example Mortgage" with statements for 2025-03 (balance 190000.00) and 2025-04 (balance 189000.00) and no opening
+  When the owner runs the script on it
+  Then the file holds for "Example Mortgage" the "opening_date" "2025-03-01" and the "opening_amount" "190000.00"
+  And a copy of the original exists beside it with the extension ".bak" added
+  And the app opens the upgraded file
+
+@AC-20.2
+Scenario: A yearly debt
+  Given a project file with the yearly debt "Example Student Loan" with a statement for 2024 (balance 8000.00) and no opening
+  When the owner runs the script on it
+  Then the debt has the "opening_date" "2024-01-01" and the "opening_amount" "8000.00"
+
+@AC-20.3
+Scenario: A debt without statements
+  Given a project file with the debt "Example Card" without statements and without an opening
+  When the owner runs the script on it on 04/11/2026
+  Then the debt has the "opening_date" "2026-11-04" and the "opening_amount" "0.00"
+  And the script lists "Example Card" as a debt to correct in the app
+
+@AC-20.4
+Scenario: Nothing to do
+  Given a project file in which every debt has an opening
+  When the owner runs the script on it
+  Then the script reports that nothing needs upgrading
+  And the file and its modification time are unchanged and no copy is made
+
+@AC-20.5
+Scenario: A failure changes nothing
+  Given a project file that is not valid JSON
+  When the owner runs the script on it
+  Then the script reports an error
+  And the original file is unchanged
+```
+
 ## 5. Interfaces and contracts
 
 Menu: Rust builds the File menu items `project-new`, `project-open`, `project-save` and `project-save-as`. Choosing one emits the event `menu-action` with the item id to the frontend, which runs the flow of the action, including the confirmations of REQ-7.
@@ -527,7 +569,11 @@ Project file: JSON with the extension `.varde`, a top-level integer `format_vers
 
 Every period field in a section is called `period` (the pay period of a job, which was `pay_period` and now holds the same Monthly or Yearly value under the name `period`, and the period of an investment account, bank account, debt or house), so the names `pay_period`, `entry_period`, `statement_period` and `valuation_period` do not exist. The preferences of the person (theme, language) are not in the file (CSD-008, CSD-022). A house keeps its purchase as `purchase_date` and `purchase_amount` and its optional sale as `sell_date` and `sell_amount` (CSD-015, CSD-019).
 
-Versioning policy: the version is 1 at the first release. The first change of the schema after 1.0 raises `format_version`, and an older app then shows the `PROJECT_FILE_NEWER` error (REQ-18) instead of a generic parse error. There is no migration (NG-7) and no backup copy (NG-2).
+A debt keeps its opening as `opening_date` and `opening_amount`, both required (CSD-011 REQ-30); its closing is the existing `settlement` (CSD-026).
+
+Versioning policy: the version is 1 at the first release. The first change of the schema after 1.0 would normally raise `format_version`, so that an older app shows the `PROJECT_FILE_NEWER` error (REQ-18) instead of a generic parse error. Owner decision of 04/11/2026: the opening of a debt (CSD-011 v3.0) does not raise it, and `format_version` stays 1. An older app that opens a file with the new keys therefore shows `PROJECT_INVALID_FILE` (REQ-17), and a version 1 file without openings is invalid in this app until the one-off script of REQ-20 has upgraded it. The next schema change shall raise the version. There is no migration in the app (NG-7) and no backup copy made by the app (NG-2).
+
+The script `scripts/migrate-debt-opening.mjs` has no dependency (Node only), takes the path of the file as its argument, prints the names of debts without statements and no amounts, and is tested with a synthetic file ("Example Mortgage", round amounts) by `node:test` in `npm test`.
 
 Error codes (code plus safe message): `PROJECT_SAVE_FAILED`, `PROJECT_INVALID_FILE`, `PROJECT_OPEN_FAILED`, `PROJECT_FILE_NEWER`.
 
@@ -548,9 +594,10 @@ The unsaved flag and the project state live in Rust, so they are proven by `carg
 | Rust tests | `cargo test test_csd002_`. One requirement, e.g. REQ-1: `cargo test test_csd002_ac_1_` |
 | AC-9.1 | `cargo test test_csd002_ac_9_` checks the table the menu is built from (ids, labels, shortcuts). Native menus can only be created on the main thread, so the built menu is on the manual checklist |
 | DOM tests (`npm test`) | `dialogs.test.js`: AC-3.1, AC-4.1, AC-7.1, AC-7.2, AC-9.3 (indicator, close, Open and New with and without unsaved changes, no buttons in the window); `ac-d-preferences.test.js`: AC-9.2, AC-9.4 (File > Save calls the save and clears the indicator, File > New and Open ask first). AC-4.2 is decided in Rust (`test_csd002_ac_4_2_...`, the close asks only when `has_unsaved_changes`) |
+| Script (REQ-20, AC-20.1 to AC-20.5) | `npm test`: `scripts/tests/migrate-debt-opening.test.js` (`node:test`, synthetic fixtures in a temporary directory) |
 | Manual checklist (native parts only) | The real File menu items and shortcuts (AC-9.1 to AC-9.4), the native save dialog, and a real window close without unsaved changes (AC-4.2: the mock runtime has no event loop to send it) |
 
-Not covered by a named test yet (0 of 44 ACs): none. Every AC has a test that carries its id; the native parts are on the manual list above.
+Not covered by a named test yet (0 of 49 ACs): none. Every AC has a test that carries its id; the native parts are on the manual list above.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
@@ -562,6 +609,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-5: (resolved 03/11/2026) A remembered file that exists but is invalid or from a newer app version keeps its remembered path and shows the error (REQ-13, AC-13.3).
 
 ## 9. Changelog
+- 1.4 (04/11/2026): A debt in the file must have `opening_date` and `opening_amount` (CSD-011 v3.0, REQ-17 examples); `format_version` stays 1 by owner decision, so older apps show `PROJECT_INVALID_FILE` for such files and the next schema change raises the version. NG-7 and NG-2 reworded: the app has no migration and makes no backup copy, but a one-off script outside the app upgrades a file (new REQ-20, AC-20.1 to AC-20.5), writing its own `.bak`. Owner decisions from the grill-me interview of 04/11/2026 (GitHub issue 51). Back to `draft` until re-approved.
 - 1.3 (04/11/2026): New REQ-19 (AC-19.1, AC-19.2): the file stays strict, an amount with more than two decimals makes it invalid (`PROJECT_INVALID_FILE`) and is not rounded, because only typed amounts are rounded (CSD-000 CON-8, v4.0). The behaviour was already built; it is now stated. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. Section 5 lists the command `quit_app`, and `related` adds CSD-004, CSD-017, CSD-018 and CSD-022. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Owner decisions. REQ-11 lists the five failure cases with their codes (AC-11.1; the newer version case is new) and the notice is shown once per start. REQ-12 is now exact: the path is forgotten only when the parent folder exists and the file does not (AC-12.1 is the deleted-file scenario, the old AC-12.1 became AC-12.2). REQ-13 keeps the path in every other case, including a file that exists but is invalid or from a newer version (behaviour change: it used to be forgotten; new AC-13.3, AC-13.4). Definition "Gone for good" added. Section 5 names the `period` field of a job and the `sell_date` and `sell_amount` house fields. `PROJECT_FILE_NEWER` confirmed. OQ-3 to OQ-5 resolved. Back to `draft` until re-approved.
