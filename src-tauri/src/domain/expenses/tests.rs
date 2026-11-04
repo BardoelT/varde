@@ -144,7 +144,7 @@ fn test_csd013_ac_3_1_every_category_is_accepted() {
 }
 
 #[test]
-fn test_csd013_ac_3_2_and_3_3_unknown_categories_are_rejected() {
+fn test_csd013_ac_3_3_unknown_categories_and_other_spellings_are_rejected() {
     for category in ["Health", "home", "HOME", "", "Travel"] {
         let mut expenses = Expenses::default();
         let result = expenses.add_expense(&input("Example", "1.00", "15/09/2026", category));
@@ -455,7 +455,7 @@ fn test_csd013_ac_7_7_a_stale_screen_is_not_found() {
 // REQ-8: delete an expense
 
 #[test]
-fn test_csd013_ac_8_1_and_8_3_deleting_removes_only_that_expense() {
+fn test_csd013_ac_8_1_deleting_removes_only_that_expense() {
     let mut expenses = Expenses::default();
     let bike = add(
         &mut expenses,
@@ -770,7 +770,7 @@ fn test_csd014_ac_2_1_a_gap_year_is_zero_without_segments() {
 }
 
 #[test]
-fn test_csd014_ac_3_1_and_3_2_the_current_year_is_partial() {
+fn test_csd014_ac_3_1_the_current_year_is_partial() {
     let mut expenses = Expenses::default();
     add(&mut expenses, "A", "1.00", "15/12/2025", "Other");
     let result = insights(&expenses);

@@ -328,9 +328,9 @@ All behaviour except the screens is proven by `cargo test`. Tests are named `tes
 |---|---|
 | Rust tests | `cargo test test_csd003_` |
 | AC-2.1 | `cargo test test_csd003_ac_2_1` checks the table the menu item is built from. Native menus can only be created on the main thread, so the built menu is on the manual checklist |
-| Display ACs (left pane order, Settings page, the currency confirmation dialogs, titles without a currency) | No DOM test carries an AC id of this CSD yet; checked by hand. Manual checklist for the native parts: ⌘, and the app menu item |
+| Display ACs (left pane order, Settings page, the currency confirmation dialogs, titles without a currency) | `npm test`: `ac-a-settings.test.js` (AC-1.1, AC-1.2, AC-2.2, AC-5.1 to AC-5.3, AC-5.15, AC-8.1). Whether a project has entries is counted by Rust: `cargo test test_csd003_ac_5_` over IPC (`ipc_ac_tests_a/csd003.rs`). Manual checklist for the native parts: ⌘, and the app menu item |
 
-Not covered by a named test yet (17 of 29 ACs; no test carries the AC id): AC-1.1, AC-1.2, AC-2.2, AC-3.2, AC-5.1 to AC-5.4, AC-5.6, AC-5.8, AC-5.10 to AC-5.12, AC-5.14, AC-5.15, AC-7.4, AC-8.1.
+Not covered by a named test yet (0 of 29 ACs; every AC carries a test name).
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 

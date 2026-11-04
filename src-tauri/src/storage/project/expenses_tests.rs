@@ -107,7 +107,7 @@ fn test_csd013_ac_16_4_a_damaged_section_is_an_invalid_file() {
 }
 
 #[test]
-fn test_csd013_an_expense_change_is_an_unsaved_change() {
+fn test_csd013_ac_1_5_adding_an_expense_is_an_unsaved_change() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
     project.save_as(dir.path().join("example-a.varde")).unwrap();

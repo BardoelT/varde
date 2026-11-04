@@ -684,10 +684,10 @@ The data and the domain logic are proven by `cargo test`, with the domain tested
 |---|---|
 | Rust tests | `cargo test test_csd013_`. One requirement, e.g. REQ-4: `cargo test test_csd013_ac_4_` |
 | Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-14.1, no expenses) |
-| Display ACs without a DOM test (REQ-13, REQ-15, AC-1.3, AC-1.5, AC-7.6) | No DOM test carries an AC id of this CSD yet, so its display ACs are checked by hand. |
-| AC-17.1, AC-17.2 (currency confirmation) | Governed by CSD-003 REQ-5 and verified there. There are no `test_csd013_ac_17_` tests |
+| Display ACs with a DOM test (REQ-13, REQ-15, AC-1.3, AC-8.2, AC-17.1, AC-17.2) | `npm test`: `ac-a-expenses.test.js` |
+| AC-1.5, AC-7.6 (unsaved change), AC-16.2 (file without the section), AC-17.1, AC-17.2 (the entry count over IPC) | `cargo test test_csd013_ac_1_5`, `test_csd013_ac_7_6`, `test_csd013_ac_16_2`, `test_csd013_ac_17_`. The currency confirmation itself is governed by CSD-003 REQ-5 |
 
-Not covered by a named test yet (19 of 64 ACs; no test carries the AC id): AC-1.3, AC-1.5, AC-3.3, AC-7.6, AC-8.2, AC-8.3, AC-13.1 to AC-13.9, AC-15.1, AC-16.2, AC-17.1, AC-17.2.
+Not covered by a named test yet (0 of 64 ACs; every AC carries a test name).
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
