@@ -5,7 +5,7 @@ status: approved
 owner: Thijs Bardoel
 version: 1.1
 last_updated: 03/11/2026
-related: [CSD-001, CSD-003, CSD-020, CSD-024]
+related: [CSD-001, CSD-003, CSD-024]
 ---
 
 # CSD-004: Income dashboard

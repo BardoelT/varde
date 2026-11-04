@@ -1,11 +1,11 @@
 ---
 id: CSD-018
 title: Ratios
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.2
-last_updated: 03/11/2026
-related: [CSD-000, CSD-001, CSD-005, CSD-007, CSD-009, CSD-011, CSD-013, CSD-017, CSD-020, CSD-024]
+version: 1.3
+last_updated: 04/11/2026
+related: [CSD-000, CSD-001, CSD-005, CSD-007, CSD-009, CSD-011, CSD-013, CSD-017, CSD-024, CSD-026]
 ---
 
 # CSD-018: Ratios
@@ -38,7 +38,7 @@ The charts show how each area develops, but not how the owner's income relates t
 | **Net worth** | As in CSD-017 section 3. |
 | **Bank increase (in a year)** | The sum, over the bank accounts that have an entry in that year and an earlier entry, of the balance of its latest entry in that year minus the balance of its latest entry before that year. It is negative when those accounts shrank. A bank account without an earlier entry adds nothing, because it is not known what it grew from. It is none when no bank account has both. |
 | **Net deposits (in a year)** | The net deposits of the year over all investment accounts (CSD-005 REQ-26). |
-| **Repaid (in a year)** | As in CSD-011 section 3, minus the settled amount of every debt that was Cancelled on the sale of its house in that year and that is part of that sum (CSD-020 REQ-27). Only a Cancelled debt nets to zero: a debt that was Repaid counts in full, as any drop in balance does (CSD-020 REQ-26). It is the repaid amount the Debts overview shows in its yearly totals (CSD-020 REQ-28). It is negative when debts grew or when more was cancelled than repaid, and none when no debt has an opening balance in the year. |
+| **Repaid (in a year)** | As in CSD-011 section 3, minus the settled amount of every debt that was Cancelled on the sale of its house in that year and that is part of that sum (CSD-026 REQ-10). Only a Cancelled debt nets to zero: a debt that was Repaid counts in full, as any drop in balance does (CSD-026 REQ-9). It is the repaid amount the Debts overview shows in its yearly totals (CSD-026 REQ-11). It is negative when debts grew or when more was cancelled than repaid, and none when no debt has an opening balance in the year. |
 | **Wealth accumulation from cash** | Bank increase plus net deposits plus repaid, where a part that is none counts as 0.00. |
 | **Disposable income** | Wealth accumulation from cash plus expenses: what was set aside and what was spent. |
 
@@ -144,7 +144,7 @@ Scenario: A year without income
 ```
 
 **REQ-5: Wealth accumulation from cash** *(ubiquitous)*
-For each year the app shall compute the wealth accumulation from cash as the bank increase plus the net deposits plus the repaid amount of the year (the one the Debts overview shows, CSD-020 REQ-28), and shall give it none when no bank account has a bank increase, no investment account has a statement and no debt has a repaid amount in that year.
+For each year the app shall compute the wealth accumulation from cash as the bank increase plus the net deposits plus the repaid amount of the year (the one the Debts overview shows, CSD-026 REQ-11), and shall give it none when no bank account has a bank increase, no investment account has a statement and no debt has a repaid amount in that year.
 
 ```gherkin
 @AC-5.1
@@ -436,6 +436,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 1.3 (04/11/2026): Live references follow the split of the former CSD-020: the Cancelled and Repaid treatment is CSD-026 REQ-9, REQ-10 and REQ-11 (definition of Repaid, REQ-5); no behaviour change. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 1.1 (03/11/2026): The series runs to the later of the current year and the latest year with a record, so future years get a column labelled like any other year, and spans at most 50 years back from its last year, older records still count in the figures that span all years (REQ-2, new AC-2.4, AC-2.5; owner decision). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Ratios and growth percentages are rounded to two decimals half-up (CSD-000 CON-8) instead of one decimal with banker's rounding: REQ-6, REQ-8, REQ-9, REQ-10 and CON-3 rewritten. AC values changed: AC-6.1 "12.5" to "12.50", AC-6.2 "-3.5" to "-3.54" (the exact value was -3.5417), AC-7.1 "4.2" to "4.17", AC-8.1 "10.0" to "10.00", AC-8.2 "-5.0" to "-5.00", AC-9.2 "20.8" to "20.83", AC-10.1 "+12.5%" to "+12.50%", and the JSON example; new AC-6.4 (half-up and no sign) and AC-8.5. One term, "wealth accumulation from cash", everywhere. Only a Cancelled debt nets to zero, a Repaid debt counts in full; references point to the merged CSD-020 (REQ-26, REQ-27, formerly CSD-020 REQ-11 and REQ-12), and the repaid amount equals the Cancelled-adjusted yearly total of the Debts overview (CSD-020 REQ-28, new AC-5.9). Navigation moved to CSD-024. The display ACs are covered by DOM tests. Back to `draft` until re-approved.

@@ -5,7 +5,7 @@ status: approved
 owner: Thijs Bardoel
 version: 1.1
 last_updated: 03/11/2026
-related: [CSD-001, CSD-002, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-020]
+related: [CSD-001, CSD-002, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-019]
 ---
 
 # CSD-003: Project settings

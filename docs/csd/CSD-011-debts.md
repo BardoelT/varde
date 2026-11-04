@@ -1,11 +1,11 @@
 ---
 id: CSD-011
 title: Debts
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.1
-last_updated: 03/11/2026
-related: [CSD-000, CSD-002, CSD-003, CSD-004, CSD-005, CSD-009, CSD-012, CSD-018, CSD-020, CSD-024]
+version: 1.2
+last_updated: 04/11/2026
+related: [CSD-000, CSD-002, CSD-003, CSD-004, CSD-005, CSD-009, CSD-012, CSD-018, CSD-020, CSD-024, CSD-026]
 ---
 
 # CSD-011: Debts
@@ -19,7 +19,7 @@ The app tracks wealth, but has no view of what the user owes: a mortgage, a stud
 - Create, edit and delete one statement per debt per period: the remaining balance (0.00 or more) and an optional note.
 - Change the period of an existing statement (REQ-12).
 - Copy the previous statement into the add form.
-- The settle dialog that asks Repaid or Cancelled for each open debt when a house is sold or a debt is linked to a sold house (REQ-27, REQ-28; the settlement itself is CSD-020).
+- The settle dialog that asks Repaid or Cancelled for each open debt when a house is sold or a debt is linked to a sold house (REQ-27, REQ-28; the settlement itself is CSD-026).
 - The change per statement: the balance of the previous statement minus this one (REQ-25).
 - Yearly totals per calendar year over all debts: closing balance and amount repaid (Cancelled-adjusted, REQ-19).
 - One Debts view (tab Overview) with the debts, their latest balances, the total debt, the yearly totals and the statements of all debts. The Insights tab is CSD-012.
@@ -32,7 +32,7 @@ The app tracks wealth, but has no view of what the user owes: a mortgage, a stud
 - NG-4: Netting the debts against bank accounts and investments on the Debts page, and integration with the dashboard (CSD-004). The integration with net worth is specified in CSD-017.
 - NG-5: Money owed to the user.
 - NG-6: Data fetched from a lender, and import of statements (CSV, PDF, lender export).
-- NG-7: Archiving a debt. A debt at 0.00 stays a normal row, marked Repaid (REQ-26). (Marking it Repaid or Cancelled on the sale of its house is CSD-020.)
+- NG-7: Archiving a debt. A debt at 0.00 stays a normal row, marked Repaid (REQ-26). (Marking it Repaid or Cancelled on the sale of its house is CSD-026.)
 - NG-8: Lender identifiers and other details: an account or contract number, a lender name apart from the name of the debt, a debt type other than the category of CSD-020 (Mortgage, Loan, Scholarship, Other), and a note on the debt itself.
 - NG-9: A currency per debt. All amounts are in the project currency (CSD-003).
 - NG-10: Individual payments, a stored original amount, and negative balances.
@@ -48,17 +48,17 @@ The app tracks wealth, but has no view of what the user owes: a mortgage, a stud
 | **Statement period** | How a debt is recorded: **Monthly** (one statement per calendar month, `YYYY-MM`) or **Yearly** (one statement per calendar year, `YYYY`). A debt is Monthly unless Yearly is chosen. |
 | **Statement** | The record of one debt for one period: the remaining balance and an optional note. |
 | **Balance** | What the user still owes on the debt at the end of the period, as one amount of 0.00 or more in the project currency. |
-| **Previous statement** | The statement of the same debt that comes right before the statement at hand: the one with the latest period before it, also when periods in between have none, or, for a settlement statement (CSD-020 REQ-20), the regular statement of its own period when there is one. |
+| **Previous statement** | The statement of the same debt that comes right before the statement at hand: the one with the latest period before it, also when periods in between have none, or, for a settlement statement (CSD-026 REQ-3), the regular statement of its own period when there is one. |
 | **Change** | For a statement: the balance of its previous statement minus its own balance. Positive when the debt was repaid, negative when it grew. It is derived and never stored. A first statement has no change. |
 | **Latest balance** | The balance of the statement with the most recent period of a debt. |
 | **Total debt** | The sum of the latest balances of all debts that have at least one statement. |
 | **Yearly total** | One row per calendar year: the closing balance and the amount repaid of that year, over all debts. See REQ-19. |
 | **Closing balance (of a year)** | The sum, over the debts that have a statement in that year, of the balance of each debt's latest statement in that year. |
 | **Opening balance (of a debt in a year)** | The balance of the latest statement of the debt before that year. A debt without an earlier statement has none. |
-| **Repaid (in a year)** | The sum, over the debts that have a statement in that year and an opening balance in it, of the opening balance minus the closing balance of that debt, with the settled amount of a debt Cancelled in that year taken out (CSD-020 REQ-27, REQ-28). It is negative when those debts grew. It is none when no debt has an opening balance in that year. |
+| **Repaid (in a year)** | The sum, over the debts that have a statement in that year and an opening balance in it, of the opening balance minus the closing balance of that debt, with the settled amount of a debt Cancelled in that year taken out (CSD-026 REQ-10, REQ-11). It is negative when those debts grew. It is none when no debt has an opening balance in that year. |
 | **Colour slot** | A number from 0 to 7 stored with a debt. CSD-012 draws the debt in the colour of its slot. |
 | **Note** | Optional plain text, up to 2,000 characters, that goes with one statement. |
-| **Settle dialog** | The dialog "Settle linked debts" that asks, for each open debt, whether it was Repaid or Cancelled (CSD-020 REQ-31). |
+| **Settle dialog** | The dialog "Settle linked debts" that asks, for each open debt, whether it was Repaid or Cancelled (CSD-026 REQ-13). |
 | **Project file** | The single user-chosen file `.varde` holding all app data (CSD-002). Debts are one of its sections. |
 
 ## 4. Requirements
@@ -334,7 +334,7 @@ Scenario Outline: A period has no date bounds
 ```
 
 **REQ-8: One regular statement per debt per period** *(unwanted behaviour)*
-If the user adds a statement for a debt and period that already has a regular statement, then the app shall reject it with the error code `DEBT_STATEMENT_DUPLICATE` and leave the existing statement unchanged. A period can hold two statements only when the second is the settlement statement that a sale adds (CSD-020 REQ-20), which the user cannot edit.
+If the user adds a statement for a debt and period that already has a regular statement, then the app shall reject it with the error code `DEBT_STATEMENT_DUPLICATE` and leave the existing statement unchanged. A period can hold two statements only when the second is the settlement statement that a sale adds (CSD-026 REQ-3), which the user cannot edit.
 
 ```gherkin
 @AC-8.1
@@ -352,7 +352,7 @@ Scenario: Same period on a different debt is allowed
 
 @AC-8.3
 Scenario: A settlement statement shares its period with a regular statement
-  Given "Example Loan" (monthly) with a regular statement for 2026-06 with balance 3500.00 and settled on the sale of its house on 10/06/2026 (CSD-020 REQ-20)
+  Given "Example Loan" (monthly) with a regular statement for 2026-06 with balance 3500.00 and settled on the sale of its house on 10/06/2026 (CSD-026 REQ-3)
   Then "Example Loan" has two statements for 2026-06: the regular one and, after it, the settlement statement with balance 0.00
   And the settlement statement cannot be edited
   When the user adds another regular statement for 2026-06
@@ -437,7 +437,7 @@ Scenario: Line breaks are kept
 ```
 
 **REQ-12: Edit a statement and change its period** *(event-driven)*
-When the user edits an existing statement, other than a settlement statement (CSD-020 REQ-20), in the edit form and saves, the app shall give the statement the edited balance and note under REQ-10 and REQ-11 and, when the period was changed, the new period, as one change, without asking for confirmation. The statement stays with its debt, and the latest balances, the changes, the yearly totals and the insights show it under its new period.
+When the user edits an existing statement, other than a settlement statement (CSD-026 REQ-3), in the edit form and saves, the app shall give the statement the edited balance and note under REQ-10 and REQ-11 and, when the period was changed, the new period, as one change, without asking for confirmation. The statement stays with its debt, and the latest balances, the changes, the yearly totals and the insights show it under its new period.
 
 ```gherkin
 @AC-12.1
@@ -745,7 +745,7 @@ Scenario: Editing an earlier statement changes the later change
 ```
 
 **REQ-19: Yearly totals** *(event-driven)*
-When the user views the Debts overview, the app shall show, for each calendar year with at least one statement of any debt and newest year first, in Rust: the closing balance and the amount repaid of that year, without extrapolating partial years and without carrying balances forward, with the amount repaid Cancelled-adjusted as the wealth accumulation from cash has it (CSD-020 REQ-28, CSD-018). A statement counts in the year of its own period only.
+When the user views the Debts overview, the app shall show, for each calendar year with at least one statement of any debt and newest year first, in Rust: the closing balance and the amount repaid of that year, without extrapolating partial years and without carrying balances forward, with the amount repaid Cancelled-adjusted as the wealth accumulation from cash has it (CSD-026 REQ-11, CSD-018). A statement counts in the year of its own period only.
 
 ```gherkin
 @AC-19.1
@@ -824,13 +824,13 @@ Scenario: Newest year first
 
 @AC-19.12
 Scenario: A Cancelled debt shows the Cancelled-adjusted repaid amount
-  Given "Example Mortgage" with a statement for 2025-12 with balance 200000.00 and Cancelled on 10/06/2026 on the sale of its house (settled amount 190000.00, CSD-020 REQ-27)
+  Given "Example Mortgage" with a statement for 2025-12 with balance 200000.00 and Cancelled on 10/06/2026 on the sale of its house (settled amount 190000.00, CSD-026 REQ-10)
   When the user views the yearly totals
   Then 2026 shows repaid 10000.00 and not 200000.00
 
 @AC-19.13
 Scenario: A Repaid debt counts in full
-  Given "Example Mortgage" with a statement for 2025-12 with balance 200000.00 and Repaid on 10/06/2026 on the sale of its house (CSD-020 REQ-26)
+  Given "Example Mortgage" with a statement for 2025-12 with balance 200000.00 and Repaid on 10/06/2026 on the sale of its house (CSD-026 REQ-9)
   When the user views the yearly totals
   Then 2026 shows repaid 200000.00
 ```
@@ -933,7 +933,7 @@ Scenario: No currency in the sections
 ```
 
 **REQ-26: Repaid mark** *(state-driven)*
-While the latest statement of a debt has the balance 0.00, the app shall mark the debt row of the Debts overview "Repaid", decided in Rust, and for a debt settled on the sale of its house (CSD-020) the badge of its settlement shall be shown instead.
+While the latest statement of a debt has the balance 0.00, the app shall mark the debt row of the Debts overview "Repaid", decided in Rust, and for a debt settled on the sale of its house (CSD-026) the badge of its settlement shall be shown instead.
 
 ```gherkin
 @AC-26.1
@@ -961,7 +961,7 @@ Scenario: A settled debt shows its settlement badge
 ```
 
 **REQ-27: Settle dialog rows** *(event-driven)*
-When the settle dialog opens (CSD-020 REQ-31, REQ-17), the app shall show one row per open debt with the debt name and its settled amount and the choices Repaid and Cancelled, none selected, and shall keep the button "Save sale" disabled until every row has a choice.
+When the settle dialog opens (CSD-026 REQ-13, CSD-020 REQ-17), the app shall show one row per open debt with the debt name and its settled amount and the choices Repaid and Cancelled, none selected, and shall keep the button "Save sale" disabled until every row has a choice.
 
 ```gherkin
 @AC-27.1
@@ -1002,7 +1002,7 @@ Scenario: Save sale returns the choices
   Given the settle dialog with "Example Mortgage" set to Repaid and "Example Loan" set to Cancelled
   When the user presses "Save sale"
   Then the dialog closes
-  And the choices Repaid for "Example Mortgage" and Cancelled for "Example Loan" go to the sale or the debt link being saved (CSD-020 REQ-20)
+  And the choices Repaid for "Example Mortgage" and Cancelled for "Example Loan" go to the sale or the debt link being saved (CSD-026 REQ-3)
 
 @AC-28.2
 Scenario Outline: Back and Escape save nothing
@@ -1024,7 +1024,7 @@ Scenario: A reopened dialog starts empty
   Then no choice is selected and "Save sale" is disabled
 ```
 
-The dialog title, the explanatory line (CSD-020 REQ-31) and the effect of each choice (CSD-020 REQ-20, REQ-26, REQ-27) are specified in CSD-020 and not repeated here.
+The dialog title, the explanatory line (CSD-026 REQ-13) and the effect of each choice (CSD-026 REQ-3, REQ-9, REQ-10) are specified in CSD-026 and not repeated here.
 
 ### 4.4 Saving, loading and currency
 
@@ -1142,6 +1142,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 1.2 (04/11/2026): Live references follow the split of the former CSD-020: the settlement, the settle dialog and the Cancelled-adjusted repaid amount are CSD-026 (REQ-3, REQ-9, REQ-10, REQ-11, REQ-13), the debt link stays CSD-020. The definitions and the requirements and ACs that cite CSD-020 name the new CSD and numbers; no behaviour change. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed `test_csd011_ac_20_` and `ac_21_` coverage and the REQ-24 and REQ-25 coverage (they belong to CSD-003) are removed. NG-4 and the intro point to CSD-017 for net worth. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): The left-pane item is specified in CSD-024 (was CSD-004 REQ-1; REQ-20, AC-20.1). Back to `draft` until re-approved. Yearly totals show the Cancelled-adjusted repaid amount, as CSD-018 and CSD-020 REQ-28 (REQ-19, definition of Repaid, new AC-19.12, AC-19.13; CSD-020 OQ-1 closed). A period may hold two statements, the second a non-editable settlement statement (REQ-8, new AC-8.3, REQ-12; CSD-020 REQ-20). The settle dialog is folded in (new REQ-27, REQ-28). No date bounds: the year-1900 rule and the future-date rejection are gone (REQ-7, AC-7.4, AC-7.5, new AC-7.6, REQ-13, AC-13.1; `DEBT_STATEMENT_IN_FUTURE` removed). Legacy removed: a project file without `debts` is invalid (REQ-23, AC-23.2). The debt's `statement_period` field becomes `period` and the extension is `.varde` (section 5). New CON-11 (CSD-000 CON-8). Display ACs are covered by DOM tests (section 7). References to the merged CSD-020 updated (the settlement statement is CSD-020 REQ-20, was REQ-5).
 - 0.7 (30/10/2026): The one statement per period rule has one exception, the settlement statement of CSD-020 (REQ-8, definition of Previous statement). Amended without a draft phase at the owner's request.

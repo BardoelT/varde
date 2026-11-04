@@ -5,7 +5,7 @@ status: approved
 owner: Thijs Bardoel
 version: 1.2
 last_updated: 03/11/2026
-related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-020, CSD-022]
+related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-026]
 ---
 
 # CSD-002: Project file (save, open, new)
@@ -495,10 +495,10 @@ Project file: JSON with the extension `.varde`, a top-level integer `format_vers
 | `bank_accounts` | Bank accounts (CSD-009) |
 | `debts` | Debts (CSD-011) |
 | `expenses` | Expenses (CSD-013) |
-| `houses` | Houses (CSD-015, CSD-020) |
+| `houses` | Houses (CSD-015, CSD-019) |
 | `settings` | Project settings (CSD-003) |
 
-Every period field in a section is called `period` (the pay period of a job, which was `pay_period` and now holds the same Monthly or Yearly value under the name `period`, and the period of an investment account, bank account, debt or house), so the names `pay_period`, `entry_period`, `statement_period` and `valuation_period` do not exist. The preferences of the person (theme, language) are not in the file (CSD-008, CSD-022). A house keeps its purchase as `purchase_date` and `purchase_amount` and its optional sale as `sell_date` and `sell_amount` (CSD-015, CSD-020).
+Every period field in a section is called `period` (the pay period of a job, which was `pay_period` and now holds the same Monthly or Yearly value under the name `period`, and the period of an investment account, bank account, debt or house), so the names `pay_period`, `entry_period`, `statement_period` and `valuation_period` do not exist. The preferences of the person (theme, language) are not in the file (CSD-008, CSD-022). A house keeps its purchase as `purchase_date` and `purchase_amount` and its optional sale as `sell_date` and `sell_amount` (CSD-015, CSD-019).
 
 Versioning policy: the version is 1 at the first release. The first change of the schema after 1.0 raises `format_version`, and an older app then shows the `PROJECT_FILE_NEWER` error (REQ-18) instead of a generic parse error. There is no migration (NG-7) and no backup copy (NG-2).
 

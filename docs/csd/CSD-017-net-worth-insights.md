@@ -1,11 +1,11 @@
 ---
 id: CSD-017
 title: Net worth insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.2
-last_updated: 03/11/2026
-related: [CSD-000, CSD-007, CSD-010, CSD-012, CSD-016, CSD-020, CSD-024, CSD-025]
+version: 1.3
+last_updated: 04/11/2026
+related: [CSD-000, CSD-007, CSD-010, CSD-012, CSD-016, CSD-019, CSD-024, CSD-025]
 ---
 
 # CSD-017: Net worth insights
@@ -35,7 +35,7 @@ Each area of the app (houses, investments, bank accounts, debts) has its own yea
 |---|---|
 | **Year** | A calendar year. |
 | **Current year** | The calendar year of today, in local time. Its figures run up to the latest record so far and are therefore partial. |
-| **Houses** | The total value of a year of CSD-016 (the closing value of CSD-015 REQ-20, counting houses held at the end of the year, CSD-020 REQ-10). |
+| **Houses** | The total value of a year of CSD-016 (the closing value of CSD-015 REQ-20, counting houses held at the end of the year, CSD-019 REQ-10). |
 | **Investments** | The closing balance of a year of CSD-007 (CSD-005 REQ-26). |
 | **Cash** | The closing balance of a year over all bank accounts of CSD-010 (CSD-009 REQ-19). It is the sum of the latest balances of the banks, so an overdrawn bank reduces it. |
 | **Debts** | The total debt of a year of CSD-012 (the closing balance of CSD-011 REQ-19), never negative. |
@@ -310,7 +310,7 @@ Scenario: Figures follow changes
 ```
 
 **REQ-14: Net worth in the sale year of a house** *(ubiquitous)*
-The app shall let the net worth of the year in which a house is sold drop by the value the house had, because the house is no longer held at the end of that year and leaves the yearly values (CSD-020 REQ-10), and the sale proceeds touch no cash (CSD-020 REQ-11). This dip is intended.
+The app shall let the net worth of the year in which a house is sold drop by the value the house had, because the house is no longer held at the end of that year and leaves the yearly values (CSD-019 REQ-10), and the sale proceeds touch no cash (CSD-019 REQ-11). This dip is intended.
 
 ```gherkin
 @AC-14.1
@@ -393,6 +393,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-1: (resolved 03/11/2026) A record dated in a year after the current year is accepted and the series extends to the latest year with a record, at most 50 years back from that year (REQ-2, REQ-15). A year after the current year is not marked partial.
 
 ## 9. Changelog
+- 1.3 (04/11/2026): Live references follow the split of the former CSD-020: the held-at-year-end rule and the sale proceeds are CSD-019 REQ-10 and REQ-11 (definition of Houses, the net-worth dip requirement); no behaviour change. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 1.1 (03/11/2026): Resolved OQ-1: the series runs from the earliest year with a record to the later of the current year and the latest year with a record, so future years get a slot (REQ-2, AC-2.3, REQ-15, AC-15.2 changed, AC-15.3 new), and spans at most 50 years back from its last year, older records still count (AC-2.4). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Money follows CSD-000 CON-8 (CON-7). The net worth of a sale year drops by the sold house, and a year without a record counts as 0.00, both stated as intended (REQ-14 with CSD-020 REQ-10 and REQ-11; REQ-4, AC-4.3). Future-dated records: the current year counts them, a later year is not shown (REQ-15, OQ-1). The look, size, motion and short labels of the chart now refer to CSD-025 instead of repeating them (REQ-6, REQ-7: marker labels read "316.00k" and "-8.00k"). Navigation moved to CSD-024; references to house purchase and sale point to CSD-020. The display ACs are covered by DOM tests. Back to `draft` until re-approved.

@@ -1,11 +1,11 @@
 ---
 id: CSD-016
 title: House insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.3
-last_updated: 03/11/2026
-related: [CSD-000, CSD-010, CSD-012, CSD-015, CSD-020, CSD-025]
+version: 1.4
+last_updated: 04/11/2026
+related: [CSD-000, CSD-010, CSD-012, CSD-015, CSD-019, CSD-025]
 ---
 
 # CSD-016: House insights
@@ -168,7 +168,7 @@ Scenario: A future year is not marked partial
 ```
 
 **REQ-5: Segments are the latest values per house** *(ubiquitous)*
-The app shall give each year one segment per house that has a valuation in that year and was held at the end of that year (CSD-020 REQ-10), equal to the value of that house's latest valuation in that year, ordered by the creation of the houses, and the segments shall add up to the total value, which equals the closing value of the yearly values of CSD-015 REQ-20, and the change shall equal that of the yearly values.
+The app shall give each year one segment per house that has a valuation in that year and was held at the end of that year (CSD-019 REQ-10), equal to the value of that house's latest valuation in that year, ordered by the creation of the houses, and the segments shall add up to the total value, which equals the closing value of the yearly values of CSD-015 REQ-20, and the change shall equal that of the yearly values.
 
 ```gherkin
 @AC-5.1
@@ -587,6 +587,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-1: (resolved 03/11/2026) A year after the current year (a valuation in the future, CSD-015 REQ-7) is not marked and looks like any other year (REQ-4, AC-4.3). The series runs to the latest year with a valuation, at most 50 years back from its last year (REQ-2, AC-2.4, AC-2.5).
 
 ## 9. Changelog
+- 1.4 (04/11/2026): Live reference follows the split of the former CSD-020: houses held at the end of the year are CSD-019 REQ-10 (REQ-2); no behaviour change. Back to `draft` until re-approved.
 - 1.3 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 1.2 (03/11/2026): AC-6.6 uses the whole-number axis label "50k", as CSD-025 REQ-17 says. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Resolved OQ-1: a future year is not marked. The series spans at most 50 years back from its last year; older valuations get no slot but still count (REQ-2, new AC-2.5). Back to `draft` until re-approved.

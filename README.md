@@ -141,11 +141,13 @@ Behaviour is defined in Capability Specification Documents in [`docs/csd/`](docs
 | [CSD-016](docs/csd/CSD-016-house-insights.md) | House insights chart |
 | [CSD-017](docs/csd/CSD-017-net-worth-insights.md) | Net worth insights (the Net worth page) |
 | [CSD-018](docs/csd/CSD-018-ratios.md) | Ratios (the Ratios page) |
-| [CSD-020](docs/csd/CSD-020-debt-linked-to-house.md) | House purchase, sale and linked debts |
+| [CSD-019](docs/csd/CSD-019-house-purchase-and-sale.md) | House purchase and sale |
+| [CSD-020](docs/csd/CSD-020-debt-linked-to-house.md) | Debt linked to a house |
 | [CSD-021](docs/csd/CSD-021-ci-and-release-pipeline.md) | CI and release pipeline |
 | [CSD-022](docs/csd/CSD-022-language.md) | Language (English and Dutch) |
 | [CSD-024](docs/csd/CSD-024-navigation-and-app-shell.md) | Navigation and app shell |
 | [CSD-025](docs/csd/CSD-025-shared-charts.md) | Shared charts |
+| [CSD-026](docs/csd/CSD-026-sale-settlement-of-linked-debts.md) | Sale settlement of linked debts |
 
 Only specs with `status: approved` are implemented; check a spec's status before relying on it. Tests reference acceptance criteria in their names, for example `test_csd002_ac_1_1_...` (Rust) and `test_csd024_ac_3_1_...` (DOM tests).
 

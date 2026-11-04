@@ -1,11 +1,11 @@
 ---
 id: CSD-012
 title: Debt insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.2
-last_updated: 03/11/2026
-related: [CSD-000, CSD-010, CSD-011, CSD-020, CSD-025]
+version: 1.3
+last_updated: 04/11/2026
+related: [CSD-000, CSD-010, CSD-011, CSD-025, CSD-026]
 ---
 
 # CSD-012: Debt insights
@@ -36,7 +36,7 @@ The Debts page lists debts, statements and a table of yearly totals, but a table
 | **Current year** | The calendar year of today, in local time. Its figures run up to the latest statement so far, and are therefore partial. |
 | **Segment** | The part of a year's bar that belongs to one debt: the balance of that debt's latest statement in that year. A debt without a statement in that year has no segment in it. |
 | **Total debt (of a year)** | The sum of the segments of a year, which is the closing balance of the yearly totals of CSD-011 REQ-19. |
-| **Repaid** | As in CSD-011 section 3: Cancelled-adjusted, with the settled amount of a debt Cancelled in that year taken out (CSD-020 REQ-27, REQ-28). |
+| **Repaid** | As in CSD-011 section 3: Cancelled-adjusted, with the settled amount of a debt Cancelled in that year taken out (CSD-026 REQ-10, REQ-11). |
 | **Colour slot** | The number from 0 to 7 stored with a debt (CSD-011 REQ-3), which decides its colour. |
 
 ## 4. Requirements
@@ -217,7 +217,7 @@ Scenario: The insights equal the yearly totals
 @AC-5.6
 Scenario: Repaid is Cancelled-adjusted
   Given today is 26/10/2026
-  And "Example Mortgage" with a statement for 2025-12 with balance 200000.00 and Cancelled on 10/06/2026 on the sale of its house (settled amount 190000.00, CSD-020 REQ-27)
+  And "Example Mortgage" with a statement for 2025-12 with balance 200000.00 and Cancelled on 10/06/2026 on the sale of its house (settled amount 190000.00, CSD-026 REQ-10)
   When the insights are requested
   Then 2026 has repaid 10000.00, as the yearly totals of CSD-011 REQ-19 show
 ```
@@ -582,6 +582,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 1.3 (04/11/2026): Live references follow the split of the former CSD-020: the Cancelled-adjusted repaid amount is CSD-026 REQ-10 and REQ-11 (definition of Repaid, AC-5.6); no behaviour change. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed REQ-1 to REQ-14 DOM coverage is removed.
 - 1.1 (03/11/2026): The series follows the series-range rule of CSD-010 (REQ-2: AC-2.4, AC-2.5 added; AC-4.3 added): it runs to the later of the current year and the latest statement, at most 50 years back, and a future year is not partial. Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Back to `draft` until re-approved. The repaid amount is Cancelled-adjusted, as in the Debts overview (definition of Repaid, new AC-5.6; CSD-020 REQ-28). The look, size and motion shared by all yearly charts moved to CSD-025: REQ-12 and AC-13.1 to AC-13.3 and AC-13.5 are removed or merged into the reference in REQ-13 (AC-13.4 stays), tooltip placement (REQ-10) refers to CSD-025. Short chart labels are built in Rust, format "10.00k" (REQ-6, REQ-7, AC-7.1, section 5). New CON-7 (CSD-000 CON-8). Display ACs are covered by DOM tests (section 7).
