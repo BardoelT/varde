@@ -221,9 +221,10 @@ The figures are proven by `cargo test`. Tests are named `test_csd004_ac_<n>_<m>_
 |---|---|
 | Rust tests (figures) | `cargo test test_csd004_` |
 | Display ACs with a DOM test | `npm test`: `empty-states.test.js` (AC-5.1, the dashboard without jobs prompts for the first job) |
-| Display ACs without a DOM test (blocks and their titles, button to Income, refresh after changes) | Checked by hand |
+| Display ACs with a DOM test (titles without a currency, refresh after a new paycheck, refresh after a new project) | `npm test`: `ac-a-dashboard.test.js` (AC-6.1, AC-7.1, AC-7.2) |
+| Display ACs without a DOM test (blocks and their titles, button to Income) | Checked by hand |
 
-Not covered by a named test yet (3 of 15 ACs; no test carries the AC id): AC-6.1, AC-7.1, AC-7.2.
+Not covered by a named test yet (0 of 15 ACs; every AC carries a test name).
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
