@@ -87,7 +87,10 @@ export function createYearlyChart(strategy) {
     const lines = strategy.labelLines(years[0]).length;
     const margin = { ...MARGIN, bottom: 30 + 16 * (lines - 1) };
     const count = years.length;
-    // Draw at the real pixel width, so bars, lines and text are never scaled up.
+    // Draw at the real pixel width, so bars, lines and text are never scaled up. The previous
+    // drawing is removed first: its minimum width would otherwise keep the container wide and
+    // the chart could never shrink with the window.
+    inner.replaceChildren();
     inner.style.minWidth = '';
     const available = inner.clientWidth - margin.left - margin.right;
     const plotWidth = Math.max(count * CHART_SIZE.minSlotWidth, MIN_PLOT_WIDTH, available);
@@ -190,11 +193,35 @@ export function createYearlyChart(strategy) {
     if (!part().hidden) await reload();
   }
 
-  /** Redraws at the new width when the window is resized. */
+  /** The size the chart was last drawn for, so a redraw happens only when it changed. */
+  let drawnFor = null;
+
+  const redrawIfSizeChanged = () => {
+    const scroll = part('scroll');
+    // Hidden (another pane or tab, or no data): nothing can be measured; draw when it shows.
+    if (!drawnData || scroll.hidden || scroll.offsetParent === null) {
+      drawnFor = null;
+      return;
+    }
+    const size = `${scroll.clientWidth}x${window.innerHeight}x${Math.round(part('chart').getBoundingClientRect().top)}`;
+    if (size === drawnFor) return;
+    draw(drawnData);
+    drawnFor = `${scroll.clientWidth}x${window.innerHeight}x${Math.round(part('chart').getBoundingClientRect().top)}`;
+  };
+
+  /**
+   * Redraws when the window is resized and when the chart becomes visible or changes width: a chart
+   * loaded while its pane or tab was hidden was measured at zero, and switching back must fix it.
+   */
   function init() {
-    window.addEventListener('resize', () => {
-      if (drawnData && !part('scroll').hidden && part('scroll').offsetParent !== null) draw(drawnData);
-    });
+    window.addEventListener('resize', redrawIfSizeChanged);
+    if (typeof ResizeObserver === 'function') {
+      let frame = 0;
+      new ResizeObserver(() => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(redrawIfSizeChanged);
+      }).observe(part('scroll'));
+    }
   }
 
   return { reload, reloadIfOpen, init };
