@@ -49,7 +49,7 @@ On macOS 14 and older you can instead right-click the app and choose **Open**.
 
 ## Getting started
 
-Prerequisites: a recent stable [Rust toolchain](https://rustup.rs/) and the Tauri CLI.
+Prerequisites: [rustup](https://rustup.rs/), which installs the Rust toolchain pinned in `rust-toolchain.toml` by itself, and the Tauri CLI.
 
 ```bash
 cargo install tauri-cli --version "^2"

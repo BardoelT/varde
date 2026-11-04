@@ -3,8 +3,8 @@ id: CSD-021
 title: CI and release pipeline
 status: draft
 owner: Thijs Bardoel
-version: 0.5
-last_updated: 03/11/2026
+version: 0.6
+last_updated: 04/11/2026
 related: [CSD-000]
 ---
 
@@ -225,6 +225,7 @@ Scenario: A run needs no configured secrets
 ## 5. Interfaces and contracts
 - `.github/workflows/release.yml`: the only workflow. It runs on tags matching `v[0-9]+.[0-9]+.[0-9]+` and holds the check jobs and the release job. There is no workflow for pull requests or pushes.
 - `package.json` and `package-lock.json` at the repository root: they hold the dev-only dependencies of the DOM tests and the `npm test` script. The workflow installs them from the lock file (`npm ci`) in the check job.
+- `rust-toolchain.toml` at the repository root: the exact Rust version (with rustfmt, clippy and both macOS targets) used locally and in the release run. The workflow installs the same version explicitly, because the install action cannot read the file.
 - `deny.toml`: the allowed licences for `cargo deny`, checked for the two macOS targets only.
 - `src-tauri/tauri.conf.json`: `bundle.active` is `true` and the target is `dmg`.
 
@@ -234,6 +235,9 @@ Scenario: A run needs no configured secrets
 - CON-3: Workflow files and bundle settings change only with the owner's approval. Rationale: `CLAUDE.md` asks first for `.github/workflows/` and `tauri.conf.json`.
 - CON-4: Dependency licences stay MIT, Apache-2.0, BSD or compatible. Rationale: `CLAUDE.md` Dependencies rule.
 - CON-5: JavaScript dependencies exist only for the frontend tests, are dev-only, are installed from the lock file and never enter the app bundle; the app itself needs no Node and no build step. Rationale: `CLAUDE.md` says no npm build step, and the owner approved this tests-only exception.
+- CON-6: Every third-party action in a workflow is pinned to a full 40-character commit SHA, with the readable version as a trailing comment. Rationale: a moved tag cannot change what a release run executes; the repository is public and builds the app people install.
+- CON-7: Cargo commands that resolve dependencies in the release run (`clippy`, `test`, `tauri build`, `install`) use `--locked`, so the run builds what `Cargo.lock` says. Rationale: a release must not pick up newer dependencies than the ones that were tested.
+- CON-8: The Rust version in `rust-toolchain.toml` and the `toolchain` of the install action in `release.yml` are the same, and change in one commit. Rationale: the checks and the release build use the compiler the owner tested with.
 
 ## 7. Verification
 Workflow behaviour cannot be proven with `cargo test`, so ACs are checked in GitHub Actions. The Rust code is unchanged, so no `test_csd021_` tests exist.
@@ -252,6 +256,7 @@ Workflow behaviour cannot be proven with `cargo test`, so ACs are checked in Git
 - OQ-3: Who bumps the app version, and in which commit, so the tag matches (REQ-5)? Owner: Thijs.
 
 ## 9. Changelog
+- 0.6 (04/11/2026): Release hardening, approved by the owner: actions pinned to commit SHAs (CON-6), `--locked` on the cargo commands (CON-7), a pinned toolchain in `rust-toolchain.toml` that the workflow matches (CON-8, section 5). Requirements and ACs are unchanged. Stays `draft` until re-approved.
 - 0.5 (03/11/2026): NG-6 removed and OQ-1 resolved: `tauri.conf.json` now holds a strict CSP. The verification table is unchanged: the ACs are checked in GitHub Actions and no `test_csd021_` tests exist by design. Back to `draft` until re-approved.
 - 0.4 (03/11/2026): The frontend DOM tests are a fifth check (definition Checks, section 1, section 2.1, AC-1.1, new AC-2.3, section 5 with `package.json` and the lock file, new CON-5 for the tests-only JavaScript dependencies, section 7). Back to `draft` until re-approved.
 - 0.3 (02/11/2026): The pipeline runs only on a release tag, nothing on pull requests or merges: REQ-1 and its ACs rewritten, new NG-7, ACs 2.1, 2.2 reworded, no separate `ci.yml`, sections 1, 2.1, 5 and 7, OQ-4 removed. NG-2 now names the current macOS way to open an unsigned app.

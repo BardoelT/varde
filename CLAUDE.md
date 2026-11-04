@@ -107,11 +107,11 @@ module_name_repetitions = "allow"
 ### Dependencies
 - Ask before adding a new crate. Prefer well-maintained, widely used crates.
 - Must pass `cargo deny check` (licenses: MIT/Apache-2.0/BSD-compatible).
-- Commit `Cargo.lock`.
+- Commit `Cargo.lock`. The Rust toolchain is pinned in `rust-toolchain.toml` (rustup installs it on first use); `release.yml` pins the same version and its actions to commit SHAs, so change those together. Release-workflow cargo commands use `--locked`.
 
 ## Tauri security
 - **Least privilege capabilities.** Only enable the permissions a feature needs in `src-tauri/capabilities/`. Do not add `shell`, `fs` with broad scopes, or `http` plugins without asking.
-- `tauri.conf.json` sets a strict CSP: no `unsafe-eval`, no remote scripts, no remote content. `style-src 'unsafe-inline'` exists only for one inline style attribute in `ui/index.html`; removing it is a later security-setting change that needs approval. CSD-021 covers the release workflow.
+- `tauri.conf.json` sets a strict CSP: no `unsafe-eval`, no remote scripts, no remote content. `style-src` is `'self'` only, so `ui/` must not use `style=` attributes, `<style>` blocks or `setAttribute('style', ...)`/`cssText` (put styles in `ui/styles/`; `element.style.x = ...` through the CSSOM is fine); a DOM test guards this. CSD-021 covers the release workflow.
 - Treat every `#[tauri::command]` input as untrusted: validate and bound it before use.
 - No network calls at all unless explicitly requested (e.g. a future exchange-rate fetch must be opt-in and documented).
 - Don't use `dangerousDisableAssetCspModification` or similar `dangerous*` options.
