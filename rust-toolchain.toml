@@ -1,0 +1,7 @@
+# The exact toolchain the project is built and tested with.
+# .github/workflows/release.yml pins the same version: change both together.
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy"]
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin"]
+profile = "minimal"
