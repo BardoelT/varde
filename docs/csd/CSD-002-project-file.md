@@ -1,9 +1,9 @@
 ---
 id: CSD-002
 title: Project file (save, open, new)
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.4
+version: 1.5
 last_updated: 04/11/2026
 related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-026]
 ---
@@ -21,6 +21,7 @@ The app keeps all of the user's data in one local project file instead of a data
 - The project file format: its sections, the strict schema and its versioning.
 - Saving never overwriting another file without confirmation, and the file extension.
 - Reopening the last used project when the app starts.
+- A synthetic example project file in the repository that shows every area (REQ-21, REQ-22).
 
 ### 2.2 Non-goals
 - NG-1: Encryption of the project file. (Remembering the last used file moved into scope in v0.4: REQ-8, REQ-10, REQ-11.)
@@ -30,6 +31,7 @@ The app keeps all of the user's data in one local project file instead of a data
 - NG-5: Buttons for these actions inside the app window, and an Open Recent list.
 - NG-6: Remembering more than one file, and opening a file by double-clicking it in Finder.
 - NG-7: Migrating project files of an older or newer format inside the app. There is no migration framework or migration code in the app. The one exception is a one-off script outside the app that upgrades a file by hand (REQ-20), because the first change of the schema after the release (the opening of a debt, CSD-011 REQ-30) makes older files with debts invalid.
+- NG-8: An "Open example project" item or any other way to reach the example file from inside the app (GitHub issue 30 follow-up). The example is a file in the repository.
 
 ## 3. Definitions
 | Term | Meaning |
@@ -549,6 +551,54 @@ Scenario: A failure changes nothing
   And the original file is unchanged
 ```
 
+**REQ-21: The example project file** *(ubiquitous)*
+The repository shall contain one synthetic project file, `examples/example.varde`, that the app opens, that holds records in every area, that shows every state the approved CSDs describe for each area, and that has only fake names (each starting with "Example") and dates and periods from 2023-01 to 2026-10, and it shall be the only `*.varde` file tracked by git.
+
+```gherkin
+@AC-21.1
+Scenario: The example opens and every area has records
+  Given the file "examples/example.varde"
+  When the app opens it
+  Then the project has no unsaved changes
+  And the project currency is "EUR"
+  And jobs, paychecks, investment accounts and statements, bank accounts and entries, debts and statements, houses and valuations and expenses are listed
+
+@AC-21.2
+Scenario: The example shows every state
+  Given the file "examples/example.varde"
+  Then it holds a monthly and a yearly job, a job with an end date and a job without a title
+  And a monthly and a yearly investment account and bank account
+  And an expense in each of the 8 categories
+  And a house that was sold on 10/06/2026 and a house that is held
+  And debts of the categories "Mortgage", "Loan", "Scholarship" and "Other"
+  And a debt settled as "Repaid" and a debt settled as "Cancelled" by the sale of their house
+  And a debt closed by hand
+
+@AC-21.3
+Scenario: The example is synthetic and inside its window
+  Given the file "examples/example.varde"
+  Then every employer and every name starts with "Example"
+  And no date or period lies before 2023-01 or after 2026-10
+
+@AC-21.4
+Scenario: Only the example is tracked
+  Given the git repository
+  When the tracked files with the extension ".varde" are listed
+  Then the list is exactly "examples/example.varde"
+```
+
+**REQ-22: The example is generated** *(unwanted behaviour)*
+If `examples/example.varde` differs from the output of its generator, then the Rust tests shall fail, and a run with the environment variable `EXAMPLE_UPDATE` set shall rewrite the file.
+
+```gherkin
+@AC-22.1
+Scenario: The committed example is what the generator writes
+  Given the generator builds the example project through the commands the UI calls, with fixed ids and a fixed "today" of 15/10/2026
+  When the generated text is compared with "examples/example.varde"
+  Then they are identical
+  And a difference fails the test with the hint "EXAMPLE_UPDATE=1 cargo test example"
+```
+
 ## 5. Interfaces and contracts
 
 Menu: Rust builds the File menu items `project-new`, `project-open`, `project-save` and `project-save-as`. Choosing one emits the event `menu-action` with the item id to the frontend, which runs the flow of the action, including the confirmations of REQ-7.
@@ -578,7 +628,7 @@ The script `scripts/migrate-debt-opening.mjs` has no dependency (Node only), tak
 Error codes (code plus safe message): `PROJECT_SAVE_FAILED`, `PROJECT_INVALID_FILE`, `PROJECT_OPEN_FAILED`, `PROJECT_FILE_NEWER`.
 
 ## 6. Constraints
-- CON-1: The project file is plain, unencrypted JSON, written by writing a temporary file and renaming it over the target. It is never committed (`*.varde` is git-ignored). Rationale: it holds real financial data and the repo is public. The atomic write backs REQ-5.
+- CON-1: The project file is plain, unencrypted JSON, written by writing a temporary file and renaming it over the target. It is never committed (`*.varde` is git-ignored), with one exception: the synthetic `examples/example.varde` (REQ-21), which `.gitignore` re-includes by its exact path. Rationale: a project file holds real financial data and the repo is public. The atomic write backs REQ-5.
 - CON-2: File access uses only the Tauri dialog plugin, opened from Rust, so no dialog permission is granted to the webview. There is no `fs` plugin, and file paths never come from the frontend. Rationale: least privilege per `CLAUDE.md`. Adding the plugin still needs approval at implementation time.
 - CON-3: Amounts in the file are decimal strings with at most two decimals (CSD-000 CON-8) and are never rounded when read: a file amount with more than two decimals is invalid (REQ-19), only typed text is rounded. The file carries `format_version`. A newer version than the app knows is rejected (REQ-18). Rationale: no float rounding, and a clear message instead of a parse error.
 - CON-4: Errors shown to the user never contain file paths or OS details. Rationale: `CLAUDE.md` error rules.
@@ -595,9 +645,10 @@ The unsaved flag and the project state live in Rust, so they are proven by `carg
 | AC-9.1 | `cargo test test_csd002_ac_9_` checks the table the menu is built from (ids, labels, shortcuts). Native menus can only be created on the main thread, so the built menu is on the manual checklist |
 | DOM tests (`npm test`) | `dialogs.test.js`: AC-3.1, AC-4.1, AC-7.1, AC-7.2, AC-9.3 (indicator, close, Open and New with and without unsaved changes, no buttons in the window); `ac-d-preferences.test.js`: AC-9.2, AC-9.4 (File > Save calls the save and clears the indicator, File > New and Open ask first). AC-4.2 is decided in Rust (`test_csd002_ac_4_2_...`, the close asks only when `has_unsaved_changes`) |
 | Script (REQ-20, AC-20.1 to AC-20.5) | `npm test`: `scripts/tests/migrate-debt-opening.test.js` (`node:test`, synthetic fixtures in a temporary directory) |
+| Example project (REQ-21, REQ-22) | `cargo test example_project` (`src-tauri/src/example_project_tests.rs`: `test_csd002_ac_21_1_...` to `test_csd002_ac_21_4_...` and `test_csd002_ac_22_1_...`). After a deliberate change of the generator or of the format: `EXAMPLE_UPDATE=1 cargo test example`, then review the diff of `examples/` |
 | Manual checklist (native parts only) | The real File menu items and shortcuts (AC-9.1 to AC-9.4), the native save dialog, and a real window close without unsaved changes (AC-4.2: the mock runtime has no event loop to send it) |
 
-Not covered by a named test yet (0 of 49 ACs): none. Every AC has a test that carries its id; the native parts are on the manual list above.
+Not covered by a named test yet (0 of 54 ACs): none. Every AC has a test that carries its id; the native parts are on the manual list above.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
@@ -609,6 +660,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-5: (resolved 03/11/2026) A remembered file that exists but is invalid or from a newer app version keeps its remembered path and shows the error (REQ-13, AC-13.3).
 
 ## 9. Changelog
+- 1.5 (04/11/2026): New REQ-21 (AC-21.1 to AC-21.4) and REQ-22 (AC-22.1): the repository holds one synthetic example project, `examples/example.varde`, written by a test through the commands the UI calls and compared with the committed file; it is the one `*.varde` file that is tracked (CON-1 amended, `.gitignore` exception). New NG-8: no way to reach the example from inside the app. Owner decisions from the grill-me interview of 04/11/2026 (GitHub issue 30). Back to `draft` until re-approved.
 - 1.4 (04/11/2026): A debt in the file must have `opening_date` and `opening_amount` (CSD-011 v3.0, REQ-17 examples); `format_version` stays 1 by owner decision, so older apps show `PROJECT_INVALID_FILE` for such files and the next schema change raises the version. NG-7 and NG-2 reworded: the app has no migration and makes no backup copy, but a one-off script outside the app upgrades a file (new REQ-20, AC-20.1 to AC-20.5), writing its own `.bak`. Owner decisions from the grill-me interview of 04/11/2026 (GitHub issue 51). Back to `draft` until re-approved.
 - 1.3 (04/11/2026): New REQ-19 (AC-19.1, AC-19.2): the file stays strict, an amount with more than two decimals makes it invalid (`PROJECT_INVALID_FILE`) and is not rounded, because only typed amounts are rounded (CSD-000 CON-8, v4.0). The behaviour was already built; it is now stated. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. Section 5 lists the command `quit_app`, and `related` adds CSD-004, CSD-017, CSD-018 and CSD-022. Back to `draft` until re-approved.
