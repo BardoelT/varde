@@ -81,3 +81,40 @@ fn test_csd005_an_investment_change_is_an_unsaved_change() {
     account(&mut project, "Example Brokerage", "Monthly");
     assert!(project.status().unsaved_changes);
 }
+
+#[test]
+fn test_csd005_ac_29_4_a_rejected_edit_changes_nothing_and_is_no_unsaved_change() {
+    let dir = TempDir::new().unwrap();
+    let mut project = Project::new();
+    let id = account(&mut project, "Example Brokerage", "Monthly");
+    let period = Period::parse("2026-09").unwrap();
+    project
+        .investments_mut()
+        .add_statement(
+            id,
+            period,
+            Balance::parse("12500.00").unwrap(),
+            NetDeposits::default(),
+            Note::default(),
+        )
+        .unwrap();
+    project.save_as(dir.path().join("example-a.varde")).unwrap();
+    assert!(!project.status().unsaved_changes);
+
+    // The period moves to 2026-08 and the balance is -1.00. The command parses the balance
+    // before it touches the data, so the edit is rejected as a whole.
+    let error = Balance::parse("-1.00").unwrap_err();
+    assert_eq!(error.code(), "INVESTMENT_BALANCE_NEGATIVE");
+
+    let rows = project.investments().all_statements();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(
+        rows[0].1.period, period,
+        "the statement is still for 2026-09"
+    );
+    assert_eq!(rows[0].1.balance.value().to_string(), "12500.00");
+    assert!(
+        !project.status().unsaved_changes,
+        "the unsaved indicator is not shown"
+    );
+}
