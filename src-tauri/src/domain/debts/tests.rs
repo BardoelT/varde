@@ -40,7 +40,13 @@ fn old_debt(debts: &mut Debts, name: &str, kind: &str) -> DebtId {
         .id
 }
 
+/// Adds a statement. The first statement of a debt also sets its opening amount to the same
+/// balance, the shorthand of the scenarios (CSD-011 section 4.1): the opening then adds nothing.
 fn add(debts: &mut Debts, id: DebtId, at: &str, amount: &str) {
+    if debts.statement_count(id) == 0 {
+        let date = debts.get(id).unwrap().opening_date;
+        debts.set_opening(id, date, balance(amount)).unwrap();
+    }
     debts
         .add_statement(id, period(at), balance(amount), Note::default())
         .unwrap();
@@ -74,6 +80,26 @@ fn update(
         balance(amount),
         Note::default(),
     )
+}
+
+/// A monthly debt with the opening given, for scenarios where the opening matters.
+fn opened(debts: &mut Debts, name: &str, date: &str, amount: &str) -> DebtId {
+    debts
+        .create_debt(&DebtInput {
+            name: name.to_owned(),
+            period: Some("Monthly".to_owned()),
+            opening_date: date.to_owned(),
+            opening_amount: amount.to_owned(),
+        })
+        .unwrap()
+        .id
+}
+
+/// Adds a statement without touching the opening amount.
+fn add_plain(debts: &mut Debts, id: DebtId, at: &str, amount: &str) {
+    debts
+        .add_statement(id, period(at), balance(amount), Note::default())
+        .unwrap();
 }
 
 /// The change of the statement of `at`, as text, or "none".
@@ -911,9 +937,37 @@ fn test_csd011_ac_25_1_the_change_follows_the_previous_statement() {
     add(&mut debts, id, "2026-07", "10000.00");
     add(&mut debts, id, "2026-08", "9500.00");
     add(&mut debts, id, "2026-09", "9600.00");
-    assert_eq!(change(&debts, id, "2026-07"), "none");
+    assert_eq!(change(&debts, id, "2026-07"), "0.00");
     assert_eq!(change(&debts, id, "2026-08"), "500.00");
     assert_eq!(change(&debts, id, "2026-09"), "-100.00");
+}
+
+#[test]
+fn test_csd011_ac_25_7_the_first_statement_is_measured_against_the_opening() {
+    let mut debts = Debts::default();
+    let id = opened(&mut debts, "Example Mortgage", "15/03/2020", "200000.00");
+    add_plain(&mut debts, id, "2026-09", "190000.00");
+    add_plain(&mut debts, id, "2026-10", "189000.00");
+    assert_eq!(change(&debts, id, "2026-09"), "10000.00");
+    assert_eq!(change(&debts, id, "2026-10"), "1000.00");
+}
+
+#[test]
+fn test_csd011_ac_25_8_a_first_statement_in_the_period_of_the_opening_or_a_grown_debt() {
+    let mut debts = Debts::default();
+    let id = opened(&mut debts, "Example Card", "15/03/2026", "1000.00");
+    add_plain(&mut debts, id, "2026-03", "1200.00");
+    assert_eq!(change(&debts, id, "2026-03"), "-200.00");
+}
+
+#[test]
+fn test_csd011_ac_25_10_editing_the_opening_amount_changes_the_first_change() {
+    let mut debts = Debts::default();
+    let id = opened(&mut debts, "Example Mortgage", "15/03/2020", "200000.00");
+    add_plain(&mut debts, id, "2026-09", "190000.00");
+    let date = debts.get(id).unwrap().opening_date;
+    debts.set_opening(id, date, balance("195000.00")).unwrap();
+    assert_eq!(change(&debts, id, "2026-09"), "5000.00");
 }
 
 #[test]
@@ -932,7 +986,7 @@ fn test_csd011_ac_25_3_yearly_statements() {
     add(&mut debts, id, "2024", "8000.00");
     add(&mut debts, id, "2025", "6000.00");
     assert_eq!(change(&debts, id, "2025"), "2000.00");
-    assert_eq!(change(&debts, id, "2024"), "none");
+    assert_eq!(change(&debts, id, "2024"), "0.00");
 }
 
 #[test]
@@ -943,7 +997,7 @@ fn test_csd011_ac_25_4_another_debt_does_not_count() {
     add(&mut debts, mortgage, "2026-09", "150000.00");
     add(&mut debts, car, "2026-08", "5000.00");
     add(&mut debts, car, "2026-09", "4500.00");
-    assert_eq!(change(&debts, mortgage, "2026-09"), "none");
+    assert_eq!(change(&debts, mortgage, "2026-09"), "0.00");
     assert_eq!(change(&debts, car, "2026-09"), "500.00");
 }
 
@@ -1000,7 +1054,7 @@ fn test_csd011_ac_19_1_totals_per_calendar_year() {
     add(&mut debts, id, "2025-12", "9800.00");
     add(&mut debts, id, "2026-05", "9000.00");
     assert_eq!(year(&debts, 2026), row("9000.00", "800.00", 1));
-    assert_eq!(year(&debts, 2025), row("9800.00", "none", 2));
+    assert_eq!(year(&debts, 2025), row("9800.00", "200.00", 2));
 }
 
 #[test]
@@ -1019,7 +1073,7 @@ fn test_csd011_ac_19_3_totals_add_up_all_debts() {
     add(&mut debts, mortgage, "2026-09", "149500.00");
     add(&mut debts, loan, "2026-09", "5000.00");
     assert_eq!(debts.yearly_totals().len(), 1);
-    assert_eq!(year(&debts, 2026), row("154500.00", "none", 3));
+    assert_eq!(year(&debts, 2026), row("154500.00", "500.00", 3));
 }
 
 #[test]
@@ -1028,7 +1082,7 @@ fn test_csd011_ac_19_4_the_closing_balance_is_the_latest_balance_not_a_sum() {
     let id = debt(&mut debts, "Example Mortgage", "Monthly");
     add(&mut debts, id, "2026-03", "10000.00");
     add(&mut debts, id, "2026-09", "8000.00");
-    assert_eq!(year(&debts, 2026), row("8000.00", "none", 2));
+    assert_eq!(year(&debts, 2026), row("8000.00", "2000.00", 2));
 }
 
 #[test]
@@ -1040,7 +1094,7 @@ fn test_csd011_ac_19_5_monthly_and_yearly_debts_add_up_together() {
     add(&mut debts, loan, "2024", "7000.00");
     add(&mut debts, loan, "2025", "6000.00");
     assert_eq!(year(&debts, 2025), row("16000.00", "1000.00", 2));
-    assert_eq!(year(&debts, 2024), row("7000.00", "none", 1));
+    assert_eq!(year(&debts, 2024), row("7000.00", "0.00", 1));
 }
 
 #[test]
@@ -1052,7 +1106,7 @@ fn test_csd011_ac_19_6_a_debt_without_a_statement_in_a_year_does_not_count_in_it
     add(&mut debts, mortgage, "2026-03", "9500.00");
     add(&mut debts, loan, "2025", "6000.00");
     assert_eq!(year(&debts, 2026), row("9500.00", "500.00", 1));
-    assert_eq!(year(&debts, 2025), row("16000.00", "none", 2));
+    assert_eq!(year(&debts, 2025), row("16000.00", "0.00", 2));
 }
 
 #[test]
@@ -1065,14 +1119,28 @@ fn test_csd011_ac_19_7_a_debt_that_grew_shows_a_negative_amount_repaid() {
 }
 
 #[test]
-fn test_csd011_ac_19_8_a_debt_without_an_opening_balance_adds_no_repaid_amount() {
+fn test_csd011_ac_19_8_a_first_statement_is_measured_against_the_opening_amount() {
     let mut debts = Debts::default();
     let mortgage = debt(&mut debts, "Example Mortgage", "Monthly");
-    let car = debt(&mut debts, "Example Car Loan", "Monthly");
     add(&mut debts, mortgage, "2025-12", "10000.00");
     add(&mut debts, mortgage, "2026-03", "9000.00");
-    add(&mut debts, car, "2026-03", "4000.00");
-    assert_eq!(year(&debts, 2026), row("13000.00", "1000.00", 2));
+    let car = opened(&mut debts, "Example Car Loan", "15/01/2026", "5000.00");
+    add_plain(&mut debts, car, "2026-03", "4000.00");
+    assert_eq!(year(&debts, 2026), row("13000.00", "2000.00", 2));
+}
+
+#[test]
+fn test_csd011_ac_19_14_a_first_statement_long_after_the_opening_carries_the_earlier_repayments() {
+    let mut debts = Debts::default();
+    let id = opened(&mut debts, "Example Mortgage", "15/03/2020", "200000.00");
+    add_plain(&mut debts, id, "2023-06", "150000.00");
+    assert_eq!(year(&debts, 2023), row("150000.00", "50000.00", 1));
+    let years: Vec<i32> = debts
+        .yearly_totals()
+        .iter()
+        .map(|total| total.year)
+        .collect();
+    assert_eq!(years, [2023]);
 }
 
 #[test]

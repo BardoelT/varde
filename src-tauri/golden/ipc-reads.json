@@ -649,7 +649,7 @@
             "series": "debt-id-5"
           }
         ],
-        "repaid": null,
+        "repaid": "0.00",
         "segments": [
           {
             "balance": "150000.00",
@@ -3217,7 +3217,7 @@
     },
     {
       "balance": "20000.00",
-      "change": null,
+      "change": "0.00",
       "debt_id": "id-4",
       "debt_name": "Example Home Loan",
       "locked": false,
@@ -3241,7 +3241,7 @@
     },
     {
       "balance": "150000.00",
-      "change": null,
+      "change": "0.00",
       "debt_id": "id-3",
       "debt_name": "Example Mortgage",
       "locked": false,
@@ -3253,7 +3253,7 @@
     },
     {
       "balance": "8000.00",
-      "change": null,
+      "change": "0.00",
       "debt_id": "id-5",
       "debt_name": "Example Student Loan",
       "locked": false,
@@ -3264,7 +3264,7 @@
       "settlement": false
     },
     {
-      "balance": "200000.00",
+      "balance": "8000.00",
       "change": null,
       "debt_id": "id-5",
       "debt_name": "Example Student Loan",
@@ -3276,7 +3276,7 @@
       "settlement": false
     },
     {
-      "balance": "200000.00",
+      "balance": "20000.00",
       "change": null,
       "debt_id": "id-4",
       "debt_name": "Example Home Loan",
@@ -3288,7 +3288,7 @@
       "settlement": false
     },
     {
-      "balance": "200000.00",
+      "balance": "150000.00",
       "change": null,
       "debt_id": "id-3",
       "debt_name": "Example Mortgage",
@@ -3311,7 +3311,7 @@
         "latest_balance": "0.00",
         "latest_period": "2026-06",
         "name": "Example Home Loan",
-        "opening_amount": "200000.00",
+        "opening_amount": "20000.00",
         "opening_date": "2000-01-01",
         "period": "Monthly",
         "repaid": true,
@@ -3332,7 +3332,7 @@
         "latest_balance": "0.00",
         "latest_period": "2026-06",
         "name": "Example Mortgage",
-        "opening_amount": "200000.00",
+        "opening_amount": "150000.00",
         "opening_date": "2000-01-01",
         "period": "Monthly",
         "repaid": true,
@@ -3352,7 +3352,7 @@
         "latest_balance": "7000.00",
         "latest_period": "2026",
         "name": "Example Student Loan",
-        "opening_amount": "200000.00",
+        "opening_amount": "8000.00",
         "opening_date": "2000-01-01",
         "period": "Yearly",
         "repaid": false,
@@ -3702,7 +3702,7 @@
     },
     {
       "closing_balance": "158000.00",
-      "repaid": null,
+      "repaid": "0.00",
       "statement_count": 2,
       "year": 2025
     }

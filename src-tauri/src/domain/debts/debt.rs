@@ -152,6 +152,29 @@ impl DebtInput {
             opening_amount: "200000.00".to_owned(),
         }
     }
+
+    /// The fields of a stored debt as the form would send them back unchanged, so that a test
+    /// that saves the debt again keeps its opening.
+    pub(crate) fn keeping(debt: &Debt) -> Self {
+        let iso = debt.opening_date().iso();
+        let (year, rest) = iso.split_once('-').unwrap_or_default();
+        let (month, day) = rest.split_once('-').unwrap_or_default();
+        Self {
+            name: debt.name.clone(),
+            period: None,
+            opening_date: format!("{day}/{month}/{year}"),
+            opening_amount: debt.opening_amount().value().to_string(),
+        }
+    }
+
+    /// The shorthand of the scenarios (CSD-011 section 4.1): the first statement of a debt also
+    /// sets its opening amount to the same balance, so the opening adds nothing.
+    pub(crate) fn first_balance(debt: &Debt, balance: &str) -> Self {
+        Self {
+            opening_amount: balance.to_owned(),
+            ..Self::keeping(debt)
+        }
+    }
 }
 
 /// Debt fields as typed by the user, before validation (CSD-011 REQ-1, REQ-30).

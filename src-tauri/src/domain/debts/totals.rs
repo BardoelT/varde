@@ -16,9 +16,9 @@ pub struct DebtYearlyTotal {
     /// The sum, over the debts with a statement this year, of the balance of
     /// their latest statement this year.
     pub closing_balance: Money,
-    /// Opening balance minus closing balance, over the debts that have both,
-    /// less the settled amount of a debt Cancelled in the year (CSD-026 REQ-11);
-    /// `None` when no debt has an opening balance this year.
+    /// Opening balance minus closing balance, over the debts with a statement
+    /// this year, less the settled amount of a debt Cancelled in the year
+    /// (CSD-026 REQ-11); `None` when no debt has a statement this year.
     pub repaid: Option<Money>,
     /// Number of statements in the year.
     pub statement_count: usize,
@@ -42,11 +42,12 @@ impl Debts {
     }
 
     /// The amount repaid in `year`, the one figure of the Debts overview, the
-    /// debt insights and the ratios: for each debt with a statement in the year
-    /// and an earlier one, its opening balance minus its closing balance, minus
-    /// the settled amount of every debt Cancelled in the year (CSD-026 REQ-10,
-    /// REQ-11), so a Cancelled debt nets to zero and a Repaid one counts in
-    /// full. `None` when no debt has an opening balance (CSD-011 section 3).
+    /// debt insights and the ratios: for each debt with a statement in the year,
+    /// its opening balance (the latest earlier statement, else its opening
+    /// amount) minus its closing balance, minus the settled amount of every debt
+    /// Cancelled in the year (CSD-026 REQ-10, REQ-11), so a Cancelled debt nets
+    /// to zero and a Repaid one counts in full. `None` when no debt has a
+    /// statement in the year (CSD-011 section 3).
     pub(super) fn repaid(&self, year: i32) -> Option<Money> {
         self.year_change(year)
             .map(|change| (-change).saturating_sub(self.cancelled_in(year)))

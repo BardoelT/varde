@@ -231,6 +231,12 @@ impl SeriesData for Debts {
         &mut self.statements
     }
 
+    /// The opening amount of a debt is its balance before the first statement
+    /// (CSD-011 REQ-19, REQ-25).
+    fn starting_amount(&self, account: &Debt) -> Option<crate::domain::money::Money> {
+        Some(account.opening_amount.value())
+    }
+
     /// A statement lies in the window of the debt: not before the period of
     /// its opening (CSD-011 REQ-32), and a settled debt takes no regular
     /// statement after its settlement period (CSD-026 REQ-6).

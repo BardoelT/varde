@@ -122,26 +122,39 @@ fn test_csd011_ac_30_3_a_missing_part_of_the_opening_is_rejected() {
 }
 
 #[test]
-fn test_csd011_ac_30_4_the_opening_changes_no_figure() {
+fn test_csd011_ac_30_4_the_opening_is_the_balance_before_the_first_statement() {
     let mut debts = Debts::default();
     let id = mortgage(&mut debts);
     let statement = add(&mut debts, id, "2026-09", "150000.00").unwrap();
     let figures = |debts: &Debts| {
         (
-            debts.overview().total,
-            debts.change(&statement),
-            debts.yearly_totals(),
+            debts.overview().total.unwrap().to_string(),
+            debts.change(&statement).unwrap().to_string(),
+            debts.yearly_totals()[0].repaid.unwrap().to_string(),
         )
     };
-    let before = figures(&debts);
-    assert_eq!(before.0.unwrap().to_string(), "150000.00");
+    assert_eq!(
+        figures(&debts),
+        (
+            "150000.00".to_owned(),
+            "50000.00".to_owned(),
+            "50000.00".to_owned()
+        )
+    );
     edit(
         &mut debts,
         id,
         &form("Example Mortgage", "Monthly", "15/03/2020", "250000.00"),
     )
     .unwrap();
-    assert_eq!(figures(&debts), before);
+    assert_eq!(
+        figures(&debts),
+        (
+            "150000.00".to_owned(),
+            "100000.00".to_owned(),
+            "100000.00".to_owned()
+        )
+    );
 }
 
 #[test]
@@ -413,7 +426,7 @@ fn test_csd011_ac_33_4_the_opening_row_is_not_a_statement() {
     let mut debts = Debts::default();
     let id = mortgage(&mut debts);
     let statement = add(&mut debts, id, "2026-09", "150000.00").unwrap();
-    assert!(debts.change(&statement).is_none());
+    assert_eq!(debts.change(&statement).unwrap().to_string(), "50000.00");
     assert_eq!(debts.overview().total.unwrap().to_string(), "150000.00");
     assert_eq!(debts.total_statement_count(), 1);
 }

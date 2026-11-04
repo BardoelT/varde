@@ -402,20 +402,13 @@ impl Debts {
         Ok(())
     }
 
-    /// The settled amount of the debts Cancelled in `year` that have an opening
-    /// balance in it, which the wealth accumulation takes out of the repaid
-    /// amount (CSD-026 REQ-10).
+    /// The settled amount of the debts Cancelled in `year`, which the wealth
+    /// accumulation takes out of the repaid amount (CSD-026 REQ-10).
     #[must_use]
     pub fn cancelled_in(&self, year: i32) -> Money {
         Money::saturating_sum(self.debts.iter().filter_map(|debt| {
             let settlement = debt.settlement.as_ref()?;
-            let has_opening = self
-                .statements
-                .iter()
-                .any(|s| s.debt_id == debt.id && s.period.year() < year);
-            (settlement.outcome == Outcome::Cancelled
-                && settlement.date.year() == year
-                && has_opening)
+            (settlement.outcome == Outcome::Cancelled && settlement.date.year() == year)
                 .then(|| settlement.amount.value())
         }))
     }

@@ -33,6 +33,10 @@ fn debt(data: &mut ProjectData, name: &str, kind: &str) -> DebtId {
 }
 
 fn statement(data: &mut ProjectData, id: DebtId, at: &str, balance: &str, note: &str) {
+    if data.debts.statement_count(id) == 0 {
+        let first = DebtInput::first_balance(data.debts.get(id).unwrap(), balance);
+        data.debts.update_debt(id, &first).unwrap();
+    }
     data.debts
         .add_statement(
             id,
@@ -99,17 +103,13 @@ fn link_with(
     house: Option<HouseId>,
     outcome: Option<&str>,
 ) -> Result<(), crate::domain::DomainError> {
-    let name = data.debts.get(id).unwrap().name.clone();
+    let kept = DebtInput::keeping(data.debts.get(id).unwrap());
     linking::update_debt(
         &data.houses,
         &mut data.debts,
         id,
         &DebtFormInput {
-            debt: DebtInput {
-                name,
-                period: None,
-                ..DebtInput::example()
-            },
+            debt: kept,
             category: Some(category.to_owned()),
             house_id: house.map(|house| house.to_string()),
             settlement: outcome.map(str::to_owned),
@@ -780,9 +780,9 @@ fn test_csd026_ac_10_1_a_cancelled_debt_is_taken_out_of_the_repaid_amount() {
 }
 
 #[test]
-fn test_csd026_ac_10_2_a_debt_without_an_opening_balance_adds_nothing() {
+fn test_csd026_ac_10_2_a_debt_cancelled_in_the_year_it_started_nets_to_zero() {
     let data = settle_mortgage("Cancelled", &[("2026-02", "5000.00")], "10/06/2026");
-    assert_eq!(repaid_2026(&data), None);
+    assert_eq!(repaid_2026(&data), Some(dec("0.00")));
 }
 
 #[test]
@@ -1044,7 +1044,11 @@ fn test_csd026_ac_14_2_the_change_of_the_settlement_statement() {
         .collect();
     assert_eq!(
         changes,
-        vec![Some("3500.00".to_owned()), Some("500.00".to_owned()), None]
+        vec![
+            Some("3500.00".to_owned()),
+            Some("500.00".to_owned()),
+            Some("0.00".to_owned())
+        ]
     );
 }
 

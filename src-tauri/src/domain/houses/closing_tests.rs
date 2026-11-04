@@ -97,6 +97,10 @@ fn new_debt(data: &mut ProjectData, name: &str, category: &str, house: Option<Ho
 }
 
 fn statement(data: &mut ProjectData, id: DebtId, at: &str, balance: &str) {
+    if data.debts.statement_count(id) == 0 {
+        let first = DebtInput::first_balance(data.debts.get(id).unwrap(), balance);
+        data.debts.update_debt(id, &first).unwrap();
+    }
     data.debts
         .add_statement(
             id,

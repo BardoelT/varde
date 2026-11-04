@@ -176,6 +176,10 @@ fn debt(data: &mut ProjectData) -> DebtId {
 }
 
 fn statement(data: &mut ProjectData, id: DebtId, at: &str, balance: &str) {
+    if data.debts.statement_count(id) == 0 {
+        let first = DebtInput::first_balance(data.debts.get(id).unwrap(), balance);
+        data.debts.update_debt(id, &first).unwrap();
+    }
     data.debts
         .add_statement(
             id,
@@ -219,17 +223,13 @@ fn sold_with(outcome: &str, statements: &[(&str, &str)]) -> ProjectData {
     )
     .unwrap()
     .id;
-    let name = data.debts.get(mortgage).unwrap().name.clone();
+    let kept = DebtInput::keeping(data.debts.get(mortgage).unwrap());
     linking::update_debt(
         &data.houses,
         &mut data.debts,
         mortgage,
         &DebtFormInput {
-            debt: DebtInput {
-                name,
-                period: None,
-                ..DebtInput::example()
-            },
+            debt: kept,
             category: Some("Mortgage".to_owned()),
             house_id: Some(house.to_string()),
             settlement: None,
@@ -279,5 +279,5 @@ fn test_csd018_ac_5_7_a_cancelled_mortgage_does_not_count_as_cash_repaid() {
 #[test]
 fn test_csd018_ac_5_8_a_debt_cancelled_in_the_year_it_started_adds_nothing() {
     let data = sold_with("Cancelled", &[("2026-02", "5000.00")]);
-    assert_eq!(wealth_2026(&data), None);
+    assert_eq!(wealth_2026(&data), Some(dec("0.00")));
 }
