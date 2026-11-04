@@ -182,6 +182,18 @@ test('test_csd006_ac_9_1_the_tooltip_shows_the_amounts_and_the_growth_without_a_
   app.close();
 });
 
+test('test_csd006_ac_9_4_a_year_without_entries_shows_the_note_and_no_count', async () => {
+  const series = { axis, years: [year(2022, ['30000.00', '0.00', '0.00']), year(2023, ['0.00', '0.00', '0.00']), year(2024, ['40000.00', '0.00', '0.00'], { growth: '+33.33%' })] };
+  const { app, chart } = await openInsights(series);
+  await hover(app, groups(chart)[1]);
+  assert.equal(tooltip(chart).classList.contains('is-open'), true);
+  assert.equal(app.text(tooltip(chart).querySelector('.tip-title')), '2023');
+  const notes = [...tooltip(chart).querySelectorAll('.tip-note')].map((note) => app.text(note));
+  assert.deepEqual(notes, ['No entries'], 'the note, and no count of entries');
+  assert.equal(tooltip(chart).querySelectorAll('dt').length, 0, 'no amount rows');
+  app.close();
+});
+
 test('test_csd006_ac_9_2_the_tooltip_follows_keyboard_focus', async () => {
   const { app, chart } = await openInsights();
   const group = y2025(chart);
