@@ -147,3 +147,106 @@ fn test_csd019_ac_12_3_selling_a_house_is_an_unsaved_change() {
     );
     assert_eq!(app.ok("project_status", json!({}))["unsaved_changes"], true);
 }
+
+/// "Example Mortgage" with 200000.00 at 2025-12 and 190000.00 at 2026-03, linked to a house
+/// sold on 10/06/2026 and settled with `outcome` (CSD-026 REQ-9, REQ-10).
+fn sold_mortgage(outcome: &str) -> Harness {
+    let app = harness();
+    let house = app.ok(
+        "create_house",
+        json!({ "input": { "name": "Example House", "period": "Monthly", "purchase_date": "15/03/2024", "purchase_amount": "250000.00" } }),
+    );
+    let mortgage = app.ok(
+        "create_debt",
+        json!({ "input": { "name": "Example Mortgage", "period": "Monthly", "category": "Mortgage", "house_id": house["id"] } }),
+    );
+    for (period, balance) in [("2025-12", "200000.00"), ("2026-03", "190000.00")] {
+        app.ok(
+            "add_debt_statement",
+            json!({ "debtId": mortgage["id"], "period": period, "balance": balance }),
+        );
+    }
+    app.ok(
+        "update_house",
+        json!({
+            "houseId": house["id"],
+            "input": {
+                "name": "Example House",
+                "purchase_date": "15/03/2024",
+                "purchase_amount": "250000.00",
+                "sell_date": "10/06/2026",
+                "sell_amount": "300000.00"
+            },
+            "links": { "settlements": [ { "debt_id": mortgage["id"], "outcome": outcome } ] }
+        }),
+    );
+    app
+}
+
+fn repaid_2026(app: &Harness) -> Value {
+    let totals = app.ok("yearly_debt_totals", json!({}));
+    let total = totals
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|total| total["year"] == 2026)
+        .unwrap()
+        .clone();
+    let insights = app.ok("get_debt_insights", json!({}));
+    let year = insights["years"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|year| year["year"] == 2026)
+        .unwrap()
+        .clone();
+    assert_eq!(total["repaid"], year["repaid"], "one repaid figure");
+    total["repaid"].clone()
+}
+
+#[test]
+fn test_csd011_ac_19_12_a_cancelled_debt_shows_the_cancelled_adjusted_repaid_amount() {
+    let app = sold_mortgage("Cancelled");
+    assert_eq!(repaid_2026(&app), "10000.00");
+}
+
+#[test]
+fn test_csd012_ac_5_6_the_insights_repaid_is_cancelled_adjusted() {
+    let app = sold_mortgage("Cancelled");
+    let insights = app.ok("get_debt_insights", json!({}));
+    let year = insights["years"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|year| year["year"] == 2026)
+        .unwrap();
+    assert_eq!(year["repaid"], "10000.00");
+}
+
+#[test]
+fn test_csd026_ac_11_1_the_debts_overview_shows_the_cancelled_adjusted_repaid_amount() {
+    let app = sold_mortgage("Cancelled");
+    let totals = app.ok("yearly_debt_totals", json!({}));
+    let year = totals
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|total| total["year"] == 2026)
+        .unwrap();
+    assert_eq!(year["repaid"], "10000.00");
+}
+
+#[test]
+fn test_csd018_ac_5_9_the_ratios_repaid_amount_equals_the_debts_overview() {
+    let app = sold_mortgage("Cancelled");
+    assert_eq!(repaid_2026(&app), "10000.00");
+    // No bank or investment figure: the wealth accumulation is the repaid amount alone.
+    let ratios = app.ok("get_ratios", json!({}));
+    let year = ratios["years"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|year| year["year"] == 2026)
+        .unwrap();
+    assert_eq!(year["wealth_accumulation"], "10000.00");
+}

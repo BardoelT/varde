@@ -172,6 +172,12 @@ fn test_csd011_ac_8_3_a_settlement_statement_shares_its_period_with_a_regular_st
 }
 
 #[test]
+fn test_csd011_ac_19_12_a_cancelled_debt_shows_the_cancelled_adjusted_repaid_amount() {
+    let (data, _) = mortgage_settled("Cancelled");
+    assert_eq!(repaid(&data, 2026), "10000.00");
+}
+
+#[test]
 fn test_csd011_ac_19_13_a_repaid_debt_counts_in_full() {
     let (data, _) = mortgage_settled("Repaid");
     assert_eq!(repaid(&data, 2026), "200000.00");
@@ -238,6 +244,24 @@ fn test_csd019_ac_11_2_the_sale_amount_does_not_replace_the_house() {
 }
 
 // ---- CSD-026 ----
+
+#[test]
+fn test_csd026_ac_11_1_the_yearly_totals_and_the_insights_show_the_cancelled_adjusted_repaid_amount(
+) {
+    let (data, _) = mortgage_settled("Cancelled");
+    assert_eq!(repaid(&data, 2026), "10000.00");
+    let insights = data.debts.insights(today());
+    let year = insights.years.iter().find(|y| y.year == 2026).unwrap();
+    assert_eq!(year.repaid, Some(money("10000.00")));
+}
+
+#[test]
+fn test_csd012_ac_5_6_repaid_is_cancelled_adjusted() {
+    let (data, _) = mortgage_settled("Cancelled");
+    let insights = data.debts.insights(today());
+    let year = insights.years.iter().find(|y| y.year == 2026).unwrap();
+    assert_eq!(year.repaid, Some(money("10000.00")));
+}
 
 #[test]
 fn test_csd026_ac_11_2_no_opening_balance_means_no_repaid_amount() {
