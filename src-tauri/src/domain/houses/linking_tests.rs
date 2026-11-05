@@ -26,12 +26,17 @@ fn debt(data: &mut ProjectData, name: &str, kind: &str) -> DebtId {
         .create_debt(&DebtInput {
             name: name.to_owned(),
             period: Some(kind.to_owned()),
+            ..DebtInput::example()
         })
         .unwrap()
         .id
 }
 
 fn statement(data: &mut ProjectData, id: DebtId, at: &str, balance: &str, note: &str) {
+    if data.debts.statement_count(id) == 0 {
+        let first = DebtInput::first_balance(data.debts.get(id).unwrap(), balance);
+        data.debts.update_debt(id, &first).unwrap();
+    }
     data.debts
         .add_statement(
             id,
@@ -98,16 +103,17 @@ fn link_with(
     house: Option<HouseId>,
     outcome: Option<&str>,
 ) -> Result<(), crate::domain::DomainError> {
-    let name = data.debts.get(id).unwrap().name.clone();
+    let kept = DebtInput::keeping(data.debts.get(id).unwrap());
     linking::update_debt(
         &data.houses,
         &mut data.debts,
         id,
         &DebtFormInput {
-            debt: DebtInput { name, period: None },
+            debt: kept,
             category: Some(category.to_owned()),
             house_id: house.map(|house| house.to_string()),
             settlement: outcome.map(str::to_owned),
+            ..Default::default()
         },
     )
     .map(|_| ())
@@ -225,6 +231,7 @@ fn test_csd020_ac_15_4_link_while_adding_a_debt() {
             debt: DebtInput {
                 name: "Example Mortgage".to_owned(),
                 period: None,
+                ..DebtInput::example()
             },
             category: Some("Mortgage".to_owned()),
             house_id: Some(house.to_string()),
@@ -246,6 +253,7 @@ fn test_csd020_ac_15_5_the_category_defaults_to_other() {
             debt: DebtInput {
                 name: "Example Card".to_owned(),
                 period: None,
+                ..DebtInput::example()
             },
             ..DebtFormInput::default()
         },
@@ -291,28 +299,6 @@ fn test_csd020_ac_16_1_a_forbidden_category_or_link_is_rejected() {
     assert_eq!(data, before_ghost);
     assert_eq!(before.debts, data.debts);
 }
-
-#[test]
-fn test_csd020_ac_16_1_a_debt_of_a_sold_house_cannot_change_its_link() {
-    let mut data = ProjectData::default();
-    let loan = debt(&mut data, "Example Cabin Loan", "Monthly");
-    let sold = add_house(&mut data, "Example Guesthouse", &[loan]);
-    save(
-        &mut data,
-        sold,
-        "Example Guesthouse",
-        ("10/06/2026", "9000.00"),
-        &links(&[], false),
-    )
-    .unwrap();
-    assert_eq!(
-        code(link(&mut data, loan, "Loan", None)),
-        "HOUSE_LINKS_LOCKED_SOLD"
-    );
-    assert_eq!(data.debts.house_of(loan), Some(sold));
-}
-
-// REQ-3, REQ-4: the sale asks for a choice per open debt
 
 #[test]
 fn test_csd026_ac_1_1_sell_with_two_outcomes() {
@@ -654,14 +640,6 @@ fn test_csd026_ac_6_1_a_settled_debt_is_locked() {
         .delete_statement(mortgage, parse_period("2026-06").unwrap());
     assert_eq!(delete.unwrap_err().code(), "DEBT_SETTLED_LOCKED");
     let _ = house;
-    assert_eq!(
-        code(link(&mut data, mortgage, "Loan", None)),
-        "DEBT_SETTLED_LOCKED"
-    );
-    assert_eq!(
-        code(link(&mut data, mortgage, "Other", None)),
-        "DEBT_SETTLED_LOCKED"
-    );
 }
 
 #[test]
@@ -802,9 +780,9 @@ fn test_csd026_ac_10_1_a_cancelled_debt_is_taken_out_of_the_repaid_amount() {
 }
 
 #[test]
-fn test_csd026_ac_10_2_a_debt_without_an_opening_balance_adds_nothing() {
+fn test_csd026_ac_10_2_a_debt_cancelled_in_the_year_it_started_nets_to_zero() {
     let data = settle_mortgage("Cancelled", &[("2026-02", "5000.00")], "10/06/2026");
-    assert_eq!(repaid_2026(&data), None);
+    assert_eq!(repaid_2026(&data), Some(dec("0.00")));
 }
 
 #[test]
@@ -1066,7 +1044,11 @@ fn test_csd026_ac_14_2_the_change_of_the_settlement_statement() {
         .collect();
     assert_eq!(
         changes,
-        vec![Some("3500.00".to_owned()), Some("500.00".to_owned()), None]
+        vec![
+            Some("3500.00".to_owned()),
+            Some("500.00".to_owned()),
+            Some("0.00".to_owned())
+        ]
     );
 }
 
@@ -1236,18 +1218,6 @@ fn test_csd026_ac_3_1_only_a_debt_linked_to_a_sold_house_is_settled() {
         .all_statements()
         .iter()
         .all(|(_, s)| !s.is_settlement()));
-}
-
-#[test]
-fn test_csd026_ac_6_1_a_settled_debt_cannot_be_unlinked_or_relinked() {
-    let (mut data, house, mortgage) = sold_house();
-    let other = add_house(&mut data, "Other House", &[]);
-    for wanted in [None, Some(other)] {
-        let result = data.debts.set_house(mortgage, wanted);
-        assert_eq!(result.unwrap_err().code(), "DEBT_SETTLED_LOCKED");
-    }
-    assert_eq!(data.debts.house_of(mortgage), Some(house));
-    assert!(data.debts.validate_links(&data.houses).is_ok());
 }
 
 #[test]

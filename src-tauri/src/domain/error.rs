@@ -227,8 +227,8 @@ pub enum DomainError {
     /// Reported as: "A linked debt has a statement after the month or year of the sale."
     #[error("A linked debt has a statement after the month or year of the sale.")]
     DebtStatementAfterSale,
-    /// Reported as: "This debt was settled on the sale of its house, so it can no longer change from that period on."
-    #[error("This debt was settled on the sale of its house, so it can no longer change from that period on.")]
+    /// Reported as: "This debt is closed, so it can no longer change from that period on."
+    #[error("This debt is closed, so it can no longer change from that period on.")]
     DebtSettledLocked,
     /// Reported as: "Choose Mortgage, Loan or Other as the category."
     #[error("Choose Mortgage, Loan or Other as the category.")]
@@ -236,9 +236,54 @@ pub enum DomainError {
     /// Reported as: "Only a mortgage or a loan can be linked to a house."
     #[error("Only a mortgage or a loan can be linked to a house.")]
     DebtLinkCategoryInvalid,
-    /// Reported as: "The debts of a sold house cannot change."
-    #[error("The debts of a sold house cannot change.")]
-    HouseLinksLockedSold,
+    /// Reported as: "Enter the date the debt started, as dd/mm/yyyy."
+    #[error("Enter the date the debt started, as dd/mm/yyyy.")]
+    DebtOpeningDateRequired,
+    /// Reported as: "Enter the opening date as dd/mm/yyyy, for example 15/03/2020."
+    #[error("Enter the opening date as dd/mm/yyyy, for example 15/03/2020.")]
+    DebtOpeningDateInvalid,
+    /// Reported as: "Enter the amount the debt started with."
+    #[error("Enter the amount the debt started with.")]
+    DebtOpeningAmountRequired,
+    /// Reported as: "Enter the opening amount as a number such as 150000.00."
+    #[error("Enter the opening amount as a number such as 150000.00.")]
+    DebtOpeningAmountInvalid,
+    /// Reported as: "The opening amount cannot be negative."
+    #[error("The opening amount cannot be negative.")]
+    DebtOpeningAmountNegative,
+    /// Reported as: "The opening amount can be at most 1000000000.00."
+    #[error("The opening amount can be at most 1000000000.00.")]
+    DebtOpeningAmountTooLarge,
+    /// Reported as: "Enter both the closing date and the closing amount, or neither."
+    #[error("Enter both the closing date and the closing amount, or neither.")]
+    DebtClosingIncomplete,
+    /// Reported as: "The closing date cannot be before the opening date."
+    #[error("The closing date cannot be before the opening date.")]
+    DebtClosingBeforeOpening,
+    /// Reported as: "Enter the closing date as dd/mm/yyyy, for example 10/06/2026."
+    #[error("Enter the closing date as dd/mm/yyyy, for example 10/06/2026.")]
+    DebtClosingDateInvalid,
+    /// Reported as: "Choose Repaid or Cancelled for the closing."
+    #[error("Choose Repaid or Cancelled for the closing.")]
+    DebtClosingOutcomeRequired,
+    /// Reported as: "Enter the closing amount as a number such as 0.00."
+    #[error("Enter the closing amount as a number such as 0.00.")]
+    DebtClosingAmountInvalid,
+    /// Reported as: "The closing amount cannot be negative."
+    #[error("The closing amount cannot be negative.")]
+    DebtClosingAmountNegative,
+    /// Reported as: "The closing amount can be at most 1000000000.00."
+    #[error("The closing amount can be at most 1000000000.00.")]
+    DebtClosingAmountTooLarge,
+    /// Reported as: "A statement must be between the opening and the closing of the debt."
+    #[error("A statement must be between the opening and the closing of the debt.")]
+    DebtStatementOutsideWindow,
+    /// Reported as: "These dates leave existing statements outside the opening and closing of the debt."
+    #[error("These dates leave existing statements outside the opening and closing of the debt.")]
+    DebtDatesExcludeStatements,
+    /// Reported as: "Confirm that clearing the closing also removes its settlement statement."
+    #[error("Confirm that clearing the closing also removes its settlement statement.")]
+    DebtClosingUndoUnconfirmed,
     /// Reported as: "Choose Repaid or Cancelled for every linked debt with an open balance."
     #[error("Choose Repaid or Cancelled for every linked debt with an open balance.")]
     HouseSettlementRequired,
@@ -445,7 +490,22 @@ impl DomainError {
             Self::DebtSettledLocked => "DEBT_SETTLED_LOCKED",
             Self::DebtCategoryInvalid => "DEBT_CATEGORY_INVALID",
             Self::DebtLinkCategoryInvalid => "DEBT_LINK_CATEGORY_INVALID",
-            Self::HouseLinksLockedSold => "HOUSE_LINKS_LOCKED_SOLD",
+            Self::DebtOpeningDateRequired => "DEBT_OPENING_DATE_REQUIRED",
+            Self::DebtOpeningDateInvalid => "DEBT_OPENING_DATE_INVALID",
+            Self::DebtOpeningAmountRequired => "DEBT_OPENING_AMOUNT_REQUIRED",
+            Self::DebtOpeningAmountInvalid => "DEBT_OPENING_AMOUNT_INVALID",
+            Self::DebtOpeningAmountNegative => "DEBT_OPENING_AMOUNT_NEGATIVE",
+            Self::DebtOpeningAmountTooLarge => "DEBT_OPENING_AMOUNT_TOO_LARGE",
+            Self::DebtClosingIncomplete => "DEBT_CLOSING_INCOMPLETE",
+            Self::DebtClosingBeforeOpening => "DEBT_CLOSING_BEFORE_OPENING",
+            Self::DebtClosingDateInvalid => "DEBT_CLOSING_DATE_INVALID",
+            Self::DebtClosingOutcomeRequired => "DEBT_CLOSING_OUTCOME_REQUIRED",
+            Self::DebtClosingAmountInvalid => "DEBT_CLOSING_AMOUNT_INVALID",
+            Self::DebtClosingAmountNegative => "DEBT_CLOSING_AMOUNT_NEGATIVE",
+            Self::DebtClosingAmountTooLarge => "DEBT_CLOSING_AMOUNT_TOO_LARGE",
+            Self::DebtStatementOutsideWindow => "DEBT_STATEMENT_OUTSIDE_WINDOW",
+            Self::DebtDatesExcludeStatements => "DEBT_DATES_EXCLUDE_STATEMENTS",
+            Self::DebtClosingUndoUnconfirmed => "DEBT_CLOSING_UNDO_UNCONFIRMED",
             Self::HouseSettlementRequired => "HOUSE_SETTLEMENT_REQUIRED",
             Self::HouseSettlementInvalid => "HOUSE_SETTLEMENT_INVALID",
             Self::HouseSaleUndoUnconfirmed => "HOUSE_SALE_UNDO_UNCONFIRMED",

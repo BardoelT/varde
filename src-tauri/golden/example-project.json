@@ -1,5 +1,5 @@
 {
-  "format_version": 1,
+  "format_version": 2,
   "income": {
     "jobs": [
       {
@@ -191,10 +191,13 @@
         "name": "Example Mortgage",
         "period": "Monthly",
         "colour_slot": 0,
+        "opening_date": "2000-01-01",
+        "opening_amount": "150000.00",
         "category": "Mortgage",
         "house_id": "id-9",
         "settlement": {
           "outcome": "Repaid",
+          "origin": "Sale",
           "date": "2026-06-10",
           "amount": "148000.50"
         }
@@ -204,10 +207,13 @@
         "name": "Example Home Loan",
         "period": "Monthly",
         "colour_slot": 1,
+        "opening_date": "2000-01-01",
+        "opening_amount": "20000.00",
         "category": "Loan",
         "house_id": "id-9",
         "settlement": {
           "outcome": "Cancelled",
+          "origin": "Sale",
           "date": "2026-06-10",
           "amount": "20000.00"
         }
@@ -217,6 +223,8 @@
         "name": "Example Student Loan",
         "period": "Yearly",
         "colour_slot": 2,
+        "opening_date": "2000-01-01",
+        "opening_amount": "8000.00",
         "category": "Other"
       }
     ],

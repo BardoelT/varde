@@ -42,7 +42,7 @@ fn test_csd013_ac_16_1_expenses_survive_save_and_open_including_notes() {
     // The section sits next to the others; the version stays 1.
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
-    assert_eq!(value["format_version"], 1);
+    assert_eq!(value["format_version"], 2);
     assert_eq!(value["expenses"]["expenses"][0]["date"], "2026-09-15");
     assert_eq!(value["expenses"]["expenses"][0]["amount"], "4500.00");
 }
@@ -57,6 +57,7 @@ fn test_csd013_ac_16_3_the_other_sections_are_untouched() {
         .create_debt(&crate::domain::debts::DebtInput {
             name: "Example Mortgage".to_owned(),
             period: None,
+            ..crate::domain::debts::DebtInput::example()
         })
         .unwrap();
     project
@@ -82,12 +83,12 @@ fn test_csd013_ac_16_4_a_damaged_section_is_an_invalid_file() {
     let id = "671166f4-5827-4794-bcdc-54d7824fb650";
     let expense = |amount: &str, date: &str, category: &str| {
         format!(
-            r#"{{"format_version":1,"income":{{"jobs":[],"paychecks":[]}},"expenses":{{"expenses":[
+            r#"{{"format_version":2,"income":{{"jobs":[],"paychecks":[]}},"expenses":{{"expenses":[
             {{"id":"{id}","name":"Example","amount":"{amount}","date":"{date}","category":"{category}"}}]}}}}"#
         )
     };
     let duplicate = format!(
-        r#"{{"format_version":1,"income":{{"jobs":[],"paychecks":[]}},"expenses":{{"expenses":[
+        r#"{{"format_version":2,"income":{{"jobs":[],"paychecks":[]}},"expenses":{{"expenses":[
         {{"id":"{id}","name":"A","amount":"1.00","date":"2026-09-15","category":"Home"}},
         {{"id":"{id}","name":"B","amount":"1.00","date":"2026-09-15","category":"Home"}}]}}}}"#
     );

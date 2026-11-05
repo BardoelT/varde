@@ -641,7 +641,7 @@ fn test_csd001_annual_statements_can_be_copied_edited_and_deleted_over_ipc() {
 }
 
 fn account_input(name: &str, period: &str) -> Value {
-    json!({ "name": name, "period": period })
+    json!({ "name": name, "period": period, "opening_date": "01/01/2000", "opening_amount": "200000.00" })
 }
 
 #[test]
@@ -1400,7 +1400,7 @@ fn test_csd005_ac_28_1_the_period_of_a_statement_changes_over_ipc() {
 }
 
 fn bank_input(name: &str, period: &str) -> Value {
-    json!({ "name": name, "period": period })
+    json!({ "name": name, "period": period, "opening_date": "01/01/2000", "opening_amount": "200000.00" })
 }
 
 #[test]
@@ -1636,7 +1636,13 @@ fn test_csd009_new_project_clears_the_bank_accounts() {
 }
 
 fn debt_input(name: &str, period: &str) -> Value {
-    json!({ "name": name, "period": period })
+    debt_input_opened(name, period, "200000.00")
+}
+
+/// A debt with the opening amount given: the balance of its first statement is the shorthand of the
+/// scenarios, so that the opening adds nothing (CSD-011 section 4.1).
+fn debt_input_opened(name: &str, period: &str, amount: &str) -> Value {
+    json!({ "name": name, "period": period, "opening_date": "01/01/2000", "opening_amount": amount })
 }
 
 #[test]
@@ -1648,13 +1654,13 @@ fn test_csd011_ac_17_2_debts_and_the_total_over_ipc() {
     );
     let mortgage = app.ok(
         "create_debt",
-        json!({ "input": debt_input("Example Mortgage", "Monthly") }),
+        json!({ "input": debt_input_opened("Example Mortgage", "Monthly", "150000.00") }),
     );
     assert_eq!(mortgage["period"], "Monthly");
     assert_eq!(mortgage["colour_slot"], 0);
     let loan = app.ok(
         "create_debt",
-        json!({ "input": debt_input("Example Student Loan", "Yearly") }),
+        json!({ "input": debt_input_opened("Example Student Loan", "Yearly", "8000.00") }),
     );
     assert_eq!(loan["colour_slot"], 1);
     app.ok(
@@ -1680,15 +1686,24 @@ fn test_csd011_ac_17_2_debts_and_the_total_over_ipc() {
     assert_eq!(rows[0]["debt_name"], "Example Mortgage");
     assert_eq!(rows[0]["change"], "999.50");
     assert_eq!(rows[0]["note"], "Paid extra");
-    assert_eq!(rows[2]["change"], Value::Null);
+    assert_eq!(rows[2]["change"], "0.00");
+    // CSD-011 AC-25.9: the Opening row has no change.
+    let opening_rows: Vec<&Value> = rows
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["opening"] == true)
+        .collect();
+    assert_eq!(opening_rows.len(), 2);
+    assert!(opening_rows.iter().all(|row| row["change"].is_null()));
 
-    // AC-19.1: closing balance and repaid, null when no debt has an opening balance.
+    // AC-19.1: closing balance and repaid, the opening amount being the opening balance of a first year.
     let totals = app.ok("yearly_debt_totals", json!({}));
     assert_eq!(
         totals[0],
         json!({ "year": 2026, "closing_balance": "149000.50", "repaid": "999.50", "statement_count": 1 })
     );
-    assert_eq!(totals[1]["repaid"], Value::Null);
+    assert_eq!(totals[1]["repaid"], "0.00");
 }
 
 #[test]
@@ -1784,7 +1799,10 @@ fn test_csd011_debt_statements_can_be_copied_edited_moved_and_deleted_over_ipc()
         "delete_debt_statement",
         json!({ "debtId": id, "period": "2026-08" }),
     );
-    assert_eq!(app.ok("list_debt_statements", json!({})), json!([]));
+    // Only the Opening row of the debt is left (CSD-011 REQ-33).
+    let rows = app.ok("list_debt_statements", json!({}));
+    assert_eq!(rows.as_array().unwrap().len(), 1);
+    assert_eq!(rows[0]["opening"], true);
     let error = app.err(
         "delete_debt_statement",
         json!({ "debtId": id, "period": "2026-08" }),
@@ -1821,11 +1839,11 @@ fn test_csd012_the_debt_insights_reach_the_frontend_with_segments_and_repaid() {
     );
     let mortgage = app.ok(
         "create_debt",
-        json!({ "input": debt_input("Example Mortgage", "Monthly") }),
+        json!({ "input": debt_input_opened("Example Mortgage", "Monthly", "10000.00") }),
     );
     let car = app.ok(
         "create_debt",
-        json!({ "input": debt_input("Example Cabin Loan", "Monthly") }),
+        json!({ "input": debt_input_opened("Example Cabin Loan", "Monthly", "0.00") }),
     );
     for (period, balance) in [("2024-12", "10000.00"), ("2025-12", "9000.00")] {
         app.ok(
@@ -1842,7 +1860,7 @@ fn test_csd012_the_debt_insights_reach_the_frontend_with_segments_and_repaid() {
     assert_eq!(insights["debts"][1]["colour_slot"], 1);
     let first = &insights["years"][0];
     assert_eq!(first["year"], 2024);
-    assert_eq!(first["repaid"], Value::Null);
+    assert_eq!(first["repaid"], "0.00");
     let second = &insights["years"][1];
     assert_eq!(second["year"], 2025);
     assert_eq!(second["closing_balance"], "9000.00");

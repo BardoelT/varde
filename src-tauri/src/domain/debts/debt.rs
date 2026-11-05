@@ -5,11 +5,12 @@ use serde::{Deserialize, Serialize};
 use crate::domain::common::{parse_wire_name, ColourSlot, PayPeriod};
 use crate::domain::common::{Id, IdKind};
 use crate::domain::error::DomainError;
-use crate::domain::houses::HouseId;
+use crate::domain::houses::{HouseDate, HouseId};
 
-use crate::domain::series::{AccountInput, SeriesAccount};
+use crate::domain::series::SeriesAccount;
 
 use super::settlement::Settlement;
+use super::DebtBalance;
 
 /// Identifies a Debt.
 pub type DebtId = Id<Debt>;
@@ -66,6 +67,11 @@ pub struct Debt {
     pub(super) period: PayPeriod,
     /// 0 to 7, fixed when the debt is created (CSD-011 REQ-3).
     pub colour_slot: ColourSlot,
+    /// The day the debt started (CSD-011 REQ-30). Required in the project file.
+    pub(super) opening_date: HouseDate,
+    /// The amount the debt started with (CSD-011 REQ-30). Required in the
+    /// project file; it feeds no figure (CSD-011 NG-15).
+    pub(super) opening_amount: DebtBalance,
     /// Mortgage, Loan or Other (CSD-020 REQ-15). Only `Debts::set_category`
     /// changes it.
     pub(super) category: DebtCategory,
@@ -87,16 +93,32 @@ impl Debt {
         name: String,
         period: PayPeriod,
         colour_slot: ColourSlot,
+        opening_date: HouseDate,
+        opening_amount: DebtBalance,
     ) -> Self {
         Self {
             id,
             name,
             period,
             colour_slot,
+            opening_date,
+            opening_amount,
             category: DebtCategory::default(),
             house_id: None,
             settlement: None,
         }
+    }
+
+    /// The day the debt started.
+    #[must_use]
+    pub fn opening_date(&self) -> HouseDate {
+        self.opening_date
+    }
+
+    /// The amount the debt started with.
+    #[must_use]
+    pub fn opening_amount(&self) -> DebtBalance {
+        self.opening_amount
     }
 
     /// The kind of the debt.
@@ -118,8 +140,60 @@ impl Debt {
     }
 }
 
-/// Debt fields as typed by the user, before validation.
-pub type DebtInput = AccountInput;
+#[cfg(test)]
+impl DebtInput {
+    /// The shorthand opening of the scenarios of CSD-011: 01/01/2000 and
+    /// 200000.00, for tests that do not care about it.
+    pub(crate) fn example() -> Self {
+        Self {
+            name: String::new(),
+            period: None,
+            opening_date: "01/01/2000".to_owned(),
+            opening_amount: "200000.00".to_owned(),
+        }
+    }
+
+    /// The fields of a stored debt as the form would send them back unchanged, so that a test
+    /// that saves the debt again keeps its opening.
+    pub(crate) fn keeping(debt: &Debt) -> Self {
+        let iso = debt.opening_date().iso();
+        let (year, rest) = iso.split_once('-').unwrap_or_default();
+        let (month, day) = rest.split_once('-').unwrap_or_default();
+        Self {
+            name: debt.name.clone(),
+            period: None,
+            opening_date: format!("{day}/{month}/{year}"),
+            opening_amount: debt.opening_amount().value().to_string(),
+        }
+    }
+
+    /// The shorthand of the scenarios (CSD-011 section 4.1): the first statement of a debt also
+    /// sets its opening amount to the same balance, so the opening adds nothing.
+    pub(crate) fn first_balance(debt: &Debt, balance: &str) -> Self {
+        Self {
+            opening_amount: balance.to_owned(),
+            ..Self::keeping(debt)
+        }
+    }
+}
+
+/// Debt fields as typed by the user, before validation (CSD-011 REQ-1, REQ-30).
+/// The dates are typed `dd/mm/yyyy`.
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct DebtInput {
+    /// The name of the debt.
+    #[serde(default)]
+    pub name: String,
+    /// `None` means Monthly when creating and "unchanged" when editing.
+    #[serde(default)]
+    pub period: Option<String>,
+    /// The day the debt started; required.
+    #[serde(default)]
+    pub opening_date: String,
+    /// The amount the debt started with; required.
+    #[serde(default)]
+    pub opening_amount: String,
+}
 
 impl SeriesAccount for Debt {
     type Id = DebtId;

@@ -11,7 +11,7 @@ use crate::domain::{
 };
 
 /// Version of the project file format this app writes and understands.
-pub const FORMAT_VERSION: u32 = 1;
+pub const FORMAT_VERSION: u32 = 2;
 
 /// Largest project file the app will read, a bound on untrusted input.
 pub const MAX_FILE_BYTES: u64 = 50 * 1024 * 1024;
@@ -62,7 +62,8 @@ pub(super) fn to_json(data: &ProjectData) -> Result<String, StorageError> {
 
 /// Parses and validates project file contents.
 ///
-/// Files with a missing, zero or newer `format_version` are rejected.
+/// Files with a missing, zero, older or newer `format_version` are rejected: a
+/// version 1 file is upgraded outside the app first (CSD-002 REQ-20, AC-18.3).
 pub(super) fn from_json(text: &str) -> Result<ProjectData, StorageError> {
     let value: serde_json::Value =
         serde_json::from_str(text).map_err(|_| StorageError::InvalidFile)?;
@@ -70,7 +71,7 @@ pub(super) fn from_json(text: &str) -> Result<ProjectData, StorageError> {
         .get("format_version")
         .and_then(serde_json::Value::as_u64)
         .ok_or(StorageError::InvalidFile)?;
-    if version == 0 {
+    if version < u64::from(FORMAT_VERSION) {
         return Err(StorageError::InvalidFile);
     }
     if version > u64::from(FORMAT_VERSION) {

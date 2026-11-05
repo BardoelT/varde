@@ -46,7 +46,7 @@ fn test_csd009_ac_23_1_bank_accounts_survive_save_and_open_including_notes_and_s
     // The section sits next to the others; the version stays 1.
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
-    assert_eq!(value["format_version"], 1);
+    assert_eq!(value["format_version"], 2);
     assert_eq!(
         value["bank_accounts"]["accounts"][1]["name"],
         "Example Savings"
@@ -104,7 +104,7 @@ fn test_csd009_an_inconsistent_bank_section_is_an_invalid_file() {
     // An entry of an account that does not exist.
     fs::write(
         &path,
-        r#"{"format_version":1,"income":{"jobs":[],"paychecks":[]},
+        r#"{"format_version":2,"income":{"jobs":[],"paychecks":[]},
             "bank_accounts":{"accounts":[],"entries":[
             {"account_id":"671166f4-5827-4794-bcdc-54d7824fb650","period":"2026-09","balance":"1.00"}]}}"#,
     )

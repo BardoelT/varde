@@ -353,4 +353,6 @@ mod houses_tests;
 #[cfg(test)]
 mod investments_tests;
 #[cfg(test)]
+mod opening_tests;
+#[cfg(test)]
 mod tests;

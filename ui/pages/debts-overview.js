@@ -1,7 +1,7 @@
 // Debts: debts with a monthly or yearly statement, each a remaining balance and a note (CSD-011).
 import { invoke } from '../shared/ipc.js';
-import { $, h, showError, setHint, submitOnce } from '../shared/dom.js';
-import { formatAmount, noteSummary } from '../shared/format.js';
+import { $, h, showError, setHint, submitOnce, confirmAction } from '../shared/dom.js';
+import { formatAmount, formatDate, noteSummary } from '../shared/format.js';
 import { askSettlements } from '../shared/settle.js';
 import { t } from '../shared/i18n.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
@@ -56,9 +56,23 @@ function renderTotals(totals) {
   );
 }
 
+/** The Opening row of a debt: read-only, the opening date and amount, never a statement (CSD-011 REQ-33). */
+function openingRow(s) {
+  return h(
+    'tr',
+    { class: 'opening-row' },
+    rowHeader(formatDate(s.period)),
+    h('td', { class: 'wrap' }, s.debt_name),
+    numCell(formatAmount(s.balance)),
+    numCell('—'),
+    h('td', { class: 'note-cell' }, t('Opening')),
+    recordActions({ locked: true }),
+  );
+}
+
 function renderStatements(statements) {
   renderTable({ empty: 'debt-statements-empty', table: 'debt-statements-table', body: 'debt-statements-rows' }, statements, (s) =>
-    h(
+    s.opening ? openingRow(s) : h(
       'tr',
       {},
       rowHeader(s.period),
@@ -81,6 +95,11 @@ function renderStatements(statements) {
   );
 }
 
+/** The Opening row counts as an entry, so the note shows only for a table of at most one row (CSD-011 REQ-21). */
+function showStatementsNote(statements) {
+  $('debt-statements-empty').hidden = statements.length > 1;
+}
+
 /** Reloads everything from Rust. */
 export async function reloadDebtsOverview() {
   const [overview, houseOverview] = await Promise.all([invoke('list_debts'), invoke('list_houses')]);
@@ -90,6 +109,7 @@ export async function reloadDebtsOverview() {
   const [totals, statements] = await Promise.all([invoke('yearly_debt_totals'), invoke('list_debt_statements')]);
   renderTotals(totals);
   renderStatements(statements);
+  showStatementsNote(statements);
 }
 
 async function changed() {
@@ -144,10 +164,35 @@ function openDebtDialog(debt) {
         form.elements.name.value = debt.name;
         form.elements.period.value = debt.period;
         form.elements.category.value = debt.category;
+        form.elements.opening_date.value = formatDate(debt.opening_date);
+        form.elements.opening_amount.value = debt.opening_amount;
       }
       fillHouseChoices(debt);
+      fillClosing(form, debt);
     },
   });
+}
+
+/**
+ * The closing fields show the settlement of the debt and are editable for every debt, linked or not. While
+ * the closing is one a sale made, a hint says that changing it makes it a manual closing (CSD-011 REQ-34,
+ * CSD-026 REQ-17).
+ */
+function fillClosing(form, debt) {
+  const settlement = debt?.settlement ?? null;
+  form.elements.closing_date.value = settlement ? formatDate(settlement.date) : '';
+  form.elements.closing_amount.value = settlement ? settlement.amount : '';
+  form.elements.closing_outcome.value = settlement ? settlement.outcome : '';
+  const bySale = settlement?.origin === 'Sale' && Boolean(debt.house_id);
+  $('debt-closing-hint').textContent = bySale
+    ? t('Set by the sale of {name}. Changing it makes it a manual closing.', { name: debt.house_name ?? '' })
+    : '';
+  setHint('debt-closing-hint', bySale);
+}
+
+/** Whether the closing fields of the form are all empty. */
+function closingEmpty(form) {
+  return ['closing_date', 'closing_amount', 'closing_outcome'].every((name) => form.elements[name].value.trim() === '');
 }
 
 function submitDebt() {
@@ -157,6 +202,13 @@ function submitDebt() {
     name: form.elements.name.value,
     category,
     house_id: ['Mortgage', 'Loan'].includes(category) ? form.elements.house_id.value : '',
+    opening_date: form.elements.opening_date.value,
+    opening_amount: form.elements.opening_amount.value,
+    closing: {
+      date: form.elements.closing_date.value,
+      amount: form.elements.closing_amount.value,
+      outcome: form.elements.closing_outcome.value,
+    },
   };
   if (!form.elements.period.disabled) {
     input.period = form.elements.period.value;
@@ -175,6 +227,17 @@ function submitDebt() {
           if (choices === null) return false;
           input.settlement = choices[0].outcome;
         }
+      }
+      // Clearing a closing, whoever made it, also removes its settlement statement (CSD-026 REQ-16).
+      if (editingDebt?.settlement && closingEmpty(form)) {
+        const confirmed = await confirmAction({
+          title: t('Undo the closing?'),
+          message: t('The settlement statement of this closing will be removed.'),
+          confirmLabel: t('Undo closing'),
+          danger: true,
+        });
+        if (!confirmed) return false;
+        input.confirm_undo = true;
       }
       return editingDebt
         ? invoke('update_debt', { debtId: editingDebt.id, input })

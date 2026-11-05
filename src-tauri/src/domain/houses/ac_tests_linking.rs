@@ -23,12 +23,17 @@ fn debt(data: &mut ProjectData, name: &str, kind: &str) -> DebtId {
         .create_debt(&DebtInput {
             name: name.to_owned(),
             period: Some(kind.to_owned()),
+            ..DebtInput::example()
         })
         .unwrap()
         .id
 }
 
 fn statement(data: &mut ProjectData, id: DebtId, at: &str, balance: &str) {
+    if data.debts.statement_count(id) == 0 {
+        let first = DebtInput::first_balance(data.debts.get(id).unwrap(), balance);
+        data.debts.update_debt(id, &first).unwrap();
+    }
     data.debts
         .add_statement(
             id,
@@ -74,16 +79,17 @@ fn held_house(data: &mut ProjectData, linked: &[DebtId]) -> HouseId {
     .unwrap()
     .id;
     for id in linked {
-        let name = data.debts.get(*id).unwrap().name.clone();
+        let kept = DebtInput::keeping(data.debts.get(*id).unwrap());
         linking::update_debt(
             &data.houses,
             &mut data.debts,
             *id,
             &DebtFormInput {
-                debt: DebtInput { name, period: None },
+                debt: kept,
                 category: Some("Loan".to_owned()),
                 house_id: Some(house.to_string()),
                 settlement: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -264,7 +270,7 @@ fn test_csd012_ac_5_6_repaid_is_cancelled_adjusted() {
 }
 
 #[test]
-fn test_csd026_ac_11_2_no_opening_balance_means_no_repaid_amount() {
+fn test_csd026_ac_11_2_cancelled_in_the_year_it_started_shows_zero_repaid() {
     let mut data = ProjectData::default();
     let loan = debt(&mut data, "Example Loan", "Monthly");
     statement(&mut data, loan, "2026-02", "5000.00");
@@ -280,5 +286,5 @@ fn test_csd026_ac_11_2_no_opening_balance_means_no_repaid_amount() {
             .value(),
         money("5000.00")
     );
-    assert_eq!(repaid(&data, 2026), "none");
+    assert_eq!(repaid(&data, 2026), "0.00");
 }

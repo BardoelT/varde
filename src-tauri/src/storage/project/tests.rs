@@ -207,10 +207,10 @@ fn test_csd002_ac_2_2_invalid_file_is_rejected() {
             "no-version.varde",
             r#"{"income":{"jobs":[],"paychecks":[]}}"#,
         ),
-        ("wrong-shape.varde", r#"{"format_version":1,"income":42}"#),
+        ("wrong-shape.varde", r#"{"format_version":2,"income":42}"#),
         (
             "orphan-paycheck.varde",
-            r#"{"format_version":1,"income":{"jobs":[],"paychecks":[{
+            r#"{"format_version":2,"income":{"jobs":[],"paychecks":[{
                 "job_id":"00000000-0000-4000-8000-000000000000","month":"2026-09",
                 "gross_salary":"3000.00","holiday_pay":"0.00","bonus":"0.00"}]}}"#,
         ),
@@ -235,8 +235,8 @@ fn test_csd002_ac_18_1_file_from_newer_version_is_rejected_with_its_own_code() {
     let (mut project, path) = saved_project(&dir, "example-a.varde");
     let newer = fs::read_to_string(&path)
         .unwrap()
-        .replace("\"format_version\": 1", "\"format_version\": 2");
-    assert!(newer.contains("\"format_version\": 2"));
+        .replace("\"format_version\": 2", "\"format_version\": 3");
+    assert!(newer.contains("\"format_version\": 3"));
     let newer_path = dir.path().join("newer.varde");
     fs::write(&newer_path, newer).unwrap();
     let before = project.income().clone();
@@ -400,7 +400,7 @@ fn test_csd002_ac_5_1_interrupted_write_does_not_corrupt_the_file() {
 
     let result = write_atomic_with(&path, |file| {
         use std::io::Write;
-        file.write_all(b"{\"format_version\": 1, \"inco")?;
+        file.write_all(b"{\"format_version\": 2, \"inco")?;
         Err(std::io::Error::other("disk full"))
     });
 
@@ -580,7 +580,7 @@ fn assert_starts_empty_with_notice(project: &mut Project, code: &str, name: &str
 
 #[test]
 fn test_csd002_ac_11_1_the_file_cannot_be_opened() {
-    let newer = r#"{"format_version":2}"#;
+    let newer = r#"{"format_version":3}"#;
     let cases = [
         ("deleted", None, "PROJECT_OPEN_FAILED"),
         (
@@ -667,7 +667,7 @@ fn test_csd002_ac_13_3_a_file_that_exists_but_cannot_be_used_keeps_its_path() {
             "this is not a project file",
             "PROJECT_INVALID_FILE",
         ),
-        ("newer", r#"{"format_version":2}"#, "PROJECT_FILE_NEWER"),
+        ("newer", r#"{"format_version":3}"#, "PROJECT_FILE_NEWER"),
     ];
     for (name, content, code) in cases {
         let dir = TempDir::new().unwrap();
@@ -939,7 +939,7 @@ fn test_csd001_the_file_keeps_pay_periods_and_statements_in_their_own_list() {
 
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
-    assert_eq!(value["format_version"], 1);
+    assert_eq!(value["format_version"], 2);
     let periods: Vec<&str> = value["income"]["jobs"]
         .as_array()
         .unwrap()
@@ -961,7 +961,7 @@ fn a_file_with_an_entry_of_the_wrong_kind_is_invalid() {
     // An annual statement for a job that has no pay period, so it is monthly.
     fs::write(
         &path,
-        r#"{"format_version":1,"income":{
+        r#"{"format_version":2,"income":{
             "jobs":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650","employer":"Example Employer",
                 "title":null,"start_date":"2024-03-01","end_date":null}],
             "paychecks":[],

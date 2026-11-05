@@ -9,7 +9,7 @@ use tauri::State;
 
 use super::AppState;
 use crate::domain::debts::{debt_note, parse_period, DebtBalance};
-use crate::domain::debts::{OpenDebt, Outcome};
+use crate::domain::debts::{OpenDebt, Outcome, StatementRow};
 use crate::domain::houses::linking::{self, DebtFormInput, DebtsView};
 use crate::domain::HouseId;
 use crate::domain::{
@@ -37,6 +37,9 @@ pub struct StatementView {
     outcome: Option<Outcome>,
     /// Whether the statement can no longer change (CSD-026 REQ-14).
     locked: bool,
+    /// The read-only Opening row of a debt (CSD-011 REQ-33): `period` holds
+    /// the opening date as `YYYY-MM-DD`, `balance` the opening amount.
+    opening: bool,
 }
 
 impl StatementView {
@@ -54,6 +57,22 @@ impl StatementView {
                 .then(|| debt.settlement().map(|settled| settled.outcome))
                 .flatten(),
             locked: debts.statement_locked(statement),
+            opening: false,
+        }
+    }
+
+    fn opening(debt: &Debt) -> Self {
+        Self {
+            debt_id: debt.id,
+            debt_name: debt.name.clone(),
+            period: debt.opening_date().iso(),
+            balance: debt.opening_amount().value(),
+            change: None,
+            note: String::new(),
+            settlement: false,
+            outcome: None,
+            locked: true,
+            opening: true,
         }
     }
 }
@@ -118,9 +137,12 @@ pub fn list_debt_statements(state: State<'_, AppState>) -> Result<Vec<StatementV
     let project = state.project()?;
     let debts = project.debts();
     Ok(debts
-        .all_statements()
+        .statement_rows()
         .into_iter()
-        .map(|(debt, statement)| StatementView::new(debts, debt, statement))
+        .map(|row| match row {
+            StatementRow::Statement(debt, statement) => StatementView::new(debts, debt, statement),
+            StatementRow::Opening(debt) => StatementView::opening(debt),
+        })
         .collect())
 }
 

@@ -3,7 +3,7 @@ id: CSD-012
 title: Debt insights
 status: approved
 owner: Thijs Bardoel
-version: 1.4
+version: 1.5
 last_updated: 04/11/2026
 related: [CSD-000, CSD-010, CSD-011, CSD-025, CSD-026]
 ---
@@ -546,7 +546,7 @@ Command: `get_debt_insights()` returns the debts that have at least one statemen
     { "id": "…", "name": "Example Student Loan", "colour_slot": 1 }
   ],
   "years": [
-    { "year": 2025, "closing_balance": "16000.00", "repaid": null, "statement_count": 2, "is_partial": false,
+    { "year": 2025, "closing_balance": "16000.00", "repaid": "0.00", "statement_count": 2, "is_partial": false,
       "segments": [ { "debt_id": "…", "balance": "10000.00" }, { "debt_id": "…", "balance": "6000.00" } ] },
     { "year": 2026, "closing_balance": "9500.00", "repaid": "500.00", "statement_count": 1, "is_partial": true,
       "segments": [ { "debt_id": "…", "balance": "9500.00" } ] }
@@ -582,6 +582,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 1.5 (04/11/2026): The repaid amount follows CSD-011 v3.3: a debt with no earlier statement starts from its opening amount, so a year with statements always has a repaid amount (the example in section 5 shows 0.00 for 2025); only a year without statements has repaid none (REQ-5). The scenarios use the shorthand of CSD-011 and keep their figures. Back to `draft` until re-approved.
 - 1.4 (04/11/2026): Wording follows the UI; no behaviour change: the tooltip dash for repaid none is "–" (en dash). Back to `draft` until re-approved.
 - 1.3 (04/11/2026): Live references follow the split of the former CSD-020: the Cancelled-adjusted repaid amount is CSD-026 REQ-10 and REQ-11 (definition of Repaid, AC-5.6); no behaviour change. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed REQ-1 to REQ-14 DOM coverage is removed.

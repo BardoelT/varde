@@ -106,6 +106,7 @@ fn add_debt(data: &mut ProjectData, statements: &[(&str, &str)]) {
         .create_debt(&DebtInput {
             name: "Example Loan".to_owned(),
             period: Some("Yearly".to_owned()),
+            ..DebtInput::example()
         })
         .unwrap()
         .id;

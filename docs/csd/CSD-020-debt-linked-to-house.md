@@ -3,7 +3,7 @@ id: CSD-020
 title: Debt linked to a house
 status: approved
 owner: Thijs Bardoel
-version: 3.0
+version: 3.1
 last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-011, CSD-015, CSD-019, CSD-026]
 ---
@@ -47,16 +47,16 @@ Houses (CSD-015) and debts (CSD-011) are kept apart, yet a mortgage or a loan of
 ### 4.0 Overview flow
 ```mermaid
 flowchart TD
-    S["User saves the Add or Edit debt form"] --> K{"Current house of the debt sold?"}
-    K -- yes --> X1["Reject: HOUSE_LINKS_LOCKED_SOLD"]
-    K -- no --> C{"Category Mortgage or Loan with a house?"}
+    S["User saves the Add or Edit debt form"] --> C{"Category Mortgage or Loan with a house?"}
     C -- "no house" --> N["Store the debt without a link"]
     C -- "Scholarship or Other with a house" --> X2["Reject: DEBT_LINK_CATEGORY_INVALID"]
     C -- "house chosen" --> E{"House exists?"}
     E -- no --> X3["Reject: HOUSE_NOT_FOUND"]
     E -- yes --> H{"House already sold?"}
     H -- no --> L["Link the debt"]
-    H -- yes --> O{"Open balance at the sell date?"}
+    H -- yes --> Z{"Debt closed already?"}
+    Z -- yes --> L
+    Z -- no --> O{"Open balance at the sell date?"}
     O -- no --> L
     O -- yes --> R["Require Repaid or Cancelled and settle in the same change (CSD-026 REQ-3)"]
 ```
@@ -110,7 +110,7 @@ Scenario: The Houses overview follows the debt form
 ```
 
 **REQ-16: Category and link rules** *(unwanted behaviour)*
-If a debt is saved with a category other than Mortgage, Loan, Scholarship or Other, a house with the category Scholarship or Other, a house that does not exist, or while its current house is sold, then the app shall reject the save with the error code of the violated rule and change nothing.
+If a debt is saved with a category other than Mortgage, Loan, Scholarship or Other, a house with the category Scholarship or Other, or a house that does not exist, then the app shall reject the save with the error code of the violated rule and change nothing. The house a debt is linked to may be sold: it does not lock the debt, its link or its category (CSD-026 REQ-6, REQ-18).
 
 ```gherkin
 @AC-16.1
@@ -128,11 +128,17 @@ Scenario Outline: A forbidden category or link is rejected
     | Example Loan       | Other       | Example House      | DEBT_LINK_CATEGORY_INVALID |
     | Example Loan       | Scholarship | Example House      | DEBT_LINK_CATEGORY_INVALID |
     | Example Loan       | Loan        | (a deleted house)  | HOUSE_NOT_FOUND            |
-    | Example Cabin Loan | Loan        | (none)             | HOUSE_LINKS_LOCKED_SOLD    |
+
+@AC-16.2
+Scenario: The link of a debt to a sold house can be changed
+  Given "Example Cabin Loan" with the category Loan linked to "Example Guesthouse", sold on 10/06/2026
+  When the user saves it with no house
+  Then it is saved and has no house link
+  And the former error code "HOUSE_LINKS_LOCKED_SOLD" no longer exists
 ```
 
 **REQ-17: Link a debt to a house that is already sold** *(event-driven)*
-When the user saves a debt with a sold house, the app shall link the debt and, if the debt has an open balance at the sell date of that house, require the outcome Repaid or Cancelled and settle the debt as the sale would have (CSD-026 REQ-3), all in one change.
+When the user saves a debt with a sold house, the app shall link the debt and, if the debt is not closed yet and has an open balance at the sell date of that house, require the outcome Repaid or Cancelled and settle the debt as the sale would have (CSD-026 REQ-3, origin Sale), all in one change. A debt that is closed already is linked without a prompt and keeps its closing (CSD-026 REQ-18).
 
 ```gherkin
 @AC-17.1
@@ -163,6 +169,13 @@ Scenario: A statement after the sale blocks the link
   Then it is rejected with error code "DEBT_STATEMENT_AFTER_SALE"
   And nothing changes
 
+@AC-17.6
+Scenario: A closed debt links to a sold house without a prompt
+  Given "Example House" sold on 10/06/2026 and "Example Mortgage" closed by hand on 15/05/2026
+  When the user links "Example Mortgage" to "Example House" without an outcome
+  Then "Example Mortgage" is linked and its closing is unchanged
+  And an outcome for it is rejected with error code "HOUSE_SETTLEMENT_INVALID"
+
 @AC-17.5
 Scenario: Undoing the sale later undoes the settlement
   Given "Example Mortgage" linked and settled on the sale of "Example House" as in AC-17.1
@@ -173,7 +186,7 @@ Scenario: Undoing the sale later undoes the settlement
 ### 4.2 Display and file
 
 **REQ-30: The debt form and the Debts view** *(ubiquitous)*
-The app shall show on each debt row of the Debts overview (CSD-011 REQ-20) the category, the name of the linked house and, for a settled debt, the badge Repaid or Cancelled, and shall show in the debt form a Category dropdown (Mortgage, Loan, Scholarship, Other) and, only while Mortgage or Loan is selected, an optional House dropdown with a choice for no house and all houses, a sold one marked "(sold)", besides the opening and closing fields of CSD-011 REQ-34 (the closing fields are read-only while a house is chosen).
+The app shall show on each debt row of the Debts overview (CSD-011 REQ-20) the category, the name of the linked house and, for a settled debt, the badge Repaid or Cancelled, and shall show in the debt form a Category dropdown (Mortgage, Loan, Scholarship, Other) and, only while Mortgage or Loan is selected, an optional House dropdown with a choice for no house and all houses, a sold one marked "(sold)", besides the opening and closing fields of CSD-011 REQ-34 (the closing fields stay editable while a house is chosen).
 
 ```gherkin
 @AC-30.1
@@ -194,7 +207,7 @@ Scenario: The house dropdown follows the category
 ```
 
 **REQ-33: The project file for debts** *(event-driven)*
-When the user saves and later opens a project, the app shall restore every category, link, settlement and settlement statement exactly, and if a debt has no category, no `opening_date` or no `opening_amount` (CSD-011 REQ-30), a link points to a house that does not exist, a debt with the category Scholarship or Other has a link, a settlement lacks its settlement statement, a settlement statement belongs to no settlement, or a settled debt has a later statement, then the app shall reject the file with the error code `PROJECT_INVALID_FILE`.
+When the user saves and later opens a project, the app shall restore every category, link, settlement and settlement statement exactly, and if a debt has no category, no `opening_date` or no `opening_amount` (CSD-011 REQ-30), a link points to a house that does not exist, a debt with the category Scholarship or Other has a link, a settlement has no `origin` or an origin that is not Sale or Manual (CSD-026), a settlement with the origin Sale sits on a debt without a link to a sold house or is dated other than the sell date, a settlement lacks its settlement statement, a settlement statement belongs to no settlement, or a settled debt has a later statement, then the app shall reject the file with the error code `PROJECT_INVALID_FILE`.
 
 ```gherkin
 @AC-33.1
@@ -217,9 +230,21 @@ Scenario: A debt without a category
 
 @AC-33.4
 Scenario: A manual closing without a house link is valid
-  Given a project file in which the debt "Example Card" has no house link, an opening, a settlement dated 2026-06-10 and its settlement statement for 2026-06
+  Given a project file in which the debt "Example Card" has no house link, an opening, a settlement with the origin "Manual" dated 2026-06-10 and its settlement statement for 2026-06
   When the user opens it
   Then the project opens and the debt is closed
+
+@AC-33.7
+Scenario: A manual closing on a linked debt is valid on any date
+  Given a project file in which the debt "Example Loan" is linked to "Example House" sold on 2026-06-10 and has a settlement with the origin "Manual" dated 2026-05-15 and its settlement statement for 2026-05
+  When the user opens it
+  Then the project opens and the debt is closed
+
+@AC-33.8
+Scenario: A settlement without an origin
+  Given a project file in which the debt "Example Card" has a settlement without an "origin"
+  When the user opens it
+  Then it is rejected with the error code "PROJECT_INVALID_FILE"
 
 @AC-33.5
 Scenario: A debt without an opening
@@ -228,8 +253,8 @@ Scenario: A debt without an opening
   Then it is rejected with the error code "PROJECT_INVALID_FILE"
 
 @AC-33.6
-Scenario: A settlement of a linked debt that does not match the sale
-  Given a project file in which the debt "Example Loan" is linked to "Example House" sold on 2026-06-10 and has a settlement dated 2026-06-11
+Scenario: A closing by sale that does not match the sale
+  Given a project file in which the debt "Example Loan" is linked to "Example House" sold on 2026-06-10 and has a settlement with the origin "Sale" dated 2026-06-11
   When the user opens it
   Then it is rejected with the error code "PROJECT_INVALID_FILE"
 ```
@@ -283,9 +308,9 @@ erDiagram
 
 The link is stored on the debt (`house_id`) and the settlement on the debt (`settlement`, CSD-026). In the project file the category is required and the link is optional, and unknown fields are rejected (CSD-002). Dates in the file and over IPC are ISO 8601 (`YYYY-MM-DD`) and amounts decimal strings (CSD-000 CON-7).
 
-Commands: `create_debt` and `update_debt` take, besides the fields of CSD-011, `category` (`Mortgage`, `Loan`, `Scholarship` or `Other`; unchanged when omitted on an edit, `Other` on create) and `house_id` (optional; sent empty to unlink) and `settlement` (`Repaid` or `Cancelled`; for a link to a sold house, REQ-17), the opening fields and `closing` of CSD-011 and CSD-026 REQ-15. A manual closing is only for a debt without a house link. `debt_open_balance(debt_id, house_id)` returns the open balance of a debt at the sell date of a sold house, or none, for the prompt of CSD-026 REQ-13. `list_debts()` returns the category, house name and settlement of each debt. Project load validates REQ-33. All validation is in Rust.
+Commands: `create_debt` and `update_debt` take, besides the fields of CSD-011, `category` (`Mortgage`, `Loan`, `Scholarship` or `Other`; unchanged when omitted on an edit, `Other` on create) and `house_id` (optional; sent empty to unlink) and `settlement` (`Repaid` or `Cancelled`; for a link to a sold house, REQ-17), the opening fields and `closing` of CSD-011 and CSD-026 REQ-15. A closing can be entered, edited or cleared on any debt, linked or not (CSD-026 REQ-15 to REQ-18). `debt_open_balance(debt_id, house_id)` returns the open balance of a debt at the sell date of a sold house, or none (also none for a debt that is closed already), for the prompt of CSD-026 REQ-13. `list_debts()` returns the category, house name and settlement of each debt. Project load validates REQ-33. All validation is in Rust.
 
-Error codes (code plus safe message): `DEBT_CATEGORY_INVALID`, `DEBT_LINK_CATEGORY_INVALID`, `HOUSE_NOT_FOUND`, `HOUSE_LINKS_LOCKED_SOLD`, `HOUSE_SETTLEMENT_REQUIRED`, `HOUSE_SETTLEMENT_INVALID`, `DEBT_STATEMENT_AFTER_SALE`, `PROJECT_INVALID_FILE`. The codes of the sale and its settlement are in CSD-019 and CSD-026.
+Error codes (code plus safe message): `DEBT_CATEGORY_INVALID`, `DEBT_LINK_CATEGORY_INVALID`, `HOUSE_NOT_FOUND`, `HOUSE_LINKS_LOCKED_SOLD` (removed in v3.1), `HOUSE_SETTLEMENT_REQUIRED`, `HOUSE_SETTLEMENT_INVALID`, `DEBT_STATEMENT_AFTER_SALE`, `PROJECT_INVALID_FILE`. The codes of the sale and its settlement are in CSD-019 and CSD-026.
 
 ## 6. Constraints
 - CON-1: Amounts use `rust_decimal::Decimal`, and every figure is computed in Rust. Rationale: `CLAUDE.md` money rules; the frontend only displays.
@@ -312,6 +337,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None. The former OQ-1 (Cancelled-adjusted repaid amount in the Debts overview) moved to CSD-026 and is answered by CSD-026 REQ-11.
 
 ## 9. Changelog
+- 3.1 (04/11/2026): The debts of a sold house can be edited: the link of a debt to a sold house is no longer locked, `HOUSE_LINKS_LOCKED_SOLD` is removed (REQ-16, AC-16.1 row removed, new AC-16.2), a closed debt links to a sold house without a prompt (REQ-17, new AC-17.6), and the closing fields of the debt form stay editable with a house chosen (REQ-30). The file check knows the `origin` of a settlement: a closing by sale must match the sale, a manual closing may sit on any debt on any date (REQ-33, AC-33.6 reworded, new AC-33.7, AC-33.8). Follows CSD-026 v3.0 and CSD-011 v3.2. Owner decisions from the grill-me interview of 04/11/2026. Back to `draft` until re-approved.
 - 3.0 (04/11/2026): The debt form shows the opening and closing fields of CSD-011 v3.0 (REQ-30); the file check requires the opening and accepts a settlement on a debt without a house link, as a manual closing (CSD-026 v2.0), while a settlement on a linked debt must match the sale (REQ-33, new AC-33.4 to AC-33.6; section 5). Owner decisions from the grill-me interview of 04/11/2026 (GitHub issue 51). Back to `draft` until re-approved (it was approved).
 - 2.0 (04/11/2026): Split into three CSDs, as decided by the owner. The house part (former REQ-1 to REQ-14) is now CSD-019 with the same numbers, and the settlement part (former REQ-18 to REQ-29, REQ-31, REQ-32) is now CSD-026 with fresh numbers (mapping in its changelog). This CSD keeps the debt link: REQ-15, REQ-16, REQ-17, REQ-30 and REQ-33 with their numbers; every moved item leaves a stub (section 4.3, the NG and CON lists). Title restored to "Debt linked to a house". REQ-17 points to CSD-026 REQ-3. Behaviour is unchanged. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed REQ-1 to REQ-33 coverage is replaced by the list of ACs that have no named test.

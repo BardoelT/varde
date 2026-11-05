@@ -35,6 +35,12 @@ export default {
   'Edit house': 'Woning bewerken',
   'Add house': 'Woning toevoegen',
   'Undo the sale?': 'Verkoop ongedaan maken?',
+  'Opening': 'Start',
+  'Set by the sale of {name}. Changing it makes it a manual closing.':
+    'Bepaald door de verkoop van {name}. Wijzigen maakt er een handmatige afsluiting van.',
+  'Undo the closing?': 'Afsluiting ongedaan maken?',
+  'The settlement statement of this closing will be removed.': 'De afsluitende stand van deze afsluiting wordt verwijderd.',
+  'Undo closing': 'Afsluiting ongedaan maken',
   'The debts settled on this sale go back to their earlier balances.': 'De schulden die bij deze verkoop zijn afgehandeld, gaan terug naar hun eerdere saldo.',
   'Undo sale': 'Maak verkoop ongedaan',
   'This house and all its valuations will be deleted.': 'Deze woning en alle bijbehorende taxaties worden verwijderd.',

@@ -150,6 +150,13 @@ pub(crate) trait SeriesData {
         Ok(())
     }
 
+    /// What an account stands at before its first record, when it stores
+    /// that (a debt: its opening amount). The change of a year starts from it
+    /// when the account has no earlier record.
+    fn starting_amount(&self, _account: &Self::Account) -> Option<Money> {
+        None
+    }
+
     /// Whether the account counts in a year (a house: held at its end).
     fn counts_in_year(&self, _account: &Self::Account, _year: i32) -> bool {
         true
@@ -437,14 +444,16 @@ pub(crate) trait SeriesData {
     }
 
     /// The change in `year`: for each account with a record in the year and an
-    /// earlier one, the amount of its latest record in the year minus that of
-    /// its latest earlier record. `None` when no account has both.
+    /// earlier one (or a starting amount), the amount of its latest record in
+    /// the year minus that of its latest earlier record, or minus its starting
+    /// amount. `None` when no account has both.
     fn year_change(&self, year: i32) -> Option<Money> {
         let mut change: Option<Money> = None;
         for (account, closing) in self.year_segments(year) {
             let opening = self
                 .latest_before_year(account.id(), year)
-                .map(SeriesRecord::amount);
+                .map(SeriesRecord::amount)
+                .or_else(|| self.starting_amount(account));
             if let Some(opening) = opening {
                 change = Some(
                     change

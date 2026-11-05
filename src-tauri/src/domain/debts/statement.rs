@@ -186,15 +186,15 @@ impl Debts {
     }
 
     /// The change of a statement: the balance of the previous statement of the
-    /// debt minus its own, or `None` for a first statement (REQ-25). Derived
-    /// each time, never stored.
+    /// debt minus its own, and for a first statement the opening amount of the
+    /// debt minus its own (REQ-25). `None` only when the debt does not exist.
+    /// Derived each time, never stored.
     #[must_use]
     pub fn change(&self, statement: &DebtStatement) -> Option<Money> {
-        self.previous_record(statement).map(|previous| {
-            previous
-                .balance
-                .value()
-                .saturating_sub(statement.balance.value())
-        })
+        let before = match self.previous_record(statement) {
+            Some(previous) => previous.balance.value(),
+            None => self.account(statement.debt_id).ok()?.opening_amount.value(),
+        };
+        Some(before.saturating_sub(statement.balance.value()))
     }
 }

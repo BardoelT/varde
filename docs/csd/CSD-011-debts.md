@@ -3,7 +3,7 @@ id: CSD-011
 title: Debts
 status: approved
 owner: Thijs Bardoel
-version: 3.0
+version: 3.3
 last_updated: 04/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-004, CSD-005, CSD-009, CSD-012, CSD-018, CSD-020, CSD-024, CSD-026]
 ---
@@ -17,12 +17,12 @@ The app tracks wealth, but has no view of what the user owes: a mortgage, a stud
 ### 2.1 In scope
 - Create, edit and delete debts, each with a name, a statement period (Monthly or Yearly) and an opening: the opening date and the opening amount (REQ-30, REQ-31).
 - The window between the opening and the closing of a debt, inside which its statements lie (REQ-32), and the Opening row of the Statements table (REQ-33).
-- The debt form with the opening fields, and the closing fields that enter or clear a manual closing (REQ-34; the closing itself is CSD-026 REQ-15 and REQ-16).
+- The debt form with the opening fields, and the closing fields that enter, edit or clear a closing, for every debt, also one linked to a house (REQ-34; the closing itself is CSD-026 REQ-15 to REQ-18).
 - Create, edit and delete one statement per debt per period: the remaining balance (0.00 or more) and an optional note.
 - Change the period of an existing statement (REQ-12).
 - Copy the previous statement into the add form.
 - The settle dialog that asks Repaid or Cancelled for each open debt when a house is sold or a debt is linked to a sold house (REQ-27, REQ-28; the settlement itself is CSD-026).
-- The change per statement: the balance of the previous statement minus this one (REQ-25).
+- The change per statement: the balance of the previous statement, or for the first statement the opening amount, minus this one (REQ-25).
 - Yearly totals per calendar year over all debts: closing balance and amount repaid (Cancelled-adjusted, REQ-19).
 - One Debts view (tab Overview) with the debts, their latest balances, the total debt, the yearly totals and the statements of all debts. The Insights tab is CSD-012.
 - Debt data is part of the project file (CSD-002). Statements count for the currency confirmation of CSD-003 (REQ-24).
@@ -42,7 +42,7 @@ The app tracks wealth, but has no view of what the user owes: a mortgage, a stud
 - NG-12: Moving a statement to another debt. Only the period of a statement can change (REQ-12).
 - NG-13: Changing the periods of several statements at once.
 - NG-14: Rich text or attachments in notes.
-- NG-15: Using the opening amount or the closing amount in any figure (total debt, change, yearly totals, insights, net worth, ratios), and checking either against the statements. The one existing exception is the settled amount of a Cancelled debt (CSD-026 REQ-10, REQ-11), which is the closing amount.
+- NG-15: Using the closing amount in any figure (total debt, change, yearly totals, insights, net worth, ratios), and checking the opening amount or the closing amount against the statements. The one exception is the settled amount of a Cancelled debt (CSD-026 REQ-10, REQ-11), which is the closing amount. (Since v3.3 the opening amount is used, as the balance before the first statement: REQ-25, REQ-19. It still feeds no total debt and no net worth.)
 - NG-16: Migrating an older project file inside the app. A debt without an opening makes the file invalid (REQ-23). The one-off script of CSD-002 REQ-20 upgrades such a file outside the app.
 - NG-17: An opening or closing statement stored as a statement. The Opening row of the Statements table is shown, never stored (REQ-33), and the closing row is the existing settlement statement (CSD-026).
 
@@ -59,11 +59,11 @@ The app tracks wealth, but has no view of what the user owes: a mortgage, a stud
 | **Total debt** | The sum of the latest balances of all debts that have at least one statement. |
 | **Yearly total** | One row per calendar year: the closing balance and the amount repaid of that year, over all debts. See REQ-19. |
 | **Closing balance (of a year)** | The sum, over the debts that have a statement in that year, of the balance of each debt's latest statement in that year. |
-| **Opening (of a debt)** | The opening date (the day the debt started, `dd/mm/yyyy`) and the opening amount (the amount borrowed, 0.00 or more) of a debt. Both are required. They are not the opening balance below, which is derived from statements. |
+| **Opening (of a debt)** | The opening date (the day the debt started, `dd/mm/yyyy`) and the opening amount (the amount borrowed, 0.00 or more) of a debt. Both are required. They are not the opening balance below. The opening amount is the balance of the debt before its first statement (REQ-25). |
 | **Closing (of a debt)** | The settlement of the debt (CSD-026): its outcome (Repaid or Cancelled), its closing date and its closing amount (the amount still open when it was closed). It is optional. A closing made by hand is a manual closing, one made by selling the linked house is a closing by sale. |
 | **Window (of a debt)** | The statement periods from the period of the opening date up to and including the period of the closing date, or without an end while the debt has no closing. A period is a month for a Monthly debt and a year for a Yearly one. |
-| **Opening balance (of a debt in a year)** | The balance of the latest statement of the debt before that year. A debt without an earlier statement has none. |
-| **Repaid (in a year)** | The sum, over the debts that have a statement in that year and an opening balance in it, of the opening balance minus the closing balance of that debt, with the settled amount of a debt Cancelled in that year taken out (CSD-026 REQ-10, REQ-11). It is negative when those debts grew. It is none when no debt has an opening balance in that year. |
+| **Opening balance (of a debt in a year)** | The balance of the latest statement of the debt before that year, and when the debt has no earlier statement, its opening amount, however long before the year the debt started. |
+| **Repaid (in a year)** | The sum, over the debts that have a statement in that year, of the opening balance minus the closing balance of that debt, with the settled amount of a debt Cancelled in that year taken out (CSD-026 REQ-10, REQ-11). It is negative when those debts grew. It is none when no debt has a statement in that year. A debt whose first statement comes years after its opening carries all that was repaid since the opening into the year of that statement. |
 | **Colour slot** | A number from 0 to 7 stored with a debt. CSD-012 draws the debt in the colour of its slot. |
 | **Note** | Optional plain text, up to 2,000 characters, that goes with one statement. |
 | **Settle dialog** | The dialog "Settle linked debts" that asks, for each open debt, whether it was Repaid or Cancelled (CSD-026 REQ-13). |
@@ -92,7 +92,7 @@ sequenceDiagram
 
 ### 4.1 Debts
 
-Shorthand in the scenarios of this CSD: a debt that a scenario creates or names without an opening has the opening date 01/01/2000 and the opening amount 200000.00, and no closing, unless the scenario says otherwise. A scenario that adds a debt through the form gives the opening in its steps only where it matters.
+Shorthand in the scenarios of this CSD and of CSD-012, CSD-018 and CSD-026: a debt that a scenario creates or names without an opening has the opening date 01/01/2000 and an opening amount equal to the balance of its first statement in the scenario (a debt without statements has 200000.00), and no closing, unless the scenario says otherwise. With it the opening adds nothing to the change of the first statement, which is 0.00, nor to the repaid amount. A scenario that adds a debt through the form gives the opening in its steps only where it matters.
 
 **REQ-1: Add a debt** *(event-driven)*
 When the user submits a new debt with a name, a statement period and an opening (REQ-30), the app shall create the debt with statement period Monthly unless Yearly is chosen, and with a colour slot under REQ-3.
@@ -758,13 +758,13 @@ Scenario: Same period is ordered by debt
 ```
 
 **REQ-25: Change per statement** *(ubiquitous)*
-The app shall show for each statement its change, the balance of the previous statement of the same debt minus its own balance, computed in Rust each time it is needed, and a dash for a statement that has no previous statement.
+The app shall show for each statement its change, the balance of the previous statement of the same debt minus its own balance, and for the first statement of a debt its opening amount minus its own balance, computed in Rust each time it is needed. The Opening row shows a dash.
 
 ```gherkin
 @AC-25.1
 Scenario: Change follows the previous statement
   Given a monthly debt with statements 2026-07 (balance 10000.00), 2026-08 (balance 9500.00) and 2026-09 (balance 9600.00)
-  Then the change of 2026-07 is none
+  Then the change of 2026-07 is 0.00
   And the change of 2026-08 is 500.00
   And the change of 2026-09 is -100.00
 
@@ -777,13 +777,13 @@ Scenario: A gap does not matter
 Scenario: Yearly statements
   Given a yearly debt with statements 2024 (balance 8000.00) and 2025 (balance 6000.00)
   Then the change of 2025 is 2000.00
-  And the change of 2024 is none
+  And the change of 2024 is 0.00
 
 @AC-25.4
 Scenario: Another debt does not count
   Given a monthly debt "Example Mortgage" with a statement 2026-09 (balance 150000.00)
   And a monthly debt "Example Car Loan" with statements 2026-08 (balance 5000.00) and 2026-09 (balance 4500.00)
-  Then the change of "Example Mortgage" 2026-09 is none
+  Then the change of "Example Mortgage" 2026-09 is 0.00
   And the change of "Example Car Loan" 2026-09 is 500.00
 
 @AC-25.5
@@ -798,6 +798,28 @@ Scenario: Editing an earlier statement changes the later change
   Given a monthly debt with statements 2026-08 (balance 9500.00) and 2026-09 (balance 9000.00)
   When the user sets the balance of 2026-08 to 9800.00
   Then the change of 2026-09 is 800.00
+
+@AC-25.7
+Scenario: The first statement is measured against the opening
+  Given the debt "Example Mortgage" with opening 15/03/2020 and 200000.00 and statements 2026-09 (balance 190000.00) and 2026-10 (balance 189000.00)
+  Then the change of 2026-09 is 10000.00
+  And the change of 2026-10 is 1000.00
+
+@AC-25.8
+Scenario: A first statement in the period of the opening, or a grown debt
+  Given the debt "Example Card" with opening 15/03/2026 and 1000.00 and a statement 2026-03 (balance 1200.00)
+  Then the change of 2026-03 is -200.00
+
+@AC-25.9
+Scenario: The Opening row has no change
+  Given the debt "Example Mortgage" with opening 15/03/2020 and 200000.00 and a statement 2026-09 (balance 190000.00)
+  Then the Opening row shows a dash as its change
+
+@AC-25.10
+Scenario: Editing the opening amount changes the first change
+  Given the debt "Example Mortgage" with opening 15/03/2020 and 200000.00 and a statement 2026-09 (balance 190000.00)
+  When the user changes the opening amount to 195000.00
+  Then the change of 2026-09 is 5000.00
 ```
 
 **REQ-19: Yearly totals** *(event-driven)*
@@ -809,7 +831,7 @@ Scenario: Totals per calendar year
   Given a monthly debt with statements 2025-11 (balance 10000.00), 2025-12 (balance 9800.00) and 2026-05 (balance 9000.00)
   When the user views the yearly totals
   Then 2026 shows closing balance 9000.00, repaid 800.00
-  And 2025 shows closing balance 9800.00, repaid none
+  And 2025 shows closing balance 9800.00, repaid 200.00
 
 @AC-19.2
 Scenario: No statements
@@ -822,7 +844,7 @@ Scenario: Totals add up all debts
   Given debt "Example Mortgage" with statements 2026-08 (balance 150000.00) and 2026-09 (balance 149500.00)
   And debt "Example Student Loan" with a statement 2026-09 (balance 5000.00)
   When the user views the yearly totals
-  Then there is one row for 2026 with closing balance 154500.00, repaid none
+  Then there is one row for 2026 with closing balance 154500.00, repaid 500.00
 
 @AC-19.4
 Scenario: Closing balance is the latest balance of the year, not a sum over months
@@ -836,7 +858,7 @@ Scenario: Monthly and yearly debts add up together
   And a yearly debt "Example Student Loan" with statements 2024 (balance 7000.00) and 2025 (balance 6000.00)
   When the user views the yearly totals
   Then 2025 shows closing balance 16000.00, repaid 1000.00
-  And 2024 shows closing balance 7000.00, repaid none
+  And 2024 shows closing balance 7000.00, repaid 0.00
 
 @AC-19.6
 Scenario: A debt without a statement in a year does not count in it
@@ -844,7 +866,7 @@ Scenario: A debt without a statement in a year does not count in it
   And a yearly debt "Example Student Loan" with a statement 2025 (balance 6000.00)
   When the user views the yearly totals
   Then 2026 shows closing balance 9500.00, repaid 500.00
-  And 2025 shows closing balance 16000.00, repaid none
+  And 2025 shows closing balance 16000.00, repaid 0.00
 
 @AC-19.7
 Scenario: A debt that grew shows a negative amount repaid
@@ -853,11 +875,18 @@ Scenario: A debt that grew shows a negative amount repaid
   Then 2026 shows repaid -200.00
 
 @AC-19.8
-Scenario: A debt without an opening balance adds no repaid amount
+Scenario: A first statement is measured against the opening amount
   Given a monthly debt "Example Mortgage" with statements 2025-12 (balance 10000.00) and 2026-03 (balance 9000.00)
-  And a monthly debt "Example Car Loan" with a first statement 2026-03 (balance 4000.00)
+  And a monthly debt "Example Car Loan" with opening 15/01/2026 and 5000.00 and a first statement 2026-03 (balance 4000.00)
   When the user views the yearly totals
-  Then 2026 shows closing balance 13000.00, repaid 1000.00
+  Then 2026 shows closing balance 13000.00, repaid 2000.00
+
+@AC-19.14
+Scenario: A first statement long after the opening carries the earlier repayments
+  Given a monthly debt "Example Mortgage" with opening 15/03/2020 and 200000.00 and a first statement 2023-06 (balance 150000.00)
+  When the user views the yearly totals
+  Then 2023 shows closing balance 150000.00, repaid 50000.00
+  And 2020, 2021 and 2022 are not listed
 
 @AC-19.9
 Scenario: Repaid after a gap counts in the later year
@@ -1023,7 +1052,7 @@ Scenario: A settled debt shows its settlement badge
 ```
 
 **REQ-27: Settle dialog rows** *(event-driven)*
-When the settle dialog opens (CSD-026 REQ-13, CSD-020 REQ-17), the app shall show one row per open debt with the debt name and its settled amount and the choices Repaid and Cancelled, none selected, and shall keep the button "Save sale" disabled until every row has a choice.
+When the settle dialog opens (CSD-026 REQ-13, CSD-020 REQ-17), the app shall show one row per open debt, never one for a debt that is closed already (CSD-026 REQ-1), with the debt name and its settled amount and the choices Repaid and Cancelled, none selected, and shall keep the button "Save sale" disabled until every row has a choice.
 
 ```gherkin
 @AC-27.1
@@ -1188,16 +1217,17 @@ Scenario Outline: A missing part of the opening is rejected
     | (empty)    | (empty)   | DEBT_OPENING_DATE_REQUIRED    |
 
 @AC-30.4
-Scenario: The opening changes no figure
+Scenario: The opening is the balance before the first statement
   Given the debt "Example Mortgage" with opening 15/03/2020 and 200000.00 and one statement for 2026-09 with balance 150000.00
   Then its latest balance is 150000.00 and the total debt is 150000.00
-  And the yearly totals and the change of the statement are the same as without an opening
+  And the change of the statement is 50000.00 and 2026 shows repaid 50000.00
   When the user changes the opening amount to 250000.00
-  Then every figure is unchanged
+  Then the latest balance and the total debt are unchanged
+  And the change of the statement is 100000.00 and 2026 shows repaid 100000.00
 ```
 
 **REQ-31: Opening and closing rules** *(unwanted behaviour)*
-If the opening date is not a valid date between 01/01/0001 and 31/12/9999, the opening amount or the closing amount is not an amount of 0.00 up to 1000000000.00, only one of the closing date and the closing amount is given, a closing has no outcome, or the closing date is before the opening date, then the app shall reject the debt or the edit without storing or changing it. A closing date on the same day as the opening date is accepted, a typed amount is rounded under CSD-000 CON-8 before any other check, and a date in the future is accepted.
+If the opening date or the closing date is not a valid date between 01/01/0001 and 31/12/9999 (`DEBT_OPENING_DATE_INVALID`, `DEBT_CLOSING_DATE_INVALID`), the opening amount or the closing amount is not an amount of 0.00 up to 1000000000.00, only one of the closing date and the closing amount is given, a closing has no outcome, or the closing date is before the opening date, then the app shall reject the debt or the edit without storing or changing it. A closing date on the same day as the opening date is accepted, a typed amount is rounded under CSD-000 CON-8 before any other check, and a date in the future is accepted.
 
 ```gherkin
 @AC-31.1
@@ -1244,7 +1274,7 @@ Scenario: An amount of 0.00 is accepted
 ```
 
 **REQ-32: Statements lie inside the window** *(unwanted behaviour)*
-If a statement is added or moved to a period before the period of the opening date or after the period of the closing date of its debt, or an edit of the opening date or the closing date would leave a statement of the debt outside the window, then the app shall reject the change with the error code `DEBT_STATEMENT_OUTSIDE_WINDOW` or `DEBT_DATES_EXCLUDE_STATEMENTS` respectively, and shall change nothing. The period of the opening date and the period of the closing date are inside the window.
+If a statement is added or moved to a period before the period of the opening date of its debt, or an edit of the opening date or the closing date would leave a statement of the debt outside the window, then the app shall reject the change with the error code `DEBT_STATEMENT_OUTSIDE_WINDOW` or `DEBT_DATES_EXCLUDE_STATEMENTS` respectively, and shall change nothing. A statement after the period of the closing date is the lock of a closed debt and is rejected with `DEBT_SETTLED_LOCKED` (CSD-026 REQ-6). The period of the opening date and the period of the closing date are inside the window.
 
 ```gherkin
 @AC-32.1
@@ -1258,7 +1288,7 @@ Scenario Outline: A statement outside the window
     | 2020-02 | rejected with error code "DEBT_STATEMENT_OUTSIDE_WINDOW"      |
     | 2020-03 | accepted (the period of the opening date)                     |
     | 2026-06 | accepted (the period of the closing date)                     |
-    | 2026-07 | rejected with error code "DEBT_STATEMENT_OUTSIDE_WINDOW"      |
+    | 2026-07 | rejected with error code "DEBT_SETTLED_LOCKED" (CSD-026 REQ-6) |
 
 @AC-32.2
 Scenario: A yearly debt compares years
@@ -1322,12 +1352,13 @@ Scenario: A debt without statements still shows its Opening row
 @AC-33.4
 Scenario: The Opening row is not a statement
   Given the debt "Example Mortgage" with opening 15/03/2020 and 200000.00 and one statement for 2026-09 with balance 150000.00
-  Then the change of the statement for 2026-09 is a dash
+  Then the change of the statement for 2026-09 is 50000.00
+  And the Opening row shows a dash as its change
   And the latest balance is 150000.00
 ```
 
 **REQ-34: The debt form** *(ubiquitous)*
-The app shall show in the Add and Edit debt form, besides the fields of REQ-1 and CSD-020 REQ-30, the required fields Opening date and Opening amount and the optional fields Closing date, Closing amount and Outcome (Repaid or Cancelled), and shall make the closing fields read-only for a debt with a house link, naming the house ("Set by the sale of <house>"), while the opening fields stay editable.
+The app shall show in the Add and Edit debt form, besides the fields of REQ-1 and CSD-020 REQ-30, the required fields Opening date and Opening amount and the optional fields Closing date, Closing amount and Outcome (Repaid or Cancelled), and shall keep the closing fields editable for every debt, also one with a house link, held or sold. While the closing of a debt is a closing by sale (CSD-026 definitions), the form shall show under the closing fields the hint "Set by the sale of <house>. Changing it makes it a manual closing.", and clearing the closing fields asks "Undo the closing?" for any closing (CSD-026 REQ-16).
 
 ```gherkin
 @AC-34.1
@@ -1337,11 +1368,27 @@ Scenario: The form shows the opening and closing fields
   And the optional fields "Closing date", "Closing amount" and "Outcome"
 
 @AC-34.2
-Scenario: A linked debt has read-only closing fields
-  Given the debt "Example Mortgage" linked to "Example House"
+Scenario: A linked debt has editable closing fields
+  Given the debt "Example Mortgage" linked to the held house "Example House" and not closed
   When the user opens its Edit debt form
-  Then the closing fields are read-only and say "Set by the sale of Example House"
-  And the opening fields are editable
+  Then the closing fields and the opening fields are editable
+  And no hint about a sale is shown
+
+@AC-34.4
+Scenario: A closing by sale shows a hint and can be edited
+  Given the debt "Example Mortgage" settled by the sale of "Example House"
+  When the user opens its Edit debt form
+  Then the closing fields hold the closing and are editable
+  And under them it says "Set by the sale of Example House. Changing it makes it a manual closing."
+  When the user changes the closing date and saves
+  Then the closing is a manual closing (CSD-026 REQ-17)
+
+@AC-34.5
+Scenario: Clearing any closing asks for confirmation
+  Given the debt "Example Mortgage" settled by the sale of "Example House"
+  When the user empties the closing fields and presses Save
+  Then the dialog "Undo the closing?" is shown
+  And nothing is saved until the user confirms
 
 @AC-34.3
 Scenario: An unlinked debt can be closed in the form
@@ -1373,13 +1420,13 @@ erDiagram
     }
 ```
 
-The opening is stored on the debt as `opening_date` (`YYYY-MM-DD` in the file and over IPC, `dd/mm/yyyy` on screen) and `opening_amount` (a decimal string). The closing is the `settlement` of the debt (CSD-026), whose `date` is the closing date and `amount` the closing amount: no other key is added. In the project file `opening_date` and `opening_amount` are required for every debt (REQ-23, CSD-002), and `format_version` stays 1 (CSD-002 versioning policy). In the project file and in the commands both the debt and the statement use the one field name `period` (the debt's holds Monthly or Yearly, the statement's holds `YYYY-MM` or `YYYY`; CSD-002). The change per statement, the opening balance and the amount repaid are not part of the model: they are derived (REQ-25, REQ-19).
+The opening is stored on the debt as `opening_date` (`YYYY-MM-DD` in the file and over IPC, `dd/mm/yyyy` on screen) and `opening_amount` (a decimal string). The closing is the `settlement` of the debt (CSD-026), whose `date` is the closing date, `amount` the closing amount and `origin` (Sale or Manual) who made it; the closing adds no other key to the debt. In the project file `opening_date` and `opening_amount` are required for every debt (REQ-23, CSD-002), and `format_version` stays 1 (CSD-002 versioning policy). In the project file and in the commands both the debt and the statement use the one field name `period` (the debt's holds Monthly or Yearly, the statement's holds `YYYY-MM` or `YYYY`; CSD-002). The change per statement, the opening balance and the amount repaid are not part of the model: they are derived (REQ-25, REQ-19).
 
 The project file section `debts` has the lists `debts` and `statements`, debts in the order they were created. Balances are decimal strings. The section is required and unknown fields are rejected (CSD-002).
 
-Commands (all inputs validated in Rust; amounts cross IPC as decimal strings; dates as ISO 8601): `create_debt` and `update_debt` also take `opening_date`, `opening_amount` and, for a manual closing, `closing` (`{ date, amount, outcome }`, or empty to clear it; CSD-026 REQ-15, REQ-16). `list_debts()` (each debt with its opening, its settlement, its statement count, latest balance and period and colour slot, plus the total debt; the count is used to lock the period (REQ-5) and is not displayed), `create_debt`, `update_debt`, `delete_debt`, `list_debt_statements()` (statements of all debts, each with its debt name and its change, or null, and the Opening row of each debt, flagged as such and never editable), `add_debt_statement`, `update_debt_statement` (keeps the period that identifies the statement as an argument and takes the new period as an extra one, equal to it when the period does not change, and applies the edit as a whole or not at all, REQ-13), `delete_debt_statement`, `copy_previous_debt_statement(debt_id)` and `yearly_debt_totals()` (over all debts; each row has the year, closing balance, repaid or null (Cancelled-adjusted, REQ-19) and statement count, newest year first; the count is not displayed). The insights command is in CSD-012. Project commands (save, open, new) are in CSD-002.
+Commands (all inputs validated in Rust; amounts cross IPC as decimal strings; dates as ISO 8601): `create_debt` and `update_debt` also take `opening_date`, `opening_amount` and, for a closing, `closing` (`{ date, amount, outcome }`, a new closing or an in-place edit, or empty to clear it; CSD-026 REQ-15 to REQ-17). `list_debts()` (each debt with its opening, its settlement, its statement count, latest balance and period and colour slot, plus the total debt; the count is used to lock the period (REQ-5) and is not displayed), `create_debt`, `update_debt`, `delete_debt`, `list_debt_statements()` (statements of all debts, each with its debt name and its change, or null, and the Opening row of each debt, flagged `opening` and never editable, whose `period` holds the opening date as `YYYY-MM-DD`), `add_debt_statement`, `update_debt_statement` (keeps the period that identifies the statement as an argument and takes the new period as an extra one, equal to it when the period does not change, and applies the edit as a whole or not at all, REQ-13), `delete_debt_statement`, `copy_previous_debt_statement(debt_id)` and `yearly_debt_totals()` (over all debts; each row has the year, closing balance, repaid or null (Cancelled-adjusted, REQ-19) and statement count, newest year first; the count is not displayed). The insights command is in CSD-012. Project commands (save, open, new) are in CSD-002.
 
-Error codes (returned as code plus safe message): `DEBT_NAME_REQUIRED`, `DEBT_NAME_TOO_LONG`, `DEBT_NAME_DUPLICATE`, `DEBT_NOT_FOUND`, `DEBT_PERIOD_UNSUPPORTED`, `DEBT_PERIOD_LOCKED`, `DEBT_PERIOD_MISMATCH`, `DEBT_STATEMENT_PERIOD_INVALID`, `DEBT_STATEMENT_DUPLICATE`, `DEBT_STATEMENT_NOT_FOUND`, `DEBT_STATEMENT_BALANCE_INVALID`, `DEBT_STATEMENT_BALANCE_NEGATIVE`, `DEBT_STATEMENT_BALANCE_PRECISION` (removed in v2.0), `DEBT_STATEMENT_BALANCE_TOO_LARGE`, `DEBT_STATEMENT_NOTE_TOO_LONG`, `DEBT_OPENING_DATE_REQUIRED`, `DEBT_OPENING_DATE_INVALID`, `DEBT_OPENING_AMOUNT_REQUIRED`, `DEBT_OPENING_AMOUNT_INVALID`, `DEBT_OPENING_AMOUNT_NEGATIVE`, `DEBT_OPENING_AMOUNT_TOO_LARGE`, `DEBT_CLOSING_INCOMPLETE`, `DEBT_CLOSING_BEFORE_OPENING`, `DEBT_CLOSING_OUTCOME_REQUIRED`, `DEBT_CLOSING_AMOUNT_INVALID`, `DEBT_CLOSING_AMOUNT_NEGATIVE`, `DEBT_CLOSING_AMOUNT_TOO_LARGE`, `DEBT_STATEMENT_OUTSIDE_WINDOW`, `DEBT_DATES_EXCLUDE_STATEMENTS`. `DEBT_NOT_FOUND` and `DEBT_STATEMENT_NOT_FOUND` are returned for a debt or a statement that does not exist (a stale screen). `DEBT_STATEMENT_IN_FUTURE` is removed (future periods are allowed). Project error codes are in CSD-002.
+Error codes (returned as code plus safe message): `DEBT_NAME_REQUIRED`, `DEBT_NAME_TOO_LONG`, `DEBT_NAME_DUPLICATE`, `DEBT_NOT_FOUND`, `DEBT_PERIOD_UNSUPPORTED`, `DEBT_PERIOD_LOCKED`, `DEBT_PERIOD_MISMATCH`, `DEBT_STATEMENT_PERIOD_INVALID`, `DEBT_STATEMENT_DUPLICATE`, `DEBT_STATEMENT_NOT_FOUND`, `DEBT_STATEMENT_BALANCE_INVALID`, `DEBT_STATEMENT_BALANCE_NEGATIVE`, `DEBT_STATEMENT_BALANCE_PRECISION` (removed in v2.0), `DEBT_STATEMENT_BALANCE_TOO_LARGE`, `DEBT_STATEMENT_NOTE_TOO_LONG`, `DEBT_OPENING_DATE_REQUIRED`, `DEBT_OPENING_DATE_INVALID`, `DEBT_OPENING_AMOUNT_REQUIRED`, `DEBT_OPENING_AMOUNT_INVALID`, `DEBT_OPENING_AMOUNT_NEGATIVE`, `DEBT_OPENING_AMOUNT_TOO_LARGE`, `DEBT_CLOSING_INCOMPLETE`, `DEBT_CLOSING_BEFORE_OPENING`, `DEBT_CLOSING_DATE_INVALID`, `DEBT_CLOSING_OUTCOME_REQUIRED`, `DEBT_CLOSING_AMOUNT_INVALID`, `DEBT_CLOSING_AMOUNT_NEGATIVE`, `DEBT_CLOSING_AMOUNT_TOO_LARGE`, `DEBT_STATEMENT_OUTSIDE_WINDOW`, `DEBT_DATES_EXCLUDE_STATEMENTS`. `DEBT_NOT_FOUND` and `DEBT_STATEMENT_NOT_FOUND` are returned for a debt or a statement that does not exist (a stale screen). `DEBT_STATEMENT_IN_FUTURE` is removed (future periods are allowed). Project error codes are in CSD-002.
 
 ## 6. Constraints
 - CON-1: Amounts use `rust_decimal::Decimal` and are in the project currency (CSD-003), so adding balances across debts never mixes currencies. Rationale: `CLAUDE.md` money rules.
@@ -1392,7 +1439,7 @@ Error codes (returned as code plus safe message): `DEBT_NAME_REQUIRED`, `DEBT_NA
 - CON-8: The length of a name or a note is counted in characters (Unicode scalar values), not bytes. Rationale: names and notes in any language must fit the stated limits.
 - CON-9: The change, the yearly totals and the total debt are computed in Rust each time they are needed and are never stored in the project file. Rationale: CON-2, and stored figures would go stale when a statement changes.
 - CON-10: Debts get their own module, commands and page. Shared helpers may be reused or extracted when that is small, and Investments and Bank accounts are not refactored. Rationale: `CLAUDE.md` asks before large refactors across modules.
-- CON-12: The opening and the closing are stored values and never feed a derived figure (NG-15); the Opening row is derived and never stored (NG-17). Rationale: statements stay the only source of balances, so no figure can disagree with them.
+- CON-12: The closing is a stored value and never feeds a derived figure except the settled amount of a Cancelled debt (NG-15). The opening amount feeds only the change of the first statement and the opening balance of a year (REQ-25, REQ-19), never a balance, the total debt or the net worth. The Opening row is derived and never stored (NG-17). Rationale: statements stay the only source of balances, so no balance can disagree with them.
 - CON-11: Money rounding follows CSD-000 CON-8. A typed balance is rounded to two decimals (REQ-29), so a stored balance never has more, and derived figures (change, closing balance, repaid, total debt) are rounded under CON-8 where they are computed. Rationale: one rounding rule for the whole application.
 
 ## 7. Verification
@@ -1414,10 +1461,13 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 
 ## 8. Open questions
 - OQ-1: (resolved 04/11/2026) A typed closing amount is not checked against the statements (NG-15). The closing carries the choice Repaid or Cancelled, which decides how the debt counts (CSD-026 REQ-9, REQ-10, REQ-11): Repaid counts in full, Cancelled nets to zero through the closing amount as the settled amount.
-- OQ-2: (resolved 04/11/2026) A debt with a house link cannot be closed by hand, while its house is held or sold; the user unlinks it first, or sells the house (REQ-34, CSD-026 REQ-15).
+- OQ-2: (resolved 04/11/2026, reversed in v3.2) A debt with a house link could not be closed by hand. Since v3.2 it can, because a mortgage or a loan can be repaid or cancelled without the house being sold; the closing keeps the link (REQ-34, CSD-026 REQ-15).
 - OQ-3: (resolved 04/11/2026) The Opening rows are listed in the Statements table below the statements, and count as entries of the table: "No statements yet." shows only while the table holds at most one row (REQ-21, REQ-33).
 
 ## 9. Changelog
+- 3.3 (04/11/2026): The opening amount is the balance before the first statement: the change of a first statement is the opening amount minus its balance (REQ-25, new AC-25.7 to AC-25.10; AC-25.1, AC-25.3, AC-25.4 give 0.00 instead of none under the new shorthand), and a debt with no earlier statement has its opening amount as its opening balance of a year, so it adds to the repaid amount of the yearly totals, the insights and the ratios in its first year (definitions, REQ-19, AC-19.1, AC-19.3, AC-19.5, AC-19.6 changed, AC-19.8 reworded, new AC-19.14; AC-30.4 and AC-33.4 reworded). NG-15 and CON-12 narrowed: the closing amount is still not used, except as the settled amount of a Cancelled debt. The shorthand opening amount is now the balance of the first statement of the scenario, so unchanged scenarios keep their results; it also governs CSD-012, CSD-018 and CSD-026. Total debt, balances and net worth are unchanged. Owner decisions of 04/11/2026. Back to `draft` until re-approved.
+- 3.2 (04/11/2026): The closing fields of the debt form are editable for every debt, also one linked to a house or settled by the sale of its house (REQ-34, AC-34.2 reversed, new AC-34.4, AC-34.5; OQ-2 reversed), because a loan or a mortgage can be repaid or cancelled without selling the house and a closing can be edited in place (CSD-026 v3.0, REQ-15 to REQ-18). The settle dialog skips debts that are closed already (REQ-27). The closing carries an `origin` (section 5). Owner decisions from the grill-me interview of 04/11/2026. Back to `draft` until re-approved.
+- 3.1 (04/11/2026): Found while implementing v3.0: AC-32.1 and CSD-026 REQ-6 gave two codes for a statement after the closing; the existing lock `DEBT_SETTLED_LOCKED` wins (REQ-32 and AC-32.1 reworded), and an invalid closing date has its own code `DEBT_CLOSING_DATE_INVALID` (REQ-31, error list). No other behaviour change.
 - 3.0 (04/11/2026): A debt gets an opening, the opening date and the opening amount, both required (new REQ-30, REQ-31), and a closing, which is the settlement of CSD-026 entered by hand (CSD-026 REQ-15, REQ-16); houses are the model (GitHub issue 51). Statements must lie inside the window from the opening to the closing (new REQ-32; REQ-7, AC-7.3 amended: periods before the opening are no longer accepted). The Statements table shows a read-only Opening row per debt (new REQ-33; REQ-20, REQ-21 amended), and the debt form gets the opening and closing fields (new REQ-34). A debt in the project file must have an opening, otherwise the file is invalid (REQ-23, AC-23.6, AC-23.7); `format_version` stays 1 and a one-off script upgrades old files (CSD-002 REQ-20). NG-10 no longer excludes a stored original amount, new NG-15 to NG-17, new definitions Opening, Closing and Window, new CON-12, OQ-1 to OQ-3 raised and resolved the same day. AC-1.1 to AC-1.3 give an opening; new shorthand for scenarios without one. Owner decisions from the grill-me interview of 04/11/2026. Back to `draft` until re-approved.
 - 2.1 (04/11/2026): Wording follows the UI; no behaviour change: period field label and placeholder (AC-16.1, AC-16.2), amounts grouped as in CSD-022 AC-10.1 and the table dash written as "—" (AC-20.2, AC-20.3, AC-20.8, AC-21.2, AC-26.4, AC-27.1). Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A typed balance with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-29 (AC-29.1 to AC-29.3), REQ-10 applies to the rounded balance, the AC-10.1 row for 1000.999 and the code `DEBT_STATEMENT_BALANCE_PRECISION` are removed, CON-11 updated. Owner decision. Back to `draft` until re-approved.
