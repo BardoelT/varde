@@ -11,6 +11,7 @@ use super::AppState;
 use crate::domain::debts::OpenDebt;
 use crate::domain::houses::linking::{self, DebtLinksInput, HousesView};
 use crate::domain::houses::{house_note, parse_period, HouseInput, HouseValue};
+use crate::domain::{apply_filter, StatementFilter};
 use crate::domain::{
     House, HouseId, HouseInsights, HouseValuation, HouseValuationPrefill, HouseYearlyValue, Houses,
 };
@@ -110,13 +111,21 @@ pub fn delete_house(state: State<'_, AppState>, house_id: String) -> Result<(), 
     Ok(())
 }
 
-/// The valuations of all houses, newest period first (REQ-18).
+/// The valuations of all houses that pass the filter, newest period first
+/// (REQ-18, CSD-028).
 #[tauri::command]
-pub fn list_house_valuations(state: State<'_, AppState>) -> Result<Vec<ValuationView>, AppError> {
+pub fn list_house_valuations(
+    state: State<'_, AppState>,
+    filter: Option<StatementFilter>,
+) -> Result<Vec<ValuationView>, AppError> {
     let project = state.project()?;
     let houses = project.houses();
-    Ok(houses
-        .all_valuations()
+    let rows = apply_filter(
+        houses.all_valuations(),
+        filter.as_ref(),
+        |(house, valuation)| (valuation.period.month(), house.id.to_string()),
+    );
+    Ok(rows
         .into_iter()
         .map(|(house, valuation)| ValuationView::new(houses, house, valuation))
         .collect())

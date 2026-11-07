@@ -7,17 +7,22 @@ use tauri::State;
 
 use super::AppState;
 use crate::domain::expenses::ExpenseInput;
+use crate::domain::StatementFilter;
 use crate::domain::{
     Expense, ExpenseId, ExpenseInsights, ExpenseList, ExpensePrefill, ExpenseYearlyTotal,
 };
 use crate::error::AppError;
 use crate::storage::{Record, StepLabel};
 
-/// All expenses, newest first, with their total (CSD-013 REQ-10, REQ-11).
+/// The expenses that pass the filter, newest first, with their total
+/// (CSD-013 REQ-10, REQ-11, CSD-028 REQ-9).
 #[tauri::command]
-pub fn list_expenses(state: State<'_, AppState>) -> Result<ExpenseList, AppError> {
+pub fn list_expenses(
+    state: State<'_, AppState>,
+    filter: Option<StatementFilter>,
+) -> Result<ExpenseList, AppError> {
     let project = state.project()?;
-    Ok(project.expenses().list())
+    Ok(project.expenses().list_filtered(filter.as_ref()))
 }
 
 #[tauri::command]

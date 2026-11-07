@@ -21,7 +21,7 @@ pub use bank_accounts::{
     BankAccount, BankAccountId, BankAccounts, BankBalance, BankEntry, BankInsights, BankOverview,
     BankYearlyTotal, EntryPrefill,
 };
-pub use common::{Note, Period, Year, YearMonth};
+pub use common::{apply_filter, Note, Period, StatementFilter, Year, YearMonth};
 pub use debts::{
     Debt, DebtId, DebtInsights, DebtStatement, DebtStatementPrefill, DebtYearlyTotal, Debts,
 };

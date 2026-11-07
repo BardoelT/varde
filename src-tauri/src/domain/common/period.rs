@@ -41,6 +41,15 @@ impl Period {
         }
     }
 
+    /// The month of a monthly period; `None` for a yearly one (CSD-028 REQ-3).
+    #[must_use]
+    pub fn month(self) -> Option<YearMonth> {
+        match self {
+            Self::Month(month) => Some(month),
+            Self::Year(_) => None,
+        }
+    }
+
     /// The calendar year of the period; a statement counts in this year only.
     pub(crate) fn year(self) -> i32 {
         self.sort_key().0

@@ -211,6 +211,8 @@ mod ipc_ac_tests_c2;
 #[cfg(test)]
 mod ipc_ac_tests_d;
 #[cfg(test)]
+mod ipc_filter_tests;
+#[cfg(test)]
 mod ipc_history_tests;
 #[cfg(test)]
 mod ipc_tests;

@@ -9,6 +9,7 @@ use tauri::State;
 
 use super::AppState;
 use crate::domain::charts::Axis;
+use crate::domain::{apply_filter, StatementFilter};
 use crate::domain::{
     Amounts, Entry, Income, IncomeInsightsYear, IncomeYearlyTotal, Job, JobId, JobInput,
     PaycheckPrefill, Year, YearMonth,
@@ -132,14 +133,20 @@ pub fn delete_job(state: State<'_, AppState>, job_id: String) -> Result<(), AppE
     Ok(())
 }
 
-/// The paychecks and annual statements of all jobs, newest period first
-/// (CSD-001 REQ-12).
+/// The paychecks and annual statements of all jobs that pass the filter,
+/// newest period first (CSD-001 REQ-12, CSD-028).
 #[tauri::command]
-pub fn list_entries(state: State<'_, AppState>) -> Result<Vec<EntryView>, AppError> {
+pub fn list_entries(
+    state: State<'_, AppState>,
+    filter: Option<StatementFilter>,
+) -> Result<Vec<EntryView>, AppError> {
     let project = state.project()?;
-    Ok(project
-        .income()
-        .all_entries()
+    let rows = apply_filter(
+        project.income().all_entries(),
+        filter.as_ref(),
+        |(job, entry)| (entry.month(), job.id.to_string()),
+    );
+    Ok(rows
         .into_iter()
         .map(|(job, entry)| EntryView::new(job, entry))
         .collect())

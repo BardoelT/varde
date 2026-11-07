@@ -9,6 +9,7 @@ use tauri::State;
 
 use super::AppState;
 use crate::domain::charts::Axis;
+use crate::domain::{apply_filter, StatementFilter};
 use crate::domain::{
     Balance, CalculationInput, InvestmentAccount, InvestmentAccountId, InvestmentAccountInput,
     InvestmentInsightsYear, InvestmentStatement, InvestmentStatementPrefill, InvestmentYearlyTotal,
@@ -93,15 +94,21 @@ pub fn delete_investment_account(
     Ok(())
 }
 
-/// The statements of all accounts, newest period first (REQ-16).
+/// The statements of all accounts that pass the filter, newest period first
+/// (REQ-16, CSD-028).
 #[tauri::command]
 pub fn list_investment_statements(
     state: State<'_, AppState>,
+    filter: Option<StatementFilter>,
 ) -> Result<Vec<StatementView>, AppError> {
     let project = state.project()?;
     let investments = project.investments();
-    Ok(investments
-        .all_statements()
+    let rows = apply_filter(
+        investments.all_statements(),
+        filter.as_ref(),
+        |(account, statement)| (statement.period.month(), account.id.to_string()),
+    );
+    Ok(rows
         .into_iter()
         .map(|(account, statement)| StatementView::new(investments, account, statement))
         .collect())

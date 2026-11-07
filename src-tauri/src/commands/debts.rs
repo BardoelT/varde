@@ -12,6 +12,7 @@ use crate::domain::debts::{debt_note, parse_period, DebtBalance};
 use crate::domain::debts::{OpenDebt, Outcome, StatementRow};
 use crate::domain::houses::linking::{self, DebtFormInput, DebtsView};
 use crate::domain::HouseId;
+use crate::domain::{apply_filter, StatementFilter, YearMonth};
 use crate::domain::{
     Debt, DebtId, DebtInsights, DebtStatement, DebtStatementPrefill, DebtYearlyTotal, Debts,
 };
@@ -131,13 +132,23 @@ pub fn debt_open_balance(
     )?)
 }
 
-/// The statements of all debts, newest period first (REQ-18).
+/// The statements of all debts that pass the filter, newest period first
+/// (REQ-18, CSD-028). The opening row counts in the month of the opening date.
 #[tauri::command]
-pub fn list_debt_statements(state: State<'_, AppState>) -> Result<Vec<StatementView>, AppError> {
+pub fn list_debt_statements(
+    state: State<'_, AppState>,
+    filter: Option<StatementFilter>,
+) -> Result<Vec<StatementView>, AppError> {
     let project = state.project()?;
     let debts = project.debts();
-    Ok(debts
-        .statement_rows()
+    let rows = apply_filter(debts.statement_rows(), filter.as_ref(), |row| match row {
+        StatementRow::Statement(debt, statement) => (statement.period.month(), debt.id.to_string()),
+        StatementRow::Opening(debt) => (
+            YearMonth::new(debt.opening_date().year(), debt.opening_date().month()),
+            debt.id.to_string(),
+        ),
+    });
+    Ok(rows
         .into_iter()
         .map(|row| match row {
             StatementRow::Statement(debt, statement) => StatementView::new(debts, debt, statement),

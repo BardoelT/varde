@@ -9,6 +9,7 @@ use tauri::State;
 
 use super::AppState;
 use crate::domain::bank_accounts::{bank_note, parse_period, BankAccountInput};
+use crate::domain::{apply_filter, StatementFilter};
 use crate::domain::{
     BankAccount, BankAccountId, BankAccounts, BankBalance, BankEntry, BankInsights, BankOverview,
     BankYearlyTotal, EntryPrefill,
@@ -77,13 +78,20 @@ pub fn delete_bank_account(state: State<'_, AppState>, account_id: String) -> Re
     Ok(())
 }
 
-/// The entries of all accounts, newest period first (REQ-18).
+/// The entries of all accounts that pass the filter, newest period first
+/// (REQ-18, CSD-028).
 #[tauri::command]
-pub fn list_bank_entries(state: State<'_, AppState>) -> Result<Vec<EntryView>, AppError> {
+pub fn list_bank_entries(
+    state: State<'_, AppState>,
+    filter: Option<StatementFilter>,
+) -> Result<Vec<EntryView>, AppError> {
     let project = state.project()?;
-    Ok(project
-        .bank_accounts()
-        .all_entries()
+    let rows = apply_filter(
+        project.bank_accounts().all_entries(),
+        filter.as_ref(),
+        |(account, entry)| (entry.period.month(), account.id.to_string()),
+    );
+    Ok(rows
         .into_iter()
         .map(|(account, entry)| EntryView::new(account, entry))
         .collect())
