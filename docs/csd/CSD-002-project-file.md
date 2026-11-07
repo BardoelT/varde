@@ -1,11 +1,11 @@
 ---
 id: CSD-002
 title: Project file (save, open, new)
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 2.0
-last_updated: 04/11/2026
-related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-026]
+version: 2.1
+last_updated: 07/11/2026
+related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-026, CSD-027]
 ---
 
 # CSD-002: Project file (save, open, new)
@@ -25,7 +25,7 @@ The app keeps all of the user's data in one local project file instead of a data
 
 ### 2.2 Non-goals
 - NG-1: Encryption of the project file. (Remembering the last used file moved into scope in v0.4: REQ-8, REQ-10, REQ-11.)
-- NG-2: Autosave and backup or recovery copies made by the app (no `.bak`). The one-off script of REQ-20 writes its own backup copy before it changes a file.
+- NG-2: Autosave and backup or recovery copies made by the app (no `.bak`). The one-off script of REQ-20 writes its own backup copy before it changes a file. The in-memory undo history of CSD-027 is not a backup: it is never written to disk and ends when the project is replaced or the app quits.
 - NG-3: Multiple projects open at once.
 - NG-4: Cloud sync or sharing of the file.
 - NG-5: Buttons for these actions inside the app window, and an Open Recent list.
@@ -142,6 +142,14 @@ Scenario: Indicator follows edits
   Then the unsaved indicator is shown
   When the user saves
   Then the unsaved indicator is cleared
+
+@AC-3.2
+Scenario: Indicator follows undo and redo (CSD-027)
+  Given a freshly opened project
+  When the user adds a job and chooses Edit > Undo
+  Then no unsaved indicator is shown
+  When the user chooses Edit > Redo
+  Then the unsaved indicator is shown
 ```
 
 **REQ-4: Confirm close with unsaved changes** *(event-driven)*
@@ -649,7 +657,7 @@ Error codes (code plus safe message): `PROJECT_SAVE_FAILED`, `PROJECT_INVALID_FI
 - CON-3: Amounts in the file are decimal strings with at most two decimals (CSD-000 CON-8) and are never rounded when read: a file amount with more than two decimals is invalid (REQ-19), only typed text is rounded. The file carries `format_version`. A newer version than the app knows is rejected (REQ-18). Rationale: no float rounding, and a clear message instead of a parse error.
 - CON-4: Errors shown to the user never contain file paths or OS details. Rationale: `CLAUDE.md` error rules.
 - CON-5: Tests use a temporary directory and synthetic data only, never real app data or real financial data. Rationale: `CLAUDE.md` testing and privacy rules, and the repo is public.
-- CON-6: The menu uses Tauri's built-in menu API: no plugin and no extra permission. It keeps the standard macOS menus (app, Edit, View, Window), because the Edit menu is what makes copy, paste and undo work in text fields. Rationale: least privilege per `CLAUDE.md`, and no loss of standard behaviour.
+- CON-6: The menu uses Tauri's built-in menu API: no plugin and no extra permission. It keeps the standard macOS menus (app, Edit, View, Window), because the Edit menu is what makes copy, paste and undo work in text fields. Its predefined Undo and Redo items are replaced by the project Undo and Redo of CSD-027, which leave ⌘Z and ⇧⌘Z to a focused text field. Rationale: least privilege per `CLAUDE.md`, and no loss of standard behaviour.
 - CON-7: The remembered path is kept in `last-project.json` in the app's own config folder, outside the project file, written like the project file (atomic, owner-only). It holds the path only, never project data, and is never committed. Rationale: it must be readable before any project is open, and it can reveal a user name through the path. It uses Tauri's built-in path API: no plugin and no permission. The application preferences of CSD-008 live in a second file, `preferences.json`, in the same folder under the same rules.
 
 ## 7. Verification
@@ -677,6 +685,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-6: Should the app give a version 1 file its own message that names the upgrade script (a new error code), instead of the generic `PROJECT_INVALID_FILE` (AC-18.3)? The draft keeps the generic code, with no new code and no change to the notice texts. Owner: Thijs. Blocks: REQ-18, AC-18.3.
 
 ## 9. Changelog
+- 2.1 (07/11/2026): Undo and redo of project data (CSD-027, GitHub issue 43): NG-2 says the in-memory undo history is not a backup, CON-6 says the Edit menu's Undo and Redo become the project items, new AC-3.2 (the indicator follows undo and redo). Saving is unchanged and does not clear the history. Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A settlement holds a required `origin`, `Sale` or `Manual` (CSD-026 v3.0, CSD-020 REQ-33), so the schema changes and `format_version` becomes 2, as the versioning policy requires for the next schema change: new AC-18.3 (a version 1 file is invalid until the script upgraded it), the newer-version examples now use version 3, AC-16.1 expects version 2. The one-off script of REQ-20 also adds the origin (`Sale` for a settlement on a linked debt, `Manual` otherwise) and sets the version (new AC-20.6, AC-20.4 reworded), and `examples/example.varde` is regenerated (REQ-21, REQ-22). Owner decisions from the grill-me interview of 04/11/2026. Still `draft`.
 - 1.5 (04/11/2026): New REQ-21 (AC-21.1 to AC-21.4) and REQ-22 (AC-22.1): the repository holds one synthetic example project, `examples/example.varde`, written by a test through the commands the UI calls and compared with the committed file; it is the one `*.varde` file that is tracked (CON-1 amended, `.gitignore` exception). New NG-8: no way to reach the example from inside the app. Owner decisions from the grill-me interview of 04/11/2026 (GitHub issue 30). Back to `draft` until re-approved.
 - 1.4 (04/11/2026): A debt in the file must have `opening_date` and `opening_amount` (CSD-011 v3.0, REQ-17 examples); `format_version` stays 1 by owner decision, so older apps show `PROJECT_INVALID_FILE` for such files and the next schema change raises the version. NG-7 and NG-2 reworded: the app has no migration and makes no backup copy, but a one-off script outside the app upgrades a file (new REQ-20, AC-20.1 to AC-20.5), writing its own `.bak`. Owner decisions from the grill-me interview of 04/11/2026 (GitHub issue 51). Back to `draft` until re-approved.
