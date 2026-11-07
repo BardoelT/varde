@@ -1,10 +1,11 @@
 // Houses: things the user owns with a monthly or yearly valuation, each a value and a note (CSD-015),
 // bought once and possibly sold (CSD-019 REQ-1, REQ-2).
-import { invoke } from '../shared/ipc.js';
-import { $, h, confirmAction, showError, setHint, submitOnce } from '../shared/dom.js';
+import { invoke, errorText } from '../shared/ipc.js';
+import { $, h, confirmAction, showError, setHint, submitOnce, showToast } from '../shared/dom.js';
 import { formatAmount, formatDate, noteSummary } from '../shared/format.js';
 import { askSettlements } from '../shared/settle.js';
 import { t } from '../shared/i18n.js';
+import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
 import { createRecordForm } from '../shared/record-form.js';
 import { accountRow, latestAmount, numCell, recordActions, renderTable, rowHeader, showTotal, toggleEmpty } from '../shared/list-rows.js';
@@ -55,8 +56,26 @@ function renderTotals(totals) {
   );
 }
 
-function renderValuations(valuations) {
-  renderTable({ empty: 'house-valuations-empty', table: 'house-valuations-table', body: 'house-valuations-rows' }, valuations, (s) =>
+const valuationsFilter = createStatementFilter({
+  periodHost: 'house-valuation-period-filter',
+  entityHost: 'house-valuation-entity-filter',
+  entityTitle: 'House',
+  entities: () => houses.map((house) => ({ id: house.id, label: house.name })),
+  onChange: () => reloadValuations().catch((error) => showToast(errorText(error))),
+});
+
+/** Loads the rows through the filter and shows them (CSD-028). */
+async function reloadValuations() {
+  showValuations(await valuationsFilter.load('list_house_valuations', (rows) => rows.length));
+}
+
+function showValuations({ result, hasData }) {
+  valuationsFilter.show(hasData);
+  renderValuations(result, hasData);
+}
+
+function renderValuations(valuations, hasData) {
+  renderFilteredTable({ empty: 'house-valuations-empty', nomatch: 'house-valuations-nomatch', table: 'house-valuations-table', body: 'house-valuations-rows' }, { rows: valuations, hasData }, (s) =>
     h(
       'tr',
       {},
@@ -77,10 +96,13 @@ function renderValuations(valuations) {
 export async function reloadHousesOverview() {
   const overview = await invoke('list_houses');
   renderHouses(overview);
-  if (overview.houses.length === 0) return;
-  const [totals, valuations] = await Promise.all([invoke('yearly_house_values'), invoke('list_house_valuations')]);
+  if (overview.houses.length === 0) {
+    valuationsFilter.show(false);
+    return;
+  }
+  const [totals, loaded] = await Promise.all([invoke('yearly_house_values'), valuationsFilter.load('list_house_valuations', (rows) => rows.length)]);
   renderTotals(totals);
-  renderValuations(valuations);
+  showValuations(loaded);
 }
 
 async function changed() {

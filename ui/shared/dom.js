@@ -30,6 +30,8 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const ICON_PATHS = {
   edit: ['M12 20h9', 'M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z'],
   info: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z', 'M12 16v-4', 'M12 8h.01'],
+  filter: ['M3 4h18l-7 8v6l-4 2v-8Z'],
+  'filter-active': ['M3 4h18l-7 8v6l-4 2v-8Z'],
   delete: ['M3 6h18', 'M8 6V4h8v2', 'M19 6l-1 14H6L5 6', 'M10 11v6', 'M14 11v6'],
 };
 
@@ -37,7 +39,7 @@ const ICON_PATHS = {
 export function iconButton(kind, label, onClick) {
   const svg = document.createElementNS(SVG_NS, 'svg');
   for (const [key, value] of Object.entries({
-    viewBox: '0 0 24 24', width: '16', height: '16', fill: 'none', stroke: 'currentColor',
+    viewBox: '0 0 24 24', width: '16', height: '16', fill: kind === 'filter-active' ? 'currentColor' : 'none', stroke: 'currentColor',
     'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true',
   })) {
     svg.setAttribute(key, value);

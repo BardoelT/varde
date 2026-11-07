@@ -1,8 +1,9 @@
 // Bank accounts: accounts with a monthly or yearly entry, each a closing balance and a note (CSD-009).
-import { invoke } from '../shared/ipc.js';
-import { $, h, showError, setHint, submitOnce } from '../shared/dom.js';
+import { invoke, errorText } from '../shared/ipc.js';
+import { $, h, showError, showToast, setHint, submitOnce } from '../shared/dom.js';
 import { formatAmount, noteSummary } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
+import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
 import { createRecordForm } from '../shared/record-form.js';
 import { accountRow, latestAmount, numCell, recordActions, renderTable, rowHeader, showTotal, toggleEmpty } from '../shared/list-rows.js';
@@ -37,8 +38,26 @@ function renderTotals(totals) {
   );
 }
 
-function renderEntries(entries) {
-  renderTable({ empty: 'bank-entries-empty', table: 'bank-entries-table', body: 'bank-entries-rows' }, entries, (e) =>
+const entryFilter = createStatementFilter({
+  periodHost: 'bank-entry-period-filter',
+  entityHost: 'bank-entry-entity-filter',
+  entityTitle: 'Account',
+  entities: () => accounts.filter((account) => account.entry_count > 0).map((account) => ({ id: account.id, label: account.name })),
+  onChange: () => reloadEntries().catch((error) => showToast(errorText(error))),
+});
+
+/** Loads the entries through the filter and shows them (CSD-028). */
+async function reloadEntries() {
+  showEntries(await entryFilter.load('list_bank_entries', (rows) => rows.length));
+}
+
+function showEntries({ result, hasData }) {
+  entryFilter.show(hasData);
+  renderEntries(result, hasData);
+}
+
+function renderEntries(entries, hasData) {
+  renderFilteredTable({ empty: 'bank-entries-empty', nomatch: 'bank-entries-nomatch', table: 'bank-entries-table', body: 'bank-entries-rows' }, { rows: entries, hasData }, (e) =>
     h(
       'tr',
       {},
@@ -58,10 +77,13 @@ function renderEntries(entries) {
 export async function reloadBankOverview() {
   const overview = await invoke('list_bank_accounts');
   renderAccounts(overview);
-  if (overview.accounts.length === 0) return;
-  const [totals, entries] = await Promise.all([invoke('yearly_bank_totals'), invoke('list_bank_entries')]);
+  if (overview.accounts.length === 0) {
+    entryFilter.show(false);
+    return;
+  }
+  const [totals, loaded] = await Promise.all([invoke('yearly_bank_totals'), entryFilter.load('list_bank_entries', (rows) => rows.length)]);
   renderTotals(totals);
-  renderEntries(entries);
+  showEntries(loaded);
 }
 
 async function changed() {

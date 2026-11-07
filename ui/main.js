@@ -3,6 +3,7 @@ import { errorText, listen } from './shared/ipc.js';
 import { showToast } from './shared/dom.js';
 import { collectStaticTexts, onLanguageChange } from './shared/i18n.js';
 import { initDateMasks } from './shared/date-mask.js';
+import { resetAllFilters } from './shared/statement-filter.js';
 import { initProject, refreshProjectStatus } from './pages/project.js';
 import { initIncomeOverview, reloadIncomeOverview } from './pages/income-overview.js';
 import { initIncomeInsights, reloadIncomeInsightsIfOpen } from './pages/income-insights.js';
@@ -130,7 +131,7 @@ async function start() {
         reloadDashboard,
       ]),
     );
-  await initProject({ onReplaced: reloadEverything });
+  await initProject({ onReplaced: reloadEverything, onSwitched: resetAllFilters });
   onLanguageChange(async () => {
     await refreshProjectStatus();
     await reloadEverything();

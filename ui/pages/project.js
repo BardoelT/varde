@@ -69,11 +69,13 @@ async function undoOrRedo(command, onReplaced) {
 }
 
 /** The flows behind the File menu items (CSD-002 REQ-9) and the Edit items Undo and Redo (CSD-027 REQ-10). */
-const menuActions = (onReplaced) => ({
+const menuActions = (onReplaced, onSwitched) => ({
   'project-new': async () => {
     if (!(await confirmDiscard(t('You have unsaved changes. If you start a new project, they will be lost.')))) return;
     status = await invoke('new_project');
     render();
+    // A new project starts without filters; undo and redo keep them (CSD-028 REQ-13, REQ-14).
+    onSwitched();
     await onReplaced();
   },
   'project-open': async () => {
@@ -81,7 +83,10 @@ const menuActions = (onReplaced) => ({
     const result = await invoke('open_project');
     status = result.status;
     render();
-    if (result.done) await onReplaced();
+    if (result.done) {
+      onSwitched();
+      await onReplaced();
+    }
   },
   'project-save': async () => {
     const result = await invoke('save_project');
@@ -97,9 +102,9 @@ const menuActions = (onReplaced) => ({
   'project-redo': () => undoOrRedo('redo', onReplaced),
 });
 
-export async function initProject({ onReplaced }) {
+export async function initProject({ onReplaced, onSwitched = () => {} }) {
   // Rust sends the id of the File menu item the user chose.
-  const actions = menuActions(onReplaced);
+  const actions = menuActions(onReplaced, onSwitched);
   await listen('menu-action', (event) => {
     const action = actions[event.payload];
     if (action) attempt(action);

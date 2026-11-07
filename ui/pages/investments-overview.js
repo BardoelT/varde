@@ -1,8 +1,9 @@
 // Investments: accounts with a monthly or yearly statement, each a balance, net deposits and a note (CSD-005).
-import { invoke } from '../shared/ipc.js';
-import { $, h, showError, setHint, submitOnce } from '../shared/dom.js';
+import { invoke, errorText } from '../shared/ipc.js';
+import { $, h, showError, showToast, setHint, submitOnce } from '../shared/dom.js';
 import { formatAmount, noteSummary } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
+import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
 import { createRecordForm } from '../shared/record-form.js';
 import { accountRow, latestAmount, numCell, recordActions, renderTable, rowHeader, showTotal, toggleEmpty } from '../shared/list-rows.js';
@@ -46,9 +47,33 @@ function renderTotals(totals) {
   );
 }
 
-function renderStatements(statements) {
-  statementRows = statements;
-  renderTable({ empty: 'statements-empty', table: 'statements-table', body: 'statements-rows' }, statements, (s) =>
+const statementsFilter = createStatementFilter({
+  periodHost: 'statement-period-filter',
+  entityHost: 'statement-entity-filter',
+  entityTitle: 'Account',
+  entities: () => accounts.filter((account) => account.statement_count > 0).map((account) => ({ id: account.id, label: account.name })),
+  onChange: () => reloadStatements().catch((error) => showToast(errorText(error))),
+});
+
+/** Loads the rows through the filter and shows them (CSD-028). */
+async function reloadStatements() {
+  const loaded = await statementsFilter.load('list_investment_statements', (rows) => rows.length);
+  showStatements(loaded);
+  await keepAllStatements(loaded.result);
+}
+
+function showStatements({ result, hasData }) {
+  statementsFilter.show(hasData);
+  renderStatements(result, hasData);
+}
+
+/** The "earlier statement" hint needs every statement, also those the filter hides (CSD-005 REQ-24). */
+async function keepAllStatements(shown) {
+  statementRows = statementsFilter.payload() ? await invoke('list_investment_statements') : shown;
+}
+
+function renderStatements(statements, hasData) {
+  renderFilteredTable({ empty: 'statements-empty', nomatch: 'statements-nomatch', table: 'statements-table', body: 'statements-rows' }, { rows: statements, hasData }, (s) =>
     h(
       'tr',
       {},
@@ -72,14 +97,16 @@ export async function reloadInvestmentsOverview() {
   renderAccounts(overview);
   if (overview.accounts.length === 0) {
     statementRows = [];
+    statementsFilter.show(false);
     return;
   }
-  const [totals, statements] = await Promise.all([
+  const [totals, loaded] = await Promise.all([
     invoke('yearly_investment_totals'),
-    invoke('list_investment_statements'),
+    statementsFilter.load('list_investment_statements', (rows) => rows.length),
   ]);
   renderTotals(totals);
-  renderStatements(statements);
+  showStatements(loaded);
+  await keepAllStatements(loaded.result);
 }
 
 async function changed() {

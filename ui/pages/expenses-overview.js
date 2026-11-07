@@ -1,8 +1,9 @@
 // Expenses: dated expenses with a category and a note, and yearly totals (CSD-013).
-import { invoke } from '../shared/ipc.js';
-import { $, h, showError, submitOnce } from '../shared/dom.js';
+import { invoke, errorText } from '../shared/ipc.js';
+import { $, h, showError, submitOnce, showToast } from '../shared/dom.js';
 import { formatAmount, formatDate, noteSummary } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
+import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
 import { numCell, recordActions, renderTable, rowHeader } from '../shared/list-rows.js';
 
@@ -31,10 +32,32 @@ function renderTotals(totals) {
   );
 }
 
-function renderExpenses(list) {
-  if (list.expenses.length === 0) $('expenses-empty').textContent = t('No expenses yet. Add your first expense.');
+const CATEGORIES = ['Home', 'Vehicle', 'Holiday', 'Sport', 'Study', 'Appliances', 'Hobby', 'Other'];
+
+const expensesFilter = createStatementFilter({
+  periodHost: 'expense-period-filter',
+  entityHost: 'expense-entity-filter',
+  entityTitle: 'Category',
+  entities: () => CATEGORIES.map((category) => ({ id: category, label: categoryName(category) })),
+  onChange: () => reloadExpenses().catch((error) => showToast(errorText(error))),
+});
+
+/** Loads the expenses through the filter and shows them (CSD-028). */
+async function reloadExpenses() {
+  showExpenses(await expensesFilter.load('list_expenses', (list) => list.expenses.length));
+}
+
+function showExpenses({ result, hasData }) {
+  expensesFilter.show(hasData);
+  renderExpenses(result, hasData);
+}
+
+function renderExpenses(list, hasData) {
+  if (list.expenses.length === 0 && !expensesFilter.payload()) $('expenses-empty').textContent = t('No expenses yet. Add your first expense.');
+  // The total of the rows Rust returned: with a filter on, it is the total of those rows (CSD-028 REQ-9).
   $('expenses-total').textContent = formatAmount(list.total);
-  renderTable({ empty: 'expenses-empty', table: 'expenses-table', body: 'expenses-rows' }, list.expenses, (expense) =>
+  $('expenses-total-label').textContent = expensesFilter.payload() ? t('Filtered total') : t('Total');
+  renderFilteredTable({ empty: 'expenses-empty', nomatch: 'expenses-nomatch', table: 'expenses-table', body: 'expenses-rows' }, { rows: list.expenses, hasData }, (expense) =>
     h(
       'tr',
       {},
@@ -53,7 +76,7 @@ function renderExpenses(list) {
 
 /** Reloads everything from Rust. */
 export async function reloadExpensesOverview() {
-  renderExpenses(await invoke('list_expenses'));
+  showExpenses(await expensesFilter.load('list_expenses', (list) => list.expenses.length));
   renderTotals(await invoke('yearly_expense_totals'));
 }
 

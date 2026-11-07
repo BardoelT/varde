@@ -7,6 +7,7 @@ import incomeExpenses from './nl-income-expenses.js';
 import investmentsBank from './nl-investments-bank.js';
 import debtsHouses from './nl-debts-houses.js';
 import undo from './nl-undo.js';
+import filters from './nl-filters.js';
 
 export default {
   ...staticTexts,
@@ -15,5 +16,6 @@ export default {
   ...investmentsBank,
   ...debtsHouses,
   ...undo,
+  ...filters,
   ...errors,
 };
