@@ -142,6 +142,7 @@ This app handles personal financial data and the repo is public.
 - Work on the `development` branch, not one branch per change; never push to `main`. All changes reach `main` through a PR from `development`.
 - Small, focused commits (one concern each) with Conventional Commit messages (`feat:`, `fix:`, `refactor:`, `chore:`).
 - PR description: what changed, why, and how it was tested.
+- Tie work to its GitHub issue when there is one. The commit that finishes the issue ends its body with `Closes #<n>`, and the PR description repeats it: GitHub closes the issue only for a keyword (`Closes`, `Fixes`, `Resolves`) plus `#<n>`, and only when it reaches `main`. A plain "issue 43" links nothing. Commits and PRs that only touch an issue (a spec commit, a partial step) use `Refs #<n>` and never close it.
 - GitHub Actions run only when a release tag is pushed (`release.yml`, `macos-latest`): fmt, clippy, tests and `cargo deny` first. Nothing runs on pull requests or merges, so run the checks locally before opening a PR.
 
 ## Specifications (CSD)
