@@ -14,7 +14,7 @@ use crate::domain::{
     BankYearlyTotal, EntryPrefill,
 };
 use crate::error::AppError;
-use crate::storage::Project;
+use crate::storage::{Project, Record, StepLabel};
 
 /// An entry with the name of its account, as the entries table shows it
 /// (CSD-009 REQ-20).
@@ -52,7 +52,7 @@ pub fn create_bank_account(
     state: State<'_, AppState>,
     input: BankAccountInput,
 ) -> Result<BankAccount, AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::add(Record::BankAccount))?;
     Ok(project.bank_accounts_mut().create_account(&input)?)
 }
 
@@ -62,7 +62,7 @@ pub fn update_bank_account(
     account_id: String,
     input: BankAccountInput,
 ) -> Result<BankAccount, AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::edit(Record::BankAccount))?;
     Ok(project
         .bank_accounts_mut()
         .update_account(BankAccountId::parse(&account_id)?, &input)?)
@@ -70,7 +70,7 @@ pub fn update_bank_account(
 
 #[tauri::command]
 pub fn delete_bank_account(state: State<'_, AppState>, account_id: String) -> Result<(), AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::delete(Record::BankAccount))?;
     project
         .bank_accounts_mut()
         .delete_account(BankAccountId::parse(&account_id)?)?;
@@ -101,7 +101,7 @@ pub fn add_bank_entry(
     let period = parse_period(&period)?;
     let balance = BankBalance::parse(&balance)?;
     let note = bank_note(note.as_deref().unwrap_or_default())?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::add(Record::BankEntry))?;
     let entry = project
         .bank_accounts_mut()
         .add_entry(account_id, period, balance, note)?;
@@ -122,7 +122,7 @@ pub fn update_bank_entry(
     let new_period = parse_period(&new_period)?;
     let balance = BankBalance::parse(&balance)?;
     let note = bank_note(note.as_deref().unwrap_or_default())?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::edit(Record::BankEntry))?;
     let entry = project
         .bank_accounts_mut()
         .update_entry(account_id, period, new_period, balance, note)?;
@@ -137,7 +137,7 @@ pub fn delete_bank_entry(
 ) -> Result<(), AppError> {
     let account_id = BankAccountId::parse(&account_id)?;
     let period = parse_period(&period)?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::delete(Record::BankEntry))?;
     project
         .bank_accounts_mut()
         .delete_entry(account_id, period)?;

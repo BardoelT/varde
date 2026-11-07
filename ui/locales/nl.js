@@ -6,6 +6,7 @@ import staticTexts from './nl-static.js';
 import incomeExpenses from './nl-income-expenses.js';
 import investmentsBank from './nl-investments-bank.js';
 import debtsHouses from './nl-debts-houses.js';
+import undo from './nl-undo.js';
 
 export default {
   ...staticTexts,
@@ -13,5 +14,6 @@ export default {
   ...incomeExpenses,
   ...investmentsBank,
   ...debtsHouses,
+  ...undo,
   ...errors,
 };

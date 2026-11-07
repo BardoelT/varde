@@ -15,6 +15,7 @@ use crate::domain::{
     Investments, InvestmentsOverview, NetDeposits, Note, Period, StatementCalculation,
 };
 use crate::error::AppError;
+use crate::storage::{Record, StepLabel};
 
 /// A statement with the name of its account, as the statements table shows it
 /// (CSD-005 REQ-17).
@@ -64,7 +65,7 @@ pub fn create_investment_account(
     state: State<'_, AppState>,
     input: InvestmentAccountInput,
 ) -> Result<InvestmentAccount, AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::add(Record::InvestmentAccount))?;
     Ok(project.investments_mut().create_account(&input)?)
 }
 
@@ -74,7 +75,7 @@ pub fn update_investment_account(
     account_id: String,
     input: InvestmentAccountInput,
 ) -> Result<InvestmentAccount, AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::edit(Record::InvestmentAccount))?;
     Ok(project
         .investments_mut()
         .update_account(InvestmentAccountId::parse(&account_id)?, &input)?)
@@ -85,7 +86,7 @@ pub fn delete_investment_account(
     state: State<'_, AppState>,
     account_id: String,
 ) -> Result<(), AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::delete(Record::InvestmentAccount))?;
     project
         .investments_mut()
         .delete_account(InvestmentAccountId::parse(&account_id)?)?;
@@ -120,7 +121,7 @@ pub fn add_investment_statement(
     let balance = Balance::parse(&balance)?;
     let net_deposits = NetDeposits::parse(net_deposits.as_deref().unwrap_or_default())?;
     let note = Note::new(note.as_deref().unwrap_or_default())?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::add(Record::InvestmentStatement))?;
     let statement =
         project
             .investments_mut()
@@ -144,7 +145,7 @@ pub fn update_investment_statement(
     let balance = Balance::parse(&balance)?;
     let net_deposits = NetDeposits::parse(net_deposits.as_deref().unwrap_or_default())?;
     let note = Note::new(note.as_deref().unwrap_or_default())?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::edit(Record::InvestmentStatement))?;
     let statement = project.investments_mut().update_statement(
         account_id,
         period,
@@ -164,7 +165,7 @@ pub fn delete_investment_statement(
 ) -> Result<(), AppError> {
     let account_id = InvestmentAccountId::parse(&account_id)?;
     let period = Period::parse(&period)?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::delete(Record::InvestmentStatement))?;
     project
         .investments_mut()
         .delete_statement(account_id, period)?;

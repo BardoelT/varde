@@ -11,6 +11,7 @@ use crate::domain::{
     Expense, ExpenseId, ExpenseInsights, ExpenseList, ExpensePrefill, ExpenseYearlyTotal,
 };
 use crate::error::AppError;
+use crate::storage::{Record, StepLabel};
 
 /// All expenses, newest first, with their total (CSD-013 REQ-10, REQ-11).
 #[tauri::command]
@@ -21,7 +22,7 @@ pub fn list_expenses(state: State<'_, AppState>) -> Result<ExpenseList, AppError
 
 #[tauri::command]
 pub fn add_expense(state: State<'_, AppState>, input: ExpenseInput) -> Result<Expense, AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::add(Record::Expense))?;
     Ok(project.expenses_mut().add_expense(&input)?)
 }
 
@@ -33,14 +34,14 @@ pub fn update_expense(
     input: ExpenseInput,
 ) -> Result<Expense, AppError> {
     let id = ExpenseId::parse(&expense_id)?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::edit(Record::Expense))?;
     Ok(project.expenses_mut().update_expense(id, &input)?)
 }
 
 #[tauri::command]
 pub fn delete_expense(state: State<'_, AppState>, expense_id: String) -> Result<(), AppError> {
     let id = ExpenseId::parse(&expense_id)?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::delete(Record::Expense))?;
     project.expenses_mut().delete_expense(id)?;
     Ok(())
 }

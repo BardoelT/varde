@@ -550,7 +550,7 @@ fn test_csd002_ac_21_1_the_example_opens_and_every_area_has_records() {
     let reads = read_everything(&app);
     assert_eq!(
         app.ok("project_status", json!({})),
-        json!({ "unsaved_changes": false, "has_path": true })
+        json!({ "unsaved_changes": false, "has_path": true, "undo_label": null, "redo_label": null })
     );
     for command in [
         "list_jobs",

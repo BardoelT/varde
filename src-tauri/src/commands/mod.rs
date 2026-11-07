@@ -13,13 +13,45 @@ pub mod project;
 pub mod ratios;
 pub mod settings;
 
+use std::ops::{Deref, DerefMut};
 use std::sync::{Mutex, MutexGuard};
 
 use time::{Date, OffsetDateTime, UtcOffset};
 
-use crate::domain::YearMonth;
+use crate::domain::{ProjectData, YearMonth};
 use crate::error::AppError;
-use crate::storage::Project;
+use crate::storage::{Project, StepLabel};
+
+/// The project locked for one change. When it goes out of scope after a change
+/// that altered the data, the change becomes one undo step (CSD-027 REQ-3).
+/// A rejected change alters nothing and records nothing (REQ-7).
+pub struct Edit<'a> {
+    project: MutexGuard<'a, Project>,
+    label: StepLabel,
+    before: Option<ProjectData>,
+}
+
+impl Deref for Edit<'_> {
+    type Target = Project;
+
+    fn deref(&self) -> &Project {
+        &self.project
+    }
+}
+
+impl DerefMut for Edit<'_> {
+    fn deref_mut(&mut self) -> &mut Project {
+        &mut self.project
+    }
+}
+
+impl Drop for Edit<'_> {
+    fn drop(&mut self) {
+        if let Some(before) = self.before.take() {
+            self.project.record_step(self.label, before);
+        }
+    }
+}
 
 /// Shared app state: the open project and the local UTC offset, read once at
 /// startup while the process is still single-threaded.
@@ -51,6 +83,23 @@ impl AppState {
     /// Returns `Internal` if a previous holder panicked.
     pub fn project(&self) -> Result<MutexGuard<'_, Project>, AppError> {
         self.project.lock().map_err(|_| AppError::Internal)
+    }
+
+    /// Locks the project for one change that is undoable as `label`. Every
+    /// command that changes project data (not settings) goes through here, so
+    /// there is one place that records steps (CSD-027 CON-1). Keep the guard
+    /// short-lived, like [`AppState::project`].
+    ///
+    /// # Errors
+    /// Returns `Internal` if a previous holder panicked.
+    pub fn edit(&self, label: StepLabel) -> Result<Edit<'_>, AppError> {
+        let project = self.project()?;
+        let before = Some(project.snapshot());
+        Ok(Edit {
+            project,
+            label,
+            before,
+        })
     }
 
     /// The current calendar month in local time (CSD-001 REQ-5).

@@ -2,6 +2,12 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
+mod history;
+
+pub use history::{Record, StepLabel};
+
+use history::{Entry, History};
+
 use super::{file, LastProject, StorageError};
 use crate::domain::{
     BankAccounts, Debts, Expenses, Houses, Income, Investments, ProjectData, Settings,
@@ -10,11 +16,16 @@ use crate::domain::{
 /// The extension of project files.
 const EXTENSION: &str = "varde";
 
-/// Whether the project differs from disk, and whether it has a file yet.
+/// Whether the project differs from disk, whether it has a file yet, and what
+/// Edit > Undo and Redo would apply (CSD-027 REQ-10).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub struct ProjectStatus {
     pub unsaved_changes: bool,
     pub has_path: bool,
+    /// The step Undo would take back, if any.
+    pub undo_label: Option<StepLabel>,
+    /// The step Redo would apply again, if any.
+    pub redo_label: Option<StepLabel>,
 }
 
 /// Result of a save that may ask for a path first.
@@ -49,6 +60,8 @@ pub struct Project {
     data: ProjectData,
     saved: ProjectData,
     path: Option<PathBuf>,
+    /// The steps that can be undone and redone (CSD-027). Memory only.
+    history: History,
     /// Where the last used path is remembered, if anywhere (REQ-10).
     memory: Option<LastProject>,
     /// Why the remembered file could not be reopened at start (REQ-11).
@@ -152,13 +165,69 @@ impl Project {
         &mut self.data.settings
     }
 
-    /// Unsaved-changes indicator and whether a path is set.
+    /// Unsaved-changes indicator, whether a path is set, and the undo and redo
+    /// labels.
     #[must_use]
     pub fn status(&self) -> ProjectStatus {
         ProjectStatus {
             unsaved_changes: self.data != self.saved,
             has_path: self.path.is_some(),
+            undo_label: self.history.undo_label(),
+            redo_label: self.history.redo_label(),
         }
+    }
+
+    /// A copy of the data as it is now, taken before a change so the change
+    /// can become a step (CSD-027 CON-1).
+    #[must_use]
+    pub fn snapshot(&self) -> ProjectData {
+        self.data.clone()
+    }
+
+    /// Records a step when the data now differs from `before`. A change that
+    /// did nothing, such as a rejected one, records no step and leaves the redo
+    /// steps alone (CSD-027 REQ-7).
+    pub fn record_step(&mut self, label: StepLabel, before: ProjectData) {
+        if self.data != before {
+            self.history.push(label, before);
+        }
+    }
+
+    /// Takes back the most recent step (CSD-027 REQ-1).
+    ///
+    /// # Errors
+    /// Returns `NothingToUndo` when there is no step to take back.
+    pub fn undo(&mut self) -> Result<StepLabel, StorageError> {
+        let entry = self.history.pop_undo().ok_or(StorageError::NothingToUndo)?;
+        let label = entry.label;
+        let current = self.swap_data(entry.data);
+        self.history.keep_for_redo(Entry {
+            label,
+            data: current,
+        });
+        Ok(label)
+    }
+
+    /// Applies again the step that was last undone (CSD-027 REQ-2).
+    ///
+    /// # Errors
+    /// Returns `NothingToRedo` when there is no step to apply.
+    pub fn redo(&mut self) -> Result<StepLabel, StorageError> {
+        let entry = self.history.pop_redo().ok_or(StorageError::NothingToRedo)?;
+        let label = entry.label;
+        let current = self.swap_data(entry.data);
+        self.history.keep_for_undo(Entry {
+            label,
+            data: current,
+        });
+        Ok(label)
+    }
+
+    /// Puts `data` in place and returns what was there. The settings stay as
+    /// they are: the currency is not part of any step (CSD-027 REQ-4).
+    fn swap_data(&mut self, mut data: ProjectData) -> ProjectData {
+        data.settings = self.data.settings;
+        std::mem::replace(&mut self.data, data)
     }
 
     /// Replaces the project with an empty one that has no path (REQ-6).
@@ -290,6 +359,9 @@ impl Project {
         self.saved = data.clone();
         self.data = data;
         self.path = Some(path.to_path_buf());
+        // A different project starts with no history (CSD-027 REQ-8). A failed
+        // open returned above and keeps it (AC-8.2).
+        self.history.clear();
         self.remember();
         Ok(())
     }
@@ -348,6 +420,8 @@ mod bank_accounts_tests;
 mod debts_tests;
 #[cfg(test)]
 mod expenses_tests;
+#[cfg(test)]
+mod history_tests;
 #[cfg(test)]
 mod houses_tests;
 #[cfg(test)]
