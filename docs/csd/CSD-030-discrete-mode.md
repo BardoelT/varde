@@ -3,7 +3,7 @@ id: CSD-030
 title: Discrete mode (hide amounts)
 status: approved
 owner: Thijs Bardoel
-version: 0.1
+version: 0.2
 last_updated: 09/11/2026
 related: [CSD-000, CSD-008, CSD-022, CSD-024, CSD-025, CSD-029]
 ---
@@ -395,8 +395,8 @@ Tests are named `test_csd030_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
 ## 8. Open questions
-- OQ-1: Which menu holds the "Discrete Mode" item? The app menu has "Settings…" today and no View menu. Owner: Thijs. Blocks: REQ-11.
-- OQ-2: What does "the amount is read as hidden" sound like for screen readers (for example "hidden amount")? Owner: Thijs. Blocks: AC-8.2.
+None. Decided at implementation (09/11/2026): OQ-1, the "Discrete Mode" item is the first item of the View menu that macOS adds to the standard menu bar, above a separator; OQ-2, screen readers read "hidden amount" (Dutch: "verborgen bedrag").
 
 ## 9. Changelog
+- 0.2 (09/11/2026): OQ-1 and OQ-2 decided (View menu, "hidden amount"). Implementation note: each hidden amount is wrapped in a marked element (`hidden-amount`) by a small DOM observer, which gives it the blur and the screen-reader text; the blur on SVG chart text depends on the web view and the placeholder alone already hides it.
 - 0.1 (09/11/2026): initial draft, from GitHub issue 26 and the interview. CSD-008 NG-5 is amended to refer to it.

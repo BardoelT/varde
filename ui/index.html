@@ -25,6 +25,7 @@
           </svg>
         </div>
         <span class="app-name">Varde</span>
+        <span class="discrete-badge" id="discrete-badge" hidden>Discrete mode</span>
       </div>
 
       <nav class="sidebar-nav" aria-label="Main navigation">
@@ -714,6 +715,13 @@
               <option value="comma_point">1.234,50</option>
               <option value="apostrophe_comma">1'234,50</option>
             </select>
+          </div>
+          <div class="setting-row">
+            <div class="setting-text">
+              <label class="setting-name" for="setting-discrete-mode">Discrete mode</label>
+              <p class="setting-help" id="setting-discrete-mode-help">Hides every amount behind a blur, so you can show the app to someone else. Percentages stay visible. This applies to the app on this Mac, not to the project.</p>
+            </div>
+            <input type="checkbox" role="switch" class="switch" id="setting-discrete-mode" aria-describedby="setting-discrete-mode-help">
           </div>
         </div>
       </section>

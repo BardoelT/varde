@@ -21,7 +21,7 @@ test('test_csd029_ac_1_1_the_choice_and_its_options', async () => {
   await app.click(app.item('settings'));
   const panel = settingsPanel(app);
   const names = [...panel.querySelectorAll('.setting-name')].map((label) => app.text(label));
-  assert.deepEqual(names, ['Theme', 'Language', 'Number format'], 'Number format is below Language');
+  assert.deepEqual(names, ['Theme', 'Language', 'Number format', 'Discrete mode'], 'Number format is below Language');
   const select = app.$('setting-number-format');
   assert.ok(panel.contains(select));
   assert.deepEqual(
