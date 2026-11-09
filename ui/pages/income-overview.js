@@ -1,7 +1,7 @@
 // Employment income: jobs, yearly totals over all jobs, and the paychecks and annual statements of all jobs (CSD-001).
 import { invoke, errorText } from '../shared/ipc.js';
 import { $, h, showError, showToast, setHint, submitOnce } from '../shared/dom.js';
-import { formatAmount, formatDate, currentYear, currentMonth } from '../shared/format.js';
+import { amountForInput, formatAmount, formatDate, currentYear, currentMonth } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
@@ -221,9 +221,9 @@ function openEntryDialog(entry = null) {
     $('paycheck-period-label').textContent = statement ? t('Year') : t('Month');
     form.elements.period.maxLength = statement ? 4 : 7;
     form.elements.period.value = entry.period;
-    form.elements.gross_salary.value = entry.gross_salary;
-    form.elements.holiday_pay.value = entry.holiday_pay;
-    form.elements.bonus.value = entry.bonus;
+    form.elements.gross_salary.value = amountForInput(entry.gross_salary);
+    form.elements.holiday_pay.value = amountForInput(entry.holiday_pay);
+    form.elements.bonus.value = amountForInput(entry.bonus);
   } else {
     formIsYearly = null; // force the period to its default for the first job
     form.elements.period.value = '';
@@ -268,9 +268,9 @@ async function copyPrevious() {
   const form = $('paycheck-form');
   try {
     const prefill = await invoke('copy_previous_entry', { jobId: form.elements.job_id.value });
-    form.elements.gross_salary.value = prefill.gross_salary ?? '';
-    form.elements.holiday_pay.value = prefill.holiday_pay;
-    form.elements.bonus.value = prefill.bonus;
+    form.elements.gross_salary.value = amountForInput(prefill.gross_salary);
+    form.elements.holiday_pay.value = amountForInput(prefill.holiday_pay);
+    form.elements.bonus.value = amountForInput(prefill.bonus);
   } catch (error) {
     showError('paycheck-error', error);
   }

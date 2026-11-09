@@ -5,7 +5,7 @@
 // label, all as Rust returns them.
 import { h } from '../shared/dom.js';
 import { t } from '../shared/i18n.js';
-import { formatAmount } from '../shared/format.js';
+import { formatAmount, formatLabel } from '../shared/format.js';
 import { swatch, noSwatch, legendLabel, tooltipRow } from '../shared/chart.js';
 import { createYearlyChart, isNegative, yearLabel } from '../shared/yearly-chart.js';
 import { fillLegend, initInsightsTabs, markerDecorator } from '../shared/insights-page.js';
@@ -27,7 +27,7 @@ function describe(row) {
     opening: formatAmount(row.opening_balance),
     deposits: formatAmount(row.net_deposits),
     growth,
-    percent: row.growth_label,
+    percent: formatLabel(row.growth_label),
     closing: formatAmount(row.closing_balance),
   });
 }
@@ -43,7 +43,7 @@ function tooltipContent(row) {
           ...tooltipRow('deposits', swatch('deposits'), t('Net deposits'), formatAmount(row.net_deposits)),
           ...tooltipRow('opening', swatch('opening'), t('Opening balance'), formatAmount(row.opening_balance)),
           ...tooltipRow('marker', swatch('marker'), t('Closing balance'), formatAmount(row.closing_balance)),
-          ...tooltipRow(null, noSwatch(), t('Growth'), row.growth_label, isNegative(row.growth_label) ? 'negative' : ''),
+          ...tooltipRow(null, noSwatch(), t('Growth'), formatLabel(row.growth_label), isNegative(row.growth_label) ? 'negative' : ''),
         ];
   return [
     h('div', { class: 'tip-title' }, yearLabel(row)),
@@ -82,7 +82,7 @@ const chart = createYearlyChart({
   labelLines: (row) => [
     { text: yearLabel(row), className: 'chart-year' },
     {
-      text: row.growth_label,
+      text: formatLabel(row.growth_label),
       className: `chart-percent${isNegative(row.growth_label) ? ' negative' : ''}`,
     },
   ],

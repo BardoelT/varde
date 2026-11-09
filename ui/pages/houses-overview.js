@@ -2,7 +2,7 @@
 // bought once and possibly sold (CSD-019 REQ-1, REQ-2).
 import { invoke, errorText } from '../shared/ipc.js';
 import { $, h, confirmAction, showError, setHint, submitOnce, showToast } from '../shared/dom.js';
-import { formatAmount, formatDate, noteSummary } from '../shared/format.js';
+import { amountForInput, formatAmount, formatDate, noteSummary } from '../shared/format.js';
 import { askSettlements } from '../shared/settle.js';
 import { t } from '../shared/i18n.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
@@ -150,9 +150,9 @@ function openHouseDialog(house) {
         form.elements.name.value = house.name;
         form.elements.period.value = house.period;
         form.elements.purchase_date.value = formatDate(house.purchase_date);
-        form.elements.purchase_amount.value = house.purchase_amount;
+        form.elements.purchase_amount.value = amountForInput(house.purchase_amount);
         form.elements.sell_date.value = house.sell_date === null ? '' : formatDate(house.sell_date);
-        form.elements.sell_amount.value = house.sell_amount ?? '';
+        form.elements.sell_amount.value = amountForInput(house.sell_amount);
       }
       fillLinkedDebts(house);
     },
@@ -258,7 +258,7 @@ async function copyPrevious() {
   const form = $('house-valuation-form');
   try {
     const prefill = await invoke('copy_previous_house_valuation', { houseId: form.elements.house_id.value });
-    form.elements.value.value = prefill.value ?? '';
+    form.elements.value.value = amountForInput(prefill.value);
     form.elements.note.value = '';
   } catch (error) {
     showError('house-valuation-error', error);

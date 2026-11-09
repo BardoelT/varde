@@ -724,6 +724,17 @@
               <option value="nl">Nederlands</option>
             </select>
           </div>
+          <div class="setting-row">
+            <div class="setting-text">
+              <label class="setting-name" for="setting-number-format">Number format</label>
+              <p class="setting-help">How amounts are written and typed. This applies to the app on this Mac, not to the project. Dates stay dd/mm/yyyy.</p>
+            </div>
+            <select id="setting-number-format">
+              <option value="point_comma">1,234.50</option>
+              <option value="comma_point">1.234,50</option>
+              <option value="apostrophe_comma">1'234,50</option>
+            </select>
+          </div>
         </div>
       </section>
 
@@ -822,7 +833,7 @@
       <label class="field">Bonus (optional)
         <input type="text" name="bonus" aria-describedby="paycheck-hint" inputmode="decimal" placeholder="0.00" autocomplete="off">
       </label>
-      <p class="field-hint" id="paycheck-hint">Use a dot for decimals, for example 3000.00.</p>
+      <p class="field-hint" id="paycheck-hint">Use {decimal_name} for decimals, for example 3000.00.</p>
       <p class="form-error" id="paycheck-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
@@ -879,7 +890,7 @@
       <label class="field">Note (optional)
         <textarea name="note" aria-describedby="statement-hint" rows="4" autocomplete="off"></textarea>
       </label>
-      <p class="field-hint" id="statement-hint">Use a dot for decimals, for example 12500.00. Net deposits is what you put in minus what you took out, so a withdrawal is negative. Enter the balance or the capital growth and the other is calculated. A note can be up to 2000 characters.</p>
+      <p class="field-hint" id="statement-hint">Use {decimal_name} for decimals, for example 12500.00. Net deposits is what you put in minus what you took out, so a withdrawal is negative. Enter the balance or the capital growth and the other is calculated. A note can be up to 2000 characters.</p>
       <p class="form-error" id="statement-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
@@ -927,7 +938,7 @@
       <label class="field">Note (optional)
         <textarea name="note" aria-describedby="bank-entry-hint" rows="4" autocomplete="off"></textarea>
       </label>
-      <p class="field-hint" id="bank-entry-hint">Use a dot for decimals, for example 2500.00. The balance is the closing balance of the period. A negative balance, such as -150.25, means the account is overdrawn. A note can be up to 2000 characters.</p>
+      <p class="field-hint" id="bank-entry-hint">Use {decimal_name} for decimals, for example 2500.00. The balance is the closing balance of the period. A negative balance, such as -150.25, means the account is overdrawn. A note can be up to 2000 characters.</p>
       <p class="form-error" id="bank-entry-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
@@ -1020,7 +1031,7 @@
       <label class="field">Note (optional)
         <textarea name="note" aria-describedby="house-valuation-hint" rows="4" autocomplete="off"></textarea>
       </label>
-      <p class="field-hint" id="house-valuation-hint">Use a dot for decimals, for example 150000.00. The value is what the house is worth at the end of the period, so it cannot be negative. A note can be up to 2000 characters.</p>
+      <p class="field-hint" id="house-valuation-hint">Use {decimal_name} for decimals, for example 150000.00. The value is what the house is worth at the end of the period, so it cannot be negative. A note can be up to 2000 characters.</p>
       <p class="form-error" id="house-valuation-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
@@ -1106,7 +1117,7 @@
       <label class="field">Note (optional)
         <textarea name="note" aria-describedby="debt-statement-hint" rows="4" autocomplete="off"></textarea>
       </label>
-      <p class="field-hint" id="debt-statement-hint">Use a dot for decimals, for example 150000.00. The balance is what you still owe at the end of the period, so it cannot be negative. A note can be up to 2000 characters.</p>
+      <p class="field-hint" id="debt-statement-hint">Use {decimal_name} for decimals, for example 150000.00. The balance is what you still owe at the end of the period, so it cannot be negative. A note can be up to 2000 characters.</p>
       <p class="form-error" id="debt-statement-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
@@ -1147,7 +1158,7 @@
       <label class="field">Note (optional)
         <textarea name="note" aria-describedby="expense-hint" rows="4" autocomplete="off"></textarea>
       </label>
-      <p class="field-hint" id="expense-hint">Use a dot for decimals, for example 4500.00. The amount must be above 0.00. A note can be up to 2000 characters.</p>
+      <p class="field-hint" id="expense-hint">Use {decimal_name} for decimals, for example 4500.00. The amount must be above 0.00. A note can be up to 2000 characters.</p>
       <p class="form-error" id="expense-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>

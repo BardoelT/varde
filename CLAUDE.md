@@ -41,7 +41,7 @@ ui/                   # frontend (UI only — HTML + CSS + JS, no business logic
   main.js             # entry point: wires the pages and reloads them
   navigation.js       # left-pane navigation
   pages/              # one file per page: <page>-overview.js and <page>-insights.js for pages with two tabs, <page>.js for the rest (dashboard, net-worth, ratios, settings, project)
-  shared/             # helpers pages share: ipc, dom, crud, list-rows, record-form, statement-filter, insights-page, format, i18n, settle, date-mask, chart, yearly-chart, tabs
+  shared/             # helpers pages share: ipc, dom, crud, list-rows, record-form, statement-filter, insights-page, format, number-format, i18n, settle, date-mask, chart, yearly-chart, tabs
   locales/            # Dutch texts (nl*.js); the English text in the code is the key (CSD-022)
   styles/             # CSS by area: base, layout, components, pages, charts
   tests/              # DOM tests (node:test + jsdom) and their harness; not part of the app

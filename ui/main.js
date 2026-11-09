@@ -2,6 +2,7 @@
 import { errorText, listen } from './shared/ipc.js';
 import { showToast } from './shared/dom.js';
 import { collectStaticTexts, onLanguageChange } from './shared/i18n.js';
+import { onNumberFormatChange } from './shared/number-format.js';
 import { initDateMasks } from './shared/date-mask.js';
 import { resetAllFilters } from './shared/statement-filter.js';
 import { initProject, refreshProjectStatus } from './pages/project.js';
@@ -132,10 +133,13 @@ async function start() {
       ]),
     );
   await initProject({ onReplaced: reloadEverything, onSwitched: resetAllFilters });
-  onLanguageChange(async () => {
+  const redraw = async () => {
     await refreshProjectStatus();
     await reloadEverything();
-  });
+  };
+  onLanguageChange(redraw);
+  // A new number format redraws every figure (CSD-029 REQ-3).
+  onNumberFormatChange(redraw);
 
   // Settings… in the app menu, and ⌘, (CSD-003 REQ-2).
   await listen('menu-action', (event) => {

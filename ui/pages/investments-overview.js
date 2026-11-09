@@ -1,7 +1,7 @@
 // Investments: accounts with a monthly or yearly statement, each a balance, net deposits and a note (CSD-005).
 import { invoke, errorText } from '../shared/ipc.js';
 import { $, h, showError, showToast, setHint, submitOnce } from '../shared/dom.js';
-import { formatAmount, noteSummary } from '../shared/format.js';
+import { amountForInput, formatAmount, noteSummary } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
@@ -249,9 +249,9 @@ async function recalculate() {
     });
     if (run !== calculationRun) return; // a newer calculation is under way
     if (target === 'growth') {
-      form.elements.growth.value = result.capital_growth;
+      form.elements.growth.value = amountForInput(result.capital_growth);
     } else {
-      form.elements.balance.value = result.balance;
+      form.elements.balance.value = amountForInput(result.balance);
     }
     markCalculated(target);
   } catch (error) {
@@ -297,8 +297,8 @@ async function copyPrevious() {
     const prefill = await invoke('copy_previous_investment_statement', {
       accountId: form.elements.account_id.value,
     });
-    form.elements.balance.value = prefill.balance ?? '';
-    form.elements.net_deposits.value = prefill.net_deposits;
+    form.elements.balance.value = amountForInput(prefill.balance);
+    form.elements.net_deposits.value = amountForInput(prefill.net_deposits);
     form.elements.note.value = '';
     typedIn('balance');
   } catch (error) {

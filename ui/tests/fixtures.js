@@ -7,11 +7,12 @@ const golden = JSON.parse(readFileSync(fileURLToPath(new URL('../../src-tauri/go
 
 /** The commands every page calls while it starts, apart from the reads of the golden file. */
 const startup = {
-  get_preferences: { theme: 'system', language: 'en' },
+  get_preferences: { theme: 'system', language: 'en', number_format: 'point_comma' },
   take_startup_notice: null,
   // Writes that only echo what was sent, as Rust does when the save succeeds (CSD-008, CSD-022).
   set_language: ({ language }) => ({ language }),
   set_theme: ({ theme }) => ({ theme }),
+  set_number_format: ({ numberFormat }) => ({ number_format: numberFormat }),
 };
 
 /** A copy of what Rust returned for every read command of the example project (a project with data). */

@@ -1,15 +1,18 @@
-// Settings page: the project currency (CSD-003), the app theme (CSD-008) and the language (CSD-022).
+// Settings page: the project currency (CSD-003), the app theme (CSD-008) and the language (CSD-022) and the number format (CSD-029).
 import { invoke, errorText } from '../shared/ipc.js';
 import { showToast, confirmAction } from '../shared/dom.js';
 import { setLanguage, t } from '../shared/i18n.js';
+import { setNumberFormat } from '../shared/number-format.js';
 
 const select = () => document.getElementById('setting-currency');
 const themeSelect = () => document.getElementById('setting-theme');
 const languageSelect = () => document.getElementById('setting-language');
+const numberFormatSelect = () => document.getElementById('setting-number-format');
 
 let settings = { currency: 'EUR', entry_count: 0 };
 let savedTheme = 'system';
 let savedLanguage = 'en';
+let savedNumberFormat = 'point_comma';
 
 /** Shows a theme: `data-theme` for light and dark, none for system so macOS decides (REQ-4). */
 function applyTheme(theme) {
@@ -30,11 +33,19 @@ async function applyLanguage(language) {
   await setLanguage(language);
 }
 
+/** Shows a number format everywhere and in the choice (CSD-029 REQ-3). */
+async function applyNumberFormat(numberFormat) {
+  savedNumberFormat = numberFormat;
+  numberFormatSelect().value = numberFormat;
+  await setNumberFormat(numberFormat);
+}
+
 /** Loads the saved theme and language from Rust and applies them. Called first at start (CSD-008 REQ-6, CSD-022 REQ-4). */
 export async function loadPreferences() {
   const preferences = await invoke('get_preferences');
   applyTheme(preferences.theme);
   await applyLanguage(preferences.language);
+  await applyNumberFormat(preferences.number_format);
 }
 
 /** Applies a theme only once Rust has saved it, so a failed save changes nothing (REQ-10). */
@@ -59,6 +70,19 @@ async function onLanguageChosen() {
     await applyLanguage(preferences.language);
   } catch (error) {
     languageSelect().value = savedLanguage;
+    showToast(errorText(error));
+  }
+}
+
+/** Applies a number format only once Rust has saved it, so a failed save changes nothing (CSD-029 REQ-10). */
+async function onNumberFormatChosen() {
+  const requested = numberFormatSelect().value;
+  if (requested === savedNumberFormat) return;
+  try {
+    const preferences = await invoke('set_number_format', { numberFormat: requested });
+    await applyNumberFormat(preferences.number_format);
+  } catch (error) {
+    numberFormatSelect().value = savedNumberFormat;
     showToast(errorText(error));
   }
 }
@@ -100,4 +124,5 @@ export function initSettings({ onChanged }) {
   select().addEventListener('change', () => onCurrencyChosen(onChanged));
   themeSelect().addEventListener('change', onThemeChosen);
   languageSelect().addEventListener('change', onLanguageChosen);
+  numberFormatSelect().addEventListener('change', onNumberFormatChosen);
 }

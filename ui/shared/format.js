@@ -5,12 +5,8 @@ export function formatDate(iso) {
   return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : String(iso);
 }
 
-/** Adds thousands separators to a decimal string such as "3000.00". Display only. */
-export function formatAmount(text) {
-  const [whole, fraction] = String(text).split('.');
-  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return fraction === undefined ? grouped : `${grouped}.${fraction}`;
-}
+// Amounts, percentages and typed amounts follow the number format the user chose (CSD-029).
+export { formatAmount, formatLabel, amountForInput } from './number-format.js';
 
 /** The current calendar year as text, such as "2026". */
 export function currentYear() {

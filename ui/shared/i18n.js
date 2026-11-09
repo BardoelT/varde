@@ -2,6 +2,7 @@
 // where it is used, and that English text is also the key of its Dutch version in `locales/`.
 // A text without a Dutch version shows in English (REQ-6). Project data is never translated.
 import nl from '../locales/nl.js';
+import { decimalSeparator, localiseNumbers, onNumberFormatChange } from './number-format.js';
 
 const DICTIONARIES = { nl };
 const ATTRIBUTES = ['placeholder', 'aria-label', 'title', 'alt'];
@@ -35,14 +36,20 @@ export function tn(singular, plural, count, params) {
   return t(count === 1 ? singular : plural, { count, ...params });
 }
 
+/** The name of the decimal separator of the chosen number format, for the hints of the amount fields. */
+const decimalName = () => (decimalSeparator() === ',' ? t('a comma') : t('a dot'));
+
+/** Writes the amounts and the separator name inside a static text in the chosen number format (CSD-029 REQ-8). */
+const localise = (text) => localiseNumbers(fill(text, { decimal_name: decimalName() }), { grouped: false });
+
 /**
  * The text of an error as the chosen language gives it: the Dutch text of its code when there is
  * one, otherwise the English message that Rust sent (CSD-022 REQ-7).
  */
 export function errorMessage(error) {
   const translated = error && typeof error.code === 'string' ? lookup(`code:${error.code}`) : null;
-  if (translated) return translated;
-  if (error && typeof error.message === 'string' && error.message) return error.message;
+  if (translated) return localiseNumbers(translated);
+  if (error && typeof error.message === 'string' && error.message) return localiseNumbers(error.message);
   return t('Something went wrong. Please try again.');
 }
 
@@ -77,12 +84,16 @@ function showStaticTexts() {
     if (current !== entry.shown) continue;
     const translated = lookup(source);
     // Keep the white space around the words as the markup had it.
-    const next = translated === null ? original : original.replace(/^(\s*)[\s\S]*?(\s*)$/, (_all, lead, trail) => lead + translated + trail);
+    const next =
+      translated === null ? localise(original) : original.replace(/^(\s*)[\s\S]*?(\s*)$/, (_all, lead, trail) => lead + localise(translated) + trail);
     if (attribute) node.setAttribute(attribute, next);
     else node.data = next;
     entry.shown = next;
   }
 }
+
+// A change of the number format rewrites the hints and placeholders that show an amount.
+onNumberFormatChange(() => showStaticTexts());
 
 /** Calls `listener` after the language has changed, to draw the pages again. */
 export function onLanguageChange(listener) {

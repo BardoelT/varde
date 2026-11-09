@@ -132,5 +132,5 @@ test('test_ui_the_amount_fields_of_a_form_are_described_by_its_hint', async () =
   const form = document.getElementById('bank-entry-form');
   assert.equal(form.elements.balance.getAttribute('aria-describedby'), 'bank-entry-hint');
   assert.equal(form.elements.note.getAttribute('aria-describedby'), 'bank-entry-hint');
-  assert.ok(document.getElementById('bank-entry-hint').textContent.includes('Use a dot for decimals'));
+  assert.ok(document.getElementById('bank-entry-hint').textContent.includes('Use {decimal_name} for decimals'));
 });
