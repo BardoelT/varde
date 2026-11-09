@@ -1,8 +1,9 @@
 // Employment income: jobs, yearly totals over all jobs, and the paychecks and annual statements of all jobs (CSD-001).
-import { invoke } from '../shared/ipc.js';
-import { $, h, showError, setHint, submitOnce } from '../shared/dom.js';
+import { invoke, errorText } from '../shared/ipc.js';
+import { $, h, showError, showToast, setHint, submitOnce } from '../shared/dom.js';
 import { formatAmount, formatDate, currentYear, currentMonth } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
+import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
 import { accountRow, numCell, recordActions, renderTable, rowHeader, toggleEmpty } from '../shared/list-rows.js';
 
@@ -56,8 +57,26 @@ function renderTotals(totals) {
   );
 }
 
-function renderEntries(entries) {
-  renderTable({ empty: 'paycheck-empty', table: 'paycheck-table', body: 'paycheck-rows' }, entries, (e) =>
+const entriesFilter = createStatementFilter({
+  periodHost: 'paycheck-period-filter',
+  entityHost: 'paycheck-entity-filter',
+  entityTitle: 'Job',
+  entities: () => jobs.filter((job) => job.entry_count > 0).map((job) => ({ id: job.id, label: job.employer })),
+  onChange: () => reloadEntries().catch((error) => showToast(errorText(error))),
+});
+
+/** Loads the rows through the filter and shows them (CSD-028). */
+async function reloadEntries() {
+  showEntries(await entriesFilter.load('list_entries', (rows) => rows.length));
+}
+
+function showEntries({ result, hasData }) {
+  entriesFilter.show(hasData);
+  renderEntries(result, hasData);
+}
+
+function renderEntries(entries, hasData) {
+  renderFilteredTable({ empty: 'paycheck-empty', nomatch: 'paycheck-nomatch', table: 'paycheck-table', body: 'paycheck-rows' }, { rows: entries, hasData }, (e) =>
     h(
       'tr',
       {},
@@ -79,10 +98,13 @@ function renderEntries(entries) {
 export async function reloadIncomeOverview() {
   jobs = await invoke('list_jobs');
   renderJobs();
-  if (jobs.length === 0) return;
-  const [totals, entries] = await Promise.all([invoke('yearly_totals'), invoke('list_entries')]);
+  if (jobs.length === 0) {
+    entriesFilter.show(false);
+    return;
+  }
+  const [totals, loaded] = await Promise.all([invoke('yearly_totals'), entriesFilter.load('list_entries', (rows) => rows.length)]);
   renderTotals(totals);
-  renderEntries(entries);
+  showEntries(loaded);
 }
 
 async function changed() {

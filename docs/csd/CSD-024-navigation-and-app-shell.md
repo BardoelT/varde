@@ -3,9 +3,9 @@ id: CSD-024
 title: Navigation and app shell
 status: approved
 owner: Thijs Bardoel
-version: 0.3
-last_updated: 03/11/2026
-related: [CSD-002, CSD-003, CSD-004, CSD-022]
+version: 0.4
+last_updated: 07/11/2026
+related: [CSD-002, CSD-003, CSD-004, CSD-022, CSD-027]
 ---
 
 # CSD-024: Navigation and app shell
@@ -130,7 +130,7 @@ Scenario: Pinned items stay in place
 ```
 
 **REQ-5: Native menu** *(ubiquitous)*
-The app shall show the native macOS menu bar with the standard menus (app, File, Edit, View and Window), where the app menu holds "Settings…" (⌘,) below "About" and the File menu holds "New" (⌘N), "Open…" (⌘O), "Save" (⌘S) and "Save As…" (⇧⌘S) above its standard items, and no other menu item is specified.
+The app shall show the native macOS menu bar with the standard menus (app, File, Edit, View and Window), where the app menu holds "Settings…" (⌘,) below "About" and the File menu holds "New" (⌘N), "Open…" (⌘O), "Save" (⌘S) and "Save As…" (⇧⌘S) above its standard items, and the Edit menu holds "Undo" (⌘Z) and "Redo" (⇧⌘Z) as specified in CSD-027 REQ-10, and no other menu item is specified.
 
 ```gherkin
 @AC-5.1
@@ -182,7 +182,7 @@ Menu: Rust builds the menu. The items `open-settings`, `project-new`, `project-o
 
 ## 6. Constraints
 - CON-1: The menu uses Tauri's built-in menu API: no plugin and no extra permission. Rationale: least privilege per `CLAUDE.md` (as CSD-002 CON-6 and CSD-003 CON-3).
-- CON-2: The standard macOS Edit menu stays. Rationale: it makes copy, paste and undo work in text fields (CSD-002 CON-6).
+- CON-2: The standard macOS Edit menu stays, except that its predefined Undo and Redo are replaced by the project Undo and Redo of CSD-027, which leave ⌘Z and ⇧⌘Z to a focused text field (CSD-027 REQ-11, CON-3). Rationale: it makes copy and paste work in text fields, and typing can still be undone there (CSD-002 CON-6).
 - CON-3: The left pane is part of the page, not of one capability: a capability that adds a page adds its item through this CSD. Rationale: one place for the order.
 
 ## 7. Verification
@@ -203,6 +203,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-3: (resolved 03/11/2026) The native menu is specified only as the standard menus (app, File, Edit, View, Window) plus the items already named; it is not listed item by item (REQ-5).
 
 ## 9. Changelog
+- 0.4 (07/11/2026): Undo and redo of project data (CSD-027, GitHub issue 43): REQ-5 names the Edit items Undo (⌘Z) and Redo (⇧⌘Z), CON-2 says they replace the predefined ones. Back to `draft` until re-approved.
 - 0.3 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 0.2 (03/11/2026): Owner decisions, OQ-1 to OQ-3 resolved. No page shortcuts in the first release (NG-4 stays), the app always opens on the Dashboard (new NG-6 for remembering the last page), and REQ-5 now says the menu is the standard menus (app, File, Edit, View, Window) without a full item list (AC-5.1 names the five menus). Back to `draft` until re-approved.
 - 0.1 (03/11/2026): initial draft. The left pane requirements move here from CSD-004 REQ-1, AC-1.1, AC-1.2 and NG-5 (decision D9); the native menu, which CSD-002 REQ-9 and CSD-003 REQ-2 specify item by item, gets one overview (REQ-5 to REQ-7). Describes the behaviour of the app today.

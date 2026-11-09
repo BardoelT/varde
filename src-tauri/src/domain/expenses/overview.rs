@@ -4,6 +4,7 @@ use std::cmp::Reverse;
 
 use serde::Serialize;
 
+use crate::domain::common::{apply_filter, wire_name, StatementFilter};
 use crate::domain::money::Money;
 
 use super::{Expense, ExpenseCategory, Expenses};
@@ -32,9 +33,23 @@ pub struct ExpensePrefill {
 impl Expenses {
     /// All expenses, newest date first, then by name ignoring case, then in the
     /// order they were added (REQ-10), with their total (REQ-11).
+    #[cfg(test)]
     #[must_use]
     pub fn list(&self) -> ExpenseList {
-        let mut expenses = self.expenses.clone();
+        self.list_filtered(None)
+    }
+
+    /// Like [`Expenses::list`], but only the expenses that pass `filter`, and
+    /// the total of those (CSD-028 REQ-3, REQ-4, REQ-9). The entity of an
+    /// expense is its category.
+    #[must_use]
+    pub fn list_filtered(&self, filter: Option<&StatementFilter>) -> ExpenseList {
+        let mut expenses = apply_filter(self.expenses.iter().cloned(), filter, |expense| {
+            (
+                Some(expense.date.year_month()),
+                wire_name(&expense.category),
+            )
+        });
         expenses.sort_by_cached_key(|expense| (Reverse(expense.date), expense.name.to_lowercase()));
         let total = Money::saturating_sum(expenses.iter().map(|expense| expense.amount.value()));
         ExpenseList { expenses, total }

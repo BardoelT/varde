@@ -3664,6 +3664,8 @@
   ],
   "project_status": {
     "has_path": true,
+    "redo_label": null,
+    "undo_label": null,
     "unsaved_changes": false
   },
   "yearly_bank_totals": [

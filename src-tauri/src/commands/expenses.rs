@@ -7,21 +7,27 @@ use tauri::State;
 
 use super::AppState;
 use crate::domain::expenses::ExpenseInput;
+use crate::domain::StatementFilter;
 use crate::domain::{
     Expense, ExpenseId, ExpenseInsights, ExpenseList, ExpensePrefill, ExpenseYearlyTotal,
 };
 use crate::error::AppError;
+use crate::storage::{Record, StepLabel};
 
-/// All expenses, newest first, with their total (CSD-013 REQ-10, REQ-11).
+/// The expenses that pass the filter, newest first, with their total
+/// (CSD-013 REQ-10, REQ-11, CSD-028 REQ-9).
 #[tauri::command]
-pub fn list_expenses(state: State<'_, AppState>) -> Result<ExpenseList, AppError> {
+pub fn list_expenses(
+    state: State<'_, AppState>,
+    filter: Option<StatementFilter>,
+) -> Result<ExpenseList, AppError> {
     let project = state.project()?;
-    Ok(project.expenses().list())
+    Ok(project.expenses().list_filtered(filter.as_ref()))
 }
 
 #[tauri::command]
 pub fn add_expense(state: State<'_, AppState>, input: ExpenseInput) -> Result<Expense, AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::add(Record::Expense))?;
     Ok(project.expenses_mut().add_expense(&input)?)
 }
 
@@ -33,14 +39,14 @@ pub fn update_expense(
     input: ExpenseInput,
 ) -> Result<Expense, AppError> {
     let id = ExpenseId::parse(&expense_id)?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::edit(Record::Expense))?;
     Ok(project.expenses_mut().update_expense(id, &input)?)
 }
 
 #[tauri::command]
 pub fn delete_expense(state: State<'_, AppState>, expense_id: String) -> Result<(), AppError> {
     let id = ExpenseId::parse(&expense_id)?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::delete(Record::Expense))?;
     project.expenses_mut().delete_expense(id)?;
     Ok(())
 }

@@ -6,6 +6,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use time::macros::format_description;
 use time::Date;
 
+use crate::domain::common::YearMonth;
 use crate::domain::error::DomainError;
 
 const FIRST_YEAR: i32 = 1;
@@ -42,6 +43,12 @@ impl ExpenseDate {
     #[must_use]
     pub fn year(self) -> i32 {
         self.0.year()
+    }
+
+    /// The month the date falls in (CSD-028 REQ-3).
+    #[must_use]
+    pub fn year_month(self) -> YearMonth {
+        YearMonth::from_date(self.0)
     }
 
     /// The calendar month, 1 to 12.

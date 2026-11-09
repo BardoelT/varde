@@ -218,12 +218,13 @@
               <button type="button" class="btn primary" id="paycheck-add">Add entry</button>
             </div>
             <p class="empty-note" id="paycheck-empty" hidden>No paychecks or annual statements yet.</p>
+            <p class="empty-note" id="paycheck-nomatch" hidden>No paychecks or annual statements match the filters.</p>
             <div class="table-wrap">
               <table class="data-table" id="paycheck-table" hidden>
                 <thead>
                   <tr>
-                    <th scope="col">Period</th>
-                    <th scope="col">Job</th>
+                    <th scope="col">Period<span class="col-filter" id="paycheck-period-filter"></span></th>
+                    <th scope="col">Job<span class="col-filter" id="paycheck-entity-filter"></span></th>
                     <th scope="col" class="num">Gross salary</th>
                     <th scope="col" class="num">Holiday pay</th>
                     <th scope="col" class="num">Bonus</th>
@@ -307,12 +308,13 @@
               <button type="button" class="btn primary" id="statement-add">Add statement</button>
             </div>
             <p class="empty-note" id="statements-empty" hidden>No statements yet.</p>
+            <p class="empty-note" id="statements-nomatch" hidden>No statements match the filters.</p>
             <div class="table-wrap">
               <table class="data-table" id="statements-table" hidden>
                 <thead>
                   <tr>
-                    <th scope="col">Period</th>
-                    <th scope="col">Account</th>
+                    <th scope="col">Period<span class="col-filter" id="statement-period-filter"></span></th>
+                    <th scope="col">Account<span class="col-filter" id="statement-entity-filter"></span></th>
                     <th scope="col" class="num">Balance</th>
                     <th scope="col" class="num">Net deposits</th>
                     <th scope="col" class="num">Capital growth</th>
@@ -394,12 +396,13 @@
               <button type="button" class="btn primary" id="bank-entry-add">Add entry</button>
             </div>
             <p class="empty-note" id="bank-entries-empty" hidden>No entries yet.</p>
+            <p class="empty-note" id="bank-entries-nomatch" hidden>No entries match the filters.</p>
             <div class="table-wrap">
               <table class="data-table" id="bank-entries-table" hidden>
                 <thead>
                   <tr>
-                    <th scope="col">Period</th>
-                    <th scope="col">Account</th>
+                    <th scope="col">Period<span class="col-filter" id="bank-entry-period-filter"></span></th>
+                    <th scope="col">Account<span class="col-filter" id="bank-entry-entity-filter"></span></th>
                     <th scope="col" class="num">Balance</th>
                     <th scope="col">Note</th>
                     <th scope="col"><span class="visually-hidden">Actions</span></th>
@@ -480,12 +483,13 @@
               <button type="button" class="btn primary" id="house-valuation-add">Add valuation</button>
             </div>
             <p class="empty-note" id="house-valuations-empty" hidden>No valuations yet.</p>
+            <p class="empty-note" id="house-valuations-nomatch" hidden>No valuations match the filters.</p>
             <div class="table-wrap">
               <table class="data-table" id="house-valuations-table" hidden>
                 <thead>
                   <tr>
-                    <th scope="col">Period</th>
-                    <th scope="col">House</th>
+                    <th scope="col">Period<span class="col-filter" id="house-valuation-period-filter"></span></th>
+                    <th scope="col">House<span class="col-filter" id="house-valuation-entity-filter"></span></th>
                     <th scope="col" class="num">Value</th>
                     <th scope="col" class="num">Change</th>
                     <th scope="col">Note</th>
@@ -570,8 +574,8 @@
               <table class="data-table" id="debt-statements-table" hidden>
                 <thead>
                   <tr>
-                    <th scope="col">Period</th>
-                    <th scope="col">Debt</th>
+                    <th scope="col">Period<span class="col-filter" id="debt-statement-period-filter"></span></th>
+                    <th scope="col">Debt<span class="col-filter" id="debt-statement-entity-filter"></span></th>
                     <th scope="col" class="num">Balance</th>
                     <th scope="col" class="num">Change</th>
                     <th scope="col">Note</th>
@@ -582,6 +586,7 @@
               </table>
             </div>
             <p class="empty-note" id="debt-statements-empty" hidden>No statements yet.</p>
+            <p class="empty-note" id="debt-statements-nomatch" hidden>No statements match the filters.</p>
           </div>
           </div>
 
@@ -637,13 +642,14 @@
               </div>
             </div>
             <p class="empty-note" id="expenses-empty" hidden></p>
+            <p class="empty-note" id="expenses-nomatch" hidden>No expenses match the filters.</p>
             <div class="table-wrap">
               <table class="data-table" id="expenses-table" hidden>
                 <thead>
                   <tr>
-                    <th scope="col">Date</th>
+                    <th scope="col">Date<span class="col-filter" id="expense-period-filter"></span></th>
                     <th scope="col">Name</th>
-                    <th scope="col">Category</th>
+                    <th scope="col">Category<span class="col-filter" id="expense-entity-filter"></span></th>
                     <th scope="col" class="num">Amount</th>
                     <th scope="col">Note</th>
                     <th scope="col"><span class="visually-hidden">Actions</span></th>
@@ -652,7 +658,7 @@
                 <tbody id="expenses-rows"></tbody>
                 <tfoot>
                   <tr>
-                    <th scope="row" colspan="3">Total</th>
+                    <th scope="row" colspan="3" id="expenses-total-label">Total</th>
                     <td class="num" id="expenses-total"></td>
                     <td colspan="2"></td>
                   </tr>

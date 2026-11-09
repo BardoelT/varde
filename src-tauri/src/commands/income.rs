@@ -9,11 +9,13 @@ use tauri::State;
 
 use super::AppState;
 use crate::domain::charts::Axis;
+use crate::domain::{apply_filter, StatementFilter};
 use crate::domain::{
     Amounts, Entry, Income, IncomeInsightsYear, IncomeYearlyTotal, Job, JobId, JobInput,
     PaycheckPrefill, Year, YearMonth,
 };
 use crate::error::AppError;
+use crate::storage::{Record, StepLabel};
 
 #[derive(Serialize)]
 pub struct JobView {
@@ -106,7 +108,7 @@ pub fn list_jobs(state: State<'_, AppState>) -> Result<Vec<JobView>, AppError> {
 
 #[tauri::command]
 pub fn create_job(state: State<'_, AppState>, input: JobInput) -> Result<JobView, AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::add(Record::Job))?;
     let job = project.income_mut().create_job(&input)?;
     Ok(JobView::new(project.income(), &job))
 }
@@ -117,7 +119,7 @@ pub fn update_job(
     job_id: String,
     input: JobInput,
 ) -> Result<JobView, AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::edit(Record::Job))?;
     let job = project
         .income_mut()
         .update_job(JobId::parse(&job_id)?, &input)?;
@@ -126,19 +128,25 @@ pub fn update_job(
 
 #[tauri::command]
 pub fn delete_job(state: State<'_, AppState>, job_id: String) -> Result<(), AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::delete(Record::Job))?;
     project.income_mut().delete_job(JobId::parse(&job_id)?)?;
     Ok(())
 }
 
-/// The paychecks and annual statements of all jobs, newest period first
-/// (CSD-001 REQ-12).
+/// The paychecks and annual statements of all jobs that pass the filter,
+/// newest period first (CSD-001 REQ-12, CSD-028).
 #[tauri::command]
-pub fn list_entries(state: State<'_, AppState>) -> Result<Vec<EntryView>, AppError> {
+pub fn list_entries(
+    state: State<'_, AppState>,
+    filter: Option<StatementFilter>,
+) -> Result<Vec<EntryView>, AppError> {
     let project = state.project()?;
-    Ok(project
-        .income()
-        .all_entries()
+    let rows = apply_filter(
+        project.income().all_entries(),
+        filter.as_ref(),
+        |(job, entry)| (entry.month(), job.id.to_string()),
+    );
+    Ok(rows
         .into_iter()
         .map(|(job, entry)| EntryView::new(job, entry))
         .collect())
@@ -154,7 +162,7 @@ pub fn add_paycheck(
     let job_id = JobId::parse(&job_id)?;
     let month = YearMonth::parse(&month)?;
     let amounts = amounts.parse()?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::add(Record::Paycheck))?;
     let paycheck = project.income_mut().add_paycheck(job_id, month, amounts)?;
     EntryView::of(project.income(), Entry::Paycheck(&paycheck))
 }
@@ -169,7 +177,7 @@ pub fn add_statement(
     let job_id = JobId::parse(&job_id)?;
     let year = Year::parse(&year)?;
     let amounts = amounts.parse()?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::add(Record::Statement))?;
     let statement = project.income_mut().add_statement(job_id, year, amounts)?;
     EntryView::of(project.income(), Entry::AnnualStatement(&statement))
 }
@@ -186,7 +194,7 @@ pub fn update_paycheck(
     let month = YearMonth::parse(&month)?;
     let new_month = YearMonth::parse(&new_month)?;
     let amounts = amounts.parse()?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::edit(Record::Paycheck))?;
     let paycheck = project
         .income_mut()
         .update_paycheck(job_id, month, new_month, amounts)?;
@@ -205,7 +213,7 @@ pub fn update_statement(
     let year = Year::parse(&year)?;
     let new_year = Year::parse(&new_year)?;
     let amounts = amounts.parse()?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::edit(Record::Statement))?;
     let statement = project
         .income_mut()
         .update_statement(job_id, year, new_year, amounts)?;
@@ -220,7 +228,7 @@ pub fn delete_paycheck(
 ) -> Result<(), AppError> {
     let job_id = JobId::parse(&job_id)?;
     let month = YearMonth::parse(&month)?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::delete(Record::Paycheck))?;
     project.income_mut().delete_paycheck(job_id, month)?;
     Ok(())
 }
@@ -233,7 +241,7 @@ pub fn delete_statement(
 ) -> Result<(), AppError> {
     let job_id = JobId::parse(&job_id)?;
     let year = Year::parse(&year)?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::delete(Record::Statement))?;
     project.income_mut().delete_statement(job_id, year)?;
     Ok(())
 }

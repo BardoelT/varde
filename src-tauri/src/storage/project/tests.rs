@@ -87,7 +87,9 @@ fn test_csd002_ac_1_2_write_failure_keeps_changes_unsaved() {
         project.status(),
         ProjectStatus {
             unsaved_changes: true,
-            has_path: false
+            has_path: false,
+            undo_label: None,
+            redo_label: None,
         }
     );
     assert!(!missing.exists());
@@ -446,7 +448,9 @@ fn test_csd002_ac_6_1_new_project_is_empty() {
         project.status(),
         ProjectStatus {
             unsaved_changes: false,
-            has_path: false
+            has_path: false,
+            undo_label: None,
+            redo_label: None,
         }
     );
     assert_eq!(project.save().unwrap_err().code(), "PROJECT_NO_PATH");
@@ -499,7 +503,9 @@ fn test_csd002_ac_8_2_the_last_project_is_reopened() {
         next.status(),
         ProjectStatus {
             unsaved_changes: false,
-            has_path: true
+            has_path: true,
+            undo_label: None,
+            redo_label: None,
         }
     );
     assert!(next.take_startup_notice().is_none());

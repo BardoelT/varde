@@ -11,11 +11,12 @@ use super::AppState;
 use crate::domain::debts::OpenDebt;
 use crate::domain::houses::linking::{self, DebtLinksInput, HousesView};
 use crate::domain::houses::{house_note, parse_period, HouseInput, HouseValue};
+use crate::domain::{apply_filter, StatementFilter};
 use crate::domain::{
     House, HouseId, HouseInsights, HouseValuation, HouseValuationPrefill, HouseYearlyValue, Houses,
 };
 use crate::error::AppError;
-use crate::storage::Project;
+use crate::storage::{Project, Record, StepLabel};
 
 /// A valuation with the name of its house and its change, as the valuations
 /// table shows it (CSD-015 REQ-21).
@@ -74,7 +75,7 @@ pub fn create_house(
     input: HouseInput,
     links: Option<DebtLinksInput>,
 ) -> Result<House, AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::add(Record::House))?;
     let (houses, debts) = project.houses_and_debts_mut();
     Ok(linking::create_house(
         houses,
@@ -91,7 +92,7 @@ pub fn update_house(
     input: HouseInput,
     links: Option<DebtLinksInput>,
 ) -> Result<House, AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::edit(Record::House))?;
     let (houses, debts) = project.houses_and_debts_mut();
     Ok(linking::update_house(
         houses,
@@ -104,19 +105,27 @@ pub fn update_house(
 
 #[tauri::command]
 pub fn delete_house(state: State<'_, AppState>, house_id: String) -> Result<(), AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::delete(Record::House))?;
     let (houses, debts) = project.houses_and_debts_mut();
     linking::delete_house(houses, debts, HouseId::parse(&house_id)?)?;
     Ok(())
 }
 
-/// The valuations of all houses, newest period first (REQ-18).
+/// The valuations of all houses that pass the filter, newest period first
+/// (REQ-18, CSD-028).
 #[tauri::command]
-pub fn list_house_valuations(state: State<'_, AppState>) -> Result<Vec<ValuationView>, AppError> {
+pub fn list_house_valuations(
+    state: State<'_, AppState>,
+    filter: Option<StatementFilter>,
+) -> Result<Vec<ValuationView>, AppError> {
     let project = state.project()?;
     let houses = project.houses();
-    Ok(houses
-        .all_valuations()
+    let rows = apply_filter(
+        houses.all_valuations(),
+        filter.as_ref(),
+        |(house, valuation)| (valuation.period.month(), house.id.to_string()),
+    );
+    Ok(rows
         .into_iter()
         .map(|(house, valuation)| ValuationView::new(houses, house, valuation))
         .collect())
@@ -134,7 +143,7 @@ pub fn add_house_valuation(
     let period = parse_period(&period)?;
     let value = HouseValue::parse(&value)?;
     let note = house_note(note.as_deref().unwrap_or_default())?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::add(Record::HouseValuation))?;
     let valuation = project
         .houses_mut()
         .add_valuation(house_id, period, value, note)?;
@@ -155,7 +164,7 @@ pub fn update_house_valuation(
     let new_period = parse_period(&new_period)?;
     let value = HouseValue::parse(&value)?;
     let note = house_note(note.as_deref().unwrap_or_default())?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::edit(Record::HouseValuation))?;
     let valuation = project
         .houses_mut()
         .update_valuation(house_id, period, new_period, value, note)?;
@@ -170,7 +179,7 @@ pub fn delete_house_valuation(
 ) -> Result<(), AppError> {
     let house_id = HouseId::parse(&house_id)?;
     let period = parse_period(&period)?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::delete(Record::HouseValuation))?;
     project.houses_mut().delete_valuation(house_id, period)?;
     Ok(())
 }

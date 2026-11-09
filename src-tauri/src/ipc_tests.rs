@@ -92,7 +92,7 @@ fn income_flow_through_ipc_matches_what_the_frontend_expects() {
     assert_eq!(app.ok("list_jobs", json!({})), json!([]));
     assert_eq!(
         app.ok("project_status", json!({})),
-        json!({ "unsaved_changes": false, "has_path": false })
+        json!({ "unsaved_changes": false, "has_path": false, "undo_label": null, "redo_label": null })
     );
 
     // Create a job exactly as ui/pages/income-overview.js submits it (empty strings for blanks).
@@ -234,7 +234,7 @@ fn new_project_clears_data_and_status() {
     let status = app.ok("new_project", json!({}));
     assert_eq!(
         status,
-        json!({ "unsaved_changes": false, "has_path": false })
+        json!({ "unsaved_changes": false, "has_path": false, "undo_label": null, "redo_label": null })
     );
     assert_eq!(app.ok("list_jobs", json!({})), json!([]));
 }

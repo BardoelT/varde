@@ -71,6 +71,15 @@ impl<'a> Entry<'a> {
         }
     }
 
+    /// The month of a paycheck; `None` for an annual statement (CSD-028 REQ-3).
+    #[must_use]
+    pub fn month(&self) -> Option<YearMonth> {
+        match self {
+            Self::Paycheck(paycheck) => Some(paycheck.month),
+            Self::AnnualStatement(_) => None,
+        }
+    }
+
     /// The calendar year the entry counts in.
     #[must_use]
     pub fn year(&self) -> i32 {

@@ -11,13 +11,22 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 
 use super::AppState;
 use crate::error::AppError;
-use crate::storage::{OpenOutcome, ProjectStatus, SaveOutcome};
+use crate::menu;
+use crate::storage::{OpenOutcome, ProjectStatus, SaveOutcome, StepLabel};
 
 /// Result of a command that may have been cancelled in a native dialog.
 #[derive(Serialize)]
 pub struct DialogResult {
     /// `false` when the user cancelled the dialog and nothing happened.
     done: bool,
+    status: ProjectStatus,
+}
+
+/// What an undo or a redo applied, and the project as it is afterwards
+/// (CSD-027 section 5).
+#[derive(Serialize)]
+pub struct HistoryResult {
+    step: StepLabel,
     status: ProjectStatus,
 }
 
@@ -136,9 +145,48 @@ fn open_flow(
     })
 }
 
+/// Makes the Edit menu follow `status` and hands the status back (CSD-027
+/// REQ-10). Every command that can change the history returns its status through
+/// here, so the menu never lags behind.
+fn publish<R: Runtime>(app: &AppHandle<R>, status: ProjectStatus) -> ProjectStatus {
+    menu::sync(app, status);
+    status
+}
+
 #[tauri::command]
-pub fn project_status(state: State<'_, AppState>) -> Result<ProjectStatus, AppError> {
-    status_of(&state)
+pub fn project_status<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, AppState>,
+) -> Result<ProjectStatus, AppError> {
+    Ok(publish(&app, status_of(&state)?))
+}
+
+/// Takes back the most recent step (CSD-027 REQ-1).
+#[tauri::command]
+pub fn undo<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, AppState>,
+) -> Result<HistoryResult, AppError> {
+    let mut project = state.project()?;
+    let step = project.undo()?;
+    Ok(HistoryResult {
+        step,
+        status: publish(&app, project.status()),
+    })
+}
+
+/// Applies again the step that was last undone (CSD-027 REQ-2).
+#[tauri::command]
+pub fn redo<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, AppState>,
+) -> Result<HistoryResult, AppError> {
+    let mut project = state.project()?;
+    let step = project.redo()?;
+    Ok(HistoryResult {
+        step,
+        status: publish(&app, project.status()),
+    })
 }
 
 /// The reason the last project was not reopened at start, once (CSD-002 REQ-11).
@@ -148,10 +196,13 @@ pub fn take_startup_notice(state: State<'_, AppState>) -> Result<Option<AppError
 }
 
 #[tauri::command]
-pub fn new_project(state: State<'_, AppState>) -> Result<ProjectStatus, AppError> {
+pub fn new_project<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, AppState>,
+) -> Result<ProjectStatus, AppError> {
     let mut project = state.project()?;
     project.reset();
-    Ok(project.status())
+    Ok(publish(&app, project.status()))
 }
 
 #[tauri::command(async)]
@@ -159,7 +210,9 @@ pub fn open_project<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
 ) -> Result<DialogResult, AppError> {
-    open_flow(&state, || pick_open_path(&app))
+    let mut result = open_flow(&state, || pick_open_path(&app))?;
+    result.status = publish(&app, result.status);
+    Ok(result)
 }
 
 #[tauri::command(async)]
@@ -167,11 +220,13 @@ pub fn save_project<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
 ) -> Result<DialogResult, AppError> {
-    save_flow(
+    let mut result = save_flow(
         &state,
         || pick_save_path(&app),
         |picked, target| confirm_overwrite(&app, picked, target),
-    )
+    )?;
+    result.status = publish(&app, result.status);
+    Ok(result)
 }
 
 #[tauri::command(async)]
@@ -179,11 +234,13 @@ pub fn save_project_as<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
 ) -> Result<DialogResult, AppError> {
-    save_as_flow(
+    let mut result = save_as_flow(
         &state,
         || pick_save_path(&app),
         |picked, target| confirm_overwrite(&app, picked, target),
-    )
+    )?;
+    result.status = publish(&app, result.status);
+    Ok(result)
 }
 
 /// Quits without asking: the frontend has already confirmed (CSD-002 REQ-4).

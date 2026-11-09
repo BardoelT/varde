@@ -12,11 +12,12 @@ use crate::domain::debts::{debt_note, parse_period, DebtBalance};
 use crate::domain::debts::{OpenDebt, Outcome, StatementRow};
 use crate::domain::houses::linking::{self, DebtFormInput, DebtsView};
 use crate::domain::HouseId;
+use crate::domain::{apply_filter, StatementFilter, YearMonth};
 use crate::domain::{
     Debt, DebtId, DebtInsights, DebtStatement, DebtStatementPrefill, DebtYearlyTotal, Debts,
 };
 use crate::error::AppError;
-use crate::storage::Project;
+use crate::storage::{Project, Record, StepLabel};
 
 /// A statement with the name of its debt and its change, as the statements
 /// table shows it (CSD-011 REQ-20).
@@ -86,7 +87,7 @@ pub fn list_debts(state: State<'_, AppState>) -> Result<DebtsView, AppError> {
 
 #[tauri::command]
 pub fn create_debt(state: State<'_, AppState>, input: DebtFormInput) -> Result<Debt, AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::add(Record::Debt))?;
     let (houses, debts) = project.houses_and_debts_mut();
     Ok(linking::create_debt(houses, debts, &input)?)
 }
@@ -97,7 +98,7 @@ pub fn update_debt(
     debt_id: String,
     input: DebtFormInput,
 ) -> Result<Debt, AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::edit(Record::Debt))?;
     let (houses, debts) = project.houses_and_debts_mut();
     Ok(linking::update_debt(
         houses,
@@ -109,7 +110,7 @@ pub fn update_debt(
 
 #[tauri::command]
 pub fn delete_debt(state: State<'_, AppState>, debt_id: String) -> Result<(), AppError> {
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::delete(Record::Debt))?;
     project.debts_mut().delete_debt(DebtId::parse(&debt_id)?)?;
     Ok(())
 }
@@ -131,13 +132,23 @@ pub fn debt_open_balance(
     )?)
 }
 
-/// The statements of all debts, newest period first (REQ-18).
+/// The statements of all debts that pass the filter, newest period first
+/// (REQ-18, CSD-028). The opening row counts in the month of the opening date.
 #[tauri::command]
-pub fn list_debt_statements(state: State<'_, AppState>) -> Result<Vec<StatementView>, AppError> {
+pub fn list_debt_statements(
+    state: State<'_, AppState>,
+    filter: Option<StatementFilter>,
+) -> Result<Vec<StatementView>, AppError> {
     let project = state.project()?;
     let debts = project.debts();
-    Ok(debts
-        .statement_rows()
+    let rows = apply_filter(debts.statement_rows(), filter.as_ref(), |row| match row {
+        StatementRow::Statement(debt, statement) => (statement.period.month(), debt.id.to_string()),
+        StatementRow::Opening(debt) => (
+            YearMonth::new(debt.opening_date().year(), debt.opening_date().month()),
+            debt.id.to_string(),
+        ),
+    });
+    Ok(rows
         .into_iter()
         .map(|row| match row {
             StatementRow::Statement(debt, statement) => StatementView::new(debts, debt, statement),
@@ -158,7 +169,7 @@ pub fn add_debt_statement(
     let period = parse_period(&period)?;
     let balance = DebtBalance::parse(&balance)?;
     let note = debt_note(note.as_deref().unwrap_or_default())?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::add(Record::DebtStatement))?;
     let statement = project
         .debts_mut()
         .add_statement(debt_id, period, balance, note)?;
@@ -179,7 +190,7 @@ pub fn update_debt_statement(
     let new_period = parse_period(&new_period)?;
     let balance = DebtBalance::parse(&balance)?;
     let note = debt_note(note.as_deref().unwrap_or_default())?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::edit(Record::DebtStatement))?;
     let statement = project
         .debts_mut()
         .update_statement(debt_id, period, new_period, balance, note)?;
@@ -194,7 +205,7 @@ pub fn delete_debt_statement(
 ) -> Result<(), AppError> {
     let debt_id = DebtId::parse(&debt_id)?;
     let period = parse_period(&period)?;
-    let mut project = state.project()?;
+    let mut project = state.edit(StepLabel::delete(Record::DebtStatement))?;
     project.debts_mut().delete_statement(debt_id, period)?;
     Ok(())
 }

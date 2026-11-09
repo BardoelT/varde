@@ -7,7 +7,7 @@ mod project;
 
 pub use last_project::LastProject;
 pub use preferences::Preferences;
-pub use project::{OpenOutcome, Project, ProjectStatus, SaveOutcome};
+pub use project::{OpenOutcome, Project, ProjectStatus, Record, SaveOutcome, StepLabel};
 
 use std::io;
 
@@ -31,6 +31,10 @@ pub enum StorageError {
     NoPath,
     #[error("The theme could not be saved.")]
     PreferencesSaveFailed(#[source] io::Error),
+    #[error("There is nothing to undo.")]
+    NothingToUndo,
+    #[error("There is nothing to redo.")]
+    NothingToRedo,
 }
 
 impl StorageError {
@@ -44,6 +48,8 @@ impl StorageError {
             Self::FileNewer => "PROJECT_FILE_NEWER",
             Self::NoPath => "PROJECT_NO_PATH",
             Self::PreferencesSaveFailed(_) => "PREFERENCES_SAVE_FAILED",
+            Self::NothingToUndo => "NOTHING_TO_UNDO",
+            Self::NothingToRedo => "NOTHING_TO_REDO",
         }
     }
 }

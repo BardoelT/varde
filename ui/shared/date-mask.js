@@ -55,6 +55,11 @@ function onInput(event) {
   input.setSelectionRange(position, position);
 }
 
+/** Masks one input made after the page was loaded, like the month fields of a filter. */
+export function maskInput(input) {
+  input.addEventListener('input', onInput);
+}
+
 /** Masks every `<input data-mask="date|month">` on the page. */
 export function initDateMasks() {
   document.querySelectorAll('input[data-mask]').forEach((input) => {

@@ -41,7 +41,7 @@ ui/                   # frontend (UI only — HTML + CSS + JS, no business logic
   main.js             # entry point: wires the pages and reloads them
   navigation.js       # left-pane navigation
   pages/              # one file per page: <page>-overview.js and <page>-insights.js for pages with two tabs, <page>.js for the rest (dashboard, net-worth, ratios, settings, project)
-  shared/             # helpers pages share: ipc, dom, crud, list-rows, record-form, insights-page, format, i18n, settle, date-mask, chart, yearly-chart, tabs
+  shared/             # helpers pages share: ipc, dom, crud, list-rows, record-form, statement-filter, insights-page, format, i18n, settle, date-mask, chart, yearly-chart, tabs
   locales/            # Dutch texts (nl*.js); the English text in the code is the key (CSD-022)
   styles/             # CSS by area: base, layout, components, pages, charts
   tests/              # DOM tests (node:test + jsdom) and their harness; not part of the app
@@ -142,6 +142,7 @@ This app handles personal financial data and the repo is public.
 - Work on the `development` branch, not one branch per change; never push to `main`. All changes reach `main` through a PR from `development`.
 - Small, focused commits (one concern each) with Conventional Commit messages (`feat:`, `fix:`, `refactor:`, `chore:`).
 - PR description: what changed, why, and how it was tested.
+- Tie work to its GitHub issue when there is one. The commit that finishes the issue ends its body with `Closes #<n>`, and the PR description repeats it: GitHub closes the issue only for a keyword (`Closes`, `Fixes`, `Resolves`) plus `#<n>`, and only when it reaches `main`. A plain "issue 43" links nothing. Commits and PRs that only touch an issue (a spec commit, a partial step) use `Refs #<n>` and never close it.
 - GitHub Actions run only when a release tag is pushed (`release.yml`, `macos-latest`): fmt, clippy, tests and `cargo deny` first. Nothing runs on pull requests or merges, so run the checks locally before opening a PR.
 
 ## Specifications (CSD)

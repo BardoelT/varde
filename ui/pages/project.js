@@ -1,9 +1,10 @@
-// Project file: runs the File menu actions and shows the unsaved-changes indicator (CSD-002).
+// Project file: runs the File menu actions and shows the unsaved-changes indicator (CSD-002),
+// and runs Edit > Undo and Redo (CSD-027).
 import { invoke, listen, errorText } from '../shared/ipc.js';
 import { confirmAction, showToast } from '../shared/dom.js';
 import { t } from '../shared/i18n.js';
 
-let status = { unsaved_changes: false, has_path: false };
+let status = { unsaved_changes: false, has_path: false, undo_label: null, redo_label: null };
 
 function render() {
   const box = document.getElementById('project-state');
@@ -45,12 +46,36 @@ async function confirmDiscard(message) {
   });
 }
 
-/** The flows behind the File menu items (CSD-002 REQ-9). */
-const menuActions = (onReplaced) => ({
+/** Whether the user is typing in a field, where ⌘Z and ⇧⌘Z undo the text (CSD-027 REQ-11). */
+function isTextEntry(element) {
+  return Boolean(element) && (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT' || element.isContentEditable);
+}
+
+/**
+ * Edit > Undo or Redo (CSD-027). In a text field the menu item only passes the key on to the text;
+ * with a form or dialog open nothing happens; otherwise Rust takes the step and every page reloads.
+ */
+async function undoOrRedo(command, onReplaced) {
+  if (isTextEntry(document.activeElement)) {
+    document.execCommand?.(command);
+    return;
+  }
+  if (document.querySelector('dialog[open]')) return;
+  const result = await invoke(command);
+  status = result.status;
+  render();
+  await onReplaced();
+  showToast(t(command === 'undo' ? 'Undid: {step}' : 'Redid: {step}', { step: t(result.step) }));
+}
+
+/** The flows behind the File menu items (CSD-002 REQ-9) and the Edit items Undo and Redo (CSD-027 REQ-10). */
+const menuActions = (onReplaced, onSwitched) => ({
   'project-new': async () => {
     if (!(await confirmDiscard(t('You have unsaved changes. If you start a new project, they will be lost.')))) return;
     status = await invoke('new_project');
     render();
+    // A new project starts without filters; undo and redo keep them (CSD-028 REQ-13, REQ-14).
+    onSwitched();
     await onReplaced();
   },
   'project-open': async () => {
@@ -58,7 +83,10 @@ const menuActions = (onReplaced) => ({
     const result = await invoke('open_project');
     status = result.status;
     render();
-    if (result.done) await onReplaced();
+    if (result.done) {
+      onSwitched();
+      await onReplaced();
+    }
   },
   'project-save': async () => {
     const result = await invoke('save_project');
@@ -70,11 +98,13 @@ const menuActions = (onReplaced) => ({
     status = result.status;
     render();
   },
+  'project-undo': () => undoOrRedo('undo', onReplaced),
+  'project-redo': () => undoOrRedo('redo', onReplaced),
 });
 
-export async function initProject({ onReplaced }) {
+export async function initProject({ onReplaced, onSwitched = () => {} }) {
   // Rust sends the id of the File menu item the user chose.
-  const actions = menuActions(onReplaced);
+  const actions = menuActions(onReplaced, onSwitched);
   await listen('menu-action', (event) => {
     const action = actions[event.payload];
     if (action) attempt(action);

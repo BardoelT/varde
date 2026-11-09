@@ -52,6 +52,32 @@
   color: var(--text);
 }
 
+/* ── Filter of a statement table (CSD-028) ── */
+
+/* Beside the title of a column header. */
+.col-filter { display: inline-flex; vertical-align: middle; margin-left: 2px; }
+.filter-controls { display: inline-flex; align-items: center; }
+.col-filter .icon-btn { padding: 2px; }
+/* Placed by the script under the icon: the table scrolls sideways and would clip an absolute panel. */
+.filter-panel {
+  position: fixed; z-index: 20; width: 280px; max-height: 60vh; overflow-y: auto;
+  padding: 12px 14px; font-size: 13px; font-weight: 400; color: var(--text);
+  text-align: left; text-transform: none; letter-spacing: normal; white-space: normal;
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.18);
+}
+.filter-field { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--text); }
+.filter-field + .filter-field { margin-top: 8px; }
+.filter-field input {
+  width: 100px; padding: 5px 8px; font: inherit; font-size: 13px; color: var(--text);
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+}
+.filter-field input:focus-visible, .filter-check input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.filter-checks { display: flex; flex-direction: column; gap: 6px; }
+.filter-reset { margin-top: 12px; }
+.filter-reset:disabled { opacity: .5; cursor: default; }
+.filter-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); cursor: pointer; }
+
 /* ── Placeholder ── */
 
 .placeholder {

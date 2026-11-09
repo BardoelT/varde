@@ -1,9 +1,10 @@
 // Debts: debts with a monthly or yearly statement, each a remaining balance and a note (CSD-011).
-import { invoke } from '../shared/ipc.js';
-import { $, h, showError, setHint, submitOnce, confirmAction } from '../shared/dom.js';
+import { invoke, errorText } from '../shared/ipc.js';
+import { $, h, showError, setHint, submitOnce, confirmAction, showToast } from '../shared/dom.js';
 import { formatAmount, formatDate, noteSummary } from '../shared/format.js';
 import { askSettlements } from '../shared/settle.js';
 import { t } from '../shared/i18n.js';
+import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
 import { createRecordForm } from '../shared/record-form.js';
 import { accountRow, latestAmount, numCell, recordActions, renderTable, rowHeader, showTotal, toggleEmpty } from '../shared/list-rows.js';
@@ -70,8 +71,26 @@ function openingRow(s) {
   );
 }
 
-function renderStatements(statements) {
-  renderTable({ empty: 'debt-statements-empty', table: 'debt-statements-table', body: 'debt-statements-rows' }, statements, (s) =>
+const statementsFilter = createStatementFilter({
+  periodHost: 'debt-statement-period-filter',
+  entityHost: 'debt-statement-entity-filter',
+  entityTitle: 'Debt',
+  entities: () => debts.map((debt) => ({ id: debt.id, label: debt.name })),
+  onChange: () => reloadStatements().catch((error) => showToast(errorText(error))),
+});
+
+/** Loads the rows through the filter and shows them (CSD-028). */
+async function reloadStatements() {
+  showStatements(await statementsFilter.load('list_debt_statements', (rows) => rows.length));
+}
+
+function showStatements({ result, hasData }) {
+  statementsFilter.show(hasData);
+  renderStatements(result, hasData);
+}
+
+function renderStatements(statements, hasData) {
+  renderFilteredTable({ empty: 'debt-statements-empty', nomatch: 'debt-statements-nomatch', table: 'debt-statements-table', body: 'debt-statements-rows' }, { rows: statements, hasData }, (s) =>
     s.opening ? openingRow(s) : h(
       'tr',
       {},
@@ -97,6 +116,7 @@ function renderStatements(statements) {
 
 /** The Opening row counts as an entry, so the note shows only for a table of at most one row (CSD-011 REQ-21). */
 function showStatementsNote(statements) {
+  if (statementsFilter.payload()) return;
   $('debt-statements-empty').hidden = statements.length > 1;
 }
 
@@ -105,11 +125,14 @@ export async function reloadDebtsOverview() {
   const [overview, houseOverview] = await Promise.all([invoke('list_debts'), invoke('list_houses')]);
   houses = houseOverview.houses;
   renderDebts(overview);
-  if (overview.debts.length === 0) return;
-  const [totals, statements] = await Promise.all([invoke('yearly_debt_totals'), invoke('list_debt_statements')]);
+  if (overview.debts.length === 0) {
+    statementsFilter.show(false);
+    return;
+  }
+  const [totals, loaded] = await Promise.all([invoke('yearly_debt_totals'), statementsFilter.load('list_debt_statements', (rows) => rows.length)]);
   renderTotals(totals);
-  renderStatements(statements);
-  showStatementsNote(statements);
+  showStatements(loaded);
+  showStatementsNote(loaded.result);
 }
 
 async function changed() {
