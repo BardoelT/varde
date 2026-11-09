@@ -2,6 +2,8 @@
 
 How the code is organised and the conventions it follows. For *what* the app must do, read the capability specifications in [`csd/`](csd/); this page is about *where things live* and *why*.
 
+More diagrams (layers, domain dependencies, the series core, the change and undo flow, open and save, charts, the project file) are in [`architecture-diagrams.md`](architecture-diagrams.md).
+
 ## The big picture
 
 Varde is a Tauri app: a Rust backend and a vanilla HTML, CSS and JS frontend, with nothing in between (no framework, no build step, no server). All data lives in one project file the user chooses.
