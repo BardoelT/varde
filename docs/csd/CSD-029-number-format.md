@@ -1,7 +1,7 @@
 ---
 id: CSD-029
 title: Number format (thousands and decimal separators)
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 0.1
 last_updated: 09/11/2026
