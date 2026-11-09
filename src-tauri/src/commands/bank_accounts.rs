@@ -7,7 +7,7 @@ use crate::domain::money::Money;
 use serde::Serialize;
 use tauri::State;
 
-use super::AppState;
+use super::{typed_amount, AppState};
 use crate::domain::bank_accounts::{bank_note, parse_period, BankAccountInput};
 use crate::domain::{apply_filter, StatementFilter};
 use crate::domain::{
@@ -15,7 +15,7 @@ use crate::domain::{
     BankYearlyTotal, EntryPrefill,
 };
 use crate::error::AppError;
-use crate::storage::{Project, Record, StepLabel};
+use crate::storage::{Preferences, Project, Record, StepLabel};
 
 /// An entry with the name of its account, as the entries table shows it
 /// (CSD-009 REQ-20).
@@ -104,10 +104,11 @@ pub fn add_bank_entry(
     period: String,
     balance: String,
     note: Option<String>,
+    preferences: State<'_, Preferences>,
 ) -> Result<EntryView, AppError> {
     let account_id = BankAccountId::parse(&account_id)?;
     let period = parse_period(&period)?;
-    let balance = BankBalance::parse(&balance)?;
+    let balance = BankBalance::parse(&typed_amount(preferences.load_number_format(), &balance))?;
     let note = bank_note(note.as_deref().unwrap_or_default())?;
     let mut project = state.edit(StepLabel::add(Record::BankEntry))?;
     let entry = project
@@ -124,11 +125,12 @@ pub fn update_bank_entry(
     new_period: String,
     balance: String,
     note: Option<String>,
+    preferences: State<'_, Preferences>,
 ) -> Result<EntryView, AppError> {
     let account_id = BankAccountId::parse(&account_id)?;
     let period = parse_period(&period)?;
     let new_period = parse_period(&new_period)?;
-    let balance = BankBalance::parse(&balance)?;
+    let balance = BankBalance::parse(&typed_amount(preferences.load_number_format(), &balance))?;
     let note = bank_note(note.as_deref().unwrap_or_default())?;
     let mut project = state.edit(StepLabel::edit(Record::BankEntry))?;
     let entry = project

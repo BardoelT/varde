@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 
 use serde::Serialize;
+use time::Date;
 
 use crate::domain::money::Money;
 
@@ -22,6 +23,18 @@ pub struct ExpenseYearlyTotal {
 }
 
 impl Expenses {
+    /// The sum of the amounts of the expenses dated from `from` up to and
+    /// including `to` (CSD-004 REQ-9, REQ-10).
+    #[must_use]
+    pub fn total_between(&self, from: Date, to: Date) -> Money {
+        Money::saturating_sum(
+            self.expenses
+                .iter()
+                .filter(|expense| (from..=to).contains(&expense.date.date()))
+                .map(|expense| expense.amount.value()),
+        )
+    }
+
     /// Totals per calendar year with at least one expense, newest year first,
     /// without extrapolating partial years (REQ-12).
     #[must_use]

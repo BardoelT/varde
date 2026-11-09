@@ -3,7 +3,7 @@
 // that follows it, some amount fields and a note. The page supplies the ids, the fields and the
 // texts; this file holds the open, fill and period behaviour they all share.
 import { $, h } from './dom.js';
-import { currentYear, currentMonth } from './format.js';
+import { currentYear, currentMonth, amountForInput } from './format.js';
 import { t } from './i18n.js';
 
 /**
@@ -71,7 +71,11 @@ export function createRecordForm(options) {
       $(periodLabel).textContent = formIsYearly ? t('Year') : t('Month');
       formElement.elements.period.maxLength = record.period.length;
       formElement.elements.period.value = record.period;
-      for (const field of valueFields) formElement.elements[field].value = record[field];
+      for (const field of valueFields) {
+        const input = formElement.elements[field];
+        // An amount is written in the chosen number format (CSD-029 REQ-6).
+        input.value = input.getAttribute('inputmode') === 'decimal' ? amountForInput(record[field]) : record[field];
+      }
     } else {
       formIsYearly = null; // force the period to its default for the first parent
       formElement.elements.period.value = '';

@@ -82,14 +82,14 @@ test('test_csd018_ac_11_1_empty_project_ratios', async () => {
   app.close();
 });
 
-test('test_csd004_ac_5_1_dashboard_without_jobs_prompts_for_the_first_job', async () => {
+test('test_csd004_ac_14_1_empty_project_dashboard', async () => {
   const app = await openApp({ reads: emptyReads() });
-  assert.equal(app.isShown(app.$('dashboard-empty')), true);
-  assert.equal(app.isShown(app.$('dashboard-content')), false, 'neither "This year" nor "Last month" is shown');
-  const button = app.$('dashboard-empty').querySelector('button');
-  assert.equal(app.text(button), 'Add your first job');
-  await app.click(button);
-  assert.equal(app.isShown(app.$('income')), true, 'its button opens the Income page');
+  const tiles = [...app.document.querySelectorAll('#dashboard-tiles .tile')];
+  assert.equal(tiles.length, 7, 'all seven tiles are shown');
+  for (const tile of tiles) assert.match(app.text(tile), /No data yet/);
+  const income = app.document.querySelector('.tile[data-tile="income"]');
+  await app.click(income);
+  assert.equal(app.isShown(app.$('income')), true, 'an empty tile opens its page');
   assert.equal(app.item('income').classList.contains('active'), true);
   app.close();
 });

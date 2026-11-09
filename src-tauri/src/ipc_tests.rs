@@ -17,9 +17,12 @@ pub(crate) struct Harness {
 }
 
 pub(crate) fn harness() -> Harness {
-    let app = configure(mock_builder(), UtcOffset::UTC)
-        .build(mock_context(noop_assets()))
-        .unwrap();
+    let app = configure(
+        mock_builder().manage(Preferences::unavailable()),
+        UtcOffset::UTC,
+    )
+    .build(mock_context(noop_assets()))
+    .unwrap();
     let window = WebviewWindowBuilder::new(&app, "main", tauri::WebviewUrl::default())
         .build()
         .unwrap();
@@ -27,7 +30,7 @@ pub(crate) fn harness() -> Harness {
 }
 
 /// An app whose preference file lives in `config_dir`, as `run` sets it up.
-fn harness_in(config_dir: &std::path::Path) -> Harness {
+pub(crate) fn harness_in(config_dir: &std::path::Path) -> Harness {
     let app = configure(
         mock_builder().manage(Preferences::in_dir(config_dir)),
         UtcOffset::UTC,
@@ -362,54 +365,42 @@ fn test_csd004_dashboard_over_ipc() {
     use crate::domain::YearMonth;
 
     let app = harness();
-    let now = time::OffsetDateTime::now_utc();
-    let this_month = YearMonth::from_date(now.date());
-    let last_month = this_month.previous().unwrap();
+    let this_month = YearMonth::from_date(time::OffsetDateTime::now_utc().date());
+    let tiles = [
+        "net_worth",
+        "income",
+        "expenses",
+        "bank_accounts",
+        "investments",
+        "houses",
+        "debts",
+    ];
 
-    // AC-5.1: an empty project says there are no jobs and has no figures.
+    // AC-8.1, AC-8.2, AC-14.1: an empty project has the seven tiles, none with data.
     let empty = app.ok("get_dashboard", json!({}));
-    assert_eq!(empty["has_jobs"], false);
-    assert!(empty.get("currency").is_none());
-    assert_eq!(empty["year"], this_month.year());
-    assert_eq!(empty["year_to_date"], Value::Null);
-    assert_eq!(empty["last_month_totals"], Value::Null);
+    assert_eq!(empty.as_object().unwrap().len(), tiles.len());
+    for tile in tiles {
+        assert_eq!(empty[tile]["has_data"], false, "{tile}");
+        assert_eq!(empty[tile]["value"], Value::Null, "{tile}");
+    }
 
-    // A job without paychecks: jobs exist, still no amounts (AC-4).
+    // AC-14.2: a job without paychecks still has no data.
     let job = app.ok("create_job", json!({ "input": job_input() }));
     let job_id = job["id"].as_str().unwrap();
-    let no_paychecks = app.ok("get_dashboard", json!({}));
-    assert_eq!(no_paychecks["has_jobs"], true);
-    assert_eq!(no_paychecks["year_to_date"], Value::Null);
-    assert_eq!(no_paychecks["last_month"], last_month.to_string());
+    assert_eq!(
+        app.ok("get_dashboard", json!({}))["income"]["has_data"],
+        false
+    );
 
     // AC-7.1: figures follow the project as it is now, saved or not.
     app.ok(
         "add_paycheck",
-        json!({ "jobId": job_id, "month": last_month.to_string(), "amounts": amounts("3000.00", "", "500") }),
-    );
-    let last = app.ok("get_dashboard", json!({}));
-    assert_eq!(last["last_month"], last_month.to_string());
-    assert_eq!(last["last_month_totals"]["gross_salary"], "3000.00");
-    assert_eq!(last["last_month_totals"]["bonus"], "500.00");
-    assert_eq!(last["last_month_totals"]["total_gross"], "3500.00");
-    assert_eq!(last["last_month_totals"]["entry_count"], 1);
-
-    // This year to date counts the current month, and last month too unless
-    // that is still the previous year (January).
-    app.ok(
-        "add_paycheck",
         json!({ "jobId": job_id, "month": this_month.to_string(), "amounts": amounts("1000.00", "", "") }),
     );
-    let year = app.ok("get_dashboard", json!({}));
-    let same_year = last_month.year() == this_month.year();
-    assert_eq!(
-        year["year_to_date"]["entry_count"],
-        if same_year { 2 } else { 1 }
-    );
-    assert_eq!(
-        year["year_to_date"]["total_gross"],
-        if same_year { "4500.00" } else { "1000.00" }
-    );
+    let income = app.ok("get_dashboard", json!({}))["income"].clone();
+    assert_eq!(income["has_data"], true);
+    assert_eq!(income["value"], "1000.00");
+    assert_eq!(income["change"], Value::Null);
 
     // AC-6.1: the dashboard names no currency.
     app.ok("set_currency", json!({ "currency": "USD" }));
@@ -418,7 +409,7 @@ fn test_csd004_dashboard_over_ipc() {
     // AC-7.2: a new project goes back to the empty state.
     app.ok("new_project", json!({}));
     let fresh = app.ok("get_dashboard", json!({}));
-    assert_eq!(fresh["has_jobs"], false);
+    assert_eq!(fresh["income"]["has_data"], false);
 }
 
 /// A monthly and a yearly job, as their ids.
@@ -606,8 +597,7 @@ fn test_csd001_annual_statements_can_be_copied_edited_and_deleted_over_ipc() {
     );
     assert_eq!(changed["period"], "Monthly");
 
-    // CSD-004 AC-2.4, AC-3.4: this year's statement counts in "This year" in full
-    // and never in "Last month".
+    // CSD-004 AC-9.2: this year's statement counts in the Income tile in full.
     let other = app.ok(
         "create_job",
         json!({ "input": { "employer": "Third Example Employer", "start_date": "01/01/2019", "period": "Yearly" } }),
@@ -617,9 +607,7 @@ fn test_csd001_annual_statements_can_be_copied_edited_and_deleted_over_ipc() {
         json!({ "jobId": other["id"], "year": this_year.to_string(), "amounts": amounts("40000.00", "", "3000") }),
     );
     let dashboard = app.ok("get_dashboard", json!({}));
-    assert_eq!(dashboard["year_to_date"]["total_gross"], "43000.00");
-    assert_eq!(dashboard["year_to_date"]["entry_count"], 1);
-    assert_eq!(dashboard["last_month_totals"], Value::Null);
+    assert_eq!(dashboard["income"]["value"], "43000.00");
 
     // AC-23.2 data: the job view counts statements for a yearly job.
     let jobs = app.ok("list_jobs", json!({}));
@@ -635,8 +623,8 @@ fn test_csd001_annual_statements_can_be_copied_edited_and_deleted_over_ipc() {
     // AC-4.1: deleting a job removes its statements too.
     app.ok("delete_job", json!({ "jobId": other["id"] }));
     assert_eq!(
-        app.ok("get_dashboard", json!({}))["year_to_date"],
-        Value::Null
+        app.ok("get_dashboard", json!({}))["income"]["has_data"],
+        false
     );
 }
 
@@ -1131,13 +1119,13 @@ fn test_csd008_the_theme_is_chosen_saved_and_restored_over_ipc() {
     // AC-2.1: nothing saved yet means System.
     assert_eq!(
         app.ok("get_preferences", json!({})),
-        json!({ "theme": "system", "language": "en" })
+        json!({ "theme": "system", "language": "en", "number_format": "point_comma" })
     );
 
     // AC-3.2: choosing a theme is not an unsaved project change.
     assert_eq!(
         app.ok("set_theme", json!({ "theme": "dark" })),
-        json!({ "theme": "dark", "language": "en" })
+        json!({ "theme": "dark", "language": "en", "number_format": "point_comma" })
     );
     assert_eq!(app.ok("get_preferences", json!({}))["theme"], "dark");
     assert_eq!(

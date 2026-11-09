@@ -3,8 +3,8 @@ id: CSD-000
 title: Capability Specification Documents (CSD): reading, interpreting and writing
 status: approved
 owner: Thijs Bardoel
-version: 4.0
-last_updated: 04/11/2026
+version: 4.1
+last_updated: 09/11/2026
 location: docs/csd/CSD-000-capability-specifications.md
 applies_to: all humans and agents (Claude Code) working in this repository
 ---
@@ -373,7 +373,7 @@ Sections 1, 2, 4, 7 and 9 are **required**. Sections 3, 5, 6 and 8 may be omitte
 - **CON-5:** No secrets, credentials, or real financial data (including PII) in CSDs. Use synthetic examples (e.g. "Example Bank", round amounts in EUR). Rationale: specs are widely read and fed into agent context; the repo is public.
 - **CON-6:** IDs (`REQ`, `AC`, `NG`, `CON`, `OQ`) are stable. Removed items are marked `(removed in vX)`, never renumbered. Rationale: tests and PRs reference them.
 - **CON-7:** Dates are written dd/mm/yyyy (for example 25/10/2026), in CSDs and in everything the app shows or accepts: front matter, changelogs, Gherkin examples, screens and messages. Months are written YYYY-MM. Machine-facing data (the project file and IPC) may use ISO 8601 and is converted at the edge. Rationale: one unambiguous convention for the owner, and no mix of formats in the specs.
-- **CON-8:** Money rounding is one rule for the whole application. Every money amount is rounded to 2 decimals, half-up (the midpoint rounds away from zero, so -0.125 becomes -0.13 and 1.005 becomes 1.01), wherever it comes from: a computed result, and an amount the user types with more than 2 decimals (3000.505 becomes 3000.51, 1.004 becomes 1.00). Typed text is rounded on its own digits: the third decimal digit decides (5 or more rounds up, however many digits follow), so 1.004999 becomes 1.00. Typed amounts are rounded before any other check, so a limit is checked on the rounded amount and typed amounts are never rejected for their number of decimals. No stored money value has more than 2 decimals. Percentages and ratios follow the same rule (2 decimals, half-up, for example "12.50"). A value that rounds to 0.00 is 0.00 without a sign (never -0.00). An amount read from a project file is not typed text: the file is only ever written with 2 decimals, so a file amount with more than 2 decimals is an invalid file and is not rounded (CSD-002 REQ-19). CSDs that handle money, percentages or ratios reference CON-8 instead of restating the rule. Rationale: one unambiguous rounding rule, so figures agree across screens, tests and specs, and a typed amount is never refused for having an extra decimal.
+- **CON-8:** Money rounding is one rule for the whole application. Every money amount is rounded to 2 decimals, half-up (the midpoint rounds away from zero, so -0.125 becomes -0.13 and 1.005 becomes 1.01), wherever it comes from: a computed result, and an amount the user types with more than 2 decimals (3000.505 becomes 3000.51, 1.004 becomes 1.00). Typed text is rounded on its own digits: the third decimal digit decides (5 or more rounds up, however many digits follow), so 1.004999 becomes 1.00. Typed amounts are rounded before any other check, so a limit is checked on the rounded amount and typed amounts are never rejected for their number of decimals. No stored money value has more than 2 decimals. Percentages and ratios follow the same rule (2 decimals, half-up, for example "12.50"). A value that rounds to 0.00 is 0.00 without a sign (never -0.00). An amount read from a project file is not typed text: the file is only ever written with 2 decimals, so a file amount with more than 2 decimals is an invalid file and is not rounded (CSD-002 REQ-19). The rule is about the value, not the way it is written: amounts are written and typed in the number format the user chose (CSD-029), 1,234.50 by default, and the examples in specs use that default. CSDs that handle money, percentages or ratios reference CON-8 instead of restating the rule. Rationale: one unambiguous rounding rule, so figures agree across screens, tests and specs, and a typed amount is never refused for having an extra decimal.
 
 ## 7. Verification
 
@@ -393,6 +393,7 @@ This CSD is working when:
 
 ## 9. Changelog
 
+- 4.1 (09/11/2026): CON-8 states that the rounding rule is about the value and that amounts are written and typed in the number format the user chose (CSD-029, GitHub issue 56), with 1,234.50 as default and as the format of spec examples. No change to the rounding. Back to `draft` until re-approved.
 - 4.0 (04/11/2026): CON-8 now also rounds an amount the user types with more than 2 decimals, half-up on its own digits (3000.505 becomes 3000.51), instead of rejecting it; limits are checked after rounding and a result of zero has no sign. The project file stays strict (CSD-002 REQ-19). The Appendix C example no longer rejects "10.999". Owner decision, replaces "reject, never round". Back to `draft` until re-approved.
 
 - 3.0 (03/11/2026): The `implemented` status is removed (statuses: draft, review, approved, deprecated); REQ-16 removed, REQ-2 table and state diagram updated, an approved CSD returns to `draft` when behaviour changes. Any reviewer may approve or restore `approved` (REQ-13). V-4 is advisory; OQ-1 to OQ-4 resolved. New CON-8 (money rounding: 2 decimals, half-up, no sign on a zero decrease). Fixed the REQ-14 reference in the flowchart and the AC-1.1 example.

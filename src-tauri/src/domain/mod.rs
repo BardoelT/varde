@@ -3,6 +3,7 @@
 pub mod bank_accounts;
 pub mod charts;
 pub mod common;
+pub mod dashboard;
 pub mod debts;
 pub mod error;
 pub mod expenses;
@@ -11,6 +12,7 @@ pub mod income;
 pub mod investments;
 pub mod money;
 pub mod net_worth;
+pub mod number_format;
 pub mod preferences;
 pub mod project_data;
 pub mod ratios;
@@ -33,8 +35,7 @@ pub use houses::{
     House, HouseId, HouseInsights, HouseValuation, HouseValuationPrefill, HouseYearlyValue, Houses,
 };
 pub use income::{
-    Entry, Income, IncomeInsightsYear, IncomeOverview, IncomeYearlyTotal, Job, JobId, JobInput,
-    PaycheckPrefill,
+    Entry, Income, IncomeInsightsYear, IncomeYearlyTotal, Job, JobId, JobInput, PaycheckPrefill,
 };
 pub use investments::{
     Balance, CalculationInput, InvestmentAccount, InvestmentAccountId, InvestmentAccountInput,
@@ -43,6 +44,7 @@ pub use investments::{
 };
 pub use money::{Amounts, Currency};
 pub use net_worth::NetWorthInsights;
+pub use number_format::NumberFormat;
 pub use preferences::{Language, Theme};
 pub use project_data::ProjectData;
 pub use ratios::Ratios;

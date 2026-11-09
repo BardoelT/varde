@@ -565,22 +565,67 @@
     ]
   },
   "get_dashboard": {
-    "has_jobs": true,
-    "last_month": "2026-08",
-    "last_month_totals": {
-      "bonus": "0.00",
-      "entry_count": 1,
-      "gross_salary": "3300.00",
-      "holiday_pay": "0.00",
-      "total_gross": "3300.00"
+    "bank_accounts": {
+      "as_of": "2027",
+      "change": {
+        "direction": "up",
+        "percent_label": "+1466.83%",
+        "sentiment": "good"
+      },
+      "has_data": true,
+      "value": "4100.50"
     },
-    "year": 2026,
-    "year_to_date": {
-      "bonus": "1000.00",
-      "entry_count": 2,
-      "gross_salary": "6600.00",
-      "holiday_pay": "0.00",
-      "total_gross": "7600.00"
+    "debts": {
+      "as_of": "2026",
+      "change": null,
+      "has_data": true,
+      "value": "7000.00"
+    },
+    "expenses": {
+      "as_of": null,
+      "change": {
+        "direction": "down",
+        "percent_label": "-47.44%",
+        "sentiment": "good"
+      },
+      "has_data": true,
+      "value": "920.00"
+    },
+    "houses": {
+      "as_of": "2026",
+      "change": null,
+      "has_data": true,
+      "value": "110000.00"
+    },
+    "income": {
+      "as_of": null,
+      "change": {
+        "direction": "down",
+        "percent_label": "-84.20%",
+        "sentiment": "bad"
+      },
+      "has_data": true,
+      "value": "7600.00"
+    },
+    "investments": {
+      "as_of": "2026-08",
+      "change": {
+        "direction": "up",
+        "percent_label": "+260.00%",
+        "sentiment": "good"
+      },
+      "has_data": true,
+      "value": "18000.00"
+    },
+    "net_worth": {
+      "as_of": "2027",
+      "change": {
+        "direction": "up",
+        "percent_label": "+2561.71%",
+        "sentiment": "good"
+      },
+      "has_data": true,
+      "value": "125100.50"
     }
   },
   "get_debt_insights": {

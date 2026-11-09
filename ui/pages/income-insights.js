@@ -2,7 +2,7 @@
 // frame (axis, bars, tooltip, loading) is shared with the other charts in
 // shared/yearly-chart.js; this file supplies what is specific to income.
 import { h } from '../shared/dom.js';
-import { formatAmount } from '../shared/format.js';
+import { formatAmount, formatLabel } from '../shared/format.js';
 import { svg, swatch, noSwatch, legendLabel, tooltipRow } from '../shared/chart.js';
 import { createYearlyChart, isNegative, yearLabel } from '../shared/yearly-chart.js';
 import { fillLegend, initInsightsTabs, tooltipFrame, yearLabelLines } from '../shared/insights-page.js';
@@ -20,7 +20,7 @@ const pieceStyle = (row, piece) => ({ cssClass: `bar-${piece.series}` });
 
 function describe(row) {
   const growth =
-    row.growth_percent === null ? t('no growth figure') : t('growth {percent}', { percent: row.growth_label });
+    row.growth_percent === null ? t('no growth figure') : t('growth {percent}', { percent: formatLabel(row.growth_label) });
   return t('{year}: gross salary {salary}, holiday pay {holiday}, bonus {bonus}, total gross {total}, {growth}', {
     year: yearLabel(row),
     salary: formatAmount(row.gross_salary),
@@ -40,7 +40,7 @@ function tooltipContent(row) {
     : [
         ...segments().reverse().flatMap(([field, key, label]) => tooltipRow(key, swatch(key), label, formatAmount(row[field]))),
         ...tooltipRow(null, noSwatch(), t('Total gross'), formatAmount(row.total_gross)),
-        ...tooltipRow(null, noSwatch(), t('Growth'), row.growth_label, negative ? 'negative' : ''),
+        ...tooltipRow(null, noSwatch(), t('Growth'), formatLabel(row.growth_label), negative ? 'negative' : ''),
       ];
   return tooltipFrame({ row, partialNote: t('Partial year: entries so far'), emptyNote: t('No entries'), isEmpty, rows });
 }
@@ -63,7 +63,7 @@ const chart = createYearlyChart({
   /** The growth percentage above the bar. */
   decorate(row, { centre, barTop }) {
     const negative = isNegative(row.growth_label);
-    return [svg('text', { class: `chart-growth${negative ? ' negative' : ''}`, x: centre, y: barTop - 6 }, row.growth_label)];
+    return [svg('text', { class: `chart-growth${negative ? ' negative' : ''}`, x: centre, y: barTop - 6 }, formatLabel(row.growth_label))];
   },
   labelLines: yearLabelLines,
 });

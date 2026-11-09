@@ -1,7 +1,7 @@
 // Bank accounts: accounts with a monthly or yearly entry, each a closing balance and a note (CSD-009).
 import { invoke, errorText } from '../shared/ipc.js';
 import { $, h, showError, showToast, setHint, submitOnce } from '../shared/dom.js';
-import { formatAmount, noteSummary } from '../shared/format.js';
+import { amountForInput, formatAmount, noteSummary } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
@@ -187,7 +187,7 @@ async function copyPrevious() {
   const form = $('bank-entry-form');
   try {
     const prefill = await invoke('copy_previous_bank_entry', { accountId: form.elements.account_id.value });
-    form.elements.balance.value = prefill.balance ?? '';
+    form.elements.balance.value = amountForInput(prefill.balance);
     form.elements.note.value = '';
   } catch (error) {
     showError('bank-entry-error', error);

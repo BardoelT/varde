@@ -20,7 +20,7 @@ test('test_csd022_ac_1_1_the_language_choice_and_its_options', async () => {
   const panel = [...app.document.querySelectorAll('#settings .panel')].find((candidate) => app.text(candidate.querySelector('.panel-title')) === 'Appearance');
   assert.ok(panel, 'the "Appearance" panel');
   const names = [...panel.querySelectorAll('.setting-name')].map((label) => app.text(label));
-  assert.deepEqual(names, ['Theme', 'Language'], 'Language is below Theme');
+  assert.deepEqual(names.slice(0, 2), ['Theme', 'Language'], 'Language is below Theme');
   const select = app.$('setting-language');
   assert.ok(panel.contains(select));
   assert.equal(panel.querySelector('label[for="setting-language"]').textContent, 'Language');

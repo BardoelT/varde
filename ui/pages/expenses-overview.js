@@ -1,7 +1,7 @@
 // Expenses: dated expenses with a category and a note, and yearly totals (CSD-013).
 import { invoke, errorText } from '../shared/ipc.js';
 import { $, h, showError, submitOnce, showToast } from '../shared/dom.js';
-import { formatAmount, formatDate, noteSummary } from '../shared/format.js';
+import { amountForInput, formatAmount, formatDate, noteSummary } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
@@ -102,7 +102,7 @@ function openExpenseDialog(expense = null) {
       $('expense-copy').hidden = Boolean(expense);
       if (expense) {
         form.elements.name.value = expense.name;
-        form.elements.amount.value = expense.amount;
+        form.elements.amount.value = amountForInput(expense.amount);
         form.elements.date.value = formatDate(expense.date);
         form.elements.category.value = expense.category;
         form.elements.note.value = expense.note;
@@ -138,7 +138,7 @@ async function copyPrevious() {
     const prefill = await invoke('copy_previous_expense');
     if (prefill === null) return;
     form.elements.name.value = prefill.name;
-    form.elements.amount.value = prefill.amount;
+    form.elements.amount.value = amountForInput(prefill.amount);
     form.elements.category.value = prefill.category;
     form.elements.date.value = '';
     form.elements.note.value = '';

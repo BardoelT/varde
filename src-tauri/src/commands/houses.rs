@@ -7,16 +7,16 @@ use crate::domain::money::Money;
 use serde::Serialize;
 use tauri::State;
 
-use super::AppState;
+use super::{typed_amount, typed_amount_opt, AppState};
 use crate::domain::debts::OpenDebt;
 use crate::domain::houses::linking::{self, DebtLinksInput, HousesView};
 use crate::domain::houses::{house_note, parse_period, HouseInput, HouseValue};
-use crate::domain::{apply_filter, StatementFilter};
+use crate::domain::{apply_filter, NumberFormat, StatementFilter};
 use crate::domain::{
     House, HouseId, HouseInsights, HouseValuation, HouseValuationPrefill, HouseYearlyValue, Houses,
 };
 use crate::error::AppError;
-use crate::storage::{Project, Record, StepLabel};
+use crate::storage::{Preferences, Project, Record, StepLabel};
 
 /// A valuation with the name of its house and its change, as the valuations
 /// table shows it (CSD-015 REQ-21).
@@ -69,12 +69,20 @@ pub fn list_open_debts(
     )?)
 }
 
+/// Reads the amounts of the house form in the chosen number format (CSD-029 REQ-6).
+fn typed_house_amounts(input: &mut HouseInput, format: NumberFormat) {
+    input.purchase_amount = typed_amount_opt(format, input.purchase_amount.take());
+    input.sell_amount = typed_amount_opt(format, input.sell_amount.take());
+}
+
 #[tauri::command]
 pub fn create_house(
     state: State<'_, AppState>,
-    input: HouseInput,
+    mut input: HouseInput,
     links: Option<DebtLinksInput>,
+    preferences: State<'_, Preferences>,
 ) -> Result<House, AppError> {
+    typed_house_amounts(&mut input, preferences.load_number_format());
     let mut project = state.edit(StepLabel::add(Record::House))?;
     let (houses, debts) = project.houses_and_debts_mut();
     Ok(linking::create_house(
@@ -89,9 +97,11 @@ pub fn create_house(
 pub fn update_house(
     state: State<'_, AppState>,
     house_id: String,
-    input: HouseInput,
+    mut input: HouseInput,
     links: Option<DebtLinksInput>,
+    preferences: State<'_, Preferences>,
 ) -> Result<House, AppError> {
+    typed_house_amounts(&mut input, preferences.load_number_format());
     let mut project = state.edit(StepLabel::edit(Record::House))?;
     let (houses, debts) = project.houses_and_debts_mut();
     Ok(linking::update_house(
@@ -138,10 +148,11 @@ pub fn add_house_valuation(
     period: String,
     value: String,
     note: Option<String>,
+    preferences: State<'_, Preferences>,
 ) -> Result<ValuationView, AppError> {
     let house_id = HouseId::parse(&house_id)?;
     let period = parse_period(&period)?;
-    let value = HouseValue::parse(&value)?;
+    let value = HouseValue::parse(&typed_amount(preferences.load_number_format(), &value))?;
     let note = house_note(note.as_deref().unwrap_or_default())?;
     let mut project = state.edit(StepLabel::add(Record::HouseValuation))?;
     let valuation = project
@@ -158,11 +169,12 @@ pub fn update_house_valuation(
     new_period: String,
     value: String,
     note: Option<String>,
+    preferences: State<'_, Preferences>,
 ) -> Result<ValuationView, AppError> {
     let house_id = HouseId::parse(&house_id)?;
     let period = parse_period(&period)?;
     let new_period = parse_period(&new_period)?;
-    let value = HouseValue::parse(&value)?;
+    let value = HouseValue::parse(&typed_amount(preferences.load_number_format(), &value))?;
     let note = house_note(note.as_deref().unwrap_or_default())?;
     let mut project = state.edit(StepLabel::edit(Record::HouseValuation))?;
     let valuation = project

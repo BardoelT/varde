@@ -33,6 +33,9 @@ pub enum DomainError {
     /// Reported as: "Choose English or Dutch."
     #[error("Choose English or Dutch.")]
     PreferencesLanguageUnsupported,
+    /// Reported as: "Choose 1,234.50, 1.234,50 or 1'234,50."
+    #[error("Choose 1,234.50, 1.234,50 or 1'234,50.")]
+    PreferencesNumberFormatUnsupported,
     /// Reported as: "This job does not exist."
     #[error("This job does not exist.")]
     JobNotFound,
@@ -423,6 +426,7 @@ impl DomainError {
             Self::ProjectCurrencyUnsupported => "PROJECT_CURRENCY_UNSUPPORTED",
             Self::PreferencesThemeUnsupported => "PREFERENCES_THEME_UNSUPPORTED",
             Self::PreferencesLanguageUnsupported => "PREFERENCES_LANGUAGE_UNSUPPORTED",
+            Self::PreferencesNumberFormatUnsupported => "PREFERENCES_NUMBER_FORMAT_UNSUPPORTED",
             Self::JobNotFound => "JOB_NOT_FOUND",
             Self::JobPeriodUnsupported => "JOB_PERIOD_UNSUPPORTED",
             Self::JobPeriodLocked => "JOB_PERIOD_LOCKED",

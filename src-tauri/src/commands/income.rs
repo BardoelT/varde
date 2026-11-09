@@ -7,15 +7,15 @@ use crate::domain::money::Money;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-use super::AppState;
+use super::{typed_amount, AppState};
 use crate::domain::charts::Axis;
 use crate::domain::{apply_filter, StatementFilter};
 use crate::domain::{
     Amounts, Entry, Income, IncomeInsightsYear, IncomeYearlyTotal, Job, JobId, JobInput,
-    PaycheckPrefill, Year, YearMonth,
+    NumberFormat, PaycheckPrefill, Year, YearMonth,
 };
 use crate::error::AppError;
-use crate::storage::{Record, StepLabel};
+use crate::storage::{Preferences, Record, StepLabel};
 
 #[derive(Serialize)]
 pub struct JobView {
@@ -86,11 +86,11 @@ pub struct AmountsInput {
 }
 
 impl AmountsInput {
-    fn parse(&self) -> Result<Amounts, AppError> {
+    fn parse(&self, format: NumberFormat) -> Result<Amounts, AppError> {
         Ok(Amounts::parse(
-            &self.gross_salary,
-            &self.holiday_pay,
-            &self.bonus,
+            &typed_amount(format, &self.gross_salary),
+            &typed_amount(format, &self.holiday_pay),
+            &typed_amount(format, &self.bonus),
         )?)
     }
 }
@@ -158,10 +158,11 @@ pub fn add_paycheck(
     job_id: String,
     month: String,
     amounts: AmountsInput,
+    preferences: State<'_, Preferences>,
 ) -> Result<EntryView, AppError> {
     let job_id = JobId::parse(&job_id)?;
     let month = YearMonth::parse(&month)?;
-    let amounts = amounts.parse()?;
+    let amounts = amounts.parse(preferences.load_number_format())?;
     let mut project = state.edit(StepLabel::add(Record::Paycheck))?;
     let paycheck = project.income_mut().add_paycheck(job_id, month, amounts)?;
     EntryView::of(project.income(), Entry::Paycheck(&paycheck))
@@ -173,10 +174,11 @@ pub fn add_statement(
     job_id: String,
     year: String,
     amounts: AmountsInput,
+    preferences: State<'_, Preferences>,
 ) -> Result<EntryView, AppError> {
     let job_id = JobId::parse(&job_id)?;
     let year = Year::parse(&year)?;
-    let amounts = amounts.parse()?;
+    let amounts = amounts.parse(preferences.load_number_format())?;
     let mut project = state.edit(StepLabel::add(Record::Statement))?;
     let statement = project.income_mut().add_statement(job_id, year, amounts)?;
     EntryView::of(project.income(), Entry::AnnualStatement(&statement))
@@ -189,11 +191,12 @@ pub fn update_paycheck(
     month: String,
     new_month: String,
     amounts: AmountsInput,
+    preferences: State<'_, Preferences>,
 ) -> Result<EntryView, AppError> {
     let job_id = JobId::parse(&job_id)?;
     let month = YearMonth::parse(&month)?;
     let new_month = YearMonth::parse(&new_month)?;
-    let amounts = amounts.parse()?;
+    let amounts = amounts.parse(preferences.load_number_format())?;
     let mut project = state.edit(StepLabel::edit(Record::Paycheck))?;
     let paycheck = project
         .income_mut()
@@ -208,11 +211,12 @@ pub fn update_statement(
     year: String,
     new_year: String,
     amounts: AmountsInput,
+    preferences: State<'_, Preferences>,
 ) -> Result<EntryView, AppError> {
     let job_id = JobId::parse(&job_id)?;
     let year = Year::parse(&year)?;
     let new_year = Year::parse(&new_year)?;
-    let amounts = amounts.parse()?;
+    let amounts = amounts.parse(preferences.load_number_format())?;
     let mut project = state.edit(StepLabel::edit(Record::Statement))?;
     let statement = project
         .income_mut()

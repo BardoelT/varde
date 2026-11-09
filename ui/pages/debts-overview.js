@@ -1,7 +1,7 @@
 // Debts: debts with a monthly or yearly statement, each a remaining balance and a note (CSD-011).
 import { invoke, errorText } from '../shared/ipc.js';
 import { $, h, showError, setHint, submitOnce, confirmAction, showToast } from '../shared/dom.js';
-import { formatAmount, formatDate, noteSummary } from '../shared/format.js';
+import { amountForInput, formatAmount, formatDate, noteSummary } from '../shared/format.js';
 import { askSettlements } from '../shared/settle.js';
 import { t } from '../shared/i18n.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
@@ -188,7 +188,7 @@ function openDebtDialog(debt) {
         form.elements.period.value = debt.period;
         form.elements.category.value = debt.category;
         form.elements.opening_date.value = formatDate(debt.opening_date);
-        form.elements.opening_amount.value = debt.opening_amount;
+        form.elements.opening_amount.value = amountForInput(debt.opening_amount);
       }
       fillHouseChoices(debt);
       fillClosing(form, debt);
@@ -204,7 +204,7 @@ function openDebtDialog(debt) {
 function fillClosing(form, debt) {
   const settlement = debt?.settlement ?? null;
   form.elements.closing_date.value = settlement ? formatDate(settlement.date) : '';
-  form.elements.closing_amount.value = settlement ? settlement.amount : '';
+  form.elements.closing_amount.value = amountForInput(settlement ? settlement.amount : '');
   form.elements.closing_outcome.value = settlement ? settlement.outcome : '';
   const bySale = settlement?.origin === 'Sale' && Boolean(debt.house_id);
   $('debt-closing-hint').textContent = bySale
@@ -322,7 +322,7 @@ async function copyPrevious() {
   const form = $('debt-statement-form');
   try {
     const prefill = await invoke('copy_previous_debt_statement', { debtId: form.elements.debt_id.value });
-    form.elements.balance.value = prefill.balance ?? '';
+    form.elements.balance.value = amountForInput(prefill.balance);
     form.elements.note.value = '';
   } catch (error) {
     showError('debt-statement-error', error);
