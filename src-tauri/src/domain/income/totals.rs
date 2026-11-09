@@ -1,33 +1,12 @@
-//! Yearly totals and the dashboard overview over all jobs (CSD-001 REQ-11, CSD-004).
+//! Yearly totals over all jobs (CSD-001 REQ-11) and the gross up to a month (CSD-004).
 
 use std::collections::BTreeMap;
 
 use crate::domain::money::Money;
 use serde::Serialize;
 
-use crate::domain::money::Amounts;
-
 use super::{Entry, Income, Job};
 use crate::domain::common::YearMonth;
-
-/// The sums of some entries, or `None` if there are none.
-fn totals_of<'a>(amounts: impl Iterator<Item = &'a Amounts>) -> Option<IncomePeriodTotals> {
-    let mut totals = IncomePeriodTotals {
-        gross_salary: Money::ZERO,
-        holiday_pay: Money::ZERO,
-        bonus: Money::ZERO,
-        total_gross: Money::ZERO,
-        entry_count: 0,
-    };
-    for amounts in amounts {
-        totals.gross_salary = totals.gross_salary.saturating_add(amounts.gross_salary());
-        totals.holiday_pay = totals.holiday_pay.saturating_add(amounts.holiday_pay());
-        totals.bonus = totals.bonus.saturating_add(amounts.bonus());
-        totals.total_gross = totals.total_gross.saturating_add(amounts.total_gross());
-        totals.entry_count += 1;
-    }
-    (totals.entry_count > 0).then_some(totals)
-}
 
 /// Totals over all jobs for one calendar year (CSD-001 REQ-11).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -46,64 +25,24 @@ pub struct IncomeYearlyTotal {
     pub entry_count: usize,
 }
 
-/// Sums of a set of entries over all jobs (CSD-004).
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-pub struct IncomePeriodTotals {
-    pub gross_salary: Money,
-    pub holiday_pay: Money,
-    pub bonus: Money,
-    pub total_gross: Money,
-    pub entry_count: usize,
-}
-
-/// The two blocks of the dashboard (CSD-004): this year up to the current
-/// month, and last month. A period without entries has no totals.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-pub struct IncomeOverview {
-    /// The calendar year.
-    pub year: i32,
-    /// Totals from January up to the current month, `None` without entries.
-    pub year_to_date: Option<IncomePeriodTotals>,
-    /// The latest month with entries.
-    pub last_month: Option<YearMonth>,
-    /// Totals of that month.
-    pub last_month_totals: Option<IncomePeriodTotals>,
-}
-
 impl Income {
-    /// Income this year up to and including `today`'s month, and last month,
-    /// summed over all jobs (CSD-004 REQ-2 to REQ-4). An annual statement of this
-    /// year counts in full in the first block and never in the second. Months
-    /// after `today`, which only a project file can contain, are not counted.
+    /// The total gross of `year` over all jobs, counting the paychecks of the
+    /// months up to and including `up_to` and the annual statement of the year
+    /// in full (CSD-004 REQ-9, REQ-10). 0.00 when there is none. Months after
+    /// `up_to`, which only a project file can contain, are not counted.
     #[must_use]
-    pub fn overview(&self, today: YearMonth) -> IncomeOverview {
-        let last_month = today.previous();
-        let year_to_date = totals_of(
-            self.paychecks
-                .iter()
-                .filter(|p| p.month.year() == today.year() && p.month <= today)
-                .map(|p| &p.amounts)
-                .chain(
-                    self.statements
-                        .iter()
-                        .filter(|s| s.year.value() == today.year())
-                        .map(|s| &s.amounts),
-                ),
-        );
-        let last_month_totals = last_month.and_then(|last| {
-            totals_of(
-                self.paychecks
-                    .iter()
-                    .filter(|p| p.month == last)
-                    .map(|p| &p.amounts),
-            )
-        });
-        IncomeOverview {
-            year: today.year(),
-            year_to_date,
-            last_month,
-            last_month_totals,
-        }
+    pub fn gross_in_year_up_to(&self, year: i32, up_to: YearMonth) -> Money {
+        let paychecks = self
+            .paychecks
+            .iter()
+            .filter(|p| p.month.year() == year && p.month <= up_to)
+            .map(|p| p.amounts.total_gross());
+        let statements = self
+            .statements
+            .iter()
+            .filter(|s| s.year.value() == year)
+            .map(|s| s.amounts.total_gross());
+        Money::saturating_sum(paychecks.chain(statements))
     }
 
     /// The entries of all jobs with their job, newest period first (an annual

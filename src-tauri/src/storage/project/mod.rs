@@ -75,6 +75,13 @@ impl Project {
         Self::default()
     }
 
+    /// All the data of the project, for the figures that span every area
+    /// (CSD-004).
+    #[must_use]
+    pub fn data(&self) -> &ProjectData {
+        &self.data
+    }
+
     /// The income data.
     #[must_use]
     pub fn income(&self) -> &Income {

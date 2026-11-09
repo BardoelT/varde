@@ -3,6 +3,7 @@
 pub mod bank_accounts;
 pub mod charts;
 pub mod common;
+pub mod dashboard;
 pub mod debts;
 pub mod error;
 pub mod expenses;
@@ -34,8 +35,7 @@ pub use houses::{
     House, HouseId, HouseInsights, HouseValuation, HouseValuationPrefill, HouseYearlyValue, Houses,
 };
 pub use income::{
-    Entry, Income, IncomeInsightsYear, IncomeOverview, IncomeYearlyTotal, Job, JobId, JobInput,
-    PaycheckPrefill,
+    Entry, Income, IncomeInsightsYear, IncomeYearlyTotal, Job, JobId, JobInput, PaycheckPrefill,
 };
 pub use investments::{
     Balance, CalculationInput, InvestmentAccount, InvestmentAccountId, InvestmentAccountInput,

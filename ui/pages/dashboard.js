@@ -1,53 +1,62 @@
-// Dashboard: income this year to date and last month, over all jobs (CSD-004).
-// Entries are paychecks and annual statements.
-// The figures come from Rust; this file only displays them.
+// Dashboard: one tile per area with a headline figure and its change against the same moment last
+// year (CSD-004). The figures, the change, its colour and the percentage label come from Rust; this
+// file only displays them.
 import { invoke } from '../shared/ipc.js';
 import { $, h } from '../shared/dom.js';
 import { formatAmount } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 
-function cardsFor(totals) {
-  const card = (label, value, primary = false) =>
-    h(
-      'div',
-      { class: primary ? 'card primary' : 'card' },
-      h('div', { class: 'card-label' }, label),
-      h('div', { class: 'card-value' }, value),
-    );
+/** The tiles in display order: payload key, title, left-pane page it opens, and its label (CSD-004 REQ-8, REQ-13). */
+function tilesFor() {
   return [
-    card(t('Total gross'), formatAmount(totals.total_gross), true),
-    card(t('Gross salary'), formatAmount(totals.gross_salary)),
-    card(t('Holiday pay'), formatAmount(totals.holiday_pay)),
-    card(t('Bonus'), formatAmount(totals.bonus)),
+    { key: 'net_worth', title: t('Net worth'), page: 'net-worth', hero: true },
+    { key: 'income', title: t('Income'), page: 'income', label: t('Year to date') },
+    { key: 'expenses', title: t('Expenses'), page: 'expenses', label: t('Year to date') },
+    { key: 'bank_accounts', title: t('Bank accounts'), page: 'bank' },
+    { key: 'investments', title: t('Investments'), page: 'investments' },
+    { key: 'houses', title: t('Houses'), page: 'houses' },
+    { key: 'debts', title: t('Debts'), page: 'debts' },
   ];
 }
 
-/** Shows one block: its cards, or a note when the period has no paychecks. */
-function renderBlock(prefix, title, totals, emptyText) {
-  $(`dashboard-${prefix}-title`).textContent = title;
-  $(`dashboard-${prefix}-empty`).textContent = emptyText;
-  $(`dashboard-${prefix}-empty`).hidden = Boolean(totals);
-  $(`dashboard-${prefix}-cards`).replaceChildren(...(totals ? cardsFor(totals) : []));
+const ARROWS = { up: '▲', down: '▼', stable: '–' };
+
+/** The change of a tile: an arrow, coloured by whether it is good, and the percentage; a grey dash without a comparison. */
+function changeOf(change) {
+  if (!change) {
+    return h('span', { class: 'tile-change neutral', title: t('No comparison with last year') }, h('span', { class: 'tile-arrow', 'aria-hidden': 'true' }, '–'));
+  }
+  const words = { up: t('Up'), down: t('Down'), stable: t('Stable') };
+  return h(
+    'span',
+    { class: `tile-change ${change.sentiment}`, 'aria-label': `${words[change.direction]} ${change.percent_label}`, title: t('Compared with last year') },
+    h('span', { class: 'tile-arrow', 'aria-hidden': 'true' }, ARROWS[change.direction]),
+    h('span', { class: 'tile-percent' }, change.percent_label),
+  );
 }
 
-/** Loads the figures from Rust and shows them. */
+/** One tile, a button that opens the page of its area (CSD-004 REQ-15). */
+function renderTile(spec, tile) {
+  const label = tile.as_of ? t('as of {period}', { period: tile.as_of }) : spec.label;
+  const body = tile.has_data
+    ? [h('div', { class: 'tile-figure' }, h('span', { class: 'tile-value' }, formatAmount(tile.value)), changeOf(tile.change))]
+    : [h('div', { class: 'tile-empty' }, t('No data yet'))];
+  return h(
+    'button',
+    {
+      type: 'button',
+      class: `tile${spec.hero ? ' tile-hero' : ''}${tile.has_data ? '' : ' no-data'}`,
+      'data-tile': spec.key,
+      onClick: () => document.querySelector(`.nav-item[data-section="${spec.page}"]`).click(),
+    },
+    h('div', { class: 'tile-title' }, spec.title),
+    label && tile.has_data ? h('div', { class: 'tile-label' }, label) : null,
+    ...body,
+  );
+}
+
+/** Loads the tiles from Rust and shows them. */
 export async function reloadDashboard() {
   const d = await invoke('get_dashboard');
-  $('dashboard-empty').hidden = d.has_jobs;
-  $('dashboard-content').hidden = !d.has_jobs;
-  if (!d.has_jobs) return;
-
-  renderBlock(
-    'year',
-    t('This year · {year}', { year: d.year }),
-    d.year_to_date,
-    t('No entries yet in {year}.', { year: d.year }),
-  );
-  const month = d.last_month ?? '';
-  renderBlock(
-    'month',
-    t('Last month · {month}', { month }),
-    d.last_month_totals,
-    t('No paycheck for {month}.', { month }),
-  );
+  $('dashboard-tiles').replaceChildren(...tilesFor().map((spec) => renderTile(spec, d[spec.key])));
 }

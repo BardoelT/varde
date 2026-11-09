@@ -64,17 +64,6 @@ impl YearMonth {
     pub fn month(self) -> u8 {
         self.month
     }
-
-    /// The month before this one; January looks back to December. `None` only
-    /// at the start of the supported years.
-    #[must_use]
-    pub fn previous(self) -> Option<Self> {
-        if self.month == 1 {
-            Self::new(self.year - 1, 12)
-        } else {
-            Self::new(self.year, self.month - 1)
-        }
-    }
 }
 
 impl fmt::Display for YearMonth {

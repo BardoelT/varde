@@ -42,6 +42,12 @@ impl HouseDate {
             .unwrap_or_default()
     }
 
+    /// The calendar day.
+    #[must_use]
+    pub fn date(self) -> Date {
+        self.0
+    }
+
     /// The calendar year.
     #[must_use]
     pub fn year(self) -> i32 {

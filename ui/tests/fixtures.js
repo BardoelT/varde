@@ -22,13 +22,26 @@ export function exampleReads() {
 
 const emptyList = { total: '0.00' };
 
+/** What Rust returns for the dashboard of an empty project: the eight tiles, none with data (CSD-004 REQ-14). */
+export function emptyDashboard() {
+  const none = () => ({ has_data: false, value: null, as_of: null, change: null });
+  return {
+    net_worth: none(),
+    income: none(),
+    expenses: none(),
+    bank_accounts: none(),
+    investments: none(),
+    houses: none(),
+    debts: none(),
+  };
+}
+
 /** The answers of a new, empty project: no jobs, accounts, houses, debts or expenses, and no years. */
 export function emptyReads() {
   const reads = exampleReads();
-  const year = golden.get_dashboard.year;
   return {
     ...reads,
-    get_dashboard: { has_jobs: false, last_month: null, last_month_totals: null, year, year_to_date: null },
+    get_dashboard: emptyDashboard(),
     get_settings: { currency: 'EUR', entry_count: 0 },
     project_status: { has_path: false, unsaved_changes: false },
     list_jobs: [],

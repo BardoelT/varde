@@ -16,7 +16,7 @@ mod tests;
 pub use entry::{AnnualStatement, Entry, Paycheck, PaycheckPrefill};
 pub use insights::IncomeInsightsYear;
 pub use job::{Job, JobId, JobInput};
-pub use totals::{IncomeOverview, IncomeYearlyTotal};
+pub use totals::IncomeYearlyTotal;
 
 use serde::{Deserialize, Serialize};
 
@@ -307,10 +307,10 @@ impl Income {
         })
     }
 
-    /// Whether any job exists.
+    /// Whether any job has a paycheck or an annual statement (CSD-004 REQ-14).
     #[must_use]
-    pub fn has_jobs(&self) -> bool {
-        !self.jobs.is_empty()
+    pub fn has_entries(&self) -> bool {
+        !self.paychecks.is_empty() || !self.statements.is_empty()
     }
 
     /// All entries, paychecks and annual statements.

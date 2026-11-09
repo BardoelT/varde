@@ -39,6 +39,11 @@ impl ExpenseDate {
             .and_then(Self::new)
     }
 
+    /// The calendar day.
+    pub(super) fn date(self) -> Date {
+        self.0
+    }
+
     /// The calendar year.
     #[must_use]
     pub fn year(self) -> i32 {

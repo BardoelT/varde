@@ -18,7 +18,6 @@ export default {
   'Settings': 'Instellingen',
   'Project file': 'Projectbestand',
   'New project': 'Nieuw project',
-  'No jobs yet. Add your first job to see your income here.': 'Nog geen banen. Voeg je eerste baan toe om hier je inkomen te zien.',
   'Add your first job': 'Voeg je eerste baan toe',
   'No jobs yet. Add your first job to start tracking your monthly paychecks.': 'Nog geen banen. Voeg je eerste baan toe om je maandelijkse salarisstroken bij te houden.',
   'Income views': 'Inkomensweergaven',
