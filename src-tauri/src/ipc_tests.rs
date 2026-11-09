@@ -17,9 +17,12 @@ pub(crate) struct Harness {
 }
 
 pub(crate) fn harness() -> Harness {
-    let app = configure(mock_builder(), UtcOffset::UTC)
-        .build(mock_context(noop_assets()))
-        .unwrap();
+    let app = configure(
+        mock_builder().manage(Preferences::unavailable()),
+        UtcOffset::UTC,
+    )
+    .build(mock_context(noop_assets()))
+    .unwrap();
     let window = WebviewWindowBuilder::new(&app, "main", tauri::WebviewUrl::default())
         .build()
         .unwrap();
@@ -27,7 +30,7 @@ pub(crate) fn harness() -> Harness {
 }
 
 /// An app whose preference file lives in `config_dir`, as `run` sets it up.
-fn harness_in(config_dir: &std::path::Path) -> Harness {
+pub(crate) fn harness_in(config_dir: &std::path::Path) -> Harness {
     let app = configure(
         mock_builder().manage(Preferences::in_dir(config_dir)),
         UtcOffset::UTC,
@@ -1131,13 +1134,13 @@ fn test_csd008_the_theme_is_chosen_saved_and_restored_over_ipc() {
     // AC-2.1: nothing saved yet means System.
     assert_eq!(
         app.ok("get_preferences", json!({})),
-        json!({ "theme": "system", "language": "en" })
+        json!({ "theme": "system", "language": "en", "number_format": "point_comma" })
     );
 
     // AC-3.2: choosing a theme is not an unsaved project change.
     assert_eq!(
         app.ok("set_theme", json!({ "theme": "dark" })),
-        json!({ "theme": "dark", "language": "en" })
+        json!({ "theme": "dark", "language": "en", "number_format": "point_comma" })
     );
     assert_eq!(app.ok("get_preferences", json!({}))["theme"], "dark");
     assert_eq!(

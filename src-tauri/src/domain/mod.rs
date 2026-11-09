@@ -11,6 +11,7 @@ pub mod income;
 pub mod investments;
 pub mod money;
 pub mod net_worth;
+pub mod number_format;
 pub mod preferences;
 pub mod project_data;
 pub mod ratios;
@@ -43,6 +44,7 @@ pub use investments::{
 };
 pub use money::{Amounts, Currency};
 pub use net_worth::NetWorthInsights;
+pub use number_format::NumberFormat;
 pub use preferences::{Language, Theme};
 pub use project_data::ProjectData;
 pub use ratios::Ratios;

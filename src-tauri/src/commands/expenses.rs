@@ -5,14 +5,14 @@
 
 use tauri::State;
 
-use super::AppState;
+use super::{typed_amount, AppState};
 use crate::domain::expenses::ExpenseInput;
 use crate::domain::StatementFilter;
 use crate::domain::{
     Expense, ExpenseId, ExpenseInsights, ExpenseList, ExpensePrefill, ExpenseYearlyTotal,
 };
 use crate::error::AppError;
-use crate::storage::{Record, StepLabel};
+use crate::storage::{Preferences, Record, StepLabel};
 
 /// The expenses that pass the filter, newest first, with their total
 /// (CSD-013 REQ-10, REQ-11, CSD-028 REQ-9).
@@ -26,7 +26,12 @@ pub fn list_expenses(
 }
 
 #[tauri::command]
-pub fn add_expense(state: State<'_, AppState>, input: ExpenseInput) -> Result<Expense, AppError> {
+pub fn add_expense(
+    state: State<'_, AppState>,
+    mut input: ExpenseInput,
+    preferences: State<'_, Preferences>,
+) -> Result<Expense, AppError> {
+    input.amount = typed_amount(preferences.load_number_format(), &input.amount);
     let mut project = state.edit(StepLabel::add(Record::Expense))?;
     Ok(project.expenses_mut().add_expense(&input)?)
 }
@@ -36,8 +41,10 @@ pub fn add_expense(state: State<'_, AppState>, input: ExpenseInput) -> Result<Ex
 pub fn update_expense(
     state: State<'_, AppState>,
     expense_id: String,
-    input: ExpenseInput,
+    mut input: ExpenseInput,
+    preferences: State<'_, Preferences>,
 ) -> Result<Expense, AppError> {
+    input.amount = typed_amount(preferences.load_number_format(), &input.amount);
     let id = ExpenseId::parse(&expense_id)?;
     let mut project = state.edit(StepLabel::edit(Record::Expense))?;
     Ok(project.expenses_mut().update_expense(id, &input)?)

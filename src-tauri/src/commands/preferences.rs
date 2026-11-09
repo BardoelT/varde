@@ -6,7 +6,7 @@
 use serde::Serialize;
 use tauri::{Runtime, State, Window};
 
-use crate::domain::{Language, Theme};
+use crate::domain::{Language, NumberFormat, Theme};
 use crate::error::AppError;
 use crate::storage::Preferences;
 
@@ -15,6 +15,7 @@ use crate::storage::Preferences;
 pub struct PreferencesView {
     theme: Theme,
     language: Language,
+    number_format: NumberFormat,
 }
 
 /// The language as `set_language` answers it (CSD-022).
@@ -34,13 +35,14 @@ pub fn window_theme(theme: Theme) -> Option<tauri::Theme> {
     }
 }
 
-/// The saved theme and language: System and English when there is none or it
+/// The saved theme, language and number format: System, English and 1,234.50 when there is none or it
 /// cannot be read (CSD-008 REQ-2, REQ-8, CSD-022 REQ-2, REQ-8).
 #[tauri::command]
 pub fn get_preferences(preferences: State<'_, Preferences>) -> PreferencesView {
     PreferencesView {
         theme: preferences.load_theme(),
         language: preferences.load_language(),
+        number_format: preferences.load_number_format(),
     }
 }
 
@@ -60,6 +62,7 @@ pub fn set_theme<R: Runtime>(
     Ok(PreferencesView {
         theme,
         language: preferences.load_language(),
+        number_format: preferences.load_number_format(),
     })
 }
 
@@ -73,4 +76,20 @@ pub fn set_language(
     let language = Language::parse(&language)?;
     preferences.store_language(language)?;
     Ok(LanguageView { language })
+}
+
+/// Saves the number format. Saving comes first, so a failed save changes
+/// nothing (CSD-029 REQ-10).
+#[tauri::command]
+pub fn set_number_format(
+    preferences: State<'_, Preferences>,
+    number_format: String,
+) -> Result<PreferencesView, AppError> {
+    let number_format = NumberFormat::parse(&number_format)?;
+    preferences.store_number_format(number_format)?;
+    Ok(PreferencesView {
+        theme: preferences.load_theme(),
+        language: preferences.load_language(),
+        number_format,
+    })
 }

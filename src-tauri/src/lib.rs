@@ -117,6 +117,7 @@ fn configure<R: Runtime>(builder: tauri::Builder<R>, utc_offset: UtcOffset) -> t
             preferences::get_preferences,
             preferences::set_theme,
             preferences::set_language,
+            preferences::set_number_format,
             project::project_status,
             project::undo,
             project::redo,
@@ -214,5 +215,7 @@ mod ipc_ac_tests_d;
 mod ipc_filter_tests;
 #[cfg(test)]
 mod ipc_history_tests;
+#[cfg(test)]
+mod ipc_number_format_tests;
 #[cfg(test)]
 mod ipc_tests;

@@ -7,17 +7,17 @@ use crate::domain::money::Money;
 use serde::Serialize;
 use tauri::State;
 
-use super::AppState;
+use super::{typed_amount, AppState};
 use crate::domain::debts::{debt_note, parse_period, DebtBalance};
 use crate::domain::debts::{OpenDebt, Outcome, StatementRow};
 use crate::domain::houses::linking::{self, DebtFormInput, DebtsView};
-use crate::domain::HouseId;
 use crate::domain::{apply_filter, StatementFilter, YearMonth};
 use crate::domain::{
     Debt, DebtId, DebtInsights, DebtStatement, DebtStatementPrefill, DebtYearlyTotal, Debts,
 };
+use crate::domain::{HouseId, NumberFormat};
 use crate::error::AppError;
-use crate::storage::{Project, Record, StepLabel};
+use crate::storage::{Preferences, Project, Record, StepLabel};
 
 /// A statement with the name of its debt and its change, as the statements
 /// table shows it (CSD-011 REQ-20).
@@ -85,8 +85,19 @@ pub fn list_debts(state: State<'_, AppState>) -> Result<DebtsView, AppError> {
     Ok(linking::debts_view(project.debts(), project.houses()))
 }
 
+/// Reads the amounts of the debt form in the chosen number format (CSD-029 REQ-6).
+fn typed_debt_amounts(input: &mut DebtFormInput, format: NumberFormat) {
+    input.debt.opening_amount = typed_amount(format, &input.debt.opening_amount);
+    input.closing.amount = typed_amount(format, &input.closing.amount);
+}
+
 #[tauri::command]
-pub fn create_debt(state: State<'_, AppState>, input: DebtFormInput) -> Result<Debt, AppError> {
+pub fn create_debt(
+    state: State<'_, AppState>,
+    mut input: DebtFormInput,
+    preferences: State<'_, Preferences>,
+) -> Result<Debt, AppError> {
+    typed_debt_amounts(&mut input, preferences.load_number_format());
     let mut project = state.edit(StepLabel::add(Record::Debt))?;
     let (houses, debts) = project.houses_and_debts_mut();
     Ok(linking::create_debt(houses, debts, &input)?)
@@ -96,8 +107,10 @@ pub fn create_debt(state: State<'_, AppState>, input: DebtFormInput) -> Result<D
 pub fn update_debt(
     state: State<'_, AppState>,
     debt_id: String,
-    input: DebtFormInput,
+    mut input: DebtFormInput,
+    preferences: State<'_, Preferences>,
 ) -> Result<Debt, AppError> {
+    typed_debt_amounts(&mut input, preferences.load_number_format());
     let mut project = state.edit(StepLabel::edit(Record::Debt))?;
     let (houses, debts) = project.houses_and_debts_mut();
     Ok(linking::update_debt(
@@ -164,10 +177,11 @@ pub fn add_debt_statement(
     period: String,
     balance: String,
     note: Option<String>,
+    preferences: State<'_, Preferences>,
 ) -> Result<StatementView, AppError> {
     let debt_id = DebtId::parse(&debt_id)?;
     let period = parse_period(&period)?;
-    let balance = DebtBalance::parse(&balance)?;
+    let balance = DebtBalance::parse(&typed_amount(preferences.load_number_format(), &balance))?;
     let note = debt_note(note.as_deref().unwrap_or_default())?;
     let mut project = state.edit(StepLabel::add(Record::DebtStatement))?;
     let statement = project
@@ -184,11 +198,12 @@ pub fn update_debt_statement(
     new_period: String,
     balance: String,
     note: Option<String>,
+    preferences: State<'_, Preferences>,
 ) -> Result<StatementView, AppError> {
     let debt_id = DebtId::parse(&debt_id)?;
     let period = parse_period(&period)?;
     let new_period = parse_period(&new_period)?;
-    let balance = DebtBalance::parse(&balance)?;
+    let balance = DebtBalance::parse(&typed_amount(preferences.load_number_format(), &balance))?;
     let note = debt_note(note.as_deref().unwrap_or_default())?;
     let mut project = state.edit(StepLabel::edit(Record::DebtStatement))?;
     let statement = project

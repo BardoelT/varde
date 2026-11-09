@@ -18,9 +18,29 @@ use std::sync::{Mutex, MutexGuard};
 
 use time::{Date, OffsetDateTime, UtcOffset};
 
-use crate::domain::{ProjectData, YearMonth};
+use crate::domain::{NumberFormat, ProjectData, YearMonth};
 use crate::error::AppError;
 use crate::storage::{Project, StepLabel};
+
+/// Text that no amount parser accepts. A typed amount that does not fit the
+/// number format becomes this, so the area reports its own invalid-amount
+/// error and nothing is guessed (CSD-029 REQ-7).
+const NOT_AN_AMOUNT: &str = "?";
+
+/// The canonical text of an amount typed in `format` (CSD-029 REQ-6). The area
+/// that receives it still validates and rounds it (CSD-000 CON-8).
+#[must_use]
+pub(crate) fn typed_amount(format: NumberFormat, text: &str) -> String {
+    format
+        .typed_to_canonical(text)
+        .unwrap_or_else(|| NOT_AN_AMOUNT.to_owned())
+}
+
+/// [`typed_amount`] for an amount that may be left out.
+#[must_use]
+pub(crate) fn typed_amount_opt(format: NumberFormat, text: Option<String>) -> Option<String> {
+    text.map(|text| typed_amount(format, &text))
+}
 
 /// The project locked for one change. When it goes out of scope after a change
 /// that altered the data, the change becomes one undo step (CSD-027 REQ-3).

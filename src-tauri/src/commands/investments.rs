@@ -7,7 +7,7 @@ use crate::domain::money::Money;
 use serde::Serialize;
 use tauri::State;
 
-use super::AppState;
+use super::{typed_amount, typed_amount_opt, AppState};
 use crate::domain::charts::Axis;
 use crate::domain::{apply_filter, StatementFilter};
 use crate::domain::{
@@ -16,7 +16,7 @@ use crate::domain::{
     Investments, InvestmentsOverview, NetDeposits, Note, Period, StatementCalculation,
 };
 use crate::error::AppError;
-use crate::storage::{Record, StepLabel};
+use crate::storage::{Preferences, Record, StepLabel};
 
 /// A statement with the name of its account, as the statements table shows it
 /// (CSD-005 REQ-17).
@@ -122,10 +122,13 @@ pub fn add_investment_statement(
     balance: String,
     net_deposits: Option<String>,
     note: Option<String>,
+    preferences: State<'_, Preferences>,
 ) -> Result<StatementView, AppError> {
     let account_id = InvestmentAccountId::parse(&account_id)?;
     let period = Period::parse(&period)?;
-    let balance = Balance::parse(&balance)?;
+    let format = preferences.load_number_format();
+    let balance = Balance::parse(&typed_amount(format, &balance))?;
+    let net_deposits = typed_amount_opt(format, net_deposits);
     let net_deposits = NetDeposits::parse(net_deposits.as_deref().unwrap_or_default())?;
     let note = Note::new(note.as_deref().unwrap_or_default())?;
     let mut project = state.edit(StepLabel::add(Record::InvestmentStatement))?;
@@ -137,6 +140,10 @@ pub fn add_investment_statement(
 }
 
 #[tauri::command]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "the arguments are the fields of the form, plus the managed state Tauri injects"
+)]
 pub fn update_investment_statement(
     state: State<'_, AppState>,
     account_id: String,
@@ -145,11 +152,14 @@ pub fn update_investment_statement(
     balance: String,
     net_deposits: Option<String>,
     note: Option<String>,
+    preferences: State<'_, Preferences>,
 ) -> Result<StatementView, AppError> {
     let account_id = InvestmentAccountId::parse(&account_id)?;
     let period = Period::parse(&period)?;
     let new_period = Period::parse(&new_period)?;
-    let balance = Balance::parse(&balance)?;
+    let format = preferences.load_number_format();
+    let balance = Balance::parse(&typed_amount(format, &balance))?;
+    let net_deposits = typed_amount_opt(format, net_deposits);
     let net_deposits = NetDeposits::parse(net_deposits.as_deref().unwrap_or_default())?;
     let note = Note::new(note.as_deref().unwrap_or_default())?;
     let mut project = state.edit(StepLabel::edit(Record::InvestmentStatement))?;
@@ -224,6 +234,10 @@ pub struct InvestmentInsights {
 /// Calculates the balance or the capital growth for the statement form
 /// (REQ-24, REQ-25). Stores nothing.
 #[tauri::command]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "the arguments are the fields of the form, plus the managed state Tauri injects"
+)]
 pub fn calculate_investment_statement(
     state: State<'_, AppState>,
     account_id: String,
@@ -232,10 +246,14 @@ pub fn calculate_investment_statement(
     input: CalculationInput,
     value: String,
     ignore_period: Option<String>,
+    preferences: State<'_, Preferences>,
 ) -> Result<StatementCalculation, AppError> {
     let account_id = InvestmentAccountId::parse(&account_id)?;
     let period = Period::parse(&period)?;
     let ignore_period = ignore_period.as_deref().map(Period::parse).transpose()?;
+    let format = preferences.load_number_format();
+    let net_deposits = typed_amount_opt(format, net_deposits);
+    let value = typed_amount(format, &value);
     let project = state.project()?;
     Ok(project.investments().calculate(
         account_id,

@@ -6,7 +6,7 @@ use serde::Serialize;
 
 use super::file::write_atomic_with;
 use super::StorageError;
-use crate::domain::{Language, Theme};
+use crate::domain::{Language, NumberFormat, Theme};
 
 const FILE_NAME: &str = "preferences.json";
 
@@ -17,6 +17,7 @@ const MAX_BYTES: u64 = 64 * 1024;
 struct Stored {
     theme: Theme,
     language: Language,
+    number_format: NumberFormat,
 }
 
 impl Stored {
@@ -33,6 +34,9 @@ impl Stored {
                 .unwrap_or_default(),
             language: field("language")
                 .and_then(|language| serde_json::from_value(language).ok())
+                .unwrap_or_default(),
+            number_format: field("number_format")
+                .and_then(|format| serde_json::from_value(format).ok())
                 .unwrap_or_default(),
         }
     }
@@ -76,6 +80,13 @@ impl Preferences {
         self.read().language
     }
 
+    /// The saved number format. A missing, unreadable, oversized or malformed
+    /// file, or an unknown format, counts as 1,234.50 (CSD-029 REQ-9).
+    #[must_use]
+    pub fn load_number_format(&self) -> NumberFormat {
+        self.read().number_format
+    }
+
     fn read(&self) -> Stored {
         self.read_text()
             .map_or_else(Stored::default, |text| Stored::from_json(&text))
@@ -97,8 +108,11 @@ impl Preferences {
     /// # Errors
     /// Returns `PreferencesSaveFailed` if the preference file cannot be written.
     pub fn store_theme(&self, theme: Theme) -> Result<(), StorageError> {
-        let language = self.load_language();
-        self.write(&Stored { theme, language })
+        let stored = Stored {
+            theme,
+            ..self.read()
+        };
+        self.write(&stored)
             .map_err(StorageError::PreferencesSaveFailed)
     }
 
@@ -107,8 +121,24 @@ impl Preferences {
     /// # Errors
     /// Returns `PreferencesSaveFailed` if the preference file cannot be written.
     pub fn store_language(&self, language: Language) -> Result<(), StorageError> {
-        let theme = self.load_theme();
-        self.write(&Stored { theme, language })
+        let stored = Stored {
+            language,
+            ..self.read()
+        };
+        self.write(&stored)
+            .map_err(StorageError::PreferencesSaveFailed)
+    }
+
+    /// Saves `number_format`, keeping the saved theme and language.
+    ///
+    /// # Errors
+    /// Returns `PreferencesSaveFailed` if the preference file cannot be written.
+    pub fn store_number_format(&self, number_format: NumberFormat) -> Result<(), StorageError> {
+        let stored = Stored {
+            number_format,
+            ..self.read()
+        };
+        self.write(&stored)
             .map_err(StorageError::PreferencesSaveFailed)
     }
 
@@ -166,7 +196,7 @@ mod tests {
             serde_json::from_str(&fs::read_to_string(&file).unwrap()).unwrap();
         assert_eq!(
             value,
-            serde_json::json!({ "theme": "dark", "language": "en" })
+            serde_json::json!({ "theme": "dark", "language": "en", "number_format": "point_comma" })
         );
         let mode = fs::metadata(&file).unwrap().permissions().mode();
         assert_eq!(mode & 0o077, 0, "mode {mode:o}");
@@ -343,5 +373,106 @@ mod tests {
     fn test_csd022_ac_4_3_the_project_file_holds_no_language() {
         let json = super::super::file::to_json(&crate::domain::ProjectData::default()).unwrap();
         assert!(!json.contains("language"), "{json}");
+    }
+
+    #[test]
+    fn test_csd029_ac_2_1_without_a_file_the_number_format_is_point_comma() {
+        let dir = TempDir::new().unwrap();
+        assert_eq!(
+            Preferences::in_dir(dir.path()).load_number_format(),
+            NumberFormat::PointComma
+        );
+        assert_eq!(
+            Preferences::unavailable().load_number_format(),
+            NumberFormat::PointComma
+        );
+    }
+
+    #[test]
+    fn test_csd029_ac_4_4_theme_language_and_number_format_are_kept_together() {
+        let dir = TempDir::new().unwrap();
+        let preferences = Preferences::in_dir(dir.path());
+        preferences.store_theme(Theme::Dark).unwrap();
+        preferences.store_language(Language::Dutch).unwrap();
+        preferences
+            .store_number_format(NumberFormat::ApostropheComma)
+            .unwrap();
+        let restarted = Preferences::in_dir(dir.path());
+        assert_eq!(restarted.load_theme(), Theme::Dark);
+        assert_eq!(restarted.load_language(), Language::Dutch);
+        assert_eq!(
+            restarted.load_number_format(),
+            NumberFormat::ApostropheComma
+        );
+
+        restarted.store_theme(Theme::Light).unwrap();
+        restarted.store_language(Language::English).unwrap();
+        assert_eq!(
+            restarted.load_number_format(),
+            NumberFormat::ApostropheComma
+        );
+    }
+
+    #[test]
+    fn test_csd029_ac_9_1_a_number_format_that_cannot_be_used_means_point_comma() {
+        let dir = TempDir::new().unwrap();
+        let preferences = Preferences::in_dir(dir.path());
+        let file = dir.path().join(FILE_NAME);
+        for content in [
+            r#"{"number_format": ""}"#,
+            r#"{"number_format": "comma"}"#,
+            r#"{"number_format": "COMMA_POINT"}"#,
+            r#"{"number_format": 7}"#,
+            r#"{"number_format": null}"#,
+            "not json",
+            "{}",
+        ] {
+            fs::write(&file, content).unwrap();
+            assert_eq!(
+                preferences.load_number_format(),
+                NumberFormat::PointComma,
+                "{content}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_csd029_ac_9_3_an_older_file_keeps_theme_and_language() {
+        let dir = TempDir::new().unwrap();
+        fs::write(
+            dir.path().join(FILE_NAME),
+            r#"{"theme": "dark", "language": "nl"}"#,
+        )
+        .unwrap();
+        let preferences = Preferences::in_dir(dir.path());
+        assert_eq!(preferences.load_number_format(), NumberFormat::PointComma);
+        assert_eq!(preferences.load_theme(), Theme::Dark);
+        assert_eq!(preferences.load_language(), Language::Dutch);
+    }
+
+    #[test]
+    fn test_csd029_ac_10_1_a_failed_save_keeps_the_format_and_shows_no_path() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = TempDir::new().unwrap();
+        let preferences = Preferences::in_dir(dir.path());
+        preferences
+            .store_number_format(NumberFormat::PointComma)
+            .unwrap();
+
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o500)).unwrap();
+        let error = preferences
+            .store_number_format(NumberFormat::CommaPoint)
+            .unwrap_err();
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o700)).unwrap();
+
+        assert_eq!(error.code(), "PREFERENCES_SAVE_FAILED");
+        assert!(!error.to_string().contains(dir.path().to_str().unwrap()));
+        assert_eq!(preferences.load_number_format(), NumberFormat::PointComma);
+    }
+
+    #[test]
+    fn test_csd029_ac_4_3_the_project_file_holds_no_number_format() {
+        let json = super::super::file::to_json(&crate::domain::ProjectData::default()).unwrap();
+        assert!(!json.contains("number_format"), "{json}");
     }
 }
