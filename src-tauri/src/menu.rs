@@ -4,7 +4,8 @@
 //! standard menu, which keeps copy and paste working in text fields.
 
 use tauri::menu::{
-    AboutMetadata, IsMenuItem, Menu, MenuItem, MenuItemBuilder, MenuItemKind, PredefinedMenuItem,
+    AboutMetadata, CheckMenuItem, CheckMenuItemBuilder, IsMenuItem, Menu, MenuItem,
+    MenuItemBuilder, MenuItemKind, PredefinedMenuItem,
 };
 use tauri::{AppHandle, Manager, Runtime};
 
@@ -81,10 +82,19 @@ impl AboutInfo {
     }
 }
 
+/// The checkable Discrete Mode item of the View menu: id, label and shortcut
+/// (CSD-030 REQ-11).
+pub const DISCRETE_MODE: (&str, &str, &str) =
+    ("toggle-discrete-mode", "Discrete Mode", "CmdOrCtrl+Shift+D");
+
 /// Whether `id` is an item whose action the frontend runs.
 #[must_use]
 pub fn is_forwarded_item(id: &str) -> bool {
-    id == SETTINGS.0 || id == UNDO.0 || id == REDO.0 || ITEMS.iter().any(|(item, _, _)| *item == id)
+    id == SETTINGS.0
+        || id == DISCRETE_MODE.0
+        || id == UNDO.0
+        || id == REDO.0
+        || ITEMS.iter().any(|(item, _, _)| *item == id)
 }
 
 /// The text of an Undo or Redo item: the verb, followed by the step it applies
@@ -117,7 +127,20 @@ pub fn sync<R: Runtime>(app: &AppHandle<R>, status: ProjectStatus) {
     }
 }
 
+/// The Discrete Mode item, kept so its check mark can follow the saved preference.
+pub struct DiscreteModeItem<R: Runtime>(CheckMenuItem<R>);
+
+/// Makes the check mark of the Discrete Mode item show `on`. Without a built
+/// menu, as in the IPC tests, there is nothing to update.
+pub fn sync_discrete_mode<R: Runtime>(app: &AppHandle<R>, on: bool) {
+    if let Some(item) = app.try_state::<DiscreteModeItem<R>>() {
+        // A menu that cannot be updated must not fail the command behind it.
+        let _ = item.0.set_checked(on);
+    }
+}
+
 const FILE_MENU: &str = "File";
+const VIEW_MENU: &str = "View";
 const EDIT_MENU: &str = "Edit";
 
 /// In the default macOS app menu: About, separator, then the rest. Settings…
@@ -174,7 +197,31 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     app_menu.insert_items(&[&settings, &after_settings], SETTINGS_POSITION)?;
 
     replace_undo_and_redo(app, &menu)?;
+    add_discrete_mode(app, &menu)?;
     Ok(menu)
+}
+
+/// Puts the checkable Discrete Mode item at the top of the View menu.
+fn add_discrete_mode<R: Runtime>(app: &AppHandle<R>, menu: &Menu<R>) -> tauri::Result<()> {
+    let view = menu
+        .items()?
+        .into_iter()
+        .find_map(|item| match item {
+            MenuItemKind::Submenu(submenu) if submenu.text().is_ok_and(|t| t == VIEW_MENU) => {
+                Some(submenu)
+            }
+            _ => None,
+        })
+        .ok_or(tauri::Error::InvalidWindowHandle)?;
+    let (id, label, accelerator) = DISCRETE_MODE;
+    let item = CheckMenuItemBuilder::with_id(id, label)
+        .accelerator(accelerator)
+        .checked(false)
+        .build(app)?;
+    let separator = PredefinedMenuItem::separator(app)?;
+    view.insert_items(&[&item, &separator], 0)?;
+    app.manage(DiscreteModeItem(item));
+    Ok(())
 }
 
 /// Swaps the predefined About item of the app menu for one with the Varde
@@ -246,6 +293,14 @@ mod tests {
     // Native menus can only be created on the main thread, which unit tests do
     // not run on. The table the menu is built from is tested here; the built
     // menu is part of the manual checklist (CSD-002 section 7).
+    #[test]
+    fn test_csd030_ac_11_1_the_item_has_the_shortcut() {
+        assert_eq!(
+            DISCRETE_MODE,
+            ("toggle-discrete-mode", "Discrete Mode", "CmdOrCtrl+Shift+D")
+        );
+    }
+
     #[test]
     fn test_csd031_ac_1_1_the_panel_shows_the_app_information() {
         assert_eq!(ABOUT.name, "Varde");
@@ -343,6 +398,7 @@ mod tests {
         assert!(is_forwarded_item("project-undo"));
         assert!(is_forwarded_item("project-redo"));
         assert!(is_forwarded_item("open-settings"));
+        assert!(is_forwarded_item("toggle-discrete-mode"));
         assert!(!is_forwarded_item("quit"));
         assert!(!is_forwarded_item(""));
     }

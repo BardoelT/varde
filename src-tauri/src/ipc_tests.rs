@@ -1137,13 +1137,19 @@ fn test_csd008_the_theme_is_chosen_saved_and_restored_over_ipc() {
     // AC-2.1: nothing saved yet means System.
     assert_eq!(
         app.ok("get_preferences", json!({})),
-        json!({ "theme": "system", "language": "en", "number_format": "point_comma" })
+        json!({
+            "theme": "system", "language": "en", "number_format": "point_comma",
+            "discrete_mode": false
+        })
     );
 
     // AC-3.2: choosing a theme is not an unsaved project change.
     assert_eq!(
         app.ok("set_theme", json!({ "theme": "dark" })),
-        json!({ "theme": "dark", "language": "en", "number_format": "point_comma" })
+        json!({
+            "theme": "dark", "language": "en", "number_format": "point_comma",
+            "discrete_mode": false
+        })
     );
     assert_eq!(app.ok("get_preferences", json!({}))["theme"], "dark");
     assert_eq!(

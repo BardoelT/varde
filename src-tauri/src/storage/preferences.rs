@@ -18,6 +18,7 @@ struct Stored {
     theme: Theme,
     language: Language,
     number_format: NumberFormat,
+    discrete_mode: bool,
 }
 
 impl Stored {
@@ -37,6 +38,10 @@ impl Stored {
                 .unwrap_or_default(),
             number_format: field("number_format")
                 .and_then(|format| serde_json::from_value(format).ok())
+                .unwrap_or_default(),
+            // Only a real boolean counts (CSD-030 REQ-13).
+            discrete_mode: field("discrete_mode")
+                .and_then(|mode| mode.as_bool())
                 .unwrap_or_default(),
         }
     }
@@ -85,6 +90,14 @@ impl Preferences {
     #[must_use]
     pub fn load_number_format(&self) -> NumberFormat {
         self.read().number_format
+    }
+
+    /// Whether Discrete mode is on. A missing, unreadable, oversized or
+    /// malformed file, or a value that is not a boolean, counts as off
+    /// (CSD-030 REQ-2, REQ-13).
+    #[must_use]
+    pub fn load_discrete_mode(&self) -> bool {
+        self.read().discrete_mode
     }
 
     fn read(&self) -> Stored {
@@ -136,6 +149,19 @@ impl Preferences {
     pub fn store_number_format(&self, number_format: NumberFormat) -> Result<(), StorageError> {
         let stored = Stored {
             number_format,
+            ..self.read()
+        };
+        self.write(&stored)
+            .map_err(StorageError::PreferencesSaveFailed)
+    }
+
+    /// Saves `discrete_mode`, keeping the other preferences.
+    ///
+    /// # Errors
+    /// Returns `PreferencesSaveFailed` if the preference file cannot be written.
+    pub fn store_discrete_mode(&self, discrete_mode: bool) -> Result<(), StorageError> {
+        let stored = Stored {
+            discrete_mode,
             ..self.read()
         };
         self.write(&stored)
@@ -196,7 +222,10 @@ mod tests {
             serde_json::from_str(&fs::read_to_string(&file).unwrap()).unwrap();
         assert_eq!(
             value,
-            serde_json::json!({ "theme": "dark", "language": "en", "number_format": "point_comma" })
+            serde_json::json!({
+                "theme": "dark", "language": "en", "number_format": "point_comma",
+                "discrete_mode": false
+            })
         );
         let mode = fs::metadata(&file).unwrap().permissions().mode();
         assert_eq!(mode & 0o077, 0, "mode {mode:o}");
@@ -474,5 +503,111 @@ mod tests {
     fn test_csd029_ac_4_3_the_project_file_holds_no_number_format() {
         let json = super::super::file::to_json(&crate::domain::ProjectData::default()).unwrap();
         assert!(!json.contains("number_format"), "{json}");
+    }
+
+    #[test]
+    fn test_csd030_ac_2_1_without_a_file_discrete_mode_is_off() {
+        let dir = TempDir::new().unwrap();
+        assert!(!Preferences::in_dir(dir.path()).load_discrete_mode());
+        assert!(!Preferences::unavailable().load_discrete_mode());
+    }
+
+    #[test]
+    fn test_csd030_ac_4_1_the_mode_survives_a_new_session() {
+        let dir = TempDir::new().unwrap();
+        Preferences::in_dir(dir.path())
+            .store_discrete_mode(true)
+            .unwrap();
+        assert!(Preferences::in_dir(dir.path()).load_discrete_mode());
+        Preferences::in_dir(dir.path())
+            .store_discrete_mode(false)
+            .unwrap();
+        assert!(!Preferences::in_dir(dir.path()).load_discrete_mode());
+    }
+
+    #[test]
+    fn test_csd030_ac_4_4_the_preferences_are_kept_together() {
+        let dir = TempDir::new().unwrap();
+        let preferences = Preferences::in_dir(dir.path());
+        preferences.store_theme(Theme::Dark).unwrap();
+        preferences.store_language(Language::Dutch).unwrap();
+        preferences
+            .store_number_format(NumberFormat::CommaPoint)
+            .unwrap();
+        preferences.store_discrete_mode(true).unwrap();
+        let restarted = Preferences::in_dir(dir.path());
+        assert_eq!(restarted.load_theme(), Theme::Dark);
+        assert_eq!(restarted.load_language(), Language::Dutch);
+        assert_eq!(restarted.load_number_format(), NumberFormat::CommaPoint);
+        assert!(restarted.load_discrete_mode());
+
+        restarted.store_theme(Theme::Light).unwrap();
+        assert!(restarted.load_discrete_mode());
+    }
+
+    #[test]
+    fn test_csd030_ac_13_1_a_value_that_cannot_be_used_means_off() {
+        let dir = TempDir::new().unwrap();
+        let preferences = Preferences::in_dir(dir.path());
+        let file = dir.path().join(FILE_NAME);
+        for content in [
+            r#"{"discrete_mode": "yes"}"#,
+            r#"{"discrete_mode": 1}"#,
+            r#"{"discrete_mode": null}"#,
+            r#"{"discrete_mode": "true"}"#,
+            "not json",
+            "{}",
+        ] {
+            fs::write(&file, content).unwrap();
+            assert!(!preferences.load_discrete_mode(), "{content}");
+        }
+    }
+
+    #[test]
+    fn test_csd030_ac_13_1_a_bad_value_does_not_reset_the_other_preferences() {
+        let dir = TempDir::new().unwrap();
+        fs::write(
+            dir.path().join(FILE_NAME),
+            r#"{"theme": "dark", "discrete_mode": "yes"}"#,
+        )
+        .unwrap();
+        assert_eq!(Preferences::in_dir(dir.path()).load_theme(), Theme::Dark);
+    }
+
+    #[test]
+    fn test_csd030_ac_13_2_an_older_file_means_off_and_keeps_the_rest() {
+        let dir = TempDir::new().unwrap();
+        fs::write(
+            dir.path().join(FILE_NAME),
+            r#"{ "theme": "dark", "language": "nl", "number_format": "comma_point" }"#,
+        )
+        .unwrap();
+        let preferences = Preferences::in_dir(dir.path());
+        assert!(!preferences.load_discrete_mode());
+        assert_eq!(preferences.load_theme(), Theme::Dark);
+        assert_eq!(preferences.load_language(), Language::Dutch);
+        assert_eq!(preferences.load_number_format(), NumberFormat::CommaPoint);
+    }
+
+    #[test]
+    fn test_csd030_ac_14_1_a_failed_save_keeps_the_mode_and_shows_no_path() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = TempDir::new().unwrap();
+        let preferences = Preferences::in_dir(dir.path());
+        preferences.store_discrete_mode(false).unwrap();
+
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o500)).unwrap();
+        let error = preferences.store_discrete_mode(true).unwrap_err();
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o700)).unwrap();
+
+        assert_eq!(error.code(), "PREFERENCES_SAVE_FAILED");
+        assert!(!error.to_string().contains(dir.path().to_str().unwrap()));
+        assert!(!preferences.load_discrete_mode());
+    }
+
+    #[test]
+    fn test_csd030_ac_4_3_the_project_file_holds_no_discrete_mode() {
+        let json = super::super::file::to_json(&crate::domain::ProjectData::default()).unwrap();
+        assert!(!json.contains("discrete"), "{json}");
     }
 }
