@@ -1,7 +1,7 @@
 ---
 id: CSD-004
 title: Dashboard
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 2.0
 last_updated: 09/11/2026
