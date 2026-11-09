@@ -48,5 +48,6 @@ pub fn set_currency(
 ) -> Result<SettingsView, AppError> {
     let mut project = state.project()?;
     project.settings_mut().set_currency(&currency)?;
+    state.sync_title(&project);
     Ok(SettingsView::of(&project))
 }

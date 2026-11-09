@@ -44,6 +44,24 @@ pub(crate) fn harness_in(config_dir: &std::path::Path) -> Harness {
 }
 
 impl Harness {
+    /// The title the app last set on the main window (the mock runtime keeps none).
+    pub(crate) fn title(&self) -> String {
+        self.window
+            .state::<crate::commands::AppState>()
+            .last_title()
+    }
+
+    /// Runs `action` on the open project, for tests that need a file without a
+    /// native dialog.
+    pub(crate) fn with_project<T>(
+        &self,
+        action: impl FnOnce(&mut crate::storage::Project) -> T,
+    ) -> T {
+        let state = self.window.state::<crate::commands::AppState>();
+        let mut project = state.project().unwrap();
+        action(&mut project)
+    }
+
     pub(crate) fn call(&self, command: &str, args: Value) -> Result<Value, Value> {
         let request = InvokeRequest {
             cmd: command.into(),

@@ -90,9 +90,6 @@ test('test_csd002_ac_3_1_the_indicator_follows_edits', async () => {
     },
   };
   const app = await openApp({ reads: emptyReads(), handlers });
-  const indicator = app.$('project-state');
-  assert.equal(indicator.classList.contains('is-unsaved'), false, 'no indicator for a freshly opened project');
-  assert.equal(app.textOf('project-state-text'), 'All changes saved');
 
   await app.click(app.item('income'));
   await app.click(app.$('job-add-first'));
@@ -102,12 +99,9 @@ test('test_csd002_ac_3_1_the_indicator_follows_edits', async () => {
   form.requestSubmit();
   await app.settle();
   assert.deepEqual(app.callsOf('create_job').map((call) => call.args.input.start_date), ['01/03/2024'], 'the typed date goes to Rust as typed');
-  assert.equal(indicator.classList.contains('is-unsaved'), true, 'the indicator is shown after adding a job');
-  assert.equal(app.textOf('project-state-text'), 'Unsaved changes');
 
   await app.emit('menu-action', 'project-save');
-  assert.equal(indicator.classList.contains('is-unsaved'), false, 'the indicator is cleared after saving');
-  assert.equal(app.textOf('project-state-text'), 'All changes saved');
+  assert.equal(app.callsOf('save_project').length, 1, 'File > Save calls the save command');
   app.close();
 });
 
@@ -149,8 +143,6 @@ test('test_csd002_ac_9_3_no_buttons_in_the_window', async () => {
   const app = await openApp({ reads: unsaved() });
   const labels = [...app.document.querySelectorAll('button')].map((button) => app.text(button));
   for (const name of ['New', 'Open', 'Open…', 'Save', 'Save As', 'Save As…']) assert.ok(!labels.includes(name), `no ${name} button`);
-  assert.equal(app.isShown(app.$('project-state')), true, 'the unsaved-changes indicator is still shown');
-  assert.equal(app.textOf('project-state-text'), 'Unsaved changes');
   app.close();
 });
 

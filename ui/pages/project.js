@@ -1,4 +1,4 @@
-// Project file: runs the File menu actions and shows the unsaved-changes indicator (CSD-002),
+// Project file: runs the File menu actions (CSD-002); the unsaved dot is in the window title, set by Rust (CSD-024),
 // and runs Edit > Undo and Redo (CSD-027).
 import { invoke, listen, errorText } from '../shared/ipc.js';
 import { confirmAction, showToast } from '../shared/dom.js';
@@ -6,25 +6,8 @@ import { t } from '../shared/i18n.js';
 
 let status = { unsaved_changes: false, has_path: false, undo_label: null, redo_label: null };
 
-function render() {
-  const box = document.getElementById('project-state');
-  const text = document.getElementById('project-state-text');
-  box.classList.toggle('is-unsaved', status.unsaved_changes);
-  if (status.unsaved_changes) {
-    text.textContent = t('Unsaved changes');
-  } else if (status.has_path) {
-    text.textContent = t('All changes saved');
-  } else {
-    text.textContent = t('New project');
-  }
-}
-
-/** Shows the status again, for example in another language. */
-export const refreshTexts = render;
-
 export async function refreshProjectStatus() {
   status = await invoke('project_status');
-  render();
 }
 
 async function attempt(action) {
@@ -63,7 +46,6 @@ async function undoOrRedo(command, onReplaced) {
   if (document.querySelector('dialog[open]')) return;
   const result = await invoke(command);
   status = result.status;
-  render();
   await onReplaced();
   showToast(t(command === 'undo' ? 'Undid: {step}' : 'Redid: {step}', { step: t(result.step) }));
 }
@@ -73,7 +55,6 @@ const menuActions = (onReplaced, onSwitched) => ({
   'project-new': async () => {
     if (!(await confirmDiscard(t('You have unsaved changes. If you start a new project, they will be lost.')))) return;
     status = await invoke('new_project');
-    render();
     // A new project starts without filters; undo and redo keep them (CSD-028 REQ-13, REQ-14).
     onSwitched();
     await onReplaced();
@@ -82,7 +63,6 @@ const menuActions = (onReplaced, onSwitched) => ({
     if (!(await confirmDiscard(t('You have unsaved changes. If you open another file, they will be lost.')))) return;
     const result = await invoke('open_project');
     status = result.status;
-    render();
     if (result.done) {
       onSwitched();
       await onReplaced();
@@ -91,12 +71,10 @@ const menuActions = (onReplaced, onSwitched) => ({
   'project-save': async () => {
     const result = await invoke('save_project');
     status = result.status;
-    render();
   },
   'project-save-as': async () => {
     const result = await invoke('save_project_as');
     status = result.status;
-    render();
   },
   'project-undo': () => undoOrRedo('undo', onReplaced),
   'project-redo': () => undoOrRedo('redo', onReplaced),

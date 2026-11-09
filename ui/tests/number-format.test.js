@@ -71,7 +71,7 @@ test('test_csd029_ac_3_2_the_choice_is_not_an_unsaved_change', async () => {
   const app = await openApp();
   await app.click(app.item('settings'));
   await app.choose(app.$('setting-number-format'), 'comma_point');
-  assert.equal(app.isShown(app.$('project-state')) && app.textOf('project-state-text').includes('Unsaved'), false);
+  assert.equal(app.callsOf('save_project').length, 0, 'nothing is written to the project');
   app.close();
 });
 

@@ -16,8 +16,6 @@ export default {
   'Net worth': 'Vermogen',
   'Ratios': 'Kengetallen',
   'Settings': 'Instellingen',
-  'Project file': 'Projectbestand',
-  'New project': 'Nieuw project',
   'Add your first job': 'Voeg je eerste baan toe',
   'No jobs yet. Add your first job to start tracking your monthly paychecks.': 'Nog geen banen. Voeg je eerste baan toe om je maandelijkse salarisstroken bij te houden.',
   'Income views': 'Inkomensweergaven',

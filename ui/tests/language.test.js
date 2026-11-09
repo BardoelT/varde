@@ -43,7 +43,6 @@ test('test_csd022_ac_2_1_first_start_is_in_english', async () => {
   const app = await openApp();
   assert.equal(app.document.documentElement.lang, 'en');
   assert.equal(app.text(app.item('debts')), 'Debts');
-  assert.equal(app.textOf('project-state-text'), 'All changes saved');
   assert.equal(app.$('setting-language').value, 'en');
   app.close();
 });
@@ -66,8 +65,6 @@ test('test_csd022_ac_3_2_the_choice_is_not_an_unsaved_project_change', async () 
   const app = await openApp();
   await app.click(app.item('settings'));
   await app.choose(app.$('setting-language'), 'nl');
-  assert.equal(app.$('project-state').classList.contains('is-unsaved'), false, 'the unsaved indicator is not shown');
-  assert.equal(app.textOf('project-state-text'), 'Alle wijzigingen opgeslagen');
   assert.equal(app.callsOf('save_project').length, 0);
   app.close();
 });
@@ -99,7 +96,6 @@ test('test_csd022_ac_4_1_the_first_page_is_already_in_dutch', async () => {
   assert.equal(app.document.documentElement.lang, 'nl');
   assert.equal(app.text(app.document.querySelector('#dashboard .section-title')), 'Dashboard');
   assert.equal(app.text(app.document.querySelector('.nav-section-label')), 'Overzicht');
-  assert.equal(app.textOf('project-state-text'), 'Alle wijzigingen opgeslagen');
   app.close();
 });
 
