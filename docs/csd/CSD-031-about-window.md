@@ -3,7 +3,7 @@ id: CSD-031
 title: About window
 status: approved
 owner: Thijs Bardoel
-version: 0.1
+version: 0.2
 last_updated: 09/11/2026
 related: [CSD-000, CSD-022, CSD-024]
 ---
@@ -74,7 +74,7 @@ Scenario: Package and bundle versions disagree
 ```
 
 ## 5. Interfaces and contracts
-Rust builds the panel in `src-tauri/src/menu.rs` with Tauri's `AboutMetadata` on the predefined About item of the app menu. The texts, copyright, licence and website are constants in `menu.rs`; the version is read from the package at compile time and the icon is `src-tauri/icons/128x128@2x.png`. The frontend is not involved.
+Rust builds the panel in `src-tauri/src/menu.rs` with Tauri's `AboutMetadata` on the predefined About item of the app menu. The texts, copyright, licence and website are constants in `menu.rs`; the version is read from the package at compile time. The icon is the default window icon, which Tauri embeds from the first `.png` in `bundle.icon` of `tauri.conf.json`; that entry is `icons/128x128@2x.png` (a test pins it). macOS shows only the name, version, copyright, icon and credits, so the description, licence and website are shown as the credits text. The frontend is not involved.
 
 ## 6. Constraints
 - CON-1: The native About panel is used through Tauri's built-in menu API: no plugin, no capability, no CSP change and no new dependency. Rationale: least privilege per `CLAUDE.md` (as CSD-024 CON-1).
@@ -89,4 +89,5 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 None.
 
 ## 9. Changelog
+- 0.2 (09/11/2026): implementation notes only, behaviour unchanged. The icon comes from the default window icon (no new Tauri feature or crate), and the description, licence and website are the credits text because macOS ignores those fields.
 - 0.1 (09/11/2026): initial draft from the grill-me interview of 09/11/2026 on GitHub issue 54: native panel, explicit icon, fixed content, English only.
