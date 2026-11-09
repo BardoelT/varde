@@ -1,10 +1,10 @@
 ---
 id: CSD-022
 title: Language (English and Dutch)
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.5
-last_updated: 03/11/2026
+version: 0.6
+last_updated: 09/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-008]
 ---
 
@@ -23,7 +23,7 @@ Every text in the app is in English. The owner works in Dutch as well, and a Dut
 ### 2.2 Non-goals
 - NG-1: Languages other than English and Dutch, and a translation tool or a way for the user to add a language.
 - NG-2: Translating what the user typed: account, bank, debt, house and job names, notes and any other project data. These show as they were entered.
-- NG-3: Changing how amounts, percentages and dates are written with the language. They keep one format in both languages (REQ-10).
+- NG-3: Changing how amounts, percentages and dates are written with the language. They keep one format in both languages (REQ-10); the user chooses the number format separately (CSD-029).
 - NG-4: Following the macOS language. The user chooses, and the default is English.
 - NG-5: A language per project. The project file holds no language (CSD-003 CON-2 stays as it is).
 - NG-6: The native macOS menu bar stays in English, which is accepted, and native file dialogs keep the language the system gives them.
@@ -258,7 +258,7 @@ Scenario: Read-only config folder
 ```
 
 **REQ-10: Formats do not follow the language** *(ubiquitous)*
-The app shall write dates as dd/mm/yyyy and amounts with a comma as thousands separator, a point as decimal separator and two decimals (for example 1,234.50, CSD-000 CON-8) in every language.
+The app shall write dates as dd/mm/yyyy and amounts in the number format the user chose (CSD-029), 1,234.50 by default (CSD-000 CON-8), in every language.
 
 ```gherkin
 @AC-10.1
@@ -317,6 +317,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-2: (resolved 03/11/2026) Claude drafted the Dutch texts and the owner has reviewed the wording.
 
 ## 9. Changelog
+- 0.6 (09/11/2026): REQ-10 and NG-3 refer to the number format the user chooses (CSD-029, GitHub issue 56) instead of the fixed 1,234.50; the default and AC-10.1 and AC-10.2 are unchanged. Back to `draft` until re-approved.
 - 0.5 (03/11/2026): OQ-2 resolved: the owner has reviewed the Dutch texts. No requirement changes.
 - 0.4 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. OQ-1 resolved (a DOM test checks the Dutch dictionary) and OQ-2 no longer blocks REQ-5, since the feature is built. Back to `draft` until re-approved.
 - 0.3 (03/11/2026): Formatting does not follow the language: new REQ-10 (AC-10.1, AC-10.2), dates stay dd/mm/yyyy and amounts stay 1,234.50 in Dutch too, NG-3 and CSD-000 CON-8 referenced. The native menu stays in English, which is accepted (NG-6). Display ACs are covered by DOM tests. Back to `draft` until re-approved.
