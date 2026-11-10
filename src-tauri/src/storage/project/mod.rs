@@ -184,6 +184,16 @@ impl Project {
         }
     }
 
+    /// The name of the project file with its extension, without its folder
+    /// (CSD-024 REQ-8). `None` while the project has no path.
+    #[must_use]
+    pub fn file_name(&self) -> Option<String> {
+        self.path
+            .as_ref()
+            .and_then(|path| path.file_name())
+            .map(|name| name.to_string_lossy().into_owned())
+    }
+
     /// A copy of the data as it is now, taken before a change so the change
     /// can become a step (CSD-027 CON-1).
     #[must_use]

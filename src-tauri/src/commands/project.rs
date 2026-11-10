@@ -12,7 +12,7 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use super::AppState;
 use crate::error::AppError;
 use crate::menu;
-use crate::storage::{OpenOutcome, ProjectStatus, SaveOutcome, StepLabel};
+use crate::storage::{OpenOutcome, Project, ProjectStatus, SaveOutcome, StepLabel};
 
 /// Result of a command that may have been cancelled in a native dialog.
 #[derive(Serialize)]
@@ -87,6 +87,7 @@ fn may_save(
     Ok(!target.replaces_other_file || confirm(picked, &target.path))
 }
 
+#[cfg(test)]
 fn status_of(state: &AppState) -> Result<ProjectStatus, AppError> {
     Ok(state.project()?.status())
 }
@@ -148,8 +149,10 @@ fn open_flow(
 /// Makes the Edit menu follow `status` and hands the status back (CSD-027
 /// REQ-10). Every command that can change the history returns its status through
 /// here, so the menu never lags behind.
-fn publish<R: Runtime>(app: &AppHandle<R>, status: ProjectStatus) -> ProjectStatus {
+fn publish<R: Runtime>(app: &AppHandle<R>, state: &AppState, project: &Project) -> ProjectStatus {
+    let status = project.status();
     menu::sync(app, status);
+    state.sync_title(project);
     status
 }
 
@@ -158,7 +161,7 @@ pub fn project_status<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
 ) -> Result<ProjectStatus, AppError> {
-    Ok(publish(&app, status_of(&state)?))
+    Ok(publish(&app, &state, &*state.project()?))
 }
 
 /// Takes back the most recent step (CSD-027 REQ-1).
@@ -171,7 +174,7 @@ pub fn undo<R: Runtime>(
     let step = project.undo()?;
     Ok(HistoryResult {
         step,
-        status: publish(&app, project.status()),
+        status: publish(&app, &state, &project),
     })
 }
 
@@ -185,7 +188,7 @@ pub fn redo<R: Runtime>(
     let step = project.redo()?;
     Ok(HistoryResult {
         step,
-        status: publish(&app, project.status()),
+        status: publish(&app, &state, &project),
     })
 }
 
@@ -202,7 +205,7 @@ pub fn new_project<R: Runtime>(
 ) -> Result<ProjectStatus, AppError> {
     let mut project = state.project()?;
     project.reset();
-    Ok(publish(&app, project.status()))
+    Ok(publish(&app, &state, &project))
 }
 
 #[tauri::command(async)]
@@ -211,7 +214,7 @@ pub fn open_project<R: Runtime>(
     state: State<'_, AppState>,
 ) -> Result<DialogResult, AppError> {
     let mut result = open_flow(&state, || pick_open_path(&app))?;
-    result.status = publish(&app, result.status);
+    result.status = publish(&app, &state, &*state.project()?);
     Ok(result)
 }
 
@@ -225,7 +228,7 @@ pub fn save_project<R: Runtime>(
         || pick_save_path(&app),
         |picked, target| confirm_overwrite(&app, picked, target),
     )?;
-    result.status = publish(&app, result.status);
+    result.status = publish(&app, &state, &*state.project()?);
     Ok(result)
 }
 
@@ -239,7 +242,7 @@ pub fn save_project_as<R: Runtime>(
         || pick_save_path(&app),
         |picked, target| confirm_overwrite(&app, picked, target),
     )?;
-    result.status = publish(&app, result.status);
+    result.status = publish(&app, &state, &*state.project()?);
     Ok(result)
 }
 

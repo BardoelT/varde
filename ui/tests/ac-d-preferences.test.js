@@ -35,13 +35,8 @@ test('test_csd002_ac_9_2_choosing_save_runs_the_save_and_clears_the_unsaved_indi
   const reads = exampleReads();
   reads.project_status = { has_path: false, unsaved_changes: true };
   const app = await openApp({ reads, handlers: { save_project: { status: savedStatus, done: true } } });
-  assert.equal(app.textOf('project-state-text'), 'Unsaved changes');
-  assert.equal(app.$('project-state').classList.contains('is-unsaved'), true);
-
   await app.emit('menu-action', 'project-save');
   assert.equal(app.callsOf('save_project').length, 1, 'File > Save calls the save command');
-  assert.equal(app.$('project-state').classList.contains('is-unsaved'), false, 'the indicator is cleared');
-  assert.equal(app.textOf('project-state-text'), 'All changes saved');
   app.close();
 });
 
@@ -121,8 +116,7 @@ test('test_csd008_ac_3_2_the_choice_is_not_an_unsaved_project_change', async () 
   await app.click(app.item('settings'));
   await app.choose(app.$('setting-theme'), 'light');
   assert.equal(dataTheme(app), 'light');
-  assert.equal(app.$('project-state').classList.contains('is-unsaved'), false, 'no unsaved indicator');
-  assert.equal(app.textOf('project-state-text'), 'All changes saved');
+  assert.equal(app.callsOf('save_project').length, 0, 'the choice is not saved to the project');
   app.close();
 });
 

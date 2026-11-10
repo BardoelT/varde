@@ -106,14 +106,14 @@ test('test_csd027_ac_11_2_an_open_dialog_blocks_project_undo', async () => {
   app.close();
 });
 
-test('test_csd002_ac_3_2_the_indicator_follows_undo_and_redo', async () => {
+test('test_csd002_ac_3_2_undo_and_redo_go_through_rust_which_keeps_the_window_title', async () => {
+  // The unsaved dot is in the native window title, set by Rust (CSD-024 AC-9.4, proven by cargo test).
   const app = await openWith();
-  const box = app.$('project-state');
 
   await app.emit('menu-action', 'project-undo');
-  assert.equal(box.classList.contains('is-unsaved'), false, 'back at the saved state');
-
   await app.emit('menu-action', 'project-redo');
-  assert.equal(box.classList.contains('is-unsaved'), true, 'a redo is an unsaved change again');
+  assert.equal(app.callsOf('undo').length, 1);
+  assert.equal(app.callsOf('redo').length, 1);
+  assert.equal(app.$('project-state'), null, 'no project status in the left pane');
   app.close();
 });

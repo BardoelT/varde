@@ -24,7 +24,7 @@ test('test_csd003_ac_1_1_settings_is_the_last_item_in_the_left_pane', async () =
   const order = [...sidebar.children].map((node) => node.className.split(' ')[0]);
   const settings = order.indexOf('sidebar-settings');
   assert.ok(settings > order.indexOf('sidebar-nav'), 'below the other navigation items');
-  assert.ok(settings < order.indexOf('sidebar-project'), 'above the project status indicator');
+  assert.equal(settings, order.length - 1, 'last in the left pane');
   assert.equal(app.text(sidebar.querySelector('.sidebar-settings .nav-item')), 'Settings');
   assert.equal(app.document.querySelectorAll('.sidebar-nav .nav-item[data-section="settings"]').length, 0, 'not among the other items');
   app.close();

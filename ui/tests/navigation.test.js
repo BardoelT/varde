@@ -103,17 +103,15 @@ test('test_csd024_ac_3_3_choosing_the_current_page_again', async () => {
   app.close();
 });
 
-test('test_csd024_ac_4_1_settings_and_project_status_are_pinned_at_the_bottom', async () => {
+test('test_csd024_ac_4_1_settings_is_pinned_at_the_bottom', async () => {
   const app = await openApp();
   const { document } = app;
   const nav = document.querySelector('.sidebar-nav');
   const settings = document.querySelector('.sidebar-settings');
-  const status = document.querySelector('.sidebar-project');
   assert.ok(!nav.contains(app.item('settings')), 'Settings is outside every group');
   assert.ok(settings.contains(app.item('settings')));
   assert.ok(nav.compareDocumentPosition(settings) & app.window.Node.DOCUMENT_POSITION_FOLLOWING, 'Settings below the groups');
-  assert.ok(settings.compareDocumentPosition(status) & app.window.Node.DOCUMENT_POSITION_FOLLOWING, 'status below Settings');
-  assert.ok(status.contains(app.$('project-state')));
+  assert.equal(document.querySelector('.sidebar').lastElementChild, settings, 'last item of the left pane');
   app.close();
 });
 
@@ -122,10 +120,17 @@ test('test_csd024_ac_4_2_pinned_items_stay_in_place', async () => {
   const sidebar = app.document.querySelector('.sidebar');
   await app.click(app.item('net-worth'));
   assert.deepEqual(shownSections(app), ['net-worth']);
-  assert.ok(sidebar.contains(app.item('settings')) && sidebar.contains(app.$('project-state')));
+  assert.ok(sidebar.contains(app.item('settings')));
   assert.equal(app.item('settings').closest('.section'), null, 'Settings belongs to no page');
   assert.equal(app.isShown(app.item('settings')), true);
-  assert.equal(app.isShown(app.$('project-state')), true);
+  app.close();
+});
+
+test('test_csd024_ac_4_3_no_project_status_in_the_left_pane', async () => {
+  const app = await openApp();
+  const sidebar = app.text(app.document.querySelector('.sidebar'));
+  for (const text of ['New project', 'Unsaved changes', 'All changes saved']) assert.ok(!sidebar.includes(text), `no "${text}"`);
+  assert.equal(app.document.querySelector('.sidebar-project'), null);
   app.close();
 });
 

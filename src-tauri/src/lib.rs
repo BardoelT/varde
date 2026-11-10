@@ -14,6 +14,9 @@ use commands::{
     project, ratios, settings, AppState,
 };
 
+/// The label of the one window.
+const MAIN_WINDOW: &str = "main";
+
 /// Event the frontend listens for to ask "quit with unsaved changes?".
 const CLOSE_REQUESTED_EVENT: &str = "close-requested";
 
@@ -26,13 +29,38 @@ fn has_unsaved_changes(state: &AppState) -> bool {
 
 /// Registers state, commands and the close confirmation on a builder. Shared by
 /// the real app and by the IPC tests, which run it on the mock runtime.
+#[cfg(test)]
+fn configure<R: Runtime>(builder: tauri::Builder<R>, utc_offset: UtcOffset) -> tauri::Builder<R> {
+    configure_with(builder, utc_offset, |_| Ok(()))
+}
+
+/// [`configure`] plus `startup`, which runs once the app exists and the window
+/// title follows the project (CSD-024 section 5).
 #[allow(
     clippy::too_many_lines,
     reason = "one flat list of the registered commands, one line per command"
 )]
-fn configure<R: Runtime>(builder: tauri::Builder<R>, utc_offset: UtcOffset) -> tauri::Builder<R> {
+fn configure_with<R: Runtime>(
+    builder: tauri::Builder<R>,
+    utc_offset: UtcOffset,
+    startup: impl FnOnce(&mut tauri::App<R>) -> Result<(), Box<dyn std::error::Error>> + Send + 'static,
+) -> tauri::Builder<R> {
     builder
         .manage(AppState::new(utc_offset))
+        .setup(move |app| {
+            let handle = app.handle().clone();
+            app.state::<AppState>().set_title_sink(move |title| {
+                if let Some(window) = handle.get_webview_window(MAIN_WINDOW) {
+                    let _ = window.set_title(title);
+                }
+            });
+            startup(app)?;
+            let state = app.state::<AppState>();
+            if let Ok(project) = state.project() {
+                state.sync_title(&project);
+            }
+            Ok(())
+        })
         .on_menu_event(|app, event| {
             // CSD-002 REQ-9: the frontend runs the action behind the item.
             let id = event.id().as_ref();
@@ -145,35 +173,34 @@ pub fn run() {
     // safely afterwards.
     let utc_offset = UtcOffset::current_local_offset().unwrap_or(UtcOffset::UTC);
 
-    let built = configure(
-        tauri::Builder::default()
-            .plugin(tauri_plugin_dialog::init())
-            .setup(|app| {
-                // CSD-002 REQ-8: reopen the last used project. Without a config
-                // folder the app simply starts empty.
-                let config_dir = app.path().app_config_dir().ok();
-                if let Some(dir) = &config_dir {
-                    if let Ok(mut project) = app.state::<AppState>().project() {
-                        project.restore(storage::LastProject::in_dir(dir));
-                    }
-                }
-
-                // CSD-008: the saved theme also goes to the native window, so
-                // it is right before the first page is shown (REQ-6, REQ-7).
-                let saved = config_dir.as_deref().map_or_else(
-                    storage::Preferences::unavailable,
-                    storage::Preferences::in_dir,
-                );
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.set_theme(preferences::window_theme(saved.load_theme()));
-                }
-                app.manage(saved);
-                Ok(())
-            })
-            // Native menus need the main thread, so the IPC tests skip this.
-            .menu(menu::build),
+    let built = configure_with(
+        tauri::Builder::default().plugin(tauri_plugin_dialog::init()),
         utc_offset,
+        |app| {
+            // CSD-002 REQ-8: reopen the last used project. Without a config
+            // folder the app simply starts empty.
+            let config_dir = app.path().app_config_dir().ok();
+            if let Some(dir) = &config_dir {
+                if let Ok(mut project) = app.state::<AppState>().project() {
+                    project.restore(storage::LastProject::in_dir(dir));
+                }
+            }
+
+            // CSD-008: the saved theme also goes to the native window, so
+            // it is right before the first page is shown (REQ-6, REQ-7).
+            let saved = config_dir.as_deref().map_or_else(
+                storage::Preferences::unavailable,
+                storage::Preferences::in_dir,
+            );
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_theme(preferences::window_theme(saved.load_theme()));
+            }
+            app.manage(saved);
+            Ok(())
+        },
     )
+    // Native menus need the main thread, so the IPC tests skip this.
+    .menu(menu::build)
     .build(tauri::generate_context!());
 
     let Ok(app) = built else {
@@ -219,3 +246,5 @@ mod ipc_history_tests;
 mod ipc_number_format_tests;
 #[cfg(test)]
 mod ipc_tests;
+#[cfg(test)]
+mod ipc_window_title_tests;
