@@ -3,9 +3,9 @@ id: CSD-002
 title: Project file (save, open, new)
 status: approved
 owner: Thijs Bardoel
-version: 2.1
-last_updated: 07/11/2026
-related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-026, CSD-027]
+version: 2.2
+last_updated: 09/11/2026
+related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-024, CSD-026, CSD-027]
 ---
 
 # CSD-002: Project file (save, open, new)
@@ -40,6 +40,7 @@ The app keeps all of the user's data in one local project file instead of a data
 | **Project file** | A JSON file with the extension `.varde` holding the project. Its sections and versioning are in REQ-16 to REQ-18. |
 | **Gone for good** | The remembered project file does not exist while its parent folder exists and can be read (for example the file was deleted). Any other reason the file cannot be opened is *transient* or a problem of the file itself, and the remembered path is kept (REQ-13). |
 | **Unsaved changes** | The in-memory project differs from the last saved or opened state. |
+| **Unsaved indicator** | The dot `●` after the file name in the window title (CSD-024 REQ-9). It is the only indicator: the app shows no status text in the left pane. |
 
 ## 4. Requirements
 
@@ -130,8 +131,8 @@ Scenario: Invalid file is rejected
 # @AC-2.3 (removed in v1.0): a file from a newer app version has its own error, see AC-18.1.
 ```
 
-**REQ-3: Unsaved-changes indicator** *(state-driven)*
-While the in-memory project differs from the last saved or opened state, the app shall show an unsaved-changes indicator.
+**REQ-3: Unsaved-changes indicator (the dot in the window title)** *(state-driven)*
+While the in-memory project differs from the last saved or opened state, the app shall show the unsaved indicator, the dot after the file name in the window title (CSD-024 REQ-9).
 
 ```gherkin
 @AC-3.1
@@ -259,7 +260,7 @@ Scenario: Choosing a menu item runs the action
 Scenario: No buttons in the window
   Given the app has started
   Then the app window has no New, Open, Save or Save As buttons
-  And the unsaved-changes indicator is still shown in the window
+  And the window title still shows the unsaved dot when there are unsaved changes (CSD-024 REQ-9)
 
 @AC-9.4
 Scenario: Menu actions respect unsaved changes
@@ -667,7 +668,7 @@ The unsaved flag and the project state live in Rust, so they are proven by `carg
 |---|---|
 | Rust tests | `cargo test test_csd002_`. One requirement, e.g. REQ-1: `cargo test test_csd002_ac_1_` |
 | AC-9.1 | `cargo test test_csd002_ac_9_` checks the table the menu is built from (ids, labels, shortcuts). Native menus can only be created on the main thread, so the built menu is on the manual checklist |
-| DOM tests (`npm test`) | `dialogs.test.js`: AC-3.1, AC-4.1, AC-7.1, AC-7.2, AC-9.3 (indicator, close, Open and New with and without unsaved changes, no buttons in the window); `ac-d-preferences.test.js`: AC-9.2, AC-9.4 (File > Save calls the save and clears the indicator, File > New and Open ask first). AC-4.2 is decided in Rust (`test_csd002_ac_4_2_...`, the close asks only when `has_unsaved_changes`) |
+| DOM tests (`npm test`) | `dialogs.test.js`: AC-4.1, AC-7.1, AC-7.2, AC-9.3 (close, Open and New with and without unsaved changes, no buttons in the window); `ac-d-preferences.test.js`: AC-9.2, AC-9.4 (File > Save calls the save, File > New and Open ask first). The unsaved indicator (AC-3.1, AC-3.2) is the dot in the native window title, so it is proven in Rust with CSD-024 AC-9.1 to AC-9.4 (`cargo test test_csd002_ac_3_` and `test_csd024_ac_9_`), no longer by a DOM test. AC-4.2 is decided in Rust (`test_csd002_ac_4_2_...`, the close asks only when `has_unsaved_changes`) |
 | Script (REQ-20, AC-20.1 to AC-20.5) | `npm test`: `scripts/tests/migrate-debt-opening.test.js` (`node:test`, synthetic fixtures in a temporary directory) |
 | Example project (REQ-21, REQ-22) | `cargo test example_project` (`src-tauri/src/example_project_tests.rs`: `test_csd002_ac_21_1_...` to `test_csd002_ac_21_4_...` and `test_csd002_ac_22_1_...`). After a deliberate change of the generator or of the format: `EXAMPLE_UPDATE=1 cargo test example`, then review the diff of `examples/` |
 | Manual checklist (native parts only) | The real File menu items and shortcuts (AC-9.1 to AC-9.4), the native save dialog, and a real window close without unsaved changes (AC-4.2: the mock runtime has no event loop to send it) |
@@ -685,6 +686,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-6: Should the app give a version 1 file its own message that names the upgrade script (a new error code), instead of the generic `PROJECT_INVALID_FILE` (AC-18.3)? The draft keeps the generic code, with no new code and no change to the notice texts. Owner: Thijs. Blocks: REQ-18, AC-18.3.
 
 ## 9. Changelog
+- 2.2 (09/11/2026): The unsaved indicator is the dot after the file name in the window title (CSD-024 v0.5 REQ-9, GitHub issue 20); the status text in the left pane is gone. REQ-3 and AC-9.3 reworded, new definition "Unsaved indicator", Verification says AC-3.1 and AC-3.2 are proven in Rust. Behaviour of saving, opening and the confirmations is unchanged. Back to `draft` until re-approved.
 - 2.1 (07/11/2026): Undo and redo of project data (CSD-027, GitHub issue 43): NG-2 says the in-memory undo history is not a backup, CON-6 says the Edit menu's Undo and Redo become the project items, new AC-3.2 (the indicator follows undo and redo). Saving is unchanged and does not clear the history. Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A settlement holds a required `origin`, `Sale` or `Manual` (CSD-026 v3.0, CSD-020 REQ-33), so the schema changes and `format_version` becomes 2, as the versioning policy requires for the next schema change: new AC-18.3 (a version 1 file is invalid until the script upgraded it), the newer-version examples now use version 3, AC-16.1 expects version 2. The one-off script of REQ-20 also adds the origin (`Sale` for a settlement on a linked debt, `Manual` otherwise) and sets the version (new AC-20.6, AC-20.4 reworded), and `examples/example.varde` is regenerated (REQ-21, REQ-22). Owner decisions from the grill-me interview of 04/11/2026. Still `draft`.
 - 1.5 (04/11/2026): New REQ-21 (AC-21.1 to AC-21.4) and REQ-22 (AC-22.1): the repository holds one synthetic example project, `examples/example.varde`, written by a test through the commands the UI calls and compared with the committed file; it is the one `*.varde` file that is tracked (CON-1 amended, `.gitignore` exception). New NG-8: no way to reach the example from inside the app. Owner decisions from the grill-me interview of 04/11/2026 (GitHub issue 30). Back to `draft` until re-approved.

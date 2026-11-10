@@ -21,7 +21,7 @@ test('test_csd029_ac_1_1_the_choice_and_its_options', async () => {
   await app.click(app.item('settings'));
   const panel = settingsPanel(app);
   const names = [...panel.querySelectorAll('.setting-name')].map((label) => app.text(label));
-  assert.deepEqual(names, ['Theme', 'Language', 'Number format'], 'Number format is below Language');
+  assert.deepEqual(names, ['Theme', 'Language', 'Number format', 'Discrete mode'], 'Number format is below Language');
   const select = app.$('setting-number-format');
   assert.ok(panel.contains(select));
   assert.deepEqual(
@@ -71,7 +71,7 @@ test('test_csd029_ac_3_2_the_choice_is_not_an_unsaved_change', async () => {
   const app = await openApp();
   await app.click(app.item('settings'));
   await app.choose(app.$('setting-number-format'), 'comma_point');
-  assert.equal(app.isShown(app.$('project-state')) && app.textOf('project-state-text').includes('Unsaved'), false);
+  assert.equal(app.callsOf('save_project').length, 0, 'nothing is written to the project');
   app.close();
 });
 

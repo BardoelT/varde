@@ -7,7 +7,7 @@
 // arithmetic here is turning received values into positions (CSD-025 REQ-5).
 import { invoke } from './ipc.js';
 import { t } from './i18n.js';
-import { formatLabel } from './number-format.js';
+import { formatAmountLabel } from './number-format.js';
 import { svg, toPosition, segmentShape, createTooltip, bindHighlight } from './chart.js';
 
 const MARGIN = { top: 28, right: 16, left: 48 };
@@ -57,7 +57,7 @@ export function levelMarker(marker, { centre, barWidth, yOf }) {
   return [
     svg('line', { class: 'chart-marker-hit', 'data-legend': 'marker', x1: centre - half, x2: centre + half, y1: y, y2: y }),
     svg('line', { class: 'chart-marker', 'data-legend': 'marker', x1: centre - half, x2: centre + half, y1: y, y2: y }),
-    svg('text', { class: 'chart-marker-label', x: centre, y: y - 7 }, formatLabel(marker.label)),
+    svg('text', { class: 'chart-marker-label', x: centre, y: y - 7 }, formatAmountLabel(marker.label)),
   ];
 }
 
@@ -118,7 +118,7 @@ export function createYearlyChart(strategy) {
       const lineClass = toPosition(tick.value) === 0 ? 'chart-zero' : 'chart-grid';
       chart.append(
         svg('line', { class: lineClass, x1: margin.left, x2: margin.left + plotWidth, y1: y, y2: y }),
-        svg('text', { class: 'chart-axis-label', x: margin.left - 8, y: y + 4 }, formatLabel(tick.label)),
+        svg('text', { class: 'chart-axis-label', x: margin.left - 8, y: y + 4 }, formatAmountLabel(tick.label)),
       );
     }
 

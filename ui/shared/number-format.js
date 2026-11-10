@@ -3,6 +3,8 @@
 // computes every figure and reads every typed amount; the project file and IPC stay canonical
 // ("1234.50"). Nothing here changes a value, only how it is written.
 
+import { HIDDEN, isDiscrete } from './discrete-mode.js';
+
 /** The three formats, their separators and the example the Settings page shows. */
 const FORMATS = {
   point_comma: { group: ',', decimal: '.', example: '1,234.50' },
@@ -41,11 +43,19 @@ export async function setNumberFormat(code) {
 const group = (digits, separator) => digits.replace(/\B(?=(\d{3})+(?!\d))/g, separator);
 
 /** Writes a canonical decimal string such as "-1234567.50" in the current format: "-1.234.567,50". */
-export function formatAmount(text) {
+function writeNumber(text) {
   const { group: grouping, decimal } = FORMATS[current];
   const [whole, fraction] = String(text).split('.');
   const grouped = group(whole, grouping);
   return fraction === undefined ? grouped : `${grouped}${decimal}${fraction}`;
+}
+
+/**
+ * Writes an amount in the current format, or the placeholder of a hidden amount while Discrete
+ * mode is on, whatever the amount and its sign (CSD-030 REQ-5, CON-5).
+ */
+export function formatAmount(text) {
+  return isDiscrete() ? HIDDEN : writeNumber(text);
 }
 
 /** The text of an amount for an input field: the decimal separator of the format, no grouping. */
@@ -62,11 +72,22 @@ export const formatLabel = (text) =>
   typeof text === 'string' ? text.replace(/(\d)\.(\d)/g, `$1${FORMATS[current].decimal}$2`) : text;
 
 /**
+ * Writes a label of an amount that Rust built ("1.50k", "500": the axis and marker labels of a
+ * chart) like `formatLabel`, or the placeholder while Discrete mode is on (CSD-030 REQ-5).
+ */
+export const formatAmountLabel = (text) => (isDiscrete() ? HIDDEN : formatLabel(text));
+
+/**
  * Writes the amounts inside a text ("such as 3000.00") in the current format. A hint shows an example
- * as it is typed, with the decimal separator only; a message groups it like any other amount.
+ * as it is typed, with the decimal separator only; a message groups it like any other amount, or
+ * hides it while Discrete mode is on.
  */
 export const localiseNumbers = (text, { grouped = true } = {}) =>
-  text.replace(/(?<![\w.,'])-?\d+\.\d\d(?!\w|\.\d)/g, (amount) => (grouped ? formatAmount(amount) : amountForInput(amount)));
+  text.replace(/(?<![\w.,'])-?\d+\.\d\d(?!\w|\.\d)/g, (amount, offset, whole) => {
+    if (!grouped) return amountForInput(amount);
+    // A percentage stays readable while the mode is on (CSD-030 REQ-6, REQ-8).
+    return whole[offset + amount.length] === '%' ? writeNumber(amount) : formatAmount(amount);
+  });
 
 /**
  * Reads an amount typed in `code` as `{ negative, digits, fraction, grouped }`, or `null` when it

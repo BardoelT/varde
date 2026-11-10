@@ -44,6 +44,24 @@ pub(crate) fn harness_in(config_dir: &std::path::Path) -> Harness {
 }
 
 impl Harness {
+    /// The title the app last set on the main window (the mock runtime keeps none).
+    pub(crate) fn title(&self) -> String {
+        self.window
+            .state::<crate::commands::AppState>()
+            .last_title()
+    }
+
+    /// Runs `action` on the open project, for tests that need a file without a
+    /// native dialog.
+    pub(crate) fn with_project<T>(
+        &self,
+        action: impl FnOnce(&mut crate::storage::Project) -> T,
+    ) -> T {
+        let state = self.window.state::<crate::commands::AppState>();
+        let mut project = state.project().unwrap();
+        action(&mut project)
+    }
+
     pub(crate) fn call(&self, command: &str, args: Value) -> Result<Value, Value> {
         let request = InvokeRequest {
             cmd: command.into(),
@@ -1119,13 +1137,19 @@ fn test_csd008_the_theme_is_chosen_saved_and_restored_over_ipc() {
     // AC-2.1: nothing saved yet means System.
     assert_eq!(
         app.ok("get_preferences", json!({})),
-        json!({ "theme": "system", "language": "en", "number_format": "point_comma" })
+        json!({
+            "theme": "system", "language": "en", "number_format": "point_comma",
+            "discrete_mode": false
+        })
     );
 
     // AC-3.2: choosing a theme is not an unsaved project change.
     assert_eq!(
         app.ok("set_theme", json!({ "theme": "dark" })),
-        json!({ "theme": "dark", "language": "en", "number_format": "point_comma" })
+        json!({
+            "theme": "dark", "language": "en", "number_format": "point_comma",
+            "discrete_mode": false
+        })
     );
     assert_eq!(app.ok("get_preferences", json!({}))["theme"], "dark");
     assert_eq!(

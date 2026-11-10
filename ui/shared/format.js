@@ -6,7 +6,7 @@ export function formatDate(iso) {
 }
 
 // Amounts, percentages and typed amounts follow the number format the user chose (CSD-029).
-export { formatAmount, formatLabel, amountForInput } from './number-format.js';
+export { formatAmount, formatAmountLabel, formatLabel, amountForInput } from './number-format.js';
 
 /** The current calendar year as text, such as "2026". */
 export function currentYear() {

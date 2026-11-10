@@ -2,11 +2,9 @@
 export default {
   '{year} YTD': '{year} YTD',
   'Outcome of {debt}': 'Uitkomst van {debt}',
+  'hidden amount': 'verborgen bedrag',
   'Repaid': 'Afgelost',
   'Cancelled': 'Kwijtgescholden',
-  'Unsaved changes': 'Niet-opgeslagen wijzigingen',
-  'All changes saved': 'Alle wijzigingen opgeslagen',
-  'New project': 'Nieuw project',
   'Discard unsaved changes?': 'Niet-opgeslagen wijzigingen verwerpen?',
   'Discard changes': 'Wijzigingen verwerpen',
   'You have unsaved changes. If you start a new project, they will be lost.': 'Je hebt niet-opgeslagen wijzigingen. Als je een nieuw project start, gaan ze verloren.',

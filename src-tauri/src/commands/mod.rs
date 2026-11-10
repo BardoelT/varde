@@ -14,11 +14,11 @@ pub mod ratios;
 pub mod settings;
 
 use std::ops::{Deref, DerefMut};
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use time::{Date, OffsetDateTime, UtcOffset};
 
-use crate::domain::{NumberFormat, ProjectData, YearMonth};
+use crate::domain::{window_title, NumberFormat, ProjectData, YearMonth};
 use crate::error::AppError;
 use crate::storage::{Project, StepLabel};
 
@@ -46,6 +46,7 @@ pub(crate) fn typed_amount_opt(format: NumberFormat, text: Option<String>) -> Op
 /// that altered the data, the change becomes one undo step (CSD-027 REQ-3).
 /// A rejected change alters nothing and records nothing (REQ-7).
 pub struct Edit<'a> {
+    state: &'a AppState,
     project: MutexGuard<'a, Project>,
     label: StepLabel,
     before: Option<ProjectData>,
@@ -70,13 +71,22 @@ impl Drop for Edit<'_> {
         if let Some(before) = self.before.take() {
             self.project.record_step(self.label, before);
         }
+        self.state.sync_title(&self.project);
     }
 }
+
+/// Puts a title on the main window.
+type TitleSink = Box<dyn Fn(&str) + Send + Sync>;
 
 /// Shared app state: the open project and the local UTC offset, read once at
 /// startup while the process is still single-threaded.
 pub struct AppState {
     project: Mutex<Project>,
+    /// Sets the window title; installed once the app exists (CSD-024 section 5).
+    title_sink: OnceLock<TitleSink>,
+    /// The title last set, which a test can read where the mock runtime keeps none.
+    #[cfg(test)]
+    last_title: Mutex<String>,
     utc_offset: UtcOffset,
     /// A fixed "today" so tests that compare whole outputs do not depend on
     /// the clock.
@@ -90,6 +100,9 @@ impl AppState {
     pub fn new(utc_offset: UtcOffset) -> Self {
         Self {
             project: Mutex::new(Project::new()),
+            title_sink: OnceLock::new(),
+            #[cfg(test)]
+            last_title: Mutex::new(String::new()),
             utc_offset,
             #[cfg(test)]
             fixed_today: Mutex::new(None),
@@ -116,10 +129,42 @@ impl AppState {
         let project = self.project()?;
         let before = Some(project.snapshot());
         Ok(Edit {
+            state: self,
             project,
             label,
             before,
         })
+    }
+
+    /// Installs what sets the window title. Only the first call counts.
+    pub fn set_title_sink(&self, sink: impl Fn(&str) + Send + Sync + 'static) {
+        let _ = self.title_sink.set(Box::new(sink));
+    }
+
+    /// Makes the window title follow `project`: its file name and whether it
+    /// has unsaved changes (CSD-024 REQ-8, REQ-9). Called after every change
+    /// of the project state, while the project is still locked.
+    pub fn sync_title(&self, project: &Project) {
+        let title = window_title(
+            project.file_name().as_deref(),
+            project.status().unsaved_changes,
+        );
+        #[cfg(test)]
+        if let Ok(mut last) = self.last_title.lock() {
+            last.clone_from(&title);
+        }
+        if let Some(sink) = self.title_sink.get() {
+            sink(&title);
+        }
+    }
+
+    /// The title last set on the window.
+    #[cfg(test)]
+    pub fn last_title(&self) -> String {
+        self.last_title
+            .lock()
+            .map(|t| t.clone())
+            .unwrap_or_default()
     }
 
     /// The current calendar month in local time (CSD-001 REQ-5).

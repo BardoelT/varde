@@ -16,7 +16,7 @@ const indexHtml = readFileSync(`${uiDir}index.html`, 'utf8');
 /** Names jsdom provides that the pages use as globals. */
 const GLOBALS = [
   'window', 'document', 'Node', 'NodeFilter', 'HTMLElement', 'Event', 'KeyboardEvent', 'MouseEvent',
-  'InputEvent', 'CustomEvent', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame',
+  'InputEvent', 'CustomEvent', 'MutationObserver', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame',
 ];
 // The pages use Node's timers (the toast hides itself after 6 s). They must not keep a finished
 // test process alive, so the timers a test starts are unref'ed.

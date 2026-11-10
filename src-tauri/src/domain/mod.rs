@@ -18,6 +18,7 @@ pub mod project_data;
 pub mod ratios;
 pub(crate) mod series;
 pub mod settings;
+pub mod window_title;
 
 pub use bank_accounts::{
     BankAccount, BankAccountId, BankAccounts, BankBalance, BankEntry, BankInsights, BankOverview,
@@ -49,3 +50,4 @@ pub use preferences::{Language, Theme};
 pub use project_data::ProjectData;
 pub use ratios::Ratios;
 pub use settings::Settings;
+pub use window_title::window_title;

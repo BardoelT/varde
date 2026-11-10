@@ -3,8 +3,8 @@ id: CSD-003
 title: Project settings
 status: approved
 owner: Thijs Bardoel
-version: 1.1
-last_updated: 03/11/2026
+version: 1.2
+last_updated: 09/11/2026
 related: [CSD-001, CSD-002, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-019]
 ---
 
@@ -56,14 +56,14 @@ sequenceDiagram
 ```
 
 **REQ-1: Settings page** *(ubiquitous)*
-The app shall offer a page "Settings" as the last navigation item of the left pane, above the project status indicator.
+The app shall offer a page "Settings" as the last navigation item of the left pane, pinned at the bottom (CSD-024 REQ-4).
 
 ```gherkin
 @AC-1.1
 Scenario: Settings is the last item in the left pane
   Given the app has started
   Then the left pane shows "Settings" below the other navigation items
-  And it is above the project status indicator
+  And it is the last item of the left pane
 
 @AC-1.2
 Scenario: The page shows the currency setting
@@ -338,6 +338,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 1.2 (09/11/2026): REQ-1 and AC-1.1 no longer mention the project status indicator, which left the left pane (CSD-024 v0.5, GitHub issue 20). No behaviour change for Settings. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 1.0 (03/11/2026): First release, no legacy. NG-5 removed and AC-7.2 removed: a file without a `settings` section is rejected (new AC-7.4, CSD-002 REQ-17). Section 5 no longer says "next to income" and points to the sections list of CSD-002. The Settings page definition names both preferences, theme and language. CON-6 added (CSD-000 CON-8). Display ACs are covered by DOM tests. The save-overwrite and startup-restore behaviour of decision D14 lives in CSD-002 (REQ-12 to REQ-15). Back to `draft` until re-approved.
 - 0.12 (30/10/2026): House valuations (formerly asset valuations) count for the currency confirmation: wording only. Back to `draft` until re-approved (GitHub issue 31).
