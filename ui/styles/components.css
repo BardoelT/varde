@@ -124,7 +124,7 @@
 /* ── Discrete mode (CSD-030) ── */
 
 .discrete-badge {
-  margin-left: auto;
+  align-self: center;
   padding: 2px 8px;
   border-radius: 999px;
   background: rgba(224,176,74,.18);
