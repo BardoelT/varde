@@ -3,6 +3,8 @@ import { errorText, listen } from './shared/ipc.js';
 import { showToast } from './shared/dom.js';
 import { collectStaticTexts, onLanguageChange } from './shared/i18n.js';
 import { onNumberFormatChange } from './shared/number-format.js';
+import { onDiscreteModeChange } from './shared/discrete-mode.js';
+import './shared/hidden-amounts.js';
 import { initDateMasks } from './shared/date-mask.js';
 import { resetAllFilters } from './shared/statement-filter.js';
 import { initProject, refreshProjectStatus } from './pages/project.js';
@@ -18,7 +20,7 @@ import { initDebtsInsights, reloadDebtsInsightsIfOpen } from './pages/debts-insi
 import { initDebtsOverview, reloadDebtsOverview } from './pages/debts-overview.js';
 import { initExpensesInsights, reloadExpensesInsightsIfOpen } from './pages/expenses-insights.js';
 import { initExpensesOverview, reloadExpensesOverview } from './pages/expenses-overview.js';
-import { initSettings, loadPreferences, reloadSettings } from './pages/settings.js';
+import { initSettings, loadPreferences, reloadSettings, toggleDiscreteMode } from './pages/settings.js';
 import { reloadDashboard } from './pages/dashboard.js';
 import { initNetWorth, reloadNetWorthIfOpen } from './pages/net-worth.js';
 import { initRatios, reloadRatiosIfOpen } from './pages/ratios.js';
@@ -140,12 +142,16 @@ async function start() {
   onLanguageChange(redraw);
   // A new number format redraws every figure (CSD-029 REQ-3).
   onNumberFormatChange(redraw);
+  // Discrete mode redraws every figure as shown or hidden (CSD-030 REQ-3).
+  onDiscreteModeChange(redraw);
 
   // Settings… in the app menu, and ⌘, (CSD-003 REQ-2).
   await listen('menu-action', (event) => {
     if (event.payload === 'open-settings') {
       document.querySelector('[data-section="settings"]').click();
     }
+    // Discrete Mode in the View menu, and ⌘⇧D (CSD-030 REQ-11).
+    if (event.payload === 'toggle-discrete-mode') toggleDiscreteMode();
   });
 
   // Opening the dashboard recomputes it, so it never shows stale months.

@@ -146,6 +146,7 @@ fn configure_with<R: Runtime>(
             preferences::set_theme,
             preferences::set_language,
             preferences::set_number_format,
+            preferences::set_discrete_mode,
             project::project_status,
             project::undo,
             project::redo,
@@ -238,6 +239,8 @@ mod ipc_ac_tests_c1;
 mod ipc_ac_tests_c2;
 #[cfg(test)]
 mod ipc_ac_tests_d;
+#[cfg(test)]
+mod ipc_discrete_mode_tests;
 #[cfg(test)]
 mod ipc_filter_tests;
 #[cfg(test)]

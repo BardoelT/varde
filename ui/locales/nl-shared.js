@@ -2,6 +2,7 @@
 export default {
   '{year} YTD': '{year} YTD',
   'Outcome of {debt}': 'Uitkomst van {debt}',
+  'hidden amount': 'verborgen bedrag',
   'Repaid': 'Afgelost',
   'Cancelled': 'Kwijtgescholden',
   'Discard unsaved changes?': 'Niet-opgeslagen wijzigingen verwerpen?',

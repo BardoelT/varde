@@ -3,7 +3,10 @@
 //! Settings… in the app menu (CSD-003 REQ-2); everything else is Tauri's
 //! standard menu, which keeps copy and paste working in text fields.
 
-use tauri::menu::{IsMenuItem, Menu, MenuItem, MenuItemBuilder, MenuItemKind, PredefinedMenuItem};
+use tauri::menu::{
+    AboutMetadata, CheckMenuItem, CheckMenuItemBuilder, IsMenuItem, Menu, MenuItem,
+    MenuItemBuilder, MenuItemKind, PredefinedMenuItem,
+};
 use tauri::{AppHandle, Manager, Runtime};
 
 use crate::storage::{ProjectStatus, StepLabel};
@@ -27,10 +30,71 @@ pub const SETTINGS: (&str, &str, &str) = ("open-settings", "Settings…", "CmdOr
 pub const UNDO: (&str, &str, &str) = ("project-undo", "Undo", "CmdOrCtrl+Z");
 pub const REDO: (&str, &str, &str) = ("project-redo", "Redo", "CmdOrCtrl+Shift+Z");
 
+/// What the About panel shows (CSD-031 REQ-1). Plain text, English only, like
+/// the rest of the native menu.
+#[derive(Debug, PartialEq, Eq)]
+pub struct AboutInfo {
+    pub name: &'static str,
+    /// The version of the package as built, the one source of the number (REQ-2).
+    pub version: &'static str,
+    pub description: &'static str,
+    pub copyright: &'static str,
+    pub license: &'static str,
+    pub website: &'static str,
+}
+
+/// The content of the About panel.
+pub const ABOUT: AboutInfo = AboutInfo {
+    name: "Varde",
+    version: env!("CARGO_PKG_VERSION"),
+    description: "Personal wealth tracking. Your data stays on this computer.",
+    copyright: "© 2026 Thijs Bardoel",
+    license: "GPL-3.0-only",
+    website: "https://github.com/BardoelT/varde",
+};
+
+impl AboutInfo {
+    /// The text under the name. macOS shows only the name, version, copyright
+    /// and these credits, so the description, licence and website go here.
+    #[must_use]
+    pub fn credits(&self) -> String {
+        format!(
+            "{}\n\nLicence: {}\n{}",
+            self.description, self.license, self.website
+        )
+    }
+
+    /// The metadata of the native panel, with the app icon passed explicitly so
+    /// it also shows in a development run (REQ-1, AC-1.2).
+    #[must_use]
+    pub fn metadata(&self, icon: Option<tauri::image::Image<'static>>) -> AboutMetadata<'static> {
+        AboutMetadata {
+            name: Some(self.name.to_owned()),
+            version: Some(self.version.to_owned()),
+            copyright: Some(self.copyright.to_owned()),
+            comments: Some(self.description.to_owned()),
+            license: Some(self.license.to_owned()),
+            website: Some(self.website.to_owned()),
+            credits: Some(self.credits()),
+            icon,
+            ..AboutMetadata::default()
+        }
+    }
+}
+
+/// The checkable Discrete Mode item of the View menu: id, label and shortcut
+/// (CSD-030 REQ-11).
+pub const DISCRETE_MODE: (&str, &str, &str) =
+    ("toggle-discrete-mode", "Discrete Mode", "CmdOrCtrl+Shift+D");
+
 /// Whether `id` is an item whose action the frontend runs.
 #[must_use]
 pub fn is_forwarded_item(id: &str) -> bool {
-    id == SETTINGS.0 || id == UNDO.0 || id == REDO.0 || ITEMS.iter().any(|(item, _, _)| *item == id)
+    id == SETTINGS.0
+        || id == DISCRETE_MODE.0
+        || id == UNDO.0
+        || id == REDO.0
+        || ITEMS.iter().any(|(item, _, _)| *item == id)
 }
 
 /// The text of an Undo or Redo item: the verb, followed by the step it applies
@@ -63,7 +127,20 @@ pub fn sync<R: Runtime>(app: &AppHandle<R>, status: ProjectStatus) {
     }
 }
 
+/// The Discrete Mode item, kept so its check mark can follow the saved preference.
+pub struct DiscreteModeItem<R: Runtime>(CheckMenuItem<R>);
+
+/// Makes the check mark of the Discrete Mode item show `on`. Without a built
+/// menu, as in the IPC tests, there is nothing to update.
+pub fn sync_discrete_mode<R: Runtime>(app: &AppHandle<R>, on: bool) {
+    if let Some(item) = app.try_state::<DiscreteModeItem<R>>() {
+        // A menu that cannot be updated must not fail the command behind it.
+        let _ = item.0.set_checked(on);
+    }
+}
+
 const FILE_MENU: &str = "File";
+const VIEW_MENU: &str = "View";
 const EDIT_MENU: &str = "Edit";
 
 /// In the default macOS app menu: About, separator, then the rest. Settings…
@@ -111,6 +188,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
             _ => None,
         })
         .ok_or(tauri::Error::InvalidWindowHandle)?;
+    replace_about(app, &app_menu)?;
     let (id, label, accelerator) = SETTINGS;
     let settings = MenuItemBuilder::with_id(id, label)
         .accelerator(accelerator)
@@ -119,7 +197,55 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     app_menu.insert_items(&[&settings, &after_settings], SETTINGS_POSITION)?;
 
     replace_undo_and_redo(app, &menu)?;
+    add_discrete_mode(app, &menu)?;
     Ok(menu)
+}
+
+/// Puts the checkable Discrete Mode item at the top of the View menu.
+fn add_discrete_mode<R: Runtime>(app: &AppHandle<R>, menu: &Menu<R>) -> tauri::Result<()> {
+    let view = menu
+        .items()?
+        .into_iter()
+        .find_map(|item| match item {
+            MenuItemKind::Submenu(submenu) if submenu.text().is_ok_and(|t| t == VIEW_MENU) => {
+                Some(submenu)
+            }
+            _ => None,
+        })
+        .ok_or(tauri::Error::InvalidWindowHandle)?;
+    let (id, label, accelerator) = DISCRETE_MODE;
+    let item = CheckMenuItemBuilder::with_id(id, label)
+        .accelerator(accelerator)
+        .checked(false)
+        .build(app)?;
+    let separator = PredefinedMenuItem::separator(app)?;
+    view.insert_items(&[&item, &separator], 0)?;
+    app.manage(DiscreteModeItem(item));
+    Ok(())
+}
+
+/// Swaps the predefined About item of the app menu for one with the Varde
+/// content (CSD-031). It keeps the first position.
+fn replace_about<R: Runtime>(
+    app: &AppHandle<R>,
+    app_menu: &tauri::menu::Submenu<R>,
+) -> tauri::Result<()> {
+    for item in app_menu.items()? {
+        if let MenuItemKind::Predefined(predefined) = &item {
+            if predefined
+                .text()
+                .is_ok_and(|text| text.starts_with("About"))
+            {
+                app_menu.remove(&item)?;
+            }
+        }
+    }
+    // The icon is embedded in the binary from the first icon of tauri.conf.json.
+    let icon = app
+        .default_window_icon()
+        .map(|icon| icon.clone().to_owned());
+    let about = PredefinedMenuItem::about(app, Some("About Varde"), Some(ABOUT.metadata(icon)))?;
+    app_menu.insert(&about, 0)
 }
 
 /// Swaps the predefined Undo and Redo of the Edit menu for the project items.
@@ -168,6 +294,69 @@ mod tests {
     // not run on. The table the menu is built from is tested here; the built
     // menu is part of the manual checklist (CSD-002 section 7).
     #[test]
+    fn test_csd030_ac_11_1_the_item_has_the_shortcut() {
+        assert_eq!(
+            DISCRETE_MODE,
+            ("toggle-discrete-mode", "Discrete Mode", "CmdOrCtrl+Shift+D")
+        );
+    }
+
+    #[test]
+    fn test_csd031_ac_1_1_the_panel_shows_the_app_information() {
+        assert_eq!(ABOUT.name, "Varde");
+        assert_eq!(
+            ABOUT.description,
+            "Personal wealth tracking. Your data stays on this computer."
+        );
+        assert_eq!(ABOUT.copyright, "© 2026 Thijs Bardoel");
+        assert_eq!(ABOUT.license, "GPL-3.0-only");
+        assert_eq!(ABOUT.website, "https://github.com/BardoelT/varde");
+        let metadata = ABOUT.metadata(None);
+        assert_eq!(metadata.name.as_deref(), Some("Varde"));
+        assert_eq!(metadata.copyright.as_deref(), Some("© 2026 Thijs Bardoel"));
+        // macOS shows the credits, so they carry the description, licence and website.
+        let credits = metadata.credits.unwrap();
+        for text in [ABOUT.description, ABOUT.license, ABOUT.website] {
+            assert!(credits.contains(text), "{credits}");
+        }
+    }
+
+    #[test]
+    fn test_csd031_ac_1_3_the_panel_text_is_english() {
+        // Constants, not translated texts (CSD-022 NG-6): the language setting never reaches them.
+        assert!(ABOUT.credits().starts_with("Personal wealth tracking."));
+    }
+
+    #[test]
+    fn test_csd031_ac_2_1_the_version_is_the_package_version() {
+        assert_eq!(ABOUT.version, env!("CARGO_PKG_VERSION"));
+        assert_eq!(ABOUT.metadata(None).version.as_deref(), Some(ABOUT.version));
+    }
+
+    #[test]
+    fn test_csd031_ac_2_2_package_and_bundle_versions_agree() {
+        let config: serde_json::Value =
+            serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        let bundle = config["version"].as_str().unwrap();
+        assert_eq!(
+            bundle,
+            env!("CARGO_PKG_VERSION"),
+            "tauri.conf.json says {bundle}, Cargo.toml says {}",
+            env!("CARGO_PKG_VERSION")
+        );
+    }
+
+    #[test]
+    fn test_csd031_ac_1_2_the_first_configured_icon_is_a_large_png() {
+        // The About panel gets the default window icon, which Tauri takes from the
+        // first .png in tauri.conf.json: it must be the sharp one.
+        let config: serde_json::Value =
+            serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        let first = config["bundle"]["icon"][0].as_str().unwrap();
+        assert_eq!(first, "icons/128x128@2x.png");
+    }
+
+    #[test]
     fn test_csd002_ac_9_1_menu_table_matches_the_spec() {
         let spec = [
             ("project-new", "New", "CmdOrCtrl+N"),
@@ -209,6 +398,7 @@ mod tests {
         assert!(is_forwarded_item("project-undo"));
         assert!(is_forwarded_item("project-redo"));
         assert!(is_forwarded_item("open-settings"));
+        assert!(is_forwarded_item("toggle-discrete-mode"));
         assert!(!is_forwarded_item("quit"));
         assert!(!is_forwarded_item(""));
     }

@@ -16,6 +16,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header">
+        <div class="sidebar-brand">
         <div class="logo-mark">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <ellipse cx="12" cy="18.5" rx="8" ry="2.6" fill="#B8B2A7"/>
@@ -25,6 +26,8 @@
           </svg>
         </div>
         <span class="app-name">Varde</span>
+        </div>
+        <span class="discrete-badge" id="discrete-badge" hidden>Discrete mode</span>
       </div>
 
       <nav class="sidebar-nav" aria-label="Main navigation">
@@ -714,6 +717,13 @@
               <option value="comma_point">1.234,50</option>
               <option value="apostrophe_comma">1'234,50</option>
             </select>
+          </div>
+          <div class="setting-row">
+            <div class="setting-text">
+              <label class="setting-name" for="setting-discrete-mode">Discrete mode</label>
+              <p class="setting-help" id="setting-discrete-mode-help">Hides every amount behind a blur, so you can show the app to someone else. Percentages stay visible. This applies to the app on this Mac, not to the project.</p>
+            </div>
+            <input type="checkbox" role="switch" class="switch" id="setting-discrete-mode" aria-describedby="setting-discrete-mode-help">
           </div>
         </div>
       </section>

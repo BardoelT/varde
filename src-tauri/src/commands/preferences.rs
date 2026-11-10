@@ -4,10 +4,11 @@
 )]
 
 use serde::Serialize;
-use tauri::{Runtime, State, Window};
+use tauri::{AppHandle, Runtime, State, Window};
 
 use crate::domain::{Language, NumberFormat, Theme};
 use crate::error::AppError;
+use crate::menu;
 use crate::storage::Preferences;
 
 /// The application preferences as the frontend needs them (CSD-008).
@@ -16,6 +17,7 @@ pub struct PreferencesView {
     theme: Theme,
     language: Language,
     number_format: NumberFormat,
+    discrete_mode: bool,
 }
 
 /// The language as `set_language` answers it (CSD-022).
@@ -35,14 +37,21 @@ pub fn window_theme(theme: Theme) -> Option<tauri::Theme> {
     }
 }
 
-/// The saved theme, language and number format: System, English and 1,234.50 when there is none or it
+/// The saved theme, language, number format and discrete mode: System, English, 1,234.50 and off when there is none or it
 /// cannot be read (CSD-008 REQ-2, REQ-8, CSD-022 REQ-2, REQ-8).
 #[tauri::command]
-pub fn get_preferences(preferences: State<'_, Preferences>) -> PreferencesView {
+pub fn get_preferences<R: Runtime>(
+    app: AppHandle<R>,
+    preferences: State<'_, Preferences>,
+) -> PreferencesView {
+    let discrete_mode = preferences.load_discrete_mode();
+    // The first thing the frontend asks at start: the menu exists by now.
+    menu::sync_discrete_mode(&app, discrete_mode);
     PreferencesView {
         theme: preferences.load_theme(),
         language: preferences.load_language(),
         number_format: preferences.load_number_format(),
+        discrete_mode,
     }
 }
 
@@ -63,6 +72,7 @@ pub fn set_theme<R: Runtime>(
         theme,
         language: preferences.load_language(),
         number_format: preferences.load_number_format(),
+        discrete_mode: preferences.load_discrete_mode(),
     })
 }
 
@@ -91,5 +101,28 @@ pub fn set_number_format(
         theme: preferences.load_theme(),
         language: preferences.load_language(),
         number_format,
+        discrete_mode: preferences.load_discrete_mode(),
+    })
+}
+
+/// Saves Discrete mode and makes the menu item agree with the saved value.
+/// Saving comes first, so a failed save changes nothing (CSD-030 REQ-14); the
+/// check mark is set from what is saved either way, because the native item
+/// flips itself when it is chosen (REQ-11).
+#[tauri::command]
+pub fn set_discrete_mode<R: Runtime>(
+    app: AppHandle<R>,
+    preferences: State<'_, Preferences>,
+    discrete_mode: bool,
+) -> Result<PreferencesView, AppError> {
+    let stored = preferences.store_discrete_mode(discrete_mode);
+    let saved = preferences.load_discrete_mode();
+    menu::sync_discrete_mode(&app, saved);
+    stored?;
+    Ok(PreferencesView {
+        theme: preferences.load_theme(),
+        language: preferences.load_language(),
+        number_format: preferences.load_number_format(),
+        discrete_mode: saved,
     })
 }
