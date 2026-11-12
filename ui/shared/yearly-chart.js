@@ -66,7 +66,7 @@ export function levelMarker(marker, { centre, barWidth, yOf }) {
  * Its parts are found as `${id}-legend`, `${id}-empty`, `${id}-scroll` and
  * `${id}-chart`. The strategy:
  *
- * - `command`, `ariaLabel`: the Rust command that returns `{ axis, years }`, and the chart's name
+ * - `command`, `args` (optional), `ariaLabel`: the Rust command that returns `{ axis, years }`, its arguments, and the chart's name
  * - the size is the same for every chart: slots as wide as `CHART_SIZE` says, and a plot as high as the window allows
  * - `pieceStyle(row, piece)`: what the page adds to a received piece `{ series, low, high, hangs, rounding }`:
  *   `{ cssClass, label? }`, the colour class and the accessible name. The pieces, their order and their
@@ -177,7 +177,7 @@ export function createYearlyChart(strategy) {
 
   /** Loads the series from Rust and draws it, or shows the note when there is nothing yet. */
   async function reload() {
-    const data = await invoke(strategy.command);
+    const data = await invoke(strategy.command, strategy.args);
     const { years } = data;
     strategy.onLoaded?.(data);
     part('empty').hidden = years.length > 0;

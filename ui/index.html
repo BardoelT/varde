@@ -607,6 +607,7 @@
         <div class="tabs" role="tablist" aria-label="Transaction views">
           <button type="button" class="tab" role="tab" id="transactions-tab-categories" aria-controls="transactions-categories" aria-selected="false" tabindex="-1">Categories and rules</button>
           <button type="button" class="tab" role="tab" id="transactions-tab-overview" aria-controls="transactions-overview" aria-selected="true">Overview</button>
+          <button type="button" class="tab" role="tab" id="transactions-tab-insights" aria-controls="transactions-insights" aria-selected="false" tabindex="-1">Insights</button>
         </div>
 
         <div id="transactions-categories" role="tabpanel" aria-labelledby="transactions-tab-categories" hidden>
@@ -687,6 +688,23 @@
             <div class="list-more" id="transactions-more" hidden>
               <span id="transactions-shown"></span>
               <button type="button" class="btn" id="transactions-load-more">Load more</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="transactions-insights" role="tabpanel" aria-labelledby="transactions-tab-insights" hidden>
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title" id="transactions-insights-title">Spending per year</span>
+              <div class="segmented" role="group" aria-label="Chart period">
+                <button type="button" class="segment" id="transactions-insights-yearly" aria-pressed="true">Yearly</button>
+                <button type="button" class="segment" id="transactions-insights-monthly" aria-pressed="false">Monthly</button>
+              </div>
+              <ul class="legend" id="transactions-insights-legend" aria-label="Legend"></ul>
+            </div>
+            <p class="empty-note" id="transactions-insights-empty" hidden>No spending yet. The chart appears once there is a debit.</p>
+            <div class="chart-scroll" id="transactions-insights-scroll" hidden>
+              <div class="chart-inner" id="transactions-insights-chart"></div>
             </div>
           </div>
         </div>

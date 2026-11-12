@@ -13,8 +13,8 @@ use tauri_plugin_dialog::DialogExt;
 
 use super::AppState;
 use crate::domain::transactions::{
-    Category, CategoryId, ImportSummary, ReapplyScope, Rule, RuleId, TransactionId,
-    TransactionList, TransactionYearlyTotal, UNCATEGORIZED_ENTITY,
+    Category, CategoryId, Granularity, ImportSummary, ReapplyScope, Rule, RuleId, TransactionId,
+    TransactionInsights, TransactionList, TransactionYearlyTotal, UNCATEGORIZED_ENTITY,
 };
 use crate::domain::{DomainError, StatementFilter};
 use crate::error::AppError;
@@ -101,6 +101,20 @@ pub fn yearly_transaction_totals(
 ) -> Result<Vec<TransactionYearlyTotal>, AppError> {
     let project = state.project()?;
     Ok(project.transactions().yearly_totals())
+}
+
+/// What was spent per category, per year or per month, computed from the
+/// project as it is now, saved or not (CSD-033 REQ-13).
+#[tauri::command]
+pub fn get_transaction_insights(
+    state: State<'_, AppState>,
+    granularity: Option<Granularity>,
+) -> Result<TransactionInsights, AppError> {
+    let today = state.today();
+    let project = state.project()?;
+    Ok(project
+        .transactions()
+        .insights(granularity.unwrap_or_default(), today))
 }
 
 /// Sets the category of a transaction by hand; no category means

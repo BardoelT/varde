@@ -21,6 +21,7 @@ import { initDebtsOverview, reloadDebtsOverview } from './pages/debts-overview.j
 import { initExpensesInsights, reloadExpensesInsightsIfOpen } from './pages/expenses-insights.js';
 import { initExpensesOverview, reloadExpensesOverview } from './pages/expenses-overview.js';
 import { initTransactionsOverview, reloadTransactionsOverview } from './pages/transactions-overview.js';
+import { initTransactionsInsights, reloadTransactionsInsightsIfOpen } from './pages/transactions-insights.js';
 import { initSettings, loadPreferences, reloadSettings, toggleDiscreteMode } from './pages/settings.js';
 import { reloadDashboard } from './pages/dashboard.js';
 import { initNetWorth, reloadNetWorthIfOpen } from './pages/net-worth.js';
@@ -110,6 +111,7 @@ async function start() {
   initTransactionsOverview({
     onChanged: refreshStatusAndSettings,
   });
+  initTransactionsInsights();
   initNetWorth();
   initRatios();
   initSettings({
@@ -135,6 +137,7 @@ async function start() {
         reloadExpensesOverview,
         reloadExpensesInsightsIfOpen,
         reloadTransactionsOverview,
+        reloadTransactionsInsightsIfOpen,
         reloadNetWorthIfOpen,
         reloadRatiosIfOpen,
         reloadDashboard,

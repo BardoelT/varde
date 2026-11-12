@@ -9,6 +9,16 @@ const golden = JSON.parse(readFileSync(fileURLToPath(new URL('../../src-tauri/go
 const startup = {
   get_preferences: { theme: 'system', language: 'en', number_format: 'point_comma', discrete_mode: false },
   take_startup_notice: null,
+  // The transactions chart is not part of the golden files: its category ids would renumber the ids of the others.
+  get_transaction_insights: {
+    granularity: 'yearly',
+    categories: [
+      ...golden.list_transaction_categories.map(({ id, name }, index) => ({ id, name, colour_slot: index % 8 })),
+      { id: 'uncategorized', name: 'Uncategorized', colour_slot: 7 },
+    ],
+    axis: { ticks: [{ value: '0.00', label: '0' }, { value: '1.00', label: '1' }] },
+    years: [],
+  },
   // Writes that only echo what was sent, as Rust does when the save succeeds (CSD-008, CSD-022).
   set_language: ({ language }) => ({ language }),
   set_theme: ({ theme }) => ({ theme }),

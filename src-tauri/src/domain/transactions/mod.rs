@@ -7,6 +7,7 @@
 
 mod category;
 mod import;
+mod insights;
 mod list;
 mod totals;
 mod transaction;
@@ -23,6 +24,7 @@ use crate::domain::error::DomainError;
 use crate::domain::money::Currency;
 
 pub use category::{Category, CategoryId, Rule, RuleId, UNCATEGORIZED_ENTITY};
+pub use insights::{Granularity, TransactionInsights};
 pub use list::TransactionList;
 pub use totals::TransactionYearlyTotal;
 pub use transaction::{Transaction, TransactionId};

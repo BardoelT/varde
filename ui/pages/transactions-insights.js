@@ -1,0 +1,133 @@
+// Transactions insights: what was spent per category, stacked per calendar year or per month
+// (CSD-033). Its frame (axis, bars, tooltip, loading) is shared with the other charts in
+// shared/yearly-chart.js; this file supplies what is specific to it: the segments, the legend of the
+// categories, the labels of a year or a month, and the choice between Yearly and Monthly.
+import { $, h } from '../shared/dom.js';
+import { formatAmount } from '../shared/format.js';
+import { swatch, noSwatch, legendLabel, tooltipRow, topToBottom } from '../shared/chart.js';
+import { createYearlyChart, yearLabel } from '../shared/yearly-chart.js';
+import { fillLegend } from '../shared/insights-page.js';
+import { initTabs } from '../shared/tabs.js';
+import { t } from '../shared/i18n.js';
+import { errorText } from '../shared/ipc.js';
+import { showToast } from '../shared/dom.js';
+
+/** `yearly` or `monthly`; the page opens on the years and does not remember the choice. */
+let granularity = 'yearly';
+
+/** The categories as Rust returned them, by id. */
+let categories = new Map();
+
+const keyOf = (id) => `category-${id}`;
+const slotOf = (id) => categories.get(id)?.colour_slot ?? 0;
+
+/** The name of a category: the built-in one is translated, the others are the user's own text. */
+const categoryName = (id) => (id === 'uncategorized' ? t('Uncategorized') : (categories.get(id)?.name ?? id));
+
+/** "2026" or "2026 YTD" for a year, "2026-10" or "2026-10 MTD" for a month (months are written YYYY-MM). */
+function periodLabel(row) {
+  if (row.month === null) return yearLabel(row);
+  const month = `${row.year}-${String(row.month).padStart(2, '0')}`;
+  return row.is_partial ? t('{month} MTD', { month }) : month;
+}
+
+function describe(row) {
+  if (row.transaction_count === 0) return t('{period}: no spending', { period: periodLabel(row) });
+  const parts = row.segments.map((segment) => `${categoryName(segment.category)} ${formatAmount(segment.amount)}`);
+  return t('{period}: {parts}, total {total}', { period: periodLabel(row), parts: parts.join(', '), total: formatAmount(row.total) });
+}
+
+/** The tooltip of a bar: the rows read like the bar, the highest segment first. */
+function tooltipContent(row) {
+  const partial = row.month === null ? t('Partial year: spending so far') : t('Partial month: spending so far');
+  return [
+    h('div', { class: 'tip-title' }, periodLabel(row)),
+    row.is_partial ? h('div', { class: 'tip-note' }, partial) : null,
+    row.transaction_count === 0 ? h('div', { class: 'tip-note' }, t('No spending')) : null,
+    h(
+      'dl',
+      {},
+      ...topToBottom(row.segments, (segment) => keyOf(segment.category), row.pieces).flatMap((segment) =>
+        tooltipRow(keyOf(segment.category), swatch(`slot-${slotOf(segment.category)}`), categoryName(segment.category), formatAmount(segment.amount)),
+      ),
+      ...(row.transaction_count === 0 ? [] : tooltipRow(null, noSwatch(), t('Total'), formatAmount(row.total))),
+    ),
+  ].filter(Boolean);
+}
+
+/** How a received piece looks: the colour slot and the name of its category, and its accessible name. */
+function pieceStyle(row, piece) {
+  const segment = row.segments.find((candidate) => keyOf(candidate.category) === piece.series);
+  return {
+    cssClass: `bar-slot-${slotOf(segment.category)}`,
+    label: `${categoryName(segment.category)}, ${periodLabel(row)}, ${formatAmount(segment.amount)}`,
+  };
+}
+
+/** The legend: a swatch and the name of every category, also those without spending (CSD-033 REQ-7). */
+function buildLegend({ categories: list }) {
+  categories = new Map(list.map((category) => [category.id, category]));
+  fillLegend(
+    'transactions-insights',
+    list.map((category) => [keyOf(category.id), swatch(`slot-${category.colour_slot}`), legendLabel(categoryName(category.id))]),
+  );
+}
+
+const chart = createYearlyChart({
+  id: 'transactions-insights',
+  // Read each time the chart loads, so the choice of the toggle decides what Rust is asked.
+  get command() {
+    return 'get_transaction_insights';
+  },
+  get args() {
+    return { granularity };
+  },
+  get ariaLabel() {
+    return granularity === 'yearly' ? t('Spending per year') : t('Spending per month');
+  },
+  onLoaded: buildLegend,
+  pieceStyle,
+  describe,
+  tooltipContent,
+  decorate: () => [],
+  labelLines: (row) => [{ text: periodLabel(row), className: 'chart-year' }],
+});
+
+/** Shows the title and the pressed state of the toggle for the current choice. */
+function syncToggle() {
+  $('transactions-insights-title').textContent = granularity === 'yearly' ? t('Spending per year') : t('Spending per month');
+  for (const [id, value] of [['transactions-insights-yearly', 'yearly'], ['transactions-insights-monthly', 'monthly']]) {
+    $(id).setAttribute('aria-pressed', String(granularity === value));
+  }
+}
+
+async function choose(value) {
+  if (granularity === value) return;
+  granularity = value;
+  syncToggle();
+  try {
+    await chart.reload();
+  } catch (error) {
+    showToast(errorText(error));
+  }
+}
+
+/** Reloads the chart only while the Insights tab is showing (a project was opened, the language changed). */
+export const reloadTransactionsInsightsIfOpen = async () => {
+  syncToggle();
+  await chart.reloadIfOpen();
+};
+
+export function initTransactionsInsights() {
+  chart.init();
+  // Categories and rules sit left of the Overview, which opens first; the Insights tab recomputes the chart
+  // each time it opens (CSD-033 REQ-13).
+  initTabs([
+    { tab: 'transactions-tab-categories', panel: 'transactions-categories' },
+    { tab: 'transactions-tab-overview', panel: 'transactions-overview' },
+    { tab: 'transactions-tab-insights', panel: 'transactions-insights', onOpen: chart.reload },
+  ]);
+  $('transactions-insights-yearly').addEventListener('click', () => choose('yearly'));
+  $('transactions-insights-monthly').addEventListener('click', () => choose('monthly'));
+  syncToggle();
+}

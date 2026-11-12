@@ -57,7 +57,7 @@ test('test_csd032_ac_16_1_transactions_is_in_the_left_pane_after_expenses_and_sh
   await app.click(app.item('transactions'));
   assert.ok(app.isShown(app.$('transactions')));
   assert.equal(app.textOf('transactions-tab-overview'), 'Overview');
-  assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Categories and rules', 'Overview'], 'no Insights tab yet');
+  assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Categories and rules', 'Overview', 'Insights']);
   app.close();
 });
 

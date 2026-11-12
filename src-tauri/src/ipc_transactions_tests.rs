@@ -419,3 +419,32 @@ fn test_csd032_ac_11_5_unset_manual_over_ipc_is_one_undo_step() {
     );
     assert_eq!(error["code"], "TRANSACTION_NOT_FOUND");
 }
+
+#[test]
+fn test_csd033_ac_5_1_insights_over_ipc_default_to_years_and_take_a_granularity() {
+    let app = harness();
+    let today = time::Date::from_calendar_date(2026, time::Month::October, 15).unwrap();
+    app.window.state::<AppState>().fix_today(today);
+    let empty = app.ok("get_transaction_insights", json!({}));
+    assert_eq!(empty["years"], json!([]));
+    assert_eq!(empty["granularity"], "yearly");
+    import(&app, fixture()).unwrap();
+    let yearly = app.ok("get_transaction_insights", json!({}));
+    assert_eq!(yearly["years"].as_array().unwrap().len(), 1);
+    assert_eq!(yearly["years"][0]["total"], "1343.06");
+    assert_eq!(yearly["years"][0]["month"], Value::Null);
+    let monthly = app.ok(
+        "get_transaction_insights",
+        json!({ "granularity": "monthly" }),
+    );
+    assert_eq!(monthly["granularity"], "monthly");
+    let last = monthly["years"].as_array().unwrap().last().unwrap().clone();
+    assert_eq!(last["total"], "1343.06");
+    assert_eq!(last["month"], 10);
+    assert!(monthly["axis"]["ticks"].as_array().unwrap().len() >= 2);
+    let error = app.err(
+        "get_transaction_insights",
+        json!({ "granularity": "weekly" }),
+    );
+    assert!(error.is_string() || error.is_object());
+}

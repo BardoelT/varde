@@ -8,7 +8,6 @@ import { t } from '../shared/i18n.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
 import { numCell, renderTable, rowHeader } from '../shared/list-rows.js';
-import { initTabs } from '../shared/tabs.js';
 
 /** How many rows one step of "Load more" adds, and the rows shown first (CSD-032 REQ-15). */
 const PAGE_ROWS = 200;
@@ -391,11 +390,6 @@ async function changed() {
 
 export function initTransactionsOverview({ onChanged: callback }) {
   onChanged = callback;
-  // Categories and rules sit left of the Overview; the Overview opens first (CSD-032 REQ-16).
-  initTabs([
-    { tab: 'transactions-tab-categories', panel: 'transactions-categories' },
-    { tab: 'transactions-tab-overview', panel: 'transactions-overview' },
-  ]);
   $('transaction-import').addEventListener('click', importTransactions);
   $('transactions-load-more').addEventListener('click', () => {
     limit += PAGE_ROWS;

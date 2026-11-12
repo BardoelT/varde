@@ -3,9 +3,9 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.11
+version: 0.12
 last_updated: 12/11/2026
-related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030]
+related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
 
 # CSD-032: Transactions
@@ -18,12 +18,12 @@ The app tracks what the user owns, owes and has spent on notable purchases, but 
 - Importing the transactions of a Knab CSV export into the open project, with duplicate skipping and all-or-nothing error handling.
 - A list of user-defined categories (seeded with defaults) and an ordered list of text rules that assign a category on import.
 - Changing the category of a transaction by hand, re-applying the rules, and deleting a transaction.
-- A Transactions page with an Overview tab (yearly totals, the paged list, the table filters of CSD-028 and a filtered total) and a tab for the management of categories and rules.
+- A Transactions page with an Overview tab (yearly totals, the paged list, the table filters of CSD-028 and a filtered total) a tab for the management of categories and rules, and the Insights tab of CSD-033.
 - Storage of transactions, categories and rules as sections of the project file (CSD-002), and the consequences for undo (CSD-027), the currency confirmation (CSD-003), Discrete mode (CSD-030) and the example project.
 
 ### 2.2 Non-goals
 - NG-1: Banks and formats other than the Knab CSV, and PDF statements. A parser per format is a follow-up.
-- NG-2: An Insights tab (totals per category or month, charts). A follow-up. The yearly totals of REQ-24 are not Insights.
+- NG-2: Charts and the Insights tab: they are CSD-033. The yearly totals of REQ-24 are a table, not Insights.
 - NG-3: A link to the bank accounts of CSD-009, to expenses (CSD-013), to net worth or to the dashboard. Importing never changes a balance or creates an expense. Detecting or netting transfers between own accounts.
 - NG-4: Adding a transaction by hand, and editing its date, amount, counterparty, description or any field other than the category.
 - NG-5: Regular expressions, amount or date conditions, and any learning in the rules. A rule is a "contains" text match.
@@ -549,7 +549,7 @@ Scenario: Editing keeps the filter
 ```
 
 **REQ-16: The page in the navigation** *(ubiquitous)*
-The left pane shall list Transactions as the last item of the group Finance (CSD-024 REQ-1), and the page shall have two tabs, left to right "Categories and rules" and "Overview". The Overview tab, which is the one shown first, holds the list, the Import button and, at the top, the two re-apply actions of REQ-12. The Categories and rules tab holds the management of categories and the management of rules. The message of an import or a re-apply is shown as a notification at the bottom right of the window, in the style of the notification after an undo but yellow, and goes away by itself like that one.
+The left pane shall list Transactions as the last item of the group Finance (CSD-024 REQ-1), and the page shall have three tabs, left to right "Categories and rules", "Overview" and "Insights" (the last is CSD-033). The Overview tab, which is the one shown first, holds the list, the Import button and, at the top, the two re-apply actions of REQ-12. The Categories and rules tab holds the management of categories and the management of rules. The message of an import or a re-apply is shown as a notification at the bottom right of the window, in the style of the notification after an undo but yellow, and goes away by itself like that one.
 
 ```gherkin
 @AC-16.1
@@ -798,6 +798,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.12 (12/11/2026): The page has a third tab "Insights" (CSD-033, REQ-16); NG-2 points to it. Owner request. Back to `draft` until re-approved.
 - 0.11 (12/11/2026): The badge "Manual" is a button that, after a confirmation, unsets manual and keeps the category (REQ-11, AC-11.5 to AC-11.7). Owner request. Back to `draft` until re-approved.
 - 0.10 (12/11/2026): A table "Yearly totals" (income, spent, net per year) on the Overview tab, like the other pages (REQ-24, AC-24.1 to AC-24.5). Owner request. Back to `draft` until re-approved.
 - 0.9 (12/11/2026): Cancel while naming a new category goes back to the rule instead of closing the dialog (REQ-9, AC-9.9), and a manual transaction shows the badge "Manual" (REQ-11, AC-11.4). Owner requests. Back to `draft` until re-approved.

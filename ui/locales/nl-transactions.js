@@ -28,6 +28,17 @@ export default {
   'No totals yet. Totals appear once there is a transaction.': 'Nog geen totalen. Totalen verschijnen zodra er een transactie is.',
   'Spent': 'Uitgegeven',
   'Net': 'Saldo',
+  // Insights
+  'Spending per year': 'Uitgaven per jaar',
+  'Spending per month': 'Uitgaven per maand',
+  'Chart period': 'Periode van de grafiek',
+  'No spending yet. The chart appears once there is a debit.': 'Nog geen uitgaven. De grafiek verschijnt zodra er een afschrijving is.',
+  '{month} MTD': '{month} MTD',
+  '{period}: no spending': '{period}: geen uitgaven',
+  '{period}: {parts}, total {total}': '{period}: {parts}, totaal {total}',
+  'Partial year: spending so far': 'Gedeeltelijk jaar: uitgaven tot nu toe',
+  'Partial month: spending so far': 'Gedeeltelijke maand: uitgaven tot nu toe',
+  'No spending': 'Geen uitgaven',
   // Categories
   'Categories': 'Categorieën',
   'Add category': 'Categorie toevoegen',
