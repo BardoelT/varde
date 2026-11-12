@@ -3,7 +3,7 @@ id: CSD-033
 title: Transaction insights
 status: draft
 owner: Thijs Bardoel
-version: 0.1
+version: 0.2
 last_updated: 12/11/2026
 related: [CSD-000, CSD-014, CSD-022, CSD-025, CSD-030, CSD-032]
 ---
@@ -11,16 +11,16 @@ related: [CSD-000, CSD-014, CSD-022, CSD-025, CSD-030, CSD-032]
 # CSD-033: Transaction insights
 
 ## 1. Intent
-The Transactions page (CSD-032) lists what the bank account shows and totals it per year, but a table does not show how spending develops or what it went to. This capability adds an Insights tab to the Transactions page: one chart of what was spent, stacked from one segment per category, with one bar per calendar year or, when the user chooses, one bar per month. It is the standard Insights chart of the app (CSD-014, CSD-025) with one addition: the choice between Yearly and Monthly. It is for the owner looking at their own spending, and it follows the categories the owner keeps.
+The Transactions page (CSD-032) lists what the bank account shows and totals it per year, but a table does not show how spending develops or what it went to. This capability adds an Insights tab to the Transactions page: one chart of what was spent, stacked from one segment per category, with what came in drawn as a marker across each bar, and with one bar per calendar year or, when the user chooses, one bar per month, so the user sees at a glance whether more was spent than came in. It is the standard Insights chart of the app (CSD-014, CSD-025) with one addition: the choice between Yearly and Monthly. It is for the owner looking at their own spending, and it follows the categories the owner keeps.
 
 ## 2. Scope
 ### 2.1 In scope
 - The "Insights" tab on the Transactions page, right of "Overview" (CSD-032 REQ-16).
-- A stacked bar chart of the spending (the debits) per category, per calendar year or per month, a legend of the categories, a tooltip and the highlight of one category. What every yearly chart shares (motion, look, size, short axis labels) is in CSD-025.
+- A stacked bar chart of the spending (the debits) per category, with the income (the credits) as a marker across the bar, per calendar year or per month, a legend of the categories and of the income, a tooltip and the highlight of one category. What every yearly chart shares (motion, look, size, short axis labels) is in CSD-025.
 - The choice between Yearly and Monthly, and the empty state.
 
 ### 2.2 Non-goals
-- NG-1: Income in the chart (the credits), a net figure, and a comparison of spending with income.
+- NG-1: Income per category (stacked), a net figure, and any other comparison of spending with income than the marker.
 - NG-2: Any other granularity than a calendar year and a month, and a choice of the period shown (zooming, scrolling to a year).
 - NG-3: A filter, a selection or a hiding of categories, years or months, and any link with the Overview tab or its filters.
 - NG-4: Any figure other than the amount per category and the total of a bar: no average, percentage or forecast.
@@ -33,6 +33,7 @@ The Transactions page (CSD-032) lists what the bank account shows and totals it 
 | Term | Meaning |
 |---|---|
 | **Spending** | The sum of the debits (negative amounts) as a positive amount. Credits are not part of it. |
+| **Income** | The sum of the credits (positive amounts) in a bar, whatever their category. |
 | **Bar** | One calendar year (Yearly) or one month (Monthly), from the date of the transactions in it. |
 | **Segment** | The part of a bar that belongs to one category (or to Uncategorized): the sum of the spending of that category in that bar. A category without spending in a bar has no segment in it. |
 | **Current bar** | The bar of today's year, or of today's month. It runs up to today, so it is partial. |
@@ -58,7 +59,7 @@ sequenceDiagram
 ```
 
 **REQ-1: Bars** *(ubiquitous)*
-The chart shall have one bar per calendar year (Yearly) or per month (Monthly), oldest first, from the earliest period with spending up to and including the later of the current period and the latest period with spending. A period without spending in between is a zero bar with no segments.
+The chart shall have one bar per calendar year (Yearly) or per month (Monthly), oldest first, from the earliest period with a transaction up to and including the later of the current period and the latest period with a transaction. A period without transactions in between is a zero bar with no segments and no marker.
 
 ```gherkin
 @AC-1.1
@@ -97,8 +98,8 @@ Scenario: The current bar is partial
   Then the bar 2026 (Yearly) is labelled "2026 YTD" and the bar 2026-10 (Monthly) "2026-10 MTD"
 ```
 
-**REQ-4: Segments are the spending per category** *(ubiquitous)*
-Each segment shall be the spending of one category in the bar, stacked in the order of the categories with Uncategorized last, and the credits shall not be counted. Rust delivers the axis and the stacked pieces; the frontend draws them as received (CSD-025 REQ-5).
+**REQ-4: Segments are the spending per category, the marker is the income** *(ubiquitous)*
+Each segment shall be the spending of one category in the bar, stacked in the order of the categories with Uncategorized last, and the credits shall not be counted in them or in the total of the bar. When the bar has income, the app shall show it as a marker across the bar at the height of the income, with its short label (CSD-025 REQ-7); a bar without income has no marker. Rust delivers the axis and the stacked pieces; the frontend draws them as received (CSD-025 REQ-5).
 
 ```gherkin
 @AC-4.1
@@ -107,29 +108,41 @@ Scenario: A bar is stacked from its segments
   Then the bar of 2026 shows Groceries from 0.00 to 15.00 and Uncategorized from 15.00 to 22.50
 
 @AC-4.2
-Scenario: No spending, no bars
-  Given only credits, or no transactions
+Scenario: No transactions, no bars
+  Given no transactions
   Then the chart has no bars
 
 @AC-4.3
-Scenario: Credits are not counted
+Scenario: Income is a marker
   Given a credit of 2,500.00 and debits of 22.50 in 2026
-  Then the total of 2026 is 22.50
+  Then the total spent of 2026 is 22.50, its bar is 22.50 high and a marker with the label "2.5k" stands across it at 2,500.00
+  And the axis reaches the marker
+  And a bar without a credit has no marker
+
+@AC-4.4
+Scenario: Income without spending
+  Given only a credit of 9.00 in 2026
+  Then the bar of 2026 has no segments, a marker at 9.00, and its tooltip says "No spending"
+
+@AC-4.5
+Scenario: Spending alone
+  Given only debits in 2025
+  Then the bar of 2025 has no marker
 ```
 
 **REQ-5: Yearly or Monthly** *(event-driven)*
-When the user opens the Insights tab, the app shall show the Yearly chart and a choice "Yearly | Monthly" in which Yearly is pressed. When the user chooses the other option, the app shall ask Rust for that granularity and draw the answer, and shall change the title of the panel to "Spending per year" or "Spending per month". Choosing the option that is already shown shall change nothing. The choice stays while the user goes to another tab and comes back, and is not remembered after that (NG-7).
+When the user opens the Insights tab, the app shall show the Yearly chart and a choice "Yearly | Monthly" in which Yearly is pressed. When the user chooses the other option, the app shall ask Rust for that granularity and draw the answer, and shall change the title of the panel to "Spending and income per year" or "Spending and income per month". Choosing the option that is already shown shall change nothing. The choice stays while the user goes to another tab and comes back, and is not remembered after that (NG-7).
 
 ```gherkin
 @AC-5.1
 Scenario: The chart opens on the years
   When the user opens the Insights tab
-  Then "Yearly" is pressed, the title is "Spending per year" and Rust was asked for "yearly"
+  Then "Yearly" is pressed, the title is "Spending and income per year" and Rust was asked for "yearly"
 
 @AC-5.2
 Scenario: Choosing Monthly
   When the user chooses "Monthly"
-  Then Rust is asked for "monthly", the bars are labelled 2026-09 and 2026-10 MTD, "Monthly" is pressed and the title is "Spending per month"
+  Then Rust is asked for "monthly", the bars are labelled 2026-09 and 2026-10 MTD, "Monthly" is pressed and the title is "Spending and income per month"
 
 @AC-5.3
 Scenario: Choosing the shown option again
@@ -164,24 +177,24 @@ Scenario: A new category does not change the others
 ```
 
 **REQ-7: Legend of categories** *(ubiquitous)*
-The panel shall show a legend with a swatch and the name of every category, also those without spending, with Uncategorized last. Hovering or focusing a legend item highlights that category in every bar.
+The panel shall show a legend with a swatch and the name of every category, also those without spending, with Uncategorized last. The legend shall end with an item "Income" with the marker swatch. Hovering or focusing a legend item highlights that category, or the markers, in every bar.
 
 ```gherkin
 @AC-7.1
 Scenario: Every category is listed
   Given the categories Groceries and Shopping
-  Then the legend lists Groceries, Shopping and Uncategorized, in that order
+  Then the legend lists Groceries, Shopping, Uncategorized and Income, in that order
 ```
 
 **REQ-8: Details of a bar** *(event-driven)*
-When the user hovers or focuses a bar, the app shall show a tooltip with its label, a note while it is partial, one row per segment in the order of the bar from top to bottom with its amount, and the total.
+When the user hovers or focuses a bar, the app shall show a tooltip with its label, a note while it is partial, one row per segment in the order of the bar from top to bottom with its amount, the total spent and, when there is income, the income. A bar without a debit shows the note "No spending".
 
 ```gherkin
 @AC-8.1
 Scenario: Tooltip of a year
   Given the bar of 2026 with Groceries 15.00 and Uncategorized 7.50, which is partial
   When the user hovers it
-  Then the tooltip reads "2026 YTD", "Partial year: spending so far", Uncategorized 7.50, Groceries 15.00 and Total 22.50
+  Then the tooltip reads "2026 YTD", "Partial year: spending so far", Uncategorized 7.50, Groceries 15.00, Total spent 22.50 and Income 30.00
 
 @AC-8.2
 Scenario: Tooltip of a month
@@ -203,13 +216,13 @@ Scenario: Three tabs
 **REQ-10: Motion, look and size** *(ubiquitous)*
 The chart shall follow CSD-025 for its motion, reduced motion, look, short axis labels, accessible segments and size, like every yearly chart.
 
-**REQ-12: No spending yet** *(state-driven)*
-While there is no spending, the panel shall show the note "No spending yet. The chart appears once there is a debit." and no chart.
+**REQ-12: No transactions yet** *(state-driven)*
+While there is no transaction, the panel shall show the note "No transactions yet. The chart appears once there is a transaction." and no chart.
 
 ```gherkin
 @AC-12.1
 Scenario: Nothing to chart
-  Given no debits
+  Given no transactions
   Then the note is shown and the chart is not
 ```
 
@@ -230,7 +243,7 @@ The app shall show the texts of the chart in the language setting (CSD-022), and
 @AC-14.1
 Scenario: Dutch
   Given the language is Dutch
-  Then the title is "Uitgaven per jaar", the choice reads "Jaarlijks | Maandelijks" and Uncategorized is "Zonder categorie"
+  Then the title is "Uitgaven en inkomsten per jaar", the choice reads "Jaarlijks | Maandelijks" and Uncategorized is "Zonder categorie"
 ```
 
 **REQ-15: Discrete mode** *(state-driven)*
@@ -251,12 +264,12 @@ Command `get_transaction_insights(granularity)` with `granularity` `"yearly"` (d
   "granularity": "yearly",
   "categories": [{ "id": "…", "name": "Groceries", "colour_slot": 0 }, { "id": "uncategorized", "name": "Uncategorized", "colour_slot": 7 }],
   "axis": { "ticks": [{ "value": "0.00", "label": "0" }] },
-  "years": [{ "year": 2026, "month": null, "total": "22.50", "transaction_count": 3, "is_partial": true,
-              "segments": [{ "category": "…", "amount": "15.00" }], "pieces": [], "marker": null }]
+  "years": [{ "year": 2026, "month": null, "total": "22.50", "income": "30.00", "transaction_count": 4, "is_partial": true,
+              "segments": [{ "category": "…", "amount": "15.00" }], "pieces": [], "marker": { "value": "30.00", "label": "30.00" } }]
 }
 ```
 
-The list is called `years` and a bar `year` because the frame of the yearly charts reads those names (CSD-025); `month` is 1 to 12 for a Monthly bar and `null` for a Yearly one. `pieces` and `axis` are those of CSD-025 section 5. The segment key and the legend key of a category are `category-<id>`.
+The list is called `years` and a bar `year` because the frame of the yearly charts reads those names (CSD-025); `month` is 1 to 12 for a Monthly bar and `null` for a Yearly one. `total` is the spending, `income` the sum of the credits and `transaction_count` counts debits and credits. `pieces`, `marker` and `axis` are those of CSD-025 section 5. The segment key and the legend key of a category are `category-<id>`.
 
 ## 6. Constraints
 - CON-1: The figures are computed in Rust (`domain/transactions/insights.rs`); the frontend only draws what it receives. Rationale: `CLAUDE.md` layout rule.
@@ -266,13 +279,13 @@ The list is called `years` and a bar `year` because the frame of the yearly char
 ## 7. Verification
 | ACs | Proven by |
 |---|---|
-| AC-1.1 to AC-4.3, AC-5.5, AC-6.1, AC-6.2 | `cargo test test_csd033_` (Rust, `domain/transactions` and `ipc_transactions_tests`) |
-| AC-4.1, AC-5.1 to AC-5.4, AC-7.1, AC-8.1, AC-8.2, AC-9.1, AC-12.1, AC-13.1, AC-14.1, AC-15.1 | `npm test` (`ui/tests/ac-i-transaction-insights.test.js`) |
+| AC-1.1 to AC-4.2, AC-4.4, AC-4.5, AC-5.5, AC-6.1, AC-6.2 | `cargo test test_csd033_` (Rust, `domain/transactions` and `ipc_transactions_tests`) |
+| AC-4.1, AC-4.3, AC-4.4, AC-5.1 to AC-5.4, AC-7.1, AC-8.1, AC-8.2, AC-9.1, AC-12.1, AC-13.1, AC-14.1, AC-15.1 | `npm test` (`ui/tests/ac-i-transaction-insights.test.js`) |
 | Look, motion, tooltip placement | manual checklist of CSD-025 |
 
 ## 8. Open questions
-- OQ-1: Should Income be a second series, or a line, so spending can be compared with it? Excluded for now (NG-1). Owner: Thijs.
 - OQ-2: Is 36 months the right length of the Monthly chart? Owner: Thijs. Blocks: REQ-2.
 
 ## 9. Changelog
+- 0.2 (12/11/2026): The income (the credits) is drawn as a marker across each bar, with an "Income" item in the legend and a row in the tooltip; bars also exist for periods with only income; the panel is titled "Spending and income per year" or "per month"; the empty note is about transactions (REQ-4, REQ-7, REQ-8, REQ-12). Owner request. Back to `draft` until re-approved.
 - 0.1 (12/11/2026): initial draft. A spending-per-category chart on a new Insights tab of the Transactions page, per year or per month. Owner request.

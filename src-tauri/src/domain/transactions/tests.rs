@@ -1077,9 +1077,11 @@ fn test_csd033_ac_1_1_yearly_bars_stack_the_spending_per_category() {
     assert_eq!(
         last.total,
         money("22.50"),
-        "the credit of 2,500.00 is not part of it"
+        "the credit of 2,500.00 is not spending"
     );
-    assert_eq!(last.transaction_count, 3);
+    assert_eq!(last.income, money("2500.00"));
+    assert_eq!(last.marker.as_ref().unwrap().value, money("2500.00"));
+    assert_eq!(last.transaction_count, 4, "three debits and a credit");
     let amounts: Vec<(&str, Money)> = last
         .segments
         .iter()
@@ -1154,19 +1156,51 @@ fn test_csd033_ac_3_1_a_month_after_the_current_one_gets_a_slot() {
 }
 
 #[test]
-fn test_csd033_ac_4_2_no_spending_no_bars() {
+fn test_csd033_ac_4_2_no_transactions_no_bars() {
+    for granularity in [Granularity::Yearly, Granularity::Monthly] {
+        assert_eq!(
+            Transactions::default()
+                .insights(granularity, month(2026, 6))
+                .years,
+            Vec::new()
+        );
+    }
+}
+
+#[test]
+fn test_csd033_ac_4_4_a_credit_alone_gives_an_income_marker_and_no_segments() {
     let mut data = with_rules(&[]);
     let credit = simple("15-03-2026", "Bijschrijvingen", "9,00", "Example", "R1");
     data.import(&export(&[credit]), Currency::Eur).unwrap();
     for granularity in [Granularity::Yearly, Granularity::Monthly] {
-        assert_eq!(data.insights(granularity, month(2026, 6)).years, Vec::new());
+        let insights = data.insights(granularity, month(2026, 6));
+        let bar = insights
+            .years
+            .iter()
+            .find(|bar| bar.income == money("9.00"))
+            .unwrap();
+        assert!(bar.segments.is_empty() && bar.pieces.is_empty());
+        assert_eq!(bar.total, money("0.00"));
+        assert_eq!(bar.marker.as_ref().unwrap().value, money("9.00"));
+        assert_eq!(bar.transaction_count, 1);
     }
-    assert_eq!(
-        Transactions::default()
-            .insights(Granularity::Yearly, month(2026, 6))
-            .years,
-        Vec::new()
-    );
+}
+
+#[test]
+fn test_csd033_ac_4_5_a_bar_without_credits_has_no_marker() {
+    let data = insights_fixture();
+    let insights = data.insights(Granularity::Yearly, month(2026, 10));
+    let older = insights.years.first().unwrap();
+    assert_eq!(older.income, money("0.00"));
+    assert_eq!(older.marker, None);
+}
+
+#[test]
+fn test_csd033_ac_4_6_the_axis_reaches_the_income_marker() {
+    let data = insights_fixture();
+    let insights = data.insights(Granularity::Yearly, month(2026, 10));
+    let top = insights.axis.ticks.last().unwrap().value;
+    assert!(top >= money("2500.00"), "{top}");
 }
 
 #[test]

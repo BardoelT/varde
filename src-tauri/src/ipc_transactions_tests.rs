@@ -432,6 +432,8 @@ fn test_csd033_ac_5_1_insights_over_ipc_default_to_years_and_take_a_granularity(
     let yearly = app.ok("get_transaction_insights", json!({}));
     assert_eq!(yearly["years"].as_array().unwrap().len(), 1);
     assert_eq!(yearly["years"][0]["total"], "1343.06");
+    assert_eq!(yearly["years"][0]["income"], "2515.50");
+    assert_eq!(yearly["years"][0]["marker"]["value"], "2515.50");
     assert_eq!(yearly["years"][0]["month"], Value::Null);
     let monthly = app.ok(
         "get_transaction_insights",

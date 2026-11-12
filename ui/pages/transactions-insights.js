@@ -1,12 +1,12 @@
-// Transactions insights: what was spent per category, stacked per calendar year or per month
-// (CSD-033). Its frame (axis, bars, tooltip, loading) is shared with the other charts in
+// Transactions insights: what was spent per category, stacked, with what came in as a marker, per calendar
+// year or per month (CSD-033). Its frame (axis, bars, tooltip, loading) is shared with the other charts in
 // shared/yearly-chart.js; this file supplies what is specific to it: the segments, the legend of the
 // categories, the labels of a year or a month, and the choice between Yearly and Monthly.
 import { $, h } from '../shared/dom.js';
 import { formatAmount } from '../shared/format.js';
 import { swatch, noSwatch, legendLabel, tooltipRow, topToBottom } from '../shared/chart.js';
 import { createYearlyChart, yearLabel } from '../shared/yearly-chart.js';
-import { fillLegend } from '../shared/insights-page.js';
+import { fillLegend, markerDecorator } from '../shared/insights-page.js';
 import { initTabs } from '../shared/tabs.js';
 import { t } from '../shared/i18n.js';
 import { errorText } from '../shared/ipc.js';
@@ -32,9 +32,10 @@ function periodLabel(row) {
 }
 
 function describe(row) {
-  if (row.transaction_count === 0) return t('{period}: no spending', { period: periodLabel(row) });
+  if (row.transaction_count === 0) return t('{period}: no transactions', { period: periodLabel(row) });
   const parts = row.segments.map((segment) => `${categoryName(segment.category)} ${formatAmount(segment.amount)}`);
-  return t('{period}: {parts}, total {total}', { period: periodLabel(row), parts: parts.join(', '), total: formatAmount(row.total) });
+  const text = t('{period}: {parts}, total {total}', { period: periodLabel(row), parts: parts.join(', '), total: formatAmount(row.total) });
+  return row.marker ? `${text}, ${t('income {income}', { income: formatAmount(row.income) })}` : text;
 }
 
 /** The tooltip of a bar: the rows read like the bar, the highest segment first. */
@@ -43,14 +44,15 @@ function tooltipContent(row) {
   return [
     h('div', { class: 'tip-title' }, periodLabel(row)),
     row.is_partial ? h('div', { class: 'tip-note' }, partial) : null,
-    row.transaction_count === 0 ? h('div', { class: 'tip-note' }, t('No spending')) : null,
+    row.segments.length === 0 ? h('div', { class: 'tip-note' }, row.transaction_count === 0 ? t('No transactions') : t('No spending')) : null,
     h(
       'dl',
       {},
       ...topToBottom(row.segments, (segment) => keyOf(segment.category), row.pieces).flatMap((segment) =>
         tooltipRow(keyOf(segment.category), swatch(`slot-${slotOf(segment.category)}`), categoryName(segment.category), formatAmount(segment.amount)),
       ),
-      ...(row.transaction_count === 0 ? [] : tooltipRow(null, noSwatch(), t('Total'), formatAmount(row.total))),
+      ...(row.segments.length === 0 ? [] : tooltipRow(null, noSwatch(), t('Total spent'), formatAmount(row.total))),
+      ...(row.marker ? tooltipRow('marker', swatch('marker'), t('Income'), formatAmount(row.income)) : []),
     ),
   ].filter(Boolean);
 }
@@ -69,7 +71,10 @@ function buildLegend({ categories: list }) {
   categories = new Map(list.map((category) => [category.id, category]));
   fillLegend(
     'transactions-insights',
-    list.map((category) => [keyOf(category.id), swatch(`slot-${category.colour_slot}`), legendLabel(categoryName(category.id))]),
+    [
+      ...list.map((category) => [keyOf(category.id), swatch(`slot-${category.colour_slot}`), legendLabel(categoryName(category.id))]),
+      ['marker', swatch('marker'), legendLabel(t('Income'))],
+    ],
   );
 }
 
@@ -83,19 +88,19 @@ const chart = createYearlyChart({
     return { granularity };
   },
   get ariaLabel() {
-    return granularity === 'yearly' ? t('Spending per year') : t('Spending per month');
+    return granularity === 'yearly' ? t('Spending and income per year') : t('Spending and income per month');
   },
   onLoaded: buildLegend,
   pieceStyle,
   describe,
   tooltipContent,
-  decorate: () => [],
+  decorate: markerDecorator,
   labelLines: (row) => [{ text: periodLabel(row), className: 'chart-year' }],
 });
 
 /** Shows the title and the pressed state of the toggle for the current choice. */
 function syncToggle() {
-  $('transactions-insights-title').textContent = granularity === 'yearly' ? t('Spending per year') : t('Spending per month');
+  $('transactions-insights-title').textContent = granularity === 'yearly' ? t('Spending and income per year') : t('Spending and income per month');
   for (const [id, value] of [['transactions-insights-yearly', 'yearly'], ['transactions-insights-monthly', 'monthly']]) {
     $(id).setAttribute('aria-pressed', String(granularity === value));
   }

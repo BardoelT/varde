@@ -14,7 +14,7 @@ const categories = [
 const AXIS = { ticks: [['0.00', '0'], ['20.00', '20'], ['40.00', '40']].map(([value, label]) => ({ value, label })) };
 
 /** A bar as Rust sends it: `segments` as `[category, amount]`, stacked bottom to top in this order. */
-function bar(year, month, segments, { partial = false } = {}) {
+function bar(year, month, segments, { partial = false, income = 0 } = {}) {
   let low = 0;
   const pieces = segments.map(([category, amount], index) => {
     const piece = { series: `category-${category}`, low: low.toFixed(2), high: (low + Number(amount)).toFixed(2), hangs: false, rounding: index === segments.length - 1 ? 'top' : 'none' };
@@ -22,14 +22,15 @@ function bar(year, month, segments, { partial = false } = {}) {
     return piece;
   });
   return {
-    year, month, is_partial: partial, transaction_count: segments.length, marker: null, pieces,
+    year, month, is_partial: partial, transaction_count: segments.length + (income > 0 ? 1 : 0), income: income.toFixed(2),
+    marker: income > 0 ? { value: income.toFixed(2), label: String(income) } : null, pieces,
     segments: segments.map(([category, amount]) => ({ category, amount })),
     total: low.toFixed(2),
   };
 }
 const yearly = (years) => ({ granularity: 'yearly', categories, axis: AXIS, years });
 const monthly = (years) => ({ granularity: 'monthly', categories, axis: AXIS, years });
-const YEARS = () => yearly([bar(2025, null, [['cat-groceries', '20.00']]), bar(2026, null, [['cat-groceries', '15.00'], ['uncategorized', '7.50']], { partial: true })]);
+const YEARS = () => yearly([bar(2025, null, [['cat-groceries', '20.00']]), bar(2026, null, [['cat-groceries', '15.00'], ['uncategorized', '7.50']], { partial: true, income: 30 })]);
 const MONTHS = () => monthly([bar(2026, 9, [['cat-groceries', '5.00']]), bar(2026, 10, [['cat-groceries', '15.00'], ['cat-shopping', '2.50']], { partial: true })]);
 
 async function insightsPage(handlers = {}, reads = exampleReads()) {
@@ -59,7 +60,7 @@ test('test_csd033_ac_5_1_the_chart_opens_on_the_years_and_the_toggle_says_so', a
   const app = await insightsPage({ get_transaction_insights: YEARS });
   assert.equal(app.$('transactions-insights-yearly').getAttribute('aria-pressed'), 'true');
   assert.equal(app.$('transactions-insights-monthly').getAttribute('aria-pressed'), 'false');
-  assert.equal(app.textOf('transactions-insights-title'), 'Spending per year');
+  assert.equal(app.textOf('transactions-insights-title'), 'Spending and income per year');
   assert.deepEqual(labels(app), ['2025', '2026 YTD']);
   assert.deepEqual(app.callsOf('get_transaction_insights').at(-1).args, { granularity: 'yearly' });
   app.close();
@@ -72,11 +73,11 @@ test('test_csd033_ac_5_2_choosing_monthly_asks_for_months_and_labels_them_yyyy_m
   assert.deepEqual(labels(app), ['2026-09', '2026-10 MTD']);
   assert.equal(app.$('transactions-insights-monthly').getAttribute('aria-pressed'), 'true');
   assert.equal(app.$('transactions-insights-yearly').getAttribute('aria-pressed'), 'false');
-  assert.equal(app.textOf('transactions-insights-title'), 'Spending per month');
-  assert.equal(app.$('transactions-insights-chart').querySelector('svg').getAttribute('aria-label'), 'Spending per month');
+  assert.equal(app.textOf('transactions-insights-title'), 'Spending and income per month');
+  assert.equal(app.$('transactions-insights-chart').querySelector('svg').getAttribute('aria-label'), 'Spending and income per month');
   await app.click(app.$('transactions-insights-yearly'));
   assert.deepEqual(labels(app), ['2025', '2026 YTD']);
-  assert.equal(app.textOf('transactions-insights-title'), 'Spending per year');
+  assert.equal(app.textOf('transactions-insights-title'), 'Spending and income per year');
   app.close();
 });
 
@@ -108,9 +109,9 @@ test('test_csd033_ac_4_1_a_bar_is_stacked_from_its_segments_as_received', async 
   app.close();
 });
 
-test('test_csd033_ac_7_1_the_legend_lists_every_category_with_uncategorized_last', async () => {
+test('test_csd033_ac_7_1_the_legend_lists_every_category_with_uncategorized_last_and_then_income', async () => {
   const app = await insightsPage({ get_transaction_insights: YEARS });
-  assert.deepEqual(legendNames(app), ['Groceries', 'Shopping', 'Uncategorized']);
+  assert.deepEqual(legendNames(app), ['Groceries', 'Shopping', 'Uncategorized', 'Income']);
   app.close();
 });
 
@@ -123,7 +124,7 @@ test('test_csd033_ac_8_1_the_tooltip_lists_the_segments_like_the_bar_top_to_bott
   const text = app.text(tip);
   assert.match(text, /^2026 YTDPartial year: spending so far/);
   assert.ok(text.indexOf('Uncategorized') < text.indexOf('Groceries'), 'the top of the bar first');
-  assert.match(text, /Total22\.50$/);
+  assert.match(text, /Total spent22\.50Income30\.00$/);
   app.close();
 });
 
@@ -140,7 +141,7 @@ test('test_csd033_ac_12_1_without_spending_the_note_is_shown_instead_of_a_chart'
   const app = await insightsPage({ get_transaction_insights: () => yearly([]) });
   assert.ok(app.isShown(app.$('transactions-insights-empty')));
   assert.equal(app.isShown(app.$('transactions-insights-scroll')), false);
-  assert.equal(app.textOf('transactions-insights-empty'), 'No spending yet. The chart appears once there is a debit.');
+  assert.equal(app.textOf('transactions-insights-empty'), 'No transactions yet. The chart appears once there is a transaction.');
   app.close();
 });
 
@@ -157,10 +158,10 @@ test('test_csd033_ac_14_1_dutch_titles_and_names', async () => {
   const reads = exampleReads();
   reads.get_preferences = { theme: 'system', language: 'nl', number_format: 'point_comma', discrete_mode: false };
   const app = await insightsPage({ get_transaction_insights: YEARS }, reads);
-  assert.equal(app.textOf('transactions-insights-title'), 'Uitgaven per jaar');
+  assert.equal(app.textOf('transactions-insights-title'), 'Uitgaven en inkomsten per jaar');
   assert.equal(app.textOf('transactions-insights-yearly'), 'Jaarlijks');
   assert.equal(app.textOf('transactions-insights-monthly'), 'Maandelijks');
-  assert.deepEqual(legendNames(app), ['Groceries', 'Shopping', 'Zonder categorie']);
+  assert.deepEqual(legendNames(app), ['Groceries', 'Shopping', 'Zonder categorie', 'Inkomen']);
   app.close();
 });
 
@@ -170,5 +171,41 @@ test('test_csd033_ac_15_1_discrete_mode_hides_the_amounts_in_the_tooltip_and_lab
   const app = await insightsPage({ get_transaction_insights: YEARS }, reads);
   const piece = groups(app)[1].querySelector('[data-legend^="category-"]');
   assert.doesNotMatch(piece.getAttribute('aria-label'), /\d\.\d\d/);
+  app.close();
+});
+
+test('test_csd033_ac_4_3_income_is_a_marker_across_the_bar_with_its_label', async () => {
+  const app = await insightsPage({ get_transaction_insights: YEARS });
+  const [first, last] = groups(app);
+  assert.equal(first.querySelector('.chart-marker'), null, 'no income, no marker');
+  assert.ok(last.querySelector('.chart-marker'), 'a marker line');
+  assert.equal(app.text(last.querySelector('.chart-marker-label')), '30');
+  app.close();
+});
+
+test('test_csd033_ac_4_4_a_bar_with_income_only_has_a_marker_and_no_segments', async () => {
+  const onlyIncome = yearly([bar(2026, null, [], { income: 9 })]);
+  const app = await insightsPage({ get_transaction_insights: () => onlyIncome });
+  const [group] = groups(app);
+  assert.equal(group.querySelectorAll('[data-legend^="category-"]').length, 0);
+  assert.ok(group.querySelector('.chart-marker'));
+  group.dispatchEvent(new app.window.MouseEvent('mouseenter'));
+  await app.settle();
+  const text = app.text(app.$('transactions-insights-chart').querySelector('.chart-tooltip'));
+  assert.match(text, /No spending/);
+  assert.match(text, /Income9\.00$/);
+  app.close();
+});
+
+test('test_csd033_ac_7_2_the_income_legend_item_has_the_marker_swatch', async () => {
+  const app = await insightsPage({ get_transaction_insights: YEARS });
+  const items = [...app.$('transactions-insights-legend').querySelectorAll('li')];
+  assert.equal(items.at(-1).getAttribute('data-legend'), 'marker');
+  app.close();
+});
+
+test('test_csd033_ac_4_3_the_accessible_name_of_a_bar_names_the_income', async () => {
+  const app = await insightsPage({ get_transaction_insights: YEARS });
+  assert.match(groups(app)[1].getAttribute('aria-label'), /income 30\.00$/);
   app.close();
 });

@@ -1,5 +1,6 @@
 //! The series behind the Transactions Insights chart (CSD-033): what was spent,
-//! stacked per category, per calendar year or per month.
+//! stacked per category, with what came in as a marker, per calendar year or
+//! per month.
 
 use std::collections::BTreeMap;
 
@@ -53,13 +54,17 @@ pub struct InsightsSegment {
 pub struct TransactionInsightsPeriod {
     pub year: i32,
     pub month: Option<u8>,
+    /// The spending of the bar: the sum of its segments.
     pub total: Money,
+    /// What came in during the bar: the sum of the credits.
+    pub income: Money,
+    /// How many transactions, debits and credits, the bar has.
     pub transaction_count: usize,
     pub is_partial: bool,
     pub segments: Vec<InsightsSegment>,
     /// The stacked pieces of the bar (CSD-025 section 5).
     pub pieces: Vec<Piece>,
-    /// Transactions have no marker; always `None`.
+    /// The income of the bar as a marker, or `None` when nothing came in.
     pub marker: Option<Marker>,
 }
 
@@ -129,10 +134,10 @@ impl Transactions {
             .collect()
     }
 
-    /// What was spent (the debits), stacked per category, per year or per
-    /// month, oldest first. A bar without a debit is zero and has no segments;
-    /// the current year or month is partial (CSD-033 REQ-1 to REQ-5). Credits
-    /// are not part of the chart.
+    /// What was spent (the debits), stacked per category, and what came in
+    /// (the credits) as a marker, per year or per month, oldest first. A bar
+    /// without a debit has no segments; the current year or month is partial
+    /// (CSD-033 REQ-1 to REQ-5).
     #[must_use]
     pub fn insights(&self, granularity: Granularity, today: YearMonth) -> TransactionInsights {
         let categories = self.insights_categories();
@@ -142,11 +147,16 @@ impl Transactions {
             Granularity::Monthly => month_number(month),
         };
         let mut sums: BTreeMap<(i32, usize), (Money, usize)> = BTreeMap::new();
-        for transaction in self
-            .transactions()
-            .iter()
-            .filter(|t| t.amount.is_negative())
-        {
+        let mut income: BTreeMap<i32, (Money, usize)> = BTreeMap::new();
+        for transaction in self.transactions() {
+            if !transaction.amount.is_negative() {
+                let entry = income
+                    .entry(key_of(transaction.date.year_month()))
+                    .or_insert((Money::ZERO, 0));
+                entry.0 = entry.0.saturating_add(transaction.amount);
+                entry.1 += 1;
+                continue;
+            }
             let id = transaction
                 .category_id
                 .map_or_else(|| UNCATEGORIZED_ENTITY.to_owned(), |id| id.to_string());
@@ -156,7 +166,11 @@ impl Transactions {
             entry.0 = entry.0.saturating_add(transaction.amount.abs());
             entry.1 += 1;
         }
-        let record_keys = sums.keys().map(|(key, _)| *key);
+        let record_keys: Vec<i32> = sums
+            .keys()
+            .map(|(key, _)| *key)
+            .chain(income.keys().copied())
+            .collect();
         let (keys, current) = match granularity {
             Granularity::Yearly => (series_years(record_keys, today.year()), today.year()),
             Granularity::Monthly => (
@@ -177,7 +191,8 @@ impl Transactions {
                             })
                         })
                         .collect();
-                    let transaction_count = (0..categories.len())
+                    let (earned, credits) = income.get(&key).copied().unwrap_or((Money::ZERO, 0));
+                    let debits: usize = (0..categories.len())
                         .filter_map(|slot| sums.get(&(key, slot)))
                         .map(|(_, count)| *count)
                         .sum();
@@ -196,11 +211,12 @@ impl Transactions {
                         year,
                         month,
                         total: Money::saturating_sum(segments.iter().map(|segment| segment.amount)),
-                        transaction_count,
+                        income: earned,
+                        transaction_count: debits + credits,
                         is_partial: key == current,
                         segments,
                         pieces,
-                        marker: None,
+                        marker: (!earned.is_zero()).then(|| Marker::at(earned)),
                     }
                 })
                 .collect();
