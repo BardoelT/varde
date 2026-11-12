@@ -155,10 +155,11 @@ export const reloadTransactionsInsightsIfOpen = async () => {
 
 export function initTransactionsInsights() {
   chart.init();
-  // Categories and rules sit left of the Overview, which opens first; the Insights tab recomputes the chart
+  // Categories and Rules sit left of the Overview, which opens first; the Insights tab recomputes the chart
   // each time it opens (CSD-033 REQ-13).
   initTabs([
     { tab: 'transactions-tab-categories', panel: 'transactions-categories' },
+    { tab: 'transactions-tab-rules', panel: 'transactions-rules' },
     { tab: 'transactions-tab-overview', panel: 'transactions-overview' },
     { tab: 'transactions-tab-insights', panel: 'transactions-insights', onOpen: chart.reload },
   ]);

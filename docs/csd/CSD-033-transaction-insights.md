@@ -3,7 +3,7 @@ id: CSD-033
 title: Transaction insights
 status: draft
 owner: Thijs Bardoel
-version: 0.4
+version: 0.5
 last_updated: 12/11/2026
 related: [CSD-000, CSD-014, CSD-022, CSD-025, CSD-030, CSD-032]
 ---
@@ -211,13 +211,13 @@ Scenario: Tooltip of a month
 ```
 
 **REQ-9: The Insights tab** *(ubiquitous)*
-The Transactions page shall have the tabs, left to right, "Categories and rules", "Overview" and "Insights"; the Overview is shown first.
+The Transactions page shall have the tabs, left to right, "Categories", "Rules", "Overview" and "Insights"; the Overview is shown first.
 
 ```gherkin
 @AC-9.1
-Scenario: Three tabs
+Scenario: Four tabs
   When the user opens Transactions
-  Then the tabs are "Categories and rules", "Overview" and "Insights", the Overview is shown, and choosing "Insights" shows the chart
+  Then the tabs are "Categories", "Rules", "Overview" and "Insights", the Overview is shown, and choosing "Insights" shows the chart
 ```
 
 **REQ-10: Motion, look and size** *(ubiquitous)*
@@ -296,6 +296,7 @@ The list is called `years` and a bar `year` because the frame of the yearly char
 - OQ-2: Is 36 months the right length of the Monthly chart? Owner: Thijs. Blocks: REQ-2.
 
 ## 9. Changelog
+- 0.5 (12/11/2026): The tab "Categories and rules" is split into "Categories" and "Rules" (REQ-9, AC-9.1), following CSD-032 v0.14. Owner request. Back to `draft` until re-approved.
 - 0.4 (12/11/2026): The tooltip is fitted by measuring it, not by an estimate (REQ-8, AC-8.3), and the scroll boxes of the charts are made steady: sideways scrolling only, a clipped chart box and a stable page scrollbar gutter (new CON-4). The first fix did not stop the scrollbars from appearing and disappearing in the owner's window. Owner report. Back to `draft` until re-approved.
 - 0.3 (12/11/2026): The tooltip is never taller than the chart: segments that do not fit are counted in a last row "and N more categories" (REQ-8, AC-8.3). A tall tooltip made the chart box scroll and shifted the page while hovering. Owner report ("the chart is unstable"). Back to `draft` until re-approved.
 - 0.2 (12/11/2026): The income (the credits) is drawn as a marker across each bar, with an "Income" item in the legend and a row in the tooltip; bars also exist for periods with only income; the panel is titled "Spending and income per year" or "per month"; the empty note is about transactions (REQ-4, REQ-7, REQ-8, REQ-12). Owner request. Back to `draft` until re-approved.

@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.13
+version: 0.14
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -540,7 +540,7 @@ Scenario: Editing keeps the filter
 ```
 
 **REQ-16: The page in the navigation** *(ubiquitous)*
-The left pane shall list Transactions as the last item of the group Finance (CSD-024 REQ-1), and the page shall have three tabs, left to right "Categories and rules", "Overview" and "Insights" (the last is CSD-033). The Overview tab, which is the one shown first, holds the list, the Import button and, at the top, the two re-apply actions of REQ-12. The Categories and rules tab holds the management of categories and the management of rules. The message of an import or a re-apply is shown as a notification at the bottom right of the window, in the style of the notification after an undo but yellow, and goes away by itself like that one.
+The left pane shall list Transactions as the last item of the group Finance (CSD-024 REQ-1), and the page shall have four tabs, left to right "Categories", "Rules", "Overview" and "Insights" (the last is CSD-033). The Overview tab, which is the one shown first, holds the list, the Import button and, at the top, the two re-apply actions of REQ-12. The Categories tab holds the management of categories and the Rules tab the management of rules. The message of an import or a re-apply is shown as a notification at the bottom right of the window, in the style of the notification after an undo but yellow, and goes away by itself like that one.
 
 ```gherkin
 @AC-16.1
@@ -548,14 +548,16 @@ Scenario: Transactions is in the left pane
   When the user opens the app
   Then the left pane lists "Transactions" after "Income" and "Expenses" in the group "Finance"
   And choosing it shows the Overview tab
-  And the tabs are, left to right, "Categories and rules" and "Overview"
+  And the tabs are, left to right, "Categories", "Rules", "Overview" and "Insights"
 
 @AC-16.3
-Scenario: Categories and rules are on their own tab
+Scenario: Categories and rules are on their own tabs
   Given the Transactions page is open on the Overview tab
   Then the list, the Import button and the two re-apply buttons are shown, and the categories and the rules are not
-  When the user chooses the tab "Categories and rules"
-  Then the categories and the rules are shown, and the list, the Import button and the two re-apply buttons are not
+  When the user chooses the tab "Categories"
+  Then the categories are shown, and the rules, the list, the Import button and the two re-apply buttons are not
+  When the user chooses the tab "Rules"
+  Then the rules are shown, and the categories, the list, the Import button and the two re-apply buttons are not
 
 @AC-16.4
 Scenario: A re-apply message is a notification
@@ -812,6 +814,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.14 (12/11/2026): The tab "Categories and rules" is split into the tabs "Categories" and "Rules" (REQ-16, AC-16.1, AC-16.3); CSD-033 REQ-9 follows. Owner request. Back to `draft` until re-approved.
 - 0.13 (12/11/2026): New REQ-25 (AC-25.1 to AC-25.3): a button deletes all transactions and keeps the categories and the rules. Owner request. Back to `draft` until re-approved.
 - 0.12 (12/11/2026): The page has a third tab "Insights" (CSD-033, REQ-16); NG-2 points to it. Owner request. Back to `draft` until re-approved.
 - 0.11 (12/11/2026): The badge "Manual" is a button that, after a confirmation, unsets manual and keeps the category (REQ-11, AC-11.5 to AC-11.7). Owner request. Back to `draft` until re-approved.

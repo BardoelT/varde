@@ -605,7 +605,8 @@
         </div>
 
         <div class="tabs" role="tablist" aria-label="Transaction views">
-          <button type="button" class="tab" role="tab" id="transactions-tab-categories" aria-controls="transactions-categories" aria-selected="false" tabindex="-1">Categories and rules</button>
+          <button type="button" class="tab" role="tab" id="transactions-tab-categories" aria-controls="transactions-categories" aria-selected="false" tabindex="-1">Categories</button>
+          <button type="button" class="tab" role="tab" id="transactions-tab-rules" aria-controls="transactions-rules" aria-selected="false" tabindex="-1">Rules</button>
           <button type="button" class="tab" role="tab" id="transactions-tab-overview" aria-controls="transactions-overview" aria-selected="true">Overview</button>
           <button type="button" class="tab" role="tab" id="transactions-tab-insights" aria-controls="transactions-insights" aria-selected="false" tabindex="-1">Insights</button>
         </div>
@@ -620,7 +621,9 @@
             </div>
             <ul class="job-list" id="transaction-categories"></ul>
           </div>
+        </div>
 
+        <div id="transactions-rules" role="tabpanel" aria-labelledby="transactions-tab-rules" hidden>
           <div class="panel">
             <div class="panel-header">
               <span class="panel-title">Rules</span>

@@ -1,5 +1,5 @@
 // Transactions: bank transactions imported from a Knab export (the Overview tab), and their categories and
-// the rules that categorise them (the Categories and rules tab, CSD-032). Rust parses, categorises, filters, orders, cuts and totals; this file only
+// the rules that categorise them (the Categories and Rules tabs, CSD-032). Rust parses, categorises, filters, orders, cuts and totals; this file only
 // shows what Rust returns and sends what the user chose.
 import { invoke, errorText } from '../shared/ipc.js';
 import { $, h, iconButton, submitOnce, showToast, confirmAction } from '../shared/dom.js';

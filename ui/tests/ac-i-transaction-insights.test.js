@@ -49,7 +49,7 @@ const legendNames = (app) => [...app.$('transactions-insights-legend').querySele
 test('test_csd033_ac_9_1_the_insights_tab_is_the_third_tab_and_opens_the_chart', async () => {
   const app = await openApp({ handlers: { get_transaction_insights: YEARS } });
   await app.click(app.item('transactions'));
-  assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Categories and rules', 'Overview', 'Insights']);
+  assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Categories', 'Rules', 'Overview', 'Insights']);
   assert.equal(app.isShown(app.$('transactions-insights')), false);
   await app.click(app.$('transactions-tab-insights'));
   assert.ok(app.isShown(app.$('transactions-insights')));

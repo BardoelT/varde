@@ -57,7 +57,7 @@ test('test_csd032_ac_16_1_transactions_is_in_the_left_pane_after_expenses_and_sh
   await app.click(app.item('transactions'));
   assert.ok(app.isShown(app.$('transactions')));
   assert.equal(app.textOf('transactions-tab-overview'), 'Overview');
-  assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Categories and rules', 'Overview', 'Insights']);
+  assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Categories', 'Rules', 'Overview', 'Insights']);
   app.close();
 });
 
@@ -376,7 +376,7 @@ test('test_csd032_ac_18_1_a_change_reloads_the_settings_for_the_currency_confirm
   app.close();
 });
 
-test('test_csd032_ac_16_3_categories_and_rules_are_on_their_own_tab', async () => {
+test('test_csd032_ac_16_3_categories_and_rules_are_on_their_own_tabs', async () => {
   const app = await transactionsPage(readsWith({ rows: [transaction('t1', '2026-10-30', '-1.00', 'Example Shop')] }));
   const own = ['transaction-categories', 'transaction-rules'];
   const overview = ['transactions-table', 'transaction-import', 'transaction-reapply-all', 'transaction-reapply-uncategorized'];
@@ -384,8 +384,12 @@ test('test_csd032_ac_16_3_categories_and_rules_are_on_their_own_tab', async () =
   for (const id of overview) assert.ok(app.isShown(app.$(id)), `${id} is on the Overview`);
   for (const id of own) assert.equal(app.isShown(app.$(id)), false, `${id} is not on the Overview`);
   await app.click(app.$('transactions-tab-categories'));
-  for (const id of own) assert.ok(app.isShown(app.$(id)), `${id} is on its own tab`);
+  assert.ok(app.isShown(app.$('transaction-categories')), 'the categories are on their tab');
+  assert.equal(app.isShown(app.$('transaction-rules')), false, 'the rules are not on the Categories tab');
   for (const id of overview) assert.equal(app.isShown(app.$(id)), false, `${id} is not on the other tab`);
+  await app.click(app.$('transactions-tab-rules'));
+  assert.ok(app.isShown(app.$('transaction-rules')), 'the rules are on their tab');
+  assert.equal(app.isShown(app.$('transaction-categories')), false, 'the categories are not on the Rules tab');
   app.close();
 });
 
