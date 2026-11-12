@@ -415,7 +415,7 @@ test('test_csd032_ac_23_3_saving_adds_the_rule_and_cancelling_adds_none', async 
   assert.deepEqual(app.callsOf('add_transaction_rule').at(-1).args, { text: 'Example Market', categoryId: GROCERIES });
   assert.equal(app.$('transaction-rule-dialog').open, false);
   await open();
-  await app.click(app.$('transaction-rule-cancel'));
+  await app.click(app.$('transaction-rule-dialog').querySelector('[data-cancel]'));
   assert.equal(app.callsOf('add_transaction_rule').length, 1);
   app.close();
 });
@@ -431,7 +431,7 @@ test('test_csd032_ac_9_8_new_category_is_the_last_option_of_a_new_rule_only', as
   assert.equal(app.$('transaction-rule-new-category').hidden, false);
   await app.choose(form.elements.category, SHOPPING);
   assert.equal(app.$('transaction-rule-new-category').hidden, true);
-  await app.click(app.$('transaction-rule-cancel'));
+  await app.click(app.$('transaction-rule-dialog').querySelector('[data-cancel]'));
   await app.click(app.$('transaction-rules').querySelector('[aria-label="Edit Example"]'));
   assert.ok(![...form.elements.category.options].some((option) => option.value === '__new__'), 'no new category when editing');
   app.close();
@@ -476,37 +476,6 @@ test('test_csd032_ac_9_8_a_rule_from_a_transaction_can_also_create_a_category', 
   const form = app.$('transaction-rule-form');
   assert.equal(form.elements.category.value, GROCERIES);
   assert.ok([...form.elements.category.options].some((option) => option.value === '__new__'));
-  app.close();
-});
-
-test('test_csd032_ac_9_9_cancelling_the_new_category_goes_back_to_the_rule', async () => {
-  const rows = [transaction('t1', '2026-10-30', '-23.97', 'Example Market Town', GROCERIES)];
-  const app = await transactionsPage(readsWith({ rows }));
-  await app.click(app.$('transactions-rows').querySelector('.row-actions button'));
-  const form = app.$('transaction-rule-form');
-  await app.choose(form.elements.category, '__new__');
-  form.elements.name.value = 'Example Sport';
-  await app.click(app.$('transaction-rule-cancel'));
-  assert.equal(app.$('transaction-rule-dialog').open, true, 'still on the rule');
-  assert.equal(form.elements.category.value, GROCERIES, 'the category it had');
-  assert.equal(app.$('transaction-rule-new-category').hidden, true);
-  assert.equal(form.elements.text.value, 'Example Market Town', 'the text is kept');
-  await app.click(app.$('transaction-rule-cancel'));
-  assert.equal(app.$('transaction-rule-dialog').open, false);
-  assert.equal(app.callsOf('add_transaction_rule').length, 0);
-  app.close();
-});
-
-test('test_csd032_ac_9_9_escape_while_naming_goes_back_to_the_rule_too', async () => {
-  const app = await transactionsPage(readsWith({ rows: [], count: 0 }));
-  await app.click(app.$('transaction-rule-add'));
-  const form = app.$('transaction-rule-form');
-  await app.choose(form.elements.category, '__new__');
-  await app.escape(app.$('transaction-rule-dialog'));
-  assert.equal(app.$('transaction-rule-dialog').open, true);
-  assert.equal(app.$('transaction-rule-new-category').hidden, true);
-  await app.escape(app.$('transaction-rule-dialog'));
-  assert.equal(app.$('transaction-rule-dialog').open, false);
   app.close();
 });
 

@@ -277,32 +277,12 @@ let editingRule = null;
 /** The value of the last option of the category choice of a new rule: the rule creates its category. */
 const NEW_CATEGORY = '__new__';
 
-/** The category that was chosen before "New category…", which Cancel goes back to. */
-let categoryBeforeNew = '';
-
 /** Shows the name field while "New category…" is chosen, and only then (CSD-032 REQ-9). */
 function syncNewCategory() {
   const form = $('transaction-rule-form');
   const creating = form.elements.category.value === NEW_CATEGORY;
   $('transaction-rule-new-category').hidden = !creating;
   if (creating) form.elements.name.focus();
-  else categoryBeforeNew = form.elements.category.value;
-}
-
-/**
- * Cancel while a new category is being named goes back to the rule, with the category it had; Cancel
- * on the rule itself closes the dialog (CSD-032 REQ-9, AC-9.9). Escape does the same.
- */
-function cancelRuleDialog() {
-  const form = $('transaction-rule-form');
-  if (form.elements.category.value === NEW_CATEGORY) {
-    form.elements.category.value = categoryBeforeNew;
-    form.elements.name.value = '';
-    syncNewCategory();
-    form.elements.category.focus();
-    return;
-  }
-  $('transaction-rule-dialog').close();
 }
 
 /**
@@ -400,12 +380,6 @@ export function initTransactionsOverview({ onChanged: callback }) {
   $('transaction-rule-add').addEventListener('click', () => openRuleDialog(null));
   submitOnce($('transaction-rule-form'), submitRule);
   $('transaction-rule-form').elements.category.addEventListener('change', syncNewCategory);
-  $('transaction-rule-cancel').addEventListener('click', cancelRuleDialog);
-  $('transaction-rule-dialog').addEventListener('cancel', (event) => {
-    if ($('transaction-rule-form').elements.category.value !== NEW_CATEGORY) return;
-    event.preventDefault();
-    cancelRuleDialog();
-  });
   $('transaction-reapply-uncategorized').addEventListener('click', () => reapply('uncategorized'));
   $('transaction-reapply-all').addEventListener('click', () => reapply('all_non_manual'));
 }

@@ -309,7 +309,7 @@ Scenario: Uncategorized is protected
 ```
 
 **REQ-9: Rules** *(event-driven)*
-When the user adds, edits, reorders or deletes a rule, the app shall apply the change. A rule has a text of 1 to 100 characters after trimming and one category (not "Uncategorized"), and the rules are kept in an order the user can change. A new project holds about 15 seed rules for well-known Dutch chains, which the user may change. When the user adds a rule, the category choice also offers "New category…" as its last option (not when editing a rule); choosing it asks for the name of a new category, and saving adds that category and the rule as one change, or neither when the text or the name is invalid. While the name is being asked, Cancel (and Escape) goes back to the rule with the category it had, and the dialog stays open; Cancel on the rule itself closes it.
+When the user adds, edits, reorders or deletes a rule, the app shall apply the change. A rule has a text of 1 to 100 characters after trimming and one category (not "Uncategorized"), and the rules are kept in an order the user can change. A new project holds about 15 seed rules for well-known Dutch chains, which the user may change. When the user adds a rule, the category choice also offers "New category…" as its last option (not when editing a rule); choosing it asks for the name of a new category, and saving adds that category and the rule as one change, or neither when the text or the name is invalid.
 
 ```gherkin
 @AC-9.1
@@ -348,15 +348,6 @@ Scenario: A rejected name adds nothing
   And saves
   Then it is rejected with error code "TRANSACTION_CATEGORY_NAME_TAKEN"
   And neither a category nor a rule is added
-
-@AC-9.9
-Scenario: Cancelling the new category goes back to the rule
-  Given the user chose "Add a rule from Example Market Town" on a transaction in the category "Groceries"
-  And chose "New category…"
-  When the user chooses Cancel
-  Then the dialog "Add rule" is still open with the category "Groceries" and no name field
-  When the user chooses Cancel again
-  Then the dialog is closed and no rule or category is added
 
 @AC-9.8
 Scenario: The name field only shows for a new category
@@ -801,7 +792,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - 0.12 (12/11/2026): The page has a third tab "Insights" (CSD-033, REQ-16); NG-2 points to it. Owner request. Back to `draft` until re-approved.
 - 0.11 (12/11/2026): The badge "Manual" is a button that, after a confirmation, unsets manual and keeps the category (REQ-11, AC-11.5 to AC-11.7). Owner request. Back to `draft` until re-approved.
 - 0.10 (12/11/2026): A table "Yearly totals" (income, spent, net per year) on the Overview tab, like the other pages (REQ-24, AC-24.1 to AC-24.5). Owner request. Back to `draft` until re-approved.
-- 0.9 (12/11/2026): Cancel while naming a new category goes back to the rule instead of closing the dialog (REQ-9, AC-9.9), and a manual transaction shows the badge "Manual" (REQ-11, AC-11.4). Owner requests. Back to `draft` until re-approved.
+- 0.9 (12/11/2026): A manual transaction shows the badge "Manual" (REQ-11, AC-11.4). The idea that Cancel while naming a new category goes back to the rule (AC-9.9) was dropped at the owner's request. Back to `draft` until re-approved.
 - 0.8 (12/11/2026): The dialog of a new rule offers "New category…", which creates the category and the rule as one change (REQ-9, AC-9.6 to AC-9.8). Owner request. Back to `draft` until re-approved.
 - 0.7 (12/11/2026): The notification of an import or a re-apply is yellow (#ffbb00, dark text) instead of orange (REQ-16, AC-16.2, AC-16.4). Owner request. Back to `draft` until re-approved.
 - 0.6 (12/11/2026): The message of an import or a re-apply becomes an orange notification at the bottom right, like the undo notification, instead of a note on the page (REQ-16, AC-16.2, AC-16.4). Owner request. Back to `draft` until re-approved.
