@@ -327,6 +327,22 @@ test('test_csd032_ac_9_3_the_rule_form_offers_the_existing_categories_and_sends_
   app.close();
 });
 
+test('test_csd032_ac_9_10_a_duplicate_rule_text_marks_its_text_field_in_dutch', async () => {
+  const app = await transactionsPage(readsWith({ rows: [], count: 0 }), {
+    add_transaction_rule: () => {
+      throw { code: 'TRANSACTION_RULE_TEXT_TAKEN', message: 'A rule with this text already exists.' };
+    },
+  });
+  await app.click(app.$('transaction-rule-add'));
+  const form = app.$('transaction-rule-form');
+  form.elements.text.value = 'Example Market';
+  form.requestSubmit();
+  await app.settle();
+  assert.equal(form.elements.text.getAttribute('aria-invalid'), 'true');
+  assert.match(app.document.body.textContent, /A rule with this text already exists\./);
+  app.close();
+});
+
 test('test_csd032_ac_9_3_a_rejected_rule_marks_its_text_field', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), {
     add_transaction_rule: () => {

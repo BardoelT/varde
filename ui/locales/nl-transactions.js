@@ -95,6 +95,7 @@ export default {
   'code:TRANSACTION_CATEGORY_NOT_FOUND': 'Deze categorie bestaat niet.',
   'code:TRANSACTION_RULE_TEXT_REQUIRED': 'Vul de tekst in waarop de regel zoekt.',
   'code:TRANSACTION_RULE_TEXT_TOO_LONG': 'De regeltekst mag maximaal 100 tekens bevatten.',
+  'code:TRANSACTION_RULE_TEXT_TAKEN': 'Er bestaat al een regel met deze tekst.',
   'code:TRANSACTION_RULE_CATEGORY_INVALID': 'Kies een bestaande categorie, niet Zonder categorie.',
   'code:TRANSACTION_RULE_NOT_FOUND': 'Deze regel bestaat niet.',
   'code:TRANSACTION_NOT_FOUND': 'Deze transactie bestaat niet.',

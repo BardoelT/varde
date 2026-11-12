@@ -955,6 +955,43 @@ fn test_csd032_ac_9_6_a_rule_can_create_its_category_with_it() {
 }
 
 #[test]
+fn test_csd032_ac_9_10_a_rule_with_the_same_text_is_rejected() {
+    let mut data = Transactions::default();
+    let groceries = category(&data, "Groceries");
+    let leisure = category(&data, "Leisure");
+    let first = data.add_rule("Example Market", groceries).unwrap();
+    let before = data.clone();
+    // The same text in another case or with spaces around it, whatever the category.
+    for text in ["Example Market", "  example MARKET ", "EXAMPLE MARKET"] {
+        for target in [groceries, leisure] {
+            assert_eq!(
+                data.add_rule(text, target).unwrap_err().code(),
+                "TRANSACTION_RULE_TEXT_TAKEN"
+            );
+        }
+    }
+    assert_eq!(
+        data.add_rule_with_new_category("example market", "Example Sport")
+            .unwrap_err()
+            .code(),
+        "TRANSACTION_RULE_TEXT_TAKEN"
+    );
+    assert_eq!(
+        data, before,
+        "a rejected rule adds nothing, not even a category"
+    );
+    // Another text is fine, and editing a rule to keep its own text is too.
+    let second = data.add_rule("Example Cafe", groceries).unwrap();
+    assert!(data.edit_rule(first.id, "EXAMPLE MARKET", leisure).is_ok());
+    assert_eq!(
+        data.edit_rule(second.id, "example market", groceries)
+            .unwrap_err()
+            .code(),
+        "TRANSACTION_RULE_TEXT_TAKEN"
+    );
+}
+
+#[test]
 fn test_csd032_ac_9_7_a_rejected_rule_or_name_adds_neither() {
     let mut data = Transactions::default();
     let before = data.clone();

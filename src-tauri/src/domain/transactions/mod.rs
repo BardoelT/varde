@@ -347,12 +347,28 @@ impl Transactions {
         }
     }
 
+    /// The text of a rule, trimmed, when no other rule has it: the same text
+    /// in another case is the same rule, because matching ignores case
+    /// (REQ-9). `own` is the rule being edited.
+    fn free_rule_text(&self, typed: &str, own: Option<RuleId>) -> Result<String, DomainError> {
+        let text = valid_rule_text(typed)?;
+        let lower = text.to_lowercase();
+        let taken = self
+            .rules
+            .iter()
+            .any(|rule| Some(rule.id) != own && rule.text.to_lowercase() == lower);
+        if taken {
+            return Err(DomainError::TransactionRuleTextTaken);
+        }
+        Ok(text)
+    }
+
     /// Adds a rule at the end of the list (REQ-9).
     ///
     /// # Errors
-    /// Returns the violated text or category rule.
+    /// Returns the violated text or category rule, or `TransactionRuleTextTaken`.
     pub fn add_rule(&mut self, text: &str, category: CategoryId) -> Result<Rule, DomainError> {
-        let text = valid_rule_text(text)?;
+        let text = self.free_rule_text(text, None)?;
         let category_id = self.rule_category(category)?;
         let rule = Rule {
             id: RuleId::new(),
@@ -374,7 +390,7 @@ impl Transactions {
         text: &str,
         name: &str,
     ) -> Result<(Category, Rule), DomainError> {
-        let text = valid_rule_text(text)?;
+        let text = self.free_rule_text(text, None)?;
         let category = self.add_category(name)?;
         let rule = Rule {
             id: RuleId::new(),
@@ -388,14 +404,14 @@ impl Transactions {
     /// Changes the text and category of a rule (REQ-9).
     ///
     /// # Errors
-    /// Returns `TransactionRuleNotFound` or the violated text or category rule.
+    /// Returns `TransactionRuleNotFound`, `TransactionRuleTextTaken` or the violated text or category rule.
     pub fn edit_rule(
         &mut self,
         id: RuleId,
         text: &str,
         category: CategoryId,
     ) -> Result<Rule, DomainError> {
-        let text = valid_rule_text(text)?;
+        let text = self.free_rule_text(text, Some(id))?;
         let category_id = self.rule_category(category)?;
         let rule = self
             .rules
