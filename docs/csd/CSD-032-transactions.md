@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.9
+version: 0.10
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030]
 ---
@@ -18,12 +18,12 @@ The app tracks what the user owns, owes and has spent on notable purchases, but 
 - Importing the transactions of a Knab CSV export into the open project, with duplicate skipping and all-or-nothing error handling.
 - A list of user-defined categories (seeded with defaults) and an ordered list of text rules that assign a category on import.
 - Changing the category of a transaction by hand, re-applying the rules, and deleting a transaction.
-- A Transactions page with one Overview tab: the paged list, the table filters of CSD-028, a filtered total, and the management of categories and rules.
+- A Transactions page with an Overview tab (yearly totals, the paged list, the table filters of CSD-028 and a filtered total) and a tab for the management of categories and rules.
 - Storage of transactions, categories and rules as sections of the project file (CSD-002), and the consequences for undo (CSD-027), the currency confirmation (CSD-003), Discrete mode (CSD-030) and the example project.
 
 ### 2.2 Non-goals
 - NG-1: Banks and formats other than the Knab CSV, and PDF statements. A parser per format is a follow-up.
-- NG-2: An Insights tab (totals per category or month, charts). A follow-up.
+- NG-2: An Insights tab (totals per category or month, charts). A follow-up. The yearly totals of REQ-24 are not Insights.
 - NG-3: A link to the bank accounts of CSD-009, to expenses (CSD-013), to net worth or to the dashboard. Importing never changes a balance or creates an expense. Detecting or netting transfers between own accounts.
 - NG-4: Adding a transaction by hand, and editing its date, amount, counterparty, description or any field other than the category.
 - NG-5: Regular expressions, amount or date conditions, and any learning in the rules. A rule is a "contains" text match.
@@ -685,6 +685,38 @@ Scenario: Saving and cancelling
   Then no rule is added
 ```
 
+**REQ-24: Yearly totals** *(ubiquitous)*
+The Overview tab shall show, above the list, a table "Yearly totals" with one row per calendar year that has at least one transaction, newest year first, with the income (the sum of the credits), the spent amount (the sum of the debits, as a positive amount) and the net (income minus spent) of that year. The totals cover every transaction, whatever the filters of the list are, and a year without transactions has no row. Rust computes the figures.
+
+```gherkin
+@AC-24.1
+Scenario: Income, spent and net per year
+  Given the transactions of 30/10/2026 debit 23.97, 28/10/2026 credit 2,500.00, 30/12/2025 debit 100.00 and 15/12/2025 debit 50.00
+  Then the table shows, newest year first, the rows
+    | Year | Income   | Spent  | Net      |
+    | 2026 | 2,500.00 | 23.97  | 2,476.03 |
+    | 2025 | 0.00     | 150.00 | -150.00  |
+
+@AC-24.2
+Scenario: No transactions, no totals
+  Given no transactions
+  Then the table is hidden and the note "No totals yet. Totals appear once there is a transaction." is shown
+
+@AC-24.3
+Scenario: A filter does not change the totals
+  Given the list is filtered on the category "Groceries"
+  Then the yearly totals still cover every transaction
+
+@AC-24.4
+Scenario: A change updates the totals
+  Given the only transaction of 2025 is deleted
+  Then the row of 2025 is gone
+
+@AC-24.5
+Scenario: Discrete mode hides the amounts
+  Given Discrete mode is on
+  Then the income, spent and net of every year are hidden and the years are shown
+
 ## 5. Interfaces and contracts
 
 ```mermaid
@@ -711,7 +743,7 @@ erDiagram
 Project file: three sections (REQ-17). `transactions` is an array, `transaction_categories` an array of `{ id, name }` (the built-in "Uncategorized" is not stored), `transaction_rules` an ordered array. Dates are ISO 8601, amounts decimal strings with at most two decimals (CSD-000 CON-8, CSD-002 REQ-19), ids are UUIDs.
 
 Commands (names and payloads are indicative; the final signatures belong to the implementation):
-`import_transactions()` → `{ added, skipped }`; `list_transactions(filters, page)` → `{ rows, total, count }`; `set_transaction_category(id, category_id)`; `delete_transaction(id)`; `list_transaction_categories()`; `add_`/`rename_`/`delete_transaction_category`; `list_transaction_rules()`; `add_`/`edit_`/`move_`/`delete_transaction_rule`; `reapply_transaction_rules(scope)` → `{ changed }`.
+`import_transactions()` → `{ added, skipped }`; `list_transactions(filters, limit)` → `{ rows, total, count }`; `yearly_transaction_totals()` → `[{ year, income, spent, net, transaction_count }]`; `set_transaction_category(id, category_id)`; `delete_transaction(id)`; `list_transaction_categories()`; `add_`/`rename_`/`delete_transaction_category`; `list_transaction_rules()`; `add_`/`edit_`/`move_`/`delete_transaction_rule`; `reapply_transaction_rules(scope)` → `{ changed }`.
 
 Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 text, or is larger than 50 MB), `TRANSACTION_IMPORT_FORMAT`, `_COLUMNS`, `_FIELD`, `_DATE`, `_DIRECTION`, `_AMOUNT`, `_REFERENCE`, `_CURRENCY`, `TRANSACTION_CATEGORY_NAME_REQUIRED`, `_NAME_TOO_LONG`, `_NAME_TAKEN`, `TRANSACTION_CATEGORY_PROTECTED`, `TRANSACTION_CATEGORY_NOT_FOUND`, `TRANSACTION_RULE_TEXT_REQUIRED`, `_TEXT_TOO_LONG`, `_CATEGORY_INVALID`, `TRANSACTION_RULE_NOT_FOUND`, `TRANSACTION_NOT_FOUND`, `TRANSACTION_DATA_INVALID`. The built-in Uncategorized has no id: a transaction without a category holds `null`, and a filter, a rename and a delete name it `uncategorized`. The default categories and rules have fixed ids, so two new projects are equal.
 
@@ -743,6 +775,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.10 (12/11/2026): A table "Yearly totals" (income, spent, net per year) on the Overview tab, like the other pages (REQ-24, AC-24.1 to AC-24.5). Owner request. Back to `draft` until re-approved.
 - 0.9 (12/11/2026): Cancel while naming a new category goes back to the rule instead of closing the dialog (REQ-9, AC-9.9), and a manual transaction shows the badge "Manual" (REQ-11, AC-11.4). Owner requests. Back to `draft` until re-approved.
 - 0.8 (12/11/2026): The dialog of a new rule offers "New category…", which creates the category and the rule as one change (REQ-9, AC-9.6 to AC-9.8). Owner request. Back to `draft` until re-approved.
 - 0.7 (12/11/2026): The notification of an import or a re-apply is yellow (#ffbb00, dark text) instead of orange (REQ-16, AC-16.2, AC-16.4). Owner request. Back to `draft` until re-approved.

@@ -369,3 +369,21 @@ fn test_csd032_ac_9_7_a_rejected_name_over_ipc_changes_nothing() {
         Value::Null
     );
 }
+
+#[test]
+fn test_csd032_ac_24_1_yearly_totals_over_ipc() {
+    let app = harness();
+    assert_eq!(app.ok("yearly_transaction_totals", json!({})), json!([]));
+    import(&app, fixture()).unwrap();
+    let totals = app.ok("yearly_transaction_totals", json!({}));
+    assert_eq!(
+        totals,
+        json!([{
+            "year": 2026,
+            "income": "2515.50",
+            "spent": "1343.06",
+            "net": "1172.44",
+            "transaction_count": 8
+        }])
+    );
+}

@@ -8,6 +8,7 @@
 mod category;
 mod import;
 mod list;
+mod totals;
 mod transaction;
 
 #[cfg(test)]
@@ -23,6 +24,7 @@ use crate::domain::money::Currency;
 
 pub use category::{Category, CategoryId, Rule, RuleId, UNCATEGORIZED_ENTITY};
 pub use list::TransactionList;
+pub use totals::TransactionYearlyTotal;
 pub use transaction::{Transaction, TransactionId};
 
 use category::{categorise, defaults, valid_name, valid_rule_text};

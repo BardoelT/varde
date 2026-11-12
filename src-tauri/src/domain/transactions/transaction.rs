@@ -39,6 +39,12 @@ impl TransactionDate {
             .map(Self)
     }
 
+    /// The calendar year.
+    #[must_use]
+    pub fn year(self) -> i32 {
+        self.0.year()
+    }
+
     /// The month the date falls in (CSD-028 REQ-3).
     #[must_use]
     pub fn year_month(self) -> YearMonth {

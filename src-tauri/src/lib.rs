@@ -139,6 +139,7 @@ fn configure_with<R: Runtime>(
             expenses::get_expense_insights,
             transactions::import_transactions,
             transactions::list_transactions,
+            transactions::yearly_transaction_totals,
             transactions::set_transaction_category,
             transactions::delete_transaction,
             transactions::list_transaction_categories,

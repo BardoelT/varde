@@ -14,7 +14,7 @@ use tauri_plugin_dialog::DialogExt;
 use super::AppState;
 use crate::domain::transactions::{
     Category, CategoryId, ImportSummary, ReapplyScope, Rule, RuleId, TransactionId,
-    TransactionList, UNCATEGORIZED_ENTITY,
+    TransactionList, TransactionYearlyTotal, UNCATEGORIZED_ENTITY,
 };
 use crate::domain::{DomainError, StatementFilter};
 use crate::error::AppError;
@@ -92,6 +92,15 @@ pub fn list_transactions(
     Ok(project
         .transactions()
         .list_filtered(filter.as_ref(), limit.unwrap_or(PAGE_ROWS)))
+}
+
+/// Yearly totals over all transactions, newest year first (CSD-032 REQ-24).
+#[tauri::command]
+pub fn yearly_transaction_totals(
+    state: State<'_, AppState>,
+) -> Result<Vec<TransactionYearlyTotal>, AppError> {
+    let project = state.project()?;
+    Ok(project.transactions().yearly_totals())
 }
 
 /// Sets the category of a transaction by hand; no category means

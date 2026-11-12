@@ -634,6 +634,24 @@
 
         <div id="transactions-overview" role="tabpanel" aria-labelledby="transactions-tab-overview">
           <div class="panel">
+            <div class="panel-header"><span class="panel-title">Yearly totals</span></div>
+            <p class="empty-note" id="transaction-totals-empty" hidden>No totals yet. Totals appear once there is a transaction.</p>
+            <div class="table-wrap">
+              <table class="data-table" id="transaction-totals-table" hidden>
+                <thead>
+                  <tr>
+                    <th scope="col">Year</th>
+                    <th scope="col" class="num">Income</th>
+                    <th scope="col" class="num">Spent</th>
+                    <th scope="col" class="num">Net</th>
+                  </tr>
+                </thead>
+                <tbody id="transaction-totals-rows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
             <div class="panel-header">
               <span class="panel-title">Transactions</span>
               <div class="panel-actions">

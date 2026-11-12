@@ -521,3 +521,66 @@ test('test_csd032_ac_11_4_manual_transactions_carry_a_badge', async () => {
   assert.equal(second.querySelector('.manual-badge'), null);
   app.close();
 });
+
+const totalsRows = (app) => [...app.$('transaction-totals-rows').querySelectorAll('tr')].map((row) => rowCells(app, row));
+
+test('test_csd032_ac_24_1_the_yearly_totals_are_shown_as_rust_returned_them_above_the_list', async () => {
+  const reads = readsWith({ rows: [transaction('t1', '2026-10-30', '-23.97', 'Example Shop')] });
+  reads.yearly_transaction_totals = [
+    { year: 2026, income: '2500.00', spent: '23.97', net: '2476.03', transaction_count: 2 },
+    { year: 2025, income: '0.00', spent: '150.00', net: '-150.00', transaction_count: 2 },
+  ];
+  const app = await transactionsPage(reads);
+  assert.deepEqual(totalsRows(app), [
+    ['2026', '2,500.00', '23.97', '2,476.03'],
+    ['2025', '0.00', '150.00', '-150.00'],
+  ]);
+  const headers = [...app.$('transaction-totals-table').querySelectorAll('thead th')].map((cell) => app.text(cell));
+  assert.deepEqual(headers, ['Year', 'Income', 'Spent', 'Net']);
+  const panels = [...app.$('transactions-overview').querySelectorAll(':scope > .panel .panel-title')].map((node) => app.text(node));
+  assert.deepEqual(panels, ['Yearly totals', 'Transactions'], 'the totals come first');
+  app.close();
+});
+
+test('test_csd032_ac_24_2_no_transactions_no_totals', async () => {
+  const reads = readsWith({ rows: [], count: 0 });
+  reads.yearly_transaction_totals = [];
+  const app = await transactionsPage(reads);
+  assert.equal(app.isShown(app.$('transaction-totals-table')), false);
+  assert.equal(app.textOf('transaction-totals-empty'), 'No totals yet. Totals appear once there is a transaction.');
+  assert.ok(app.isShown(app.$('transaction-totals-empty')));
+  app.close();
+});
+
+test('test_csd032_ac_24_3_a_filter_does_not_ask_for_other_totals', async () => {
+  const rows = [transaction('t1', '2026-10-30', '-1.00', 'Example Shop', GROCERIES)];
+  const app = await transactionsPage(readsWith({ rows }));
+  const before = app.callsOf('yearly_transaction_totals').length;
+  await app.click(app.$('transaction-entity-filter').querySelector('button'));
+  const box = [...app.document.querySelectorAll('.filter-check input')].find((input) => input.value === GROCERIES);
+  box.checked = true;
+  box.dispatchEvent(new app.window.Event('change', { bubbles: true }));
+  await app.settle();
+  assert.equal(app.callsOf('yearly_transaction_totals').length, before, 'the totals are not asked for again');
+  assert.ok(app.callsOf('yearly_transaction_totals').every((call) => call.args === undefined || !call.args.filter));
+  app.close();
+});
+
+test('test_csd032_ac_24_4_a_change_reloads_the_totals', async () => {
+  const rows = [transaction('t1', '2026-10-30', '-1.00', 'Example Shop')];
+  const app = await transactionsPage(readsWith({ rows }), { delete_transaction: null });
+  const before = app.callsOf('yearly_transaction_totals').length;
+  await app.click(app.document.querySelector('[aria-label="Delete Example Shop"]'));
+  await app.click(app.$('confirm-ok'));
+  assert.ok(app.callsOf('yearly_transaction_totals').length > before);
+  app.close();
+});
+
+test('test_csd032_ac_24_5_discrete_mode_hides_the_yearly_amounts', async () => {
+  const reads = readsWith({ rows: [] });
+  reads.yearly_transaction_totals = [{ year: 2026, income: '2500.00', spent: '23.97', net: '2476.03', transaction_count: 2 }];
+  reads.get_preferences = { theme: 'system', language: 'en', number_format: 'point_comma', discrete_mode: true };
+  const app = await transactionsPage(reads);
+  assert.deepEqual(totalsRows(app), [['2026', '•••••', '•••••', '•••••']]);
+  app.close();
+});

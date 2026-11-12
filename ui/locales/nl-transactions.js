@@ -21,6 +21,9 @@ export default {
   'Delete transaction': 'Transactie verwijderen',
   '{added} added, {skipped} skipped as duplicates': '{added} toegevoegd, {skipped} overgeslagen als dubbel',
   '{count} changed': '{count} gewijzigd',
+  'No totals yet. Totals appear once there is a transaction.': 'Nog geen totalen. Totalen verschijnen zodra er een transactie is.',
+  'Spent': 'Uitgegeven',
+  'Net': 'Saldo',
   // Categories
   'Categories': 'Categorieën',
   'Add category': 'Categorie toevoegen',

@@ -921,3 +921,62 @@ fn test_csd032_ac_9_7_a_rejected_rule_or_name_adds_neither() {
         assert_eq!(data, before, "{code}");
     }
 }
+
+// REQ-24
+
+#[test]
+fn test_csd032_ac_24_1_yearly_totals_split_income_and_spending_newest_year_first() {
+    let data = imported(&[
+        simple(
+            "30-10-2026",
+            "Afschrijvingen",
+            "23,97",
+            "Example Shop",
+            "R1",
+        ),
+        simple(
+            "28-10-2026",
+            "Bijschrijvingen",
+            "2500,00",
+            "Example Employer",
+            "R2",
+        ),
+        simple(
+            "30-12-2025",
+            "Afschrijvingen",
+            "100,00",
+            "Example Shop",
+            "R3",
+        ),
+        simple(
+            "15-12-2025",
+            "Afschrijvingen",
+            "50,00",
+            "Example Cafe",
+            "R4",
+        ),
+    ]);
+    let totals = data.yearly_totals();
+    assert_eq!(
+        totals.iter().map(|row| row.year).collect::<Vec<_>>(),
+        [2026, 2025]
+    );
+    let newest = totals.first().unwrap();
+    assert_eq!(newest.income, money("2500.00"));
+    assert_eq!(newest.spent, money("23.97"));
+    assert_eq!(newest.net, money("2476.03"));
+    assert_eq!(newest.transaction_count, 2);
+    let older = totals.last().unwrap();
+    assert_eq!(older.income, money("0.00"));
+    assert_eq!(older.spent, money("150.00"));
+    assert_eq!(older.net, money("-150.00"));
+}
+
+#[test]
+fn test_csd032_ac_24_2_no_transactions_no_totals_and_a_deleted_year_is_gone() {
+    assert_eq!(Transactions::default().yearly_totals(), Vec::new());
+    let mut data = imported(&[simple("30-12-2025", "Afschrijvingen", "10,00", "A", "R1")]);
+    let id = data.transactions().first().unwrap().id;
+    data.delete_transaction(id).unwrap();
+    assert_eq!(data.yearly_totals(), Vec::new());
+}

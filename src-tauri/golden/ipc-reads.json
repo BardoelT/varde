@@ -4089,5 +4089,14 @@
       "total_gross": "38000.00",
       "year": 2023
     }
+  ],
+  "yearly_transaction_totals": [
+    {
+      "income": "2515.50",
+      "net": "1172.44",
+      "spent": "1343.06",
+      "transaction_count": 8,
+      "year": 2026
+    }
   ]
 }

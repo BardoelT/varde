@@ -7,7 +7,7 @@ import { formatAmount, formatDate } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
-import { numCell, rowHeader } from '../shared/list-rows.js';
+import { numCell, renderTable, rowHeader } from '../shared/list-rows.js';
 import { initTabs } from '../shared/tabs.js';
 
 /** How many rows one step of "Load more" adds, and the rows shown first (CSD-032 REQ-15). */
@@ -35,6 +35,14 @@ const transactionsFilter = createStatementFilter({
     loadList().catch((error) => showToast(errorText(error)));
   },
 });
+
+// ---- Yearly totals ----
+
+function renderTotals(totals) {
+  renderTable({ empty: 'transaction-totals-empty', table: 'transaction-totals-table', body: 'transaction-totals-rows' }, totals, (total) =>
+    h('tr', {}, rowHeader(String(total.year)), numCell(formatAmount(total.income)), numCell(formatAmount(total.spent)), numCell(formatAmount(total.net))),
+  );
+}
 
 // ---- The list ----
 
@@ -343,6 +351,7 @@ export async function reloadTransactionsOverview() {
   renderCategories();
   renderRules();
   await loadList();
+  renderTotals(await invoke('yearly_transaction_totals'));
 }
 
 async function changed() {
