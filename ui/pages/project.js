@@ -47,7 +47,7 @@ async function undoOrRedo(command, onReplaced) {
   const result = await invoke(command);
   status = result.status;
   await onReplaced();
-  showToast(t(command === 'undo' ? 'Undid: {step}' : 'Redid: {step}', { step: t(result.step) }));
+  showToast(t(command === 'undo' ? 'Undid: {step}' : 'Redid: {step}', { step: t(result.step) }), 'notice');
 }
 
 /** The flows behind the File menu items (CSD-002 REQ-9) and the Edit items Undo and Redo (CSD-027 REQ-10). */

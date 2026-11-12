@@ -1,9 +1,9 @@
 ---
 id: CSD-027
 title: Undo and redo
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.2
+version: 0.3
 last_updated: 12/11/2026
 related: [CSD-002, CSD-003, CSD-008, CSD-022, CSD-024, CSD-026, CSD-032]
 ---
@@ -273,14 +273,14 @@ Scenario: A vanished selection returns to the list
 ```
 
 **REQ-13: Say what happened** *(event-driven)*
-When a step is undone or redone, the app shall show a short message that names the step, in the language of the app, with no button.
+When a step is undone or redone, the app shall show a short message that names the step, in the language of the app, with no button, as an orange notification at the bottom right of the window (an error is shown in red).
 
 ```gherkin
 @AC-13.1
 Scenario: Message after undo
   Given the user deleted a bank account
   When the user chooses Edit > Undo
-  Then the message "Undid: Delete Bank Account" is shown
+  Then the message "Undid: Delete Bank Account" is shown as an orange notification
 
 @AC-13.2
 Scenario: Message in Dutch
@@ -330,5 +330,6 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-1: How does the Edit menu know a form is open or a text field has the focus (REQ-11)? The draft only fixes what the user sees: project undo does nothing in those states. Whether the item is also greyed out is left to the implementation. Owner: Thijs. Blocks: AC-11.2 only if greying out is required.
 
 ## 9. Changelog
+- 0.3 (12/11/2026): The message after an undo or redo is orange, like the results of CSD-032 REQ-16, and no longer the red of an error (REQ-13, AC-13.1). Owner request. Back to `draft` until re-approved.
 - 0.2 (12/11/2026): The history shares the transaction list between steps (CON-1) and has a memory budget in addition to the 100-step limit (REQ-6), for CSD-032 (GitHub issue 70). Back to `draft` until re-approved.
 - 0.1 (07/11/2026): initial draft, from GitHub issue 43 and the grill-me interview of 07/11/2026. Amends CSD-002 (NG-2, CON-6, REQ-3) and CSD-024 (REQ-5, CON-2).
