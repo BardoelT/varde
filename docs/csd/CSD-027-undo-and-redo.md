@@ -1,7 +1,7 @@
 ---
 id: CSD-027
 title: Undo and redo
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 0.4
 last_updated: 12/11/2026
