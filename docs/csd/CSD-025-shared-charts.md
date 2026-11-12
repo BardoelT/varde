@@ -1,7 +1,7 @@
 ---
 id: CSD-025
 title: Shared charts
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 0.6
 last_updated: 12/11/2026
