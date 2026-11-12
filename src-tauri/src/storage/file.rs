@@ -6,12 +6,13 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::StorageError;
+use crate::domain::transactions::{Category, Rule, Transaction};
 use crate::domain::{
-    BankAccounts, Debts, Expenses, Houses, Income, Investments, ProjectData, Settings,
+    BankAccounts, Debts, Expenses, Houses, Income, Investments, ProjectData, Settings, Transactions,
 };
 
 /// Version of the project file format this app writes and understands.
-pub const FORMAT_VERSION: u32 = 2;
+pub const FORMAT_VERSION: u32 = 3;
 
 /// Largest project file the app will read, a bound on untrusted input.
 pub const MAX_FILE_BYTES: u64 = 50 * 1024 * 1024;
@@ -26,6 +27,9 @@ struct FileRef<'a> {
     expenses: &'a Expenses,
     houses: &'a Houses,
     settings: &'a Settings,
+    transactions: &'a [Transaction],
+    transaction_categories: &'a [Category],
+    transaction_rules: &'a [Rule],
 }
 
 /// Every section is required and unknown fields are rejected, so a misspelled
@@ -43,6 +47,9 @@ struct FileOwned {
     expenses: Expenses,
     houses: Houses,
     settings: Settings,
+    transactions: Vec<Transaction>,
+    transaction_categories: Vec<Category>,
+    transaction_rules: Vec<Rule>,
 }
 
 /// Renders the project file: JSON with a `format_version` and decimal strings.
@@ -56,6 +63,9 @@ pub(super) fn to_json(data: &ProjectData) -> Result<String, StorageError> {
         expenses: &data.expenses,
         houses: &data.houses,
         settings: &data.settings,
+        transactions: data.transactions.transactions(),
+        transaction_categories: data.transactions.categories(),
+        transaction_rules: data.transactions.rules(),
     })
     .map_err(|error| StorageError::SaveFailed(io::Error::other(error)))
 }
@@ -99,6 +109,12 @@ pub(super) fn from_json(text: &str) -> Result<ProjectData, StorageError> {
     file.debts
         .validate_links(&file.houses)
         .map_err(|_| StorageError::InvalidFile)?;
+    let transactions = Transactions::from_parts(
+        file.transactions,
+        file.transaction_categories,
+        file.transaction_rules,
+    )
+    .map_err(|_| StorageError::InvalidFile)?;
     Ok(ProjectData {
         income: file.income,
         investments: file.investments,
@@ -107,6 +123,7 @@ pub(super) fn from_json(text: &str) -> Result<ProjectData, StorageError> {
         expenses: file.expenses,
         houses: file.houses,
         settings: file.settings,
+        transactions,
     })
 }
 

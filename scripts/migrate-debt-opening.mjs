@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-// One-off migration (CSD-002 REQ-20): upgrades a project file to format_version 2.
-// Gives every debt an `opening_date` and `opening_amount`, and every settlement an
-// `origin` (Sale for a debt with a house link, Manual otherwise). Outside the app,
-// no dependencies.
+// One-off migration (CSD-002 REQ-20): upgrades a project file to format_version 3.
+// Gives every debt an `opening_date` and `opening_amount`, every settlement an
+// `origin` (Sale for a debt with a house link, Manual otherwise), and the file the
+// sections of the transactions (CSD-032 REQ-17): no transactions, and the default
+// categories and rules of a new project. Outside the app, no dependencies.
 //
 // Usage: node scripts/migrate-debt-opening.mjs <file.varde>
 //
@@ -15,7 +16,52 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 /** The format_version this script upgrades to (CSD-002 REQ-20). */
-const TARGET_VERSION = 2;
+const TARGET_VERSION = 3;
+
+/** The sections CSD-032 adds, in the order the app writes them. */
+const TRANSACTION_SECTIONS = ['transactions', 'transaction_categories', 'transaction_rules'];
+
+/** The default categories of a new project (CSD-032 REQ-8), as the app holds them. */
+const DEFAULT_CATEGORIES = [
+  'Salary',
+  'Groceries',
+  'Housing',
+  'Utilities',
+  'Insurance',
+  'Transport',
+  'Eating out',
+  'Shopping',
+  'Health',
+  'Leisure',
+  'Subscriptions',
+  'Savings & transfers',
+  'Taxes',
+  'Other',
+];
+
+/** The default rules of a new project (CSD-032 REQ-9): text and category name. */
+const DEFAULT_RULES = [
+  ['Albert Heijn', 'Groceries'],
+  ['Jumbo', 'Groceries'],
+  ['Lidl', 'Groceries'],
+  ['Aldi', 'Groceries'],
+  ['Dirk van den Broek', 'Groceries'],
+  ['HEMA', 'Shopping'],
+  ['bol.com', 'Shopping'],
+  ['Coolblue', 'Shopping'],
+  ['Kruidvat', 'Health'],
+  ['NS Reizigers', 'Transport'],
+  ['Shell', 'Transport'],
+  ['Thuisbezorgd', 'Eating out'],
+  ['Netflix', 'Subscriptions'],
+  ['Spotify', 'Subscriptions'],
+  ['Zilveren Kruis', 'Insurance'],
+];
+
+/** The fixed ids the app gives the default categories and rules (counting up). */
+function defaultId(kind, index) {
+  return `76617264-6500-000${kind}-0000-${index.toString(16).padStart(12, '0')}`;
+}
 
 class MigrationError extends Error {}
 
@@ -126,7 +172,11 @@ function run(file) {
       if (!Object.hasOwn(debt.settlement, 'origin')) needOrigin.push(debt);
     }
   }
-  if (todo.length === 0 && needOrigin.length === 0 && version === TARGET_VERSION) {
+  const missingSections = TRANSACTION_SECTIONS.filter((name) => !Object.hasOwn(project, name));
+  if (missingSections.length !== 0 && missingSections.length !== TRANSACTION_SECTIONS.length) {
+    fail('the file has only some of the transaction sections');
+  }
+  if (todo.length === 0 && needOrigin.length === 0 && missingSections.length === 0 && version === TARGET_VERSION) {
     return console.log('Nothing to upgrade');
   }
 
@@ -149,6 +199,17 @@ function run(file) {
     const linked = debt.house_id !== undefined && debt.house_id !== null;
     debt.settlement = { outcome, origin: linked ? 'Sale' : 'Manual', date, amount, ...rest };
   }
+  if (missingSections.length !== 0) {
+    const categories = DEFAULT_CATEGORIES.map((name, index) => ({ id: defaultId(1, index), name }));
+    const rules = DEFAULT_RULES.map(([text, category], index) => ({
+      id: defaultId(2, index),
+      text,
+      category_id: categories[DEFAULT_CATEGORIES.indexOf(category)].id,
+    }));
+    project.transactions = [];
+    project.transaction_categories = categories;
+    project.transaction_rules = rules;
+  }
   project.format_version = TARGET_VERSION;
   // Same layout as the app writes: 2-space indent, no trailing newline.
   const text = JSON.stringify(project, null, 2);
@@ -160,7 +221,7 @@ function run(file) {
   }
   writeAtomic(file, text);
 
-  console.log(`Upgraded to format_version ${TARGET_VERSION}: ${todo.length} opening(s), ${needOrigin.length} settlement origin(s). Backup written next to the file with the extension .bak.`);
+  console.log(`Upgraded to format_version ${TARGET_VERSION}: ${todo.length} opening(s), ${needOrigin.length} settlement origin(s), ${missingSections.length === 0 ? 'no' : 'the'} transaction sections. Backup written next to the file with the extension .bak.`);
   if (uncorrected.length > 0) {
     console.log('Debts without statements (opening date today, amount 0.00), correct these in the app:');
     for (const name of uncorrected) console.log(`- ${name}`);

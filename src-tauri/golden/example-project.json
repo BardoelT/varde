@@ -1,5 +1,5 @@
 {
-  "format_version": 2,
+  "format_version": 3,
   "income": {
     "jobs": [
       {
@@ -371,5 +371,246 @@
   },
   "settings": {
     "currency": "EUR"
-  }
+  },
+  "transactions": [
+    {
+      "id": "id-18",
+      "date": "2026-10-30",
+      "amount": "-23.97",
+      "counterparty_name": "Example Market Town",
+      "counterparty_iban": "",
+      "description": "EXAMPLE TOWN 30-10-2026 13:18 Pas: 0001",
+      "own_account": "NL00EXAM0000000001",
+      "reference": "REF0000001",
+      "payment_method": "Betaalautomaat",
+      "category_id": null,
+      "manual": false
+    },
+    {
+      "id": "id-19",
+      "date": "2026-10-29",
+      "amount": "-45.10",
+      "counterparty_name": "Albert Heijn Example",
+      "counterparty_iban": "NL00EXAM0000000002",
+      "description": "EXAMPLE TOWN 29-10-2026 10:02 Pas: 0001",
+      "own_account": "NL00EXAM0000000001",
+      "reference": "REF0000002",
+      "payment_method": "Betaalautomaat",
+      "category_id": "id-20",
+      "manual": false
+    },
+    {
+      "id": "id-21",
+      "date": "2026-10-28",
+      "amount": "2500.00",
+      "counterparty_name": "Example Employer",
+      "counterparty_iban": "NL00EXAM0000000003",
+      "description": "Salary October 2026",
+      "own_account": "NL00EXAM0000000001",
+      "reference": "REF0000003",
+      "payment_method": "Ontvangen betaling",
+      "category_id": null,
+      "manual": false
+    },
+    {
+      "id": "id-22",
+      "date": "2026-10-27",
+      "amount": "-13.99",
+      "counterparty_name": "Netflix Example",
+      "counterparty_iban": "NL00EXAM0000000004",
+      "description": "Subscription",
+      "own_account": "NL00EXAM0000000001",
+      "reference": "REF0000004",
+      "payment_method": "Periodieke incasso",
+      "category_id": "id-23",
+      "manual": false
+    },
+    {
+      "id": "id-24",
+      "date": "2026-10-26",
+      "amount": "-1000.00",
+      "counterparty_name": "Example Landlord",
+      "counterparty_iban": "NL00EXAM0000000005",
+      "description": "Rent October 2026",
+      "own_account": "NL00EXAM0000000001",
+      "reference": "REF0000005",
+      "payment_method": "Overboeking",
+      "category_id": null,
+      "manual": false
+    },
+    {
+      "id": "id-25",
+      "date": "2026-10-26",
+      "amount": "-200.00",
+      "counterparty_name": "Example Savings",
+      "counterparty_iban": "NL00EXAM0000000006",
+      "description": "Transfer to savings",
+      "own_account": "NL00EXAM0000000001",
+      "reference": "REF0000006",
+      "payment_method": "Overboeking",
+      "category_id": null,
+      "manual": false
+    },
+    {
+      "id": "id-26",
+      "date": "2026-10-25",
+      "amount": "15.50",
+      "counterparty_name": "Example Friend",
+      "counterparty_iban": "NL00EXAM0000000007",
+      "description": "Dinner; shared",
+      "own_account": "NL00EXAM0000000001",
+      "reference": "REF0000007",
+      "payment_method": "Ontvangen iDEAL",
+      "category_id": "id-27",
+      "manual": true
+    },
+    {
+      "id": "id-28",
+      "date": "2026-10-24",
+      "amount": "-60.00",
+      "counterparty_name": "",
+      "counterparty_iban": "",
+      "description": "Example Fuel Station",
+      "own_account": "NL00EXAM0000000001",
+      "reference": "REF0000008",
+      "payment_method": "Onbemand tanken",
+      "category_id": null,
+      "manual": false
+    }
+  ],
+  "transaction_categories": [
+    {
+      "id": "id-29",
+      "name": "Salary"
+    },
+    {
+      "id": "id-20",
+      "name": "Groceries"
+    },
+    {
+      "id": "id-30",
+      "name": "Housing"
+    },
+    {
+      "id": "id-31",
+      "name": "Utilities"
+    },
+    {
+      "id": "id-32",
+      "name": "Insurance"
+    },
+    {
+      "id": "id-33",
+      "name": "Transport"
+    },
+    {
+      "id": "id-34",
+      "name": "Eating out"
+    },
+    {
+      "id": "id-35",
+      "name": "Shopping"
+    },
+    {
+      "id": "id-36",
+      "name": "Health"
+    },
+    {
+      "id": "id-37",
+      "name": "Leisure"
+    },
+    {
+      "id": "id-23",
+      "name": "Subscriptions"
+    },
+    {
+      "id": "id-38",
+      "name": "Savings & transfers"
+    },
+    {
+      "id": "id-39",
+      "name": "Taxes"
+    },
+    {
+      "id": "id-27",
+      "name": "Other"
+    }
+  ],
+  "transaction_rules": [
+    {
+      "id": "id-40",
+      "text": "Albert Heijn",
+      "category_id": "id-20"
+    },
+    {
+      "id": "id-41",
+      "text": "Jumbo",
+      "category_id": "id-20"
+    },
+    {
+      "id": "id-42",
+      "text": "Lidl",
+      "category_id": "id-20"
+    },
+    {
+      "id": "id-43",
+      "text": "Aldi",
+      "category_id": "id-20"
+    },
+    {
+      "id": "id-44",
+      "text": "Dirk van den Broek",
+      "category_id": "id-20"
+    },
+    {
+      "id": "id-45",
+      "text": "HEMA",
+      "category_id": "id-35"
+    },
+    {
+      "id": "id-46",
+      "text": "bol.com",
+      "category_id": "id-35"
+    },
+    {
+      "id": "id-47",
+      "text": "Coolblue",
+      "category_id": "id-35"
+    },
+    {
+      "id": "id-48",
+      "text": "Kruidvat",
+      "category_id": "id-36"
+    },
+    {
+      "id": "id-49",
+      "text": "NS Reizigers",
+      "category_id": "id-33"
+    },
+    {
+      "id": "id-50",
+      "text": "Shell",
+      "category_id": "id-33"
+    },
+    {
+      "id": "id-51",
+      "text": "Thuisbezorgd",
+      "category_id": "id-34"
+    },
+    {
+      "id": "id-52",
+      "text": "Netflix",
+      "category_id": "id-23"
+    },
+    {
+      "id": "id-53",
+      "text": "Spotify",
+      "category_id": "id-23"
+    },
+    {
+      "id": "id-54",
+      "text": "Zilveren Kruis",
+      "category_id": "id-32"
+    }
+  ]
 }

@@ -12,6 +12,7 @@ pub mod preferences;
 pub mod project;
 pub mod ratios;
 pub mod settings;
+pub mod transactions;
 
 use std::ops::{Deref, DerefMut};
 use std::sync::{Mutex, MutexGuard, OnceLock};

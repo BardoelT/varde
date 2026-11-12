@@ -7,9 +7,11 @@ use super::houses::Houses;
 use super::income::Income;
 use super::investments::Investments;
 use super::settings::Settings;
+use super::transactions::Transactions;
 
 /// Everything a project file holds: the income data, the investments, the bank
-/// accounts, the debts, the expenses, the houses and the project settings.
+/// accounts, the debts, the expenses, the houses, the bank transactions and
+/// the project settings.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ProjectData {
     /// The income data.
@@ -26,4 +28,6 @@ pub struct ProjectData {
     pub expenses: Expenses,
     /// The project settings.
     pub settings: Settings,
+    /// The bank transactions, their categories and the rules (CSD-032).
+    pub transactions: Transactions,
 }

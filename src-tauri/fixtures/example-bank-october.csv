@@ -1,0 +1,9 @@
+Rekeningnummer;Transactiedatum;Valutacode;CreditDebet;Bedrag;Tegenrekeningnummer;Tegenrekeninghouder;Valutadatum;Betaalwijze;Omschrijving;Type betaling;Machtigingsnummer;Incassant ID;Referentie;Boekdatum
+NL00EXAM0000000001;30-10-2026;EUR;Afschrijvingen;23,97; ;Example Market Town;30-10-2026;Betaalautomaat;EXAMPLE TOWN 30-10-2026 13:18 Pas: 0001;;;;REF0000001;30-10-2026
+NL00EXAM0000000001;29-10-2026;EUR;Afschrijvingen;45,10;NL00EXAM0000000002;Albert Heijn Example;29-10-2026;Betaalautomaat;EXAMPLE TOWN 29-10-2026 10:02 Pas: 0001;;;;REF0000002;29-10-2026
+NL00EXAM0000000001;28-10-2026;EUR;Bijschrijvingen;2500,00;NL00EXAM0000000003;Example Employer;28-10-2026;Ontvangen betaling;Salary October 2026;;;;REF0000003;28-10-2026
+NL00EXAM0000000001;27-10-2026;EUR;Afschrijvingen;13,99;NL00EXAM0000000004;Netflix Example;27-10-2026;Periodieke incasso;Subscription;;MANDATE-1;CRED-1;REF0000004;27-10-2026
+NL00EXAM0000000001;26-10-2026;EUR;Afschrijvingen;1000,00;NL00EXAM0000000005;Example Landlord;26-10-2026;Overboeking;Rent October 2026;;;;REF0000005;26-10-2026
+NL00EXAM0000000001;26-10-2026;EUR;Afschrijvingen;200,00;NL00EXAM0000000006;Example Savings;26-10-2026;Overboeking;Transfer to savings;;;;REF0000006;26-10-2026
+NL00EXAM0000000001;25-10-2026;EUR;Bijschrijvingen;15,50;NL00EXAM0000000007;Example Friend;25-10-2026;Ontvangen iDEAL;"Dinner; shared";;;;REF0000007;25-10-2026
+NL00EXAM0000000001;24-10-2026;EUR;Afschrijvingen;60,00; ;;24-10-2026;Onbemand tanken;Example Fuel Station;;;;REF0000008;24-10-2026

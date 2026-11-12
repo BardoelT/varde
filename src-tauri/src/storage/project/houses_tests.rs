@@ -50,7 +50,7 @@ fn test_csd015_ac_24_1_houses_survive_save_and_open_including_notes_and_slots() 
     // The section sits next to the others; the version stays 1.
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
-    assert_eq!(value["format_version"], 2);
+    assert_eq!(value["format_version"], 3);
     assert_eq!(value["houses"]["houses"][1]["name"], "Example Lodge");
     assert_eq!(value["houses"]["houses"][1]["colour_slot"], 1);
     assert_eq!(value["houses"]["valuations"][0]["value"], "8000.00");

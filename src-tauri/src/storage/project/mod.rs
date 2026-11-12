@@ -10,7 +10,7 @@ use history::{Entry, History};
 
 use super::{file, LastProject, StorageError};
 use crate::domain::{
-    BankAccounts, Debts, Expenses, Houses, Income, Investments, ProjectData, Settings,
+    BankAccounts, Debts, Expenses, Houses, Income, Investments, ProjectData, Settings, Transactions,
 };
 
 /// The extension of project files.
@@ -160,6 +160,18 @@ impl Project {
         &mut self.data.expenses
     }
 
+    /// The bank transactions, categories and rules (CSD-032).
+    #[must_use]
+    pub fn transactions(&self) -> &Transactions {
+        &self.data.transactions
+    }
+
+    /// Mutable transactions. Like the income data, changes show up in
+    /// [`Project::status`] by comparison with the last saved state.
+    pub fn transactions_mut(&mut self) -> &mut Transactions {
+        &mut self.data.transactions
+    }
+
     /// The project settings (CSD-003).
     #[must_use]
     pub fn settings(&self) -> &Settings {
@@ -238,6 +250,12 @@ impl Project {
             data: current,
         });
         Ok(label)
+    }
+
+    /// The project settings and the transactions together, for the import,
+    /// which reads the currency and changes the transactions.
+    pub fn settings_and_transactions_mut(&mut self) -> (&Settings, &mut Transactions) {
+        (&self.data.settings, &mut self.data.transactions)
     }
 
     /// Puts `data` in place and returns what was there. The settings stay as
@@ -447,3 +465,5 @@ mod investments_tests;
 mod opening_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod transactions_tests;

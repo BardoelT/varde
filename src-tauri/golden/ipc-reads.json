@@ -3145,7 +3145,7 @@
   },
   "get_settings": {
     "currency": "EUR",
-    "entry_count": 34
+    "entry_count": 42
   },
   "list_bank_accounts": {
     "accounts": [
@@ -3707,6 +3707,251 @@
       "title": null
     }
   ],
+  "list_transaction_categories": [
+    {
+      "id": "id-18",
+      "name": "Salary"
+    },
+    {
+      "id": "id-19",
+      "name": "Groceries"
+    },
+    {
+      "id": "id-20",
+      "name": "Housing"
+    },
+    {
+      "id": "id-21",
+      "name": "Utilities"
+    },
+    {
+      "id": "id-22",
+      "name": "Insurance"
+    },
+    {
+      "id": "id-23",
+      "name": "Transport"
+    },
+    {
+      "id": "id-24",
+      "name": "Eating out"
+    },
+    {
+      "id": "id-25",
+      "name": "Shopping"
+    },
+    {
+      "id": "id-26",
+      "name": "Health"
+    },
+    {
+      "id": "id-27",
+      "name": "Leisure"
+    },
+    {
+      "id": "id-28",
+      "name": "Subscriptions"
+    },
+    {
+      "id": "id-29",
+      "name": "Savings & transfers"
+    },
+    {
+      "id": "id-30",
+      "name": "Taxes"
+    },
+    {
+      "id": "id-31",
+      "name": "Other"
+    }
+  ],
+  "list_transaction_rules": [
+    {
+      "category_id": "id-19",
+      "id": "id-32",
+      "text": "Albert Heijn"
+    },
+    {
+      "category_id": "id-19",
+      "id": "id-33",
+      "text": "Jumbo"
+    },
+    {
+      "category_id": "id-19",
+      "id": "id-34",
+      "text": "Lidl"
+    },
+    {
+      "category_id": "id-19",
+      "id": "id-35",
+      "text": "Aldi"
+    },
+    {
+      "category_id": "id-19",
+      "id": "id-36",
+      "text": "Dirk van den Broek"
+    },
+    {
+      "category_id": "id-25",
+      "id": "id-37",
+      "text": "HEMA"
+    },
+    {
+      "category_id": "id-25",
+      "id": "id-38",
+      "text": "bol.com"
+    },
+    {
+      "category_id": "id-25",
+      "id": "id-39",
+      "text": "Coolblue"
+    },
+    {
+      "category_id": "id-26",
+      "id": "id-40",
+      "text": "Kruidvat"
+    },
+    {
+      "category_id": "id-23",
+      "id": "id-41",
+      "text": "NS Reizigers"
+    },
+    {
+      "category_id": "id-23",
+      "id": "id-42",
+      "text": "Shell"
+    },
+    {
+      "category_id": "id-24",
+      "id": "id-43",
+      "text": "Thuisbezorgd"
+    },
+    {
+      "category_id": "id-28",
+      "id": "id-44",
+      "text": "Netflix"
+    },
+    {
+      "category_id": "id-28",
+      "id": "id-45",
+      "text": "Spotify"
+    },
+    {
+      "category_id": "id-22",
+      "id": "id-46",
+      "text": "Zilveren Kruis"
+    }
+  ],
+  "list_transactions": {
+    "count": 8,
+    "rows": [
+      {
+        "amount": "-23.97",
+        "category_id": null,
+        "counterparty_iban": "",
+        "counterparty_name": "Example Market Town",
+        "date": "2026-10-30",
+        "description": "EXAMPLE TOWN 30-10-2026 13:18 Pas: 0001",
+        "id": "id-47",
+        "manual": false,
+        "own_account": "NL00EXAM0000000001",
+        "payment_method": "Betaalautomaat",
+        "reference": "REF0000001"
+      },
+      {
+        "amount": "-45.10",
+        "category_id": "id-19",
+        "counterparty_iban": "NL00EXAM0000000002",
+        "counterparty_name": "Albert Heijn Example",
+        "date": "2026-10-29",
+        "description": "EXAMPLE TOWN 29-10-2026 10:02 Pas: 0001",
+        "id": "id-48",
+        "manual": false,
+        "own_account": "NL00EXAM0000000001",
+        "payment_method": "Betaalautomaat",
+        "reference": "REF0000002"
+      },
+      {
+        "amount": "2500.00",
+        "category_id": null,
+        "counterparty_iban": "NL00EXAM0000000003",
+        "counterparty_name": "Example Employer",
+        "date": "2026-10-28",
+        "description": "Salary October 2026",
+        "id": "id-49",
+        "manual": false,
+        "own_account": "NL00EXAM0000000001",
+        "payment_method": "Ontvangen betaling",
+        "reference": "REF0000003"
+      },
+      {
+        "amount": "-13.99",
+        "category_id": "id-28",
+        "counterparty_iban": "NL00EXAM0000000004",
+        "counterparty_name": "Netflix Example",
+        "date": "2026-10-27",
+        "description": "Subscription",
+        "id": "id-50",
+        "manual": false,
+        "own_account": "NL00EXAM0000000001",
+        "payment_method": "Periodieke incasso",
+        "reference": "REF0000004"
+      },
+      {
+        "amount": "-200.00",
+        "category_id": null,
+        "counterparty_iban": "NL00EXAM0000000006",
+        "counterparty_name": "Example Savings",
+        "date": "2026-10-26",
+        "description": "Transfer to savings",
+        "id": "id-51",
+        "manual": false,
+        "own_account": "NL00EXAM0000000001",
+        "payment_method": "Overboeking",
+        "reference": "REF0000006"
+      },
+      {
+        "amount": "-1000.00",
+        "category_id": null,
+        "counterparty_iban": "NL00EXAM0000000005",
+        "counterparty_name": "Example Landlord",
+        "date": "2026-10-26",
+        "description": "Rent October 2026",
+        "id": "id-52",
+        "manual": false,
+        "own_account": "NL00EXAM0000000001",
+        "payment_method": "Overboeking",
+        "reference": "REF0000005"
+      },
+      {
+        "amount": "15.50",
+        "category_id": "id-31",
+        "counterparty_iban": "NL00EXAM0000000007",
+        "counterparty_name": "Example Friend",
+        "date": "2026-10-25",
+        "description": "Dinner; shared",
+        "id": "id-53",
+        "manual": true,
+        "own_account": "NL00EXAM0000000001",
+        "payment_method": "Ontvangen iDEAL",
+        "reference": "REF0000007"
+      },
+      {
+        "amount": "-60.00",
+        "category_id": null,
+        "counterparty_iban": "",
+        "counterparty_name": "",
+        "date": "2026-10-24",
+        "description": "Example Fuel Station",
+        "id": "id-54",
+        "manual": false,
+        "own_account": "NL00EXAM0000000001",
+        "payment_method": "Onbemand tanken",
+        "reference": "REF0000008"
+      }
+    ],
+    "total": "1172.44"
+  },
   "project_status": {
     "has_path": true,
     "redo_label": null,

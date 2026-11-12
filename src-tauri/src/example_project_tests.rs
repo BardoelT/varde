@@ -129,6 +129,7 @@ fn build_example_project(app: &Harness) {
     add_bank_accounts(app);
     add_expenses(app);
     add_houses_and_debts(app);
+    crate::golden_tests::add_transactions(app);
 }
 
 /// A monthly job, a yearly job and a monthly job that ended.
@@ -564,6 +565,9 @@ fn test_csd002_ac_21_1_the_example_opens_and_every_area_has_records() {
         "list_houses",
         "list_house_valuations",
         "list_expenses",
+        "list_transactions",
+        "list_transaction_categories",
+        "list_transaction_rules",
     ] {
         let value = &reads[command];
         let filled = match value {
@@ -642,7 +646,12 @@ fn test_csd002_ac_21_2_the_example_shows_every_state() {
 
 #[test]
 fn test_csd002_ac_21_3_the_example_is_synthetic_and_inside_its_window() {
-    let file: Value = serde_json::from_str(&fs::read_to_string(example_path()).unwrap()).unwrap();
+    let mut file: Value =
+        serde_json::from_str(&fs::read_to_string(example_path()).unwrap()).unwrap();
+    // The default categories are named Salary, Groceries and so on, not Example.
+    file.as_object_mut()
+        .unwrap()
+        .remove("transaction_categories");
     let mut found = Vec::new();
     strings(&file, "", &mut found);
     assert_ne!(found.len(), 0);

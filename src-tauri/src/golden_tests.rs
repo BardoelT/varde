@@ -98,6 +98,38 @@ fn build_example_project(app: &Harness) {
     add_bank_accounts(app);
     add_expenses(app);
     add_houses_and_debts(app);
+    add_transactions(app);
+}
+
+/// The synthetic Knab export of `fixtures/`, imported the way the Import button
+/// does, and one transaction whose category the user changed by hand.
+pub(crate) fn add_transactions(app: &Harness) {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures")
+        .join("example-bank-october.csv");
+    let state = app.window.state::<AppState>();
+    let summary = crate::commands::transactions::import_flow(&state, || Some(path))
+        .unwrap()
+        .unwrap();
+    assert_eq!((summary.added, summary.skipped), (8, 0));
+    let list = app.ok("list_transactions", json!({}));
+    let friend = list["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["counterparty_name"] == "Example Friend")
+        .unwrap();
+    let categories = app.ok("list_transaction_categories", json!({}));
+    let other = categories
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|category| category["name"] == "Other")
+        .unwrap();
+    app.ok(
+        "set_transaction_category",
+        json!({ "transactionId": id_of(friend), "categoryId": id_of(other) }),
+    );
 }
 
 /// A monthly and a yearly job.
@@ -310,6 +342,9 @@ pub(crate) fn read_everything(app: &Harness) -> Value {
         "list_expenses",
         "yearly_expense_totals",
         "get_expense_insights",
+        "list_transactions",
+        "list_transaction_categories",
+        "list_transaction_rules",
         "get_net_worth_insights",
         "get_ratios",
         "get_dashboard",

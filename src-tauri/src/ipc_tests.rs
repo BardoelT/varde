@@ -80,7 +80,7 @@ impl Harness {
             .unwrap_or_else(|error| panic!("{command} failed: {error}"))
     }
 
-    fn err(&self, command: &str, args: Value) -> Value {
+    pub(crate) fn err(&self, command: &str, args: Value) -> Value {
         self.call(command, args)
             .expect_err(&format!("{command} should have failed"))
     }
