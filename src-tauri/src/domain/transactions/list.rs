@@ -6,7 +6,7 @@ use crate::domain::common::StatementFilter;
 use crate::domain::money::Money;
 
 use super::category::UNCATEGORIZED_ENTITY;
-use super::{Transaction, Transactions};
+use super::{Transaction, TransactionId, Transactions};
 
 /// The most rows one answer holds, a bound on what the frontend can ask for.
 pub const MAX_ROWS: usize = 20_000;
@@ -23,7 +23,36 @@ pub struct TransactionList {
     pub total: Money,
 }
 
+/// Whether a transaction passes the filters of the list: the filter of CSD-028
+/// on its date and its category (the entity is the category id, or
+/// `uncategorized`), and, with `manual_only`, the manual mark (REQ-26).
+fn passes(transaction: &Transaction, filter: Option<&StatementFilter>, manual_only: bool) -> bool {
+    (!manual_only || transaction.manual)
+        && filter.is_none_or(|filter| {
+            let entity = transaction
+                .category_id
+                .map_or_else(|| UNCATEGORIZED_ENTITY.to_owned(), |id| id.to_string());
+            filter.matches(Some(transaction.date.year_month()), &entity)
+        })
+}
+
 impl Transactions {
+    /// The ids of every transaction that passes the same filters as
+    /// [`Transactions::list_filtered`], not cut to a page: what "select all in
+    /// the filter" selects (REQ-28).
+    #[must_use]
+    pub fn matching_ids(
+        &self,
+        filter: Option<&StatementFilter>,
+        manual_only: bool,
+    ) -> Vec<TransactionId> {
+        self.transactions()
+            .iter()
+            .filter(|transaction| passes(transaction, filter, manual_only))
+            .map(|transaction| transaction.id)
+            .collect()
+    }
+
     /// The transactions that pass `filter`, newest date first and, among equal
     /// dates, the one added last first, cut to `limit` rows. `count` and
     /// `total` cover every match (REQ-15). The entity of a transaction is its
@@ -40,15 +69,7 @@ impl Transactions {
             .transactions()
             .iter()
             .enumerate()
-            .filter(|(_, transaction)| {
-                (!manual_only || transaction.manual)
-                    && filter.is_none_or(|filter| {
-                        let entity = transaction
-                            .category_id
-                            .map_or_else(|| UNCATEGORIZED_ENTITY.to_owned(), |id| id.to_string());
-                        filter.matches(Some(transaction.date.year_month()), &entity)
-                    })
-            })
+            .filter(|(_, transaction)| passes(transaction, filter, manual_only))
             .collect();
         matches.sort_by(|(left_index, left), (right_index, right)| {
             right.date.cmp(&left.date).then(right_index.cmp(left_index))

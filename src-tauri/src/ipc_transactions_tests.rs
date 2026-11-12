@@ -258,6 +258,45 @@ fn test_csd032_ac_27_3_the_rule_list_carries_a_count_over_ipc() {
 }
 
 #[test]
+fn test_csd032_ac_28_7_bulk_commands_are_one_undo_step_each() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let total = rows(&app).len();
+    let ids = app.ok("list_transaction_ids", json!({}));
+    assert_eq!(ids.as_array().unwrap().len(), total);
+    let leisure = category_id(&app, "Leisure");
+    let first_two: Vec<Value> = ids.as_array().unwrap().iter().take(2).cloned().collect();
+    let changed = app.ok(
+        "set_transactions_category",
+        json!({ "transactionIds": first_two, "categoryId": leisure }),
+    );
+    assert_eq!(changed, 2);
+    assert_eq!(
+        app.ok("list_transactions", json!({ "manualOnly": true }))["count"],
+        2
+    );
+    app.ok("undo", json!({}));
+    assert_eq!(
+        app.ok("list_transactions", json!({ "manualOnly": true }))["count"],
+        0
+    );
+    let deleted = app.ok(
+        "delete_transactions",
+        json!({ "transactionIds": first_two }),
+    );
+    assert_eq!(deleted, 2);
+    assert_eq!(rows(&app).len(), total - 2);
+    app.ok("undo", json!({}));
+    assert_eq!(rows(&app).len(), total);
+    let error = app.err(
+        "delete_transactions",
+        json!({ "transactionIds": ["not-an-id"] }),
+    );
+    assert!(error["code"].is_string());
+    assert_eq!(rows(&app).len(), total);
+}
+
+#[test]
 fn test_csd032_ac_25_2_delete_all_is_one_undo_step() {
     let app = harness();
     import(&app, fixture()).unwrap();

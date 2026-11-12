@@ -340,3 +340,17 @@ button.manual-badge:hover { color: var(--text); border-color: var(--muted); }
   color: var(--muted);
   cursor: pointer;
 }
+
+/* ── Bulk select on the Transactions list (CSD-032 REQ-28) ── */
+
+.bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.bulk-bar [id="transactions-bulk-count"] { color: var(--muted); margin-right: auto; }
+.select-col { width: 1%; }

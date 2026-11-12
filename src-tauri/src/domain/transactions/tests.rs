@@ -1035,6 +1035,64 @@ fn test_csd032_ac_27_1_a_rule_counts_the_transactions_it_categorises() {
 }
 
 #[test]
+fn test_csd032_ac_28_6_bulk_changes_are_all_or_nothing() {
+    let mut data = imported(&[
+        simple("30-10-2026", "Afschrijvingen", "9,00", "Example Shop", "R1"),
+        simple("29-10-2026", "Afschrijvingen", "5,00", "Example Cafe", "R2"),
+        simple(
+            "28-10-2026",
+            "Afschrijvingen",
+            "1,00",
+            "Example Bakery",
+            "R3",
+        ),
+    ]);
+    let leisure = category(&data, "Leisure");
+    let ids: Vec<TransactionId> = ["Example Shop", "Example Cafe"]
+        .iter()
+        .map(|name| find(&data, name).id)
+        .collect();
+    // Every id of a filter: all of them, or only the manual ones.
+    assert_eq!(data.matching_ids(None, false).len(), 3);
+    assert_eq!(data.matching_ids(None, true).len(), 0);
+    // Set the category: both are in Leisure and manual, the third is untouched.
+    assert_eq!(data.set_category_of_many(&ids, Some(leisure)).unwrap(), 2);
+    assert_eq!(data.matching_ids(None, true).len(), 2);
+    assert_eq!(find(&data, "Example Cafe").category_id, Some(leisure));
+    assert_eq!(find(&data, "Example Bakery").category_id, None);
+    assert!(!find(&data, "Example Bakery").manual);
+    // An unknown id or category changes nothing at all.
+    let before = data.clone();
+    let mut with_unknown = ids.clone();
+    with_unknown.push(TransactionId::new());
+    assert_eq!(
+        data.set_category_of_many(&with_unknown, None)
+            .unwrap_err()
+            .code(),
+        "TRANSACTION_NOT_FOUND"
+    );
+    assert_eq!(
+        data.set_category_of_many(&ids, Some(CategoryId::new()))
+            .unwrap_err()
+            .code(),
+        "TRANSACTION_CATEGORY_NOT_FOUND"
+    );
+    assert_eq!(
+        data.delete_many(&with_unknown).unwrap_err().code(),
+        "TRANSACTION_NOT_FOUND"
+    );
+    assert_eq!(data, before);
+    // Delete removes exactly those two; no ids is no change.
+    assert_eq!(data.delete_many(&[]).unwrap(), 0);
+    assert_eq!(data.delete_many(&ids).unwrap(), 2);
+    assert_eq!(data.total_count(), 1);
+    assert_eq!(
+        data.transactions().first().unwrap().counterparty_name,
+        "Example Bakery"
+    );
+}
+
+#[test]
 fn test_csd032_ac_9_10_a_rule_with_the_same_text_is_rejected() {
     let mut data = Transactions::default();
     let groceries = category(&data, "Groceries");

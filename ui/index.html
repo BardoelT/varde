@@ -661,10 +661,18 @@
             <div class="panel-header">
               <span class="panel-title">Transactions</span>
               <div class="panel-actions">
+                <button type="button" class="btn" id="transaction-bulk-toggle" aria-pressed="false">Bulk select</button>
                 <label class="check-filter"><input type="checkbox" id="transaction-manual-only"> Manual only</label>
                 <button type="button" class="btn danger" id="transaction-delete-all">Delete all transactions</button>
                 <button type="button" class="btn primary" id="transaction-import">Import transactions</button>
               </div>
+            </div>
+            <div class="bulk-bar" id="transactions-bulk" hidden>
+              <span id="transactions-bulk-count"></span>
+              <label class="visually-hidden" for="transactions-bulk-category">Category for the selected transactions</label>
+              <select class="table-select" id="transactions-bulk-category"></select>
+              <button type="button" class="btn" id="transactions-bulk-set">Set category</button>
+              <button type="button" class="btn danger" id="transactions-bulk-delete">Delete selected</button>
             </div>
             <p class="empty-note" id="transactions-empty" hidden></p>
             <p class="empty-note" id="transactions-nomatch" hidden>No transactions match the filters.</p>
@@ -672,6 +680,7 @@
               <table class="data-table" id="transactions-table" hidden>
                 <thead>
                   <tr>
+                    <th scope="col" class="select-col" id="transactions-select-head" hidden><input type="checkbox" id="transactions-select-all"></th>
                     <th scope="col">Date<span class="col-filter" id="transaction-period-filter"></span></th>
                     <th scope="col">Counterparty</th>
                     <th scope="col">Description</th>

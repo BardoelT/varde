@@ -25,6 +25,120 @@ const manualOnly = () => $('transaction-manual-only').checked;
 /** Back to the whole list, when another project is opened. */
 export function resetTransactionsManualFilter() {
   $('transaction-manual-only').checked = false;
+  endBulk();
+}
+
+/** Bulk select is switched on by the user; then every row has a checkbox (CSD-032 REQ-28). */
+let bulk = false;
+/** The ids of the selected transactions: always some of those the filters show. */
+const selected = new Set();
+/** How many transactions the filters show, as Rust counted them, for the checkbox of the header. */
+let shownCount = 0;
+
+/** The arguments that say which transactions the filters show, as `list_transactions` takes them. */
+function filterArgs() {
+  const filter = transactionsFilter.payload();
+  const args = { ...(filter ? { filter } : {}), ...(manualOnly() ? { manualOnly: true } : {}) };
+  return Object.keys(args).length > 0 ? args : undefined;
+}
+
+/** Shows how many are selected, and the state of the checkbox of the header. */
+function syncBulk() {
+  $('transactions-bulk').hidden = !bulk;
+  $('transactions-select-head').hidden = !bulk;
+  $('transaction-bulk-toggle').setAttribute('aria-pressed', String(bulk));
+  $('transactions-bulk-count').textContent = t('{count} selected', { count: selected.size });
+  const all = $('transactions-select-all');
+  all.checked = shownCount > 0 && selected.size === shownCount;
+  all.indeterminate = selected.size > 0 && selected.size < shownCount;
+  all.setAttribute('aria-label', t('Select all {count} in the filter', { count: shownCount }));
+  $('transactions-bulk-set').disabled = selected.size === 0;
+  $('transactions-bulk-delete').disabled = selected.size === 0;
+  $('transactions-total-label').colSpan = bulk ? 5 : 4;
+  for (const box of document.querySelectorAll('#transactions-rows input[data-select]')) box.checked = selected.has(box.dataset.select);
+}
+
+function selectBox(transaction) {
+  const box = h('input', {
+    type: 'checkbox',
+    'data-select': transaction.id,
+    'aria-label': t('Select {name}', { name: transactionLabel(transaction) }),
+  });
+  box.addEventListener('change', () => {
+    if (box.checked) selected.add(transaction.id);
+    else selected.delete(transaction.id);
+    syncBulk();
+  });
+  return h('td', { class: 'select-col' }, box);
+}
+
+/** Switches bulk select on or off; off forgets the selection. */
+function toggleBulk(on) {
+  bulk = on;
+  selected.clear();
+  loadList().catch((error) => showToast(errorText(error)));
+}
+
+/** Back to the plain list, when another project is opened. */
+function endBulk() {
+  bulk = false;
+  selected.clear();
+}
+
+/** The header checkbox: selects every transaction the filters show, also those not loaded yet, or none. */
+async function selectAll() {
+  try {
+    if ($('transactions-select-all').checked) {
+      for (const id of await invoke('list_transaction_ids', filterArgs())) selected.add(id);
+    } else {
+      selected.clear();
+    }
+  } catch (error) {
+    showToast(errorText(error));
+  }
+  syncBulk();
+}
+
+async function setSelectedCategory() {
+  try {
+    const { value } = $('transactions-bulk-category');
+    const count = await invoke('set_transactions_category', { transactionIds: [...selected], categoryId: value || null });
+    selected.clear();
+    showResult(t('{count} changed', { count }));
+    await changed();
+  } catch (error) {
+    showToast(errorText(error));
+  }
+}
+
+function deleteSelected() {
+  const count = selected.size;
+  return deleteWithConfirm({
+    title: tn('Delete {count} transaction?', 'Delete {count} transactions?', count),
+    message: tn(
+      'The selected transaction will be deleted. Importing the file again adds it again. You can undo this.',
+      'The {count} selected transactions will be deleted. Importing the file again adds them again. You can undo this.',
+      count,
+    ),
+    confirmLabel: t('Delete selected'),
+    command: 'delete_transactions',
+    args: { transactionIds: [...selected] },
+    changed: async () => {
+      selected.clear();
+      await changed();
+    },
+  });
+}
+
+/** The category choice of the bulk bar: Uncategorized, then the categories. */
+function renderBulkCategories() {
+  const select = $('transactions-bulk-category');
+  const kept = select.value;
+  select.replaceChildren(
+    h('option', { value: '' }, t('Uncategorized')),
+    ...categories.map((category) => h('option', { value: category.id }, category.name)),
+  );
+  select.value = categories.some((category) => category.id === kept) ? kept : '';
 }
 
 const categoryName = (id) => categories.find((category) => category.id === id)?.name ?? t('Uncategorized');
@@ -39,6 +153,7 @@ const transactionsFilter = createStatementFilter({
   ],
   onChange: () => {
     limit = PAGE_ROWS;
+    selected.clear();
     loadList().catch((error) => showToast(errorText(error)));
   },
 });
@@ -55,6 +170,11 @@ function renderTotals(totals) {
 
 /** Loads the transactions through the filter and shows them. */
 async function loadList() {
+  if (bulk && selected.size > 0) {
+    // A change may have moved a selected transaction out of the filters, or deleted it.
+    const shown = new Set(await invoke('list_transaction_ids', filterArgs()));
+    for (const id of [...selected]) if (!shown.has(id)) selected.delete(id);
+  }
   const { result, hasData } = await transactionsFilter.load('list_transactions', (list) => list.count, { limit }, manualOnly() ? { manualOnly: true } : {});
   transactionsFilter.show(hasData);
   renderList(result, hasData);
@@ -120,6 +240,7 @@ function renderList(list, hasData) {
       h(
         'tr',
         {},
+        bulk ? selectBox(transaction) : null,
         rowHeader(formatDate(transaction.date)),
         h('td', { class: 'wrap' }, transaction.counterparty_name),
         h('td', { class: 'wrap' }, transaction.description),
@@ -133,6 +254,8 @@ function renderList(list, hasData) {
         ),
       ),
   );
+  shownCount = list.count;
+  syncBulk();
   const more = list.rows.length < list.count;
   $('transactions-more').hidden = !more;
   $('transactions-shown').textContent = t('Showing {shown} of {count}', { shown: list.rows.length, count: list.count });
@@ -387,6 +510,7 @@ export async function reloadTransactionsOverview() {
   categories = await invoke('list_transaction_categories');
   rules = await invoke('list_transaction_rules');
   renderCategories();
+  renderBulkCategories();
   renderRules();
   await loadList();
   renderTotals(await invoke('yearly_transaction_totals'));
@@ -400,8 +524,13 @@ async function changed() {
 export function initTransactionsOverview({ onChanged: callback }) {
   onChanged = callback;
   $('transaction-import').addEventListener('click', importTransactions);
+  $('transaction-bulk-toggle').addEventListener('click', () => toggleBulk(!bulk));
+  $('transactions-select-all').addEventListener('change', selectAll);
+  $('transactions-bulk-set').addEventListener('click', setSelectedCategory);
+  $('transactions-bulk-delete').addEventListener('click', deleteSelected);
   $('transaction-manual-only').addEventListener('change', () => {
     limit = PAGE_ROWS;
+    selected.clear();
     loadList().catch((error) => showToast(errorText(error)));
   });
   $('transactions-load-more').addEventListener('click', () => {

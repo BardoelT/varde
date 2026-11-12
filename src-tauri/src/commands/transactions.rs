@@ -162,6 +162,65 @@ pub fn delete_transaction(
     Ok(())
 }
 
+/// The most ids one bulk command takes, a bound on what the frontend can send.
+const MAX_BULK_IDS: usize = 200_000;
+
+fn parse_ids(texts: &[String]) -> Result<Vec<TransactionId>, AppError> {
+    if texts.len() > MAX_BULK_IDS {
+        return Err(DomainError::TransactionNotFound.into());
+    }
+    texts
+        .iter()
+        .map(|text| TransactionId::parse(text).map_err(AppError::from))
+        .collect()
+}
+
+/// The ids of every transaction that passes the filters of the list, for
+/// "select all in the filter" (REQ-28).
+#[tauri::command]
+pub fn list_transaction_ids(
+    state: State<'_, AppState>,
+    filter: Option<StatementFilter>,
+    manual_only: Option<bool>,
+) -> Result<Vec<TransactionId>, AppError> {
+    let project = state.project()?;
+    Ok(project
+        .transactions()
+        .matching_ids(filter.as_ref(), manual_only.unwrap_or(false)))
+}
+
+/// Sets the category of the chosen transactions by hand, as one change; no
+/// category means Uncategorized. Returns how many were set (REQ-28).
+#[tauri::command]
+pub fn set_transactions_category(
+    state: State<'_, AppState>,
+    transaction_ids: Vec<String>,
+    category_id: Option<String>,
+) -> Result<usize, AppError> {
+    let ids = parse_ids(&transaction_ids)?;
+    let category = category_id
+        .as_deref()
+        .filter(|text| !text.is_empty())
+        .map(CategoryId::parse)
+        .transpose()?;
+    let mut project = state.edit(StepLabel::edit(Record::Transactions))?;
+    Ok(project
+        .transactions_mut()
+        .set_category_of_many(&ids, category)?)
+}
+
+/// Deletes the chosen transactions and nothing else, as one change. Returns
+/// how many were deleted (REQ-28).
+#[tauri::command]
+pub fn delete_transactions(
+    state: State<'_, AppState>,
+    transaction_ids: Vec<String>,
+) -> Result<usize, AppError> {
+    let ids = parse_ids(&transaction_ids)?;
+    let mut project = state.edit(StepLabel::delete(Record::Transactions))?;
+    Ok(project.transactions_mut().delete_many(&ids)?)
+}
+
 /// Removes every transaction; the categories and the rules stay (CSD-032
 /// REQ-25). One undo step.
 #[tauri::command]

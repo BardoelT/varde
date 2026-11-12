@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: approved
 owner: Thijs Bardoel
-version: 0.19  
+version: 0.20  
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -824,6 +824,65 @@ Scenario: The count comes with the rule list
   Then every rule carries its transaction count
 ```
 
+**REQ-28: Bulk select** *(state-driven)*
+The Overview tab shall have a button "Bulk select" that switches bulk select on and off (it is off when the page opens and after another project is opened). While it is on, every row of the list shall have a checkbox, the table header shall have a checkbox that selects every transaction the filters show (the filter of CSD-028 and "Manual only"), also the ones the list has not loaded yet, and a bar above the list shall show how many are selected, a choice of category with the button "Set category", and the button "Delete selected". "Set category" shall set the category of every selected transaction by hand (REQ-11) and show how many changed; "Delete selected" shall, after a confirmation that says how many, delete them. Each is one undo step and all or nothing. Changing a filter, switching bulk select off or finishing a bulk change shall clear the selection, and a change that takes a selected transaction out of the filters or deletes it shall drop it from the selection. Rust names the ids of the filter and makes the changes; the page only sends them.
+
+```gherkin
+@AC-28.1
+Scenario: Off until enabled
+  Given the Overview tab is open
+  Then no row has a checkbox and the bulk bar is hidden
+  When the user chooses "Bulk select"
+  Then every row has a checkbox, the header has one, and the bulk bar shows "0 selected" with the buttons disabled
+  When the user chooses "Bulk select" again
+  Then the checkboxes and the bar are gone
+
+@AC-28.2
+Scenario: One row, or all in the filter
+  Given bulk select is on
+  When the user ticks the checkbox of "Example Shop"
+  Then "1 selected" is shown and the header checkbox is in between
+  When the user ticks the header checkbox
+  Then every transaction the filters show is selected
+  When the user unticks it
+  Then none is selected
+
+@AC-28.3
+Scenario: All in the filter includes rows not loaded
+  Given 450 transactions and 200 rows loaded
+  When the user ticks the header checkbox
+  Then "450 selected" is shown
+
+@AC-28.4
+Scenario: The selection follows the filter
+  Given bulk select is on and "Manual only" is on
+  When the user ticks the header checkbox
+  Then only the manual transactions are selected
+  When the user turns "Manual only" off
+  Then nothing is selected
+
+@AC-28.5
+Scenario: Delete asks first
+  Given 2 transactions are selected
+  When the user chooses "Delete selected" and cancels
+  Then nothing is deleted and 2 are still selected
+  When the user chooses it again and confirms
+  Then the 2 transactions are deleted and nothing is selected
+
+@AC-28.6
+Scenario: All or nothing
+  Given a selection that holds an unknown transaction or a category that does not exist
+  When Set category or Delete selected runs
+  Then nothing changes and the error code is TRANSACTION_NOT_FOUND or TRANSACTION_CATEGORY_NOT_FOUND
+
+@AC-28.7
+Scenario: One undo step each
+  When the user sets the category of 2 selected transactions
+  Then one Edit > Undo restores both
+  When the user deletes 2 selected transactions
+  Then one Edit > Undo brings both back
+```
+
 ## 5. Interfaces and contracts
 
 ```mermaid
@@ -882,6 +941,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.20 (12/11/2026): Bulk select (REQ-28, AC-28.1 to AC-28.7): a button switches on checkboxes on the Overview tab, with a header checkbox that selects everything in the filter, and bulk "Set category" and "Delete selected". Owner request; the two bulk actions are my choice, as the request named none. Back to `draft` until re-approved.
 - 0.19 (12/11/2026): Every rule shows the number of transactions it categorises (REQ-27, AC-27.1 to AC-27.3). Owner request. Back to `draft` until re-approved.
 - 0.18 (12/11/2026): A star in a rule text is a wildcard for any run of characters (REQ-10, AC-10.4); a text without a star behaves as before, so existing rules are unchanged. Owner request. Back to `draft` until re-approved.
 - 0.17 (12/11/2026): A rule whose text another rule already has (ignoring case and surrounding spaces) is rejected with `TRANSACTION_RULE_TEXT_TAKEN`, when adding and when editing (REQ-9, AC-9.10). Owner request. Back to `draft` until re-approved.
