@@ -180,26 +180,20 @@ test('test_csd032_ac_14_1_a_confirmed_deletion_sends_the_id', async () => {
   app.close();
 });
 
-test('test_csd032_ac_16_2_the_import_message_stays_until_dismissed_or_the_user_leaves', async () => {
+test('test_csd032_ac_16_2_the_import_result_is_an_orange_notification', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), {
     import_transactions: { added: 3, skipped: 2 },
   });
   await app.click(app.$('transaction-import'));
-  assert.equal(app.textOf('transactions-result-text'), '3 added, 2 skipped as duplicates');
-  assert.ok(app.isShown(app.$('transactions-result')));
-  await app.click(app.$('transactions-result-dismiss'));
-  assert.equal(app.isShown(app.$('transactions-result')), false);
-  await app.click(app.$('transaction-import'));
-  assert.ok(app.isShown(app.$('transactions-result')));
-  await app.click(app.item('expenses'));
-  assert.equal(app.$('transactions-result').hidden, true, 'gone after leaving the page');
+  assert.equal(app.textOf('toast'), '3 added, 2 skipped as duplicates');
+  assert.ok(app.isShown(app.$('toast')));
+  assert.ok(app.$('toast').classList.contains('toast-notice'), 'orange, not the red of an error');
   app.close();
 });
 
 test('test_csd032_ac_1_2_cancelling_the_file_dialog_shows_nothing', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { import_transactions: null });
   await app.click(app.$('transaction-import'));
-  assert.equal(app.$('transactions-result').hidden, true);
   assert.equal(app.$('toast').hidden, true);
   app.close();
 });
@@ -213,6 +207,7 @@ test('test_csd032_ac_3_1_a_rejected_import_shows_its_error_in_the_toast', async 
   await app.click(app.$('transaction-import'));
   assert.equal(app.$('toast').hidden, false);
   assert.match(app.textOf('toast'), /Line 4/);
+  assert.equal(app.$('toast').classList.contains('toast-notice'), false, 'an error stays red');
   app.close();
 });
 
@@ -221,10 +216,10 @@ test('test_csd032_ac_12_1_reapplying_reports_how_many_changed', async () => {
     reapply_transaction_rules: ({ scope }) => ({ changed: scope === 'uncategorized' ? 2 : 3 }),
   });
   await app.click(app.$('transaction-reapply-uncategorized'));
-  assert.equal(app.textOf('transactions-result-text'), '2 changed');
+  assert.equal(app.textOf('toast'), '2 changed');
   assert.deepEqual(app.callsOf('reapply_transaction_rules').at(-1).args, { scope: 'uncategorized' });
   await app.click(app.$('transaction-reapply-all'));
-  assert.equal(app.textOf('transactions-result-text'), '3 changed');
+  assert.equal(app.textOf('toast'), '3 changed');
   assert.deepEqual(app.callsOf('reapply_transaction_rules').at(-1).args, { scope: 'all_non_manual' });
   app.close();
 });
@@ -374,13 +369,12 @@ test('test_csd032_ac_16_3_categories_and_rules_are_on_their_own_tab', async () =
   app.close();
 });
 
-test('test_csd032_ac_16_4_a_reapply_message_is_visible_on_both_tabs', async () => {
+test('test_csd032_ac_16_4_a_reapply_message_is_an_orange_notification', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { reapply_transaction_rules: { changed: 2 } });
   await app.click(app.$('transaction-reapply-uncategorized'));
-  assert.equal(app.textOf('transactions-result-text'), '2 changed');
-  assert.ok(app.isShown(app.$('transactions-result')));
-  await app.click(app.$('transactions-tab-categories'));
-  assert.ok(app.isShown(app.$('transactions-result')));
+  assert.equal(app.textOf('toast'), '2 changed');
+  assert.ok(app.isShown(app.$('toast')));
+  assert.ok(app.$('toast').classList.contains('toast-notice'));
   app.close();
 });
 

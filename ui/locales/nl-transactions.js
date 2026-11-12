@@ -5,7 +5,6 @@ export default {
   'Transaction views': 'Transactieweergaven',
   'Categories and rules': 'Categorieën en regels',
   'Import transactions': 'Transacties importeren',
-  'Dismiss': 'Sluiten',
   'Counterparty': 'Tegenpartij',
   'Description': 'Omschrijving',
   'Uncategorized': 'Zonder categorie',

@@ -88,6 +88,5 @@
 .tile-empty { margin-top: auto; font-size: 14px; color: var(--muted); }
 
 /* Transactions (CSD-032) */
-.result-note { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 20px; font-size: 13px; background: var(--bg); border-bottom: 1px solid var(--border); }
 .list-more { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; font-size: 13px; color: var(--muted); }
 .table-select { max-width: 14em; font: inherit; }

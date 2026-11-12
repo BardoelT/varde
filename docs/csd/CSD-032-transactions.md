@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.5
+version: 0.6
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030]
 ---
@@ -486,7 +486,7 @@ Scenario: Editing keeps the filter
 ```
 
 **REQ-16: The page in the navigation** *(ubiquitous)*
-The left pane shall list Transactions as the last item of the group Finance (CSD-024 REQ-1), and the page shall have two tabs, left to right "Categories and rules" and "Overview". The Overview tab, which is the one shown first, holds the list, the Import button and, at the top, the two re-apply actions of REQ-12. The Categories and rules tab holds the management of categories and the management of rules. The message of an import or a re-apply is shown above the tabs, so it is visible on both.
+The left pane shall list Transactions as the last item of the group Finance (CSD-024 REQ-1), and the page shall have two tabs, left to right "Categories and rules" and "Overview". The Overview tab, which is the one shown first, holds the list, the Import button and, at the top, the two re-apply actions of REQ-12. The Categories and rules tab holds the management of categories and the management of rules. The message of an import or a re-apply is shown as a notification at the bottom right of the window, in the style of the notification after an undo but orange, and goes away by itself like that one.
 
 ```gherkin
 @AC-16.1
@@ -504,16 +504,14 @@ Scenario: Categories and rules are on their own tab
   Then the categories and the rules are shown, and the list, the Import button and the two re-apply buttons are not
 
 @AC-16.4
-Scenario: A re-apply message is visible on both tabs
+Scenario: A re-apply message is a notification
   Given the user chose "Apply to uncategorized" on the tab "Overview"
-  Then the message "2 changed" is shown
-  When the user chooses the tab "Categories and rules"
-  Then the message is still shown
+  Then the orange notification "2 changed" is shown at the bottom right
 
 @AC-16.2
-Scenario: The import result stays visible
+Scenario: The import result is a notification
   When an import adds 3 transactions and skips 2
-  Then the message "3 added, 2 skipped as duplicates" is shown until the user dismisses it or navigates away
+  Then the orange notification "3 added, 2 skipped as duplicates" is shown at the bottom right
 ```
 
 ### 4.4 Project file and neighbouring capabilities
@@ -705,6 +703,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.6 (12/11/2026): The message of an import or a re-apply becomes an orange notification at the bottom right, like the undo notification, instead of a note on the page (REQ-16, AC-16.2, AC-16.4). Owner request. Back to `draft` until re-approved.
 - 0.5 (12/11/2026): The two re-apply buttons move from the tab "Categories and rules" to the top of the Overview tab (REQ-16, AC-16.3, AC-16.4). Owner request. Back to `draft` until re-approved.
 - 0.4 (12/11/2026): New REQ-23 (AC-23.1 to AC-23.3): a button on a transaction row starts a new rule from that transaction. Owner request. Back to `draft` until re-approved.
 - 0.3 (12/11/2026): The categories, the rules and the re-apply actions move to their own tab "Categories and rules", left of the Overview (REQ-16, new AC-16.3 and AC-16.4); the result message sits above the tabs. Owner request. Back to `draft` until re-approved.

@@ -113,14 +113,8 @@ function deleteTransaction(transaction) {
 
 // ---- Messages of an import or a re-apply ----
 
-function showResult(text) {
-  $('transactions-result-text').textContent = text;
-  $('transactions-result').hidden = false;
-}
-
-const hideResult = () => {
-  $('transactions-result').hidden = true;
-};
+/** The result as an orange notification bottom right, like the one after an undo (CSD-032 REQ-16). */
+const showResult = (text) => showToast(text, 'notice');
 
 async function importTransactions() {
   try {
@@ -324,9 +318,6 @@ export function initTransactionsOverview({ onChanged: callback }) {
     { tab: 'transactions-tab-overview', panel: 'transactions-overview' },
   ]);
   $('transaction-import').addEventListener('click', importTransactions);
-  $('transactions-result-dismiss').addEventListener('click', hideResult);
-  // The message stays until it is dismissed or the user goes to another page (CSD-032 REQ-16).
-  document.querySelectorAll('.nav-item').forEach((item) => item.addEventListener('click', hideResult));
   $('transactions-load-more').addEventListener('click', () => {
     limit += PAGE_ROWS;
     loadList().catch((error) => showToast(errorText(error)));
