@@ -97,3 +97,9 @@
 .segment + .segment { border-left: 1px solid var(--border); }
 .segment[aria-pressed="true"] { color: #fff; background: var(--accent); }
 .segment:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* The header of the transactions chart: the title and the choice keep their room, the legend wraps onto its own row. */
+.insights-header { flex-wrap: wrap; justify-content: flex-start; gap: 10px 16px; }
+.insights-header .panel-title { flex: none; white-space: nowrap; }
+.insights-header .segmented { flex: none; }
+.insights-header .legend { flex: 1 1 100%; }
