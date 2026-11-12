@@ -980,3 +980,32 @@ fn test_csd032_ac_24_2_no_transactions_no_totals_and_a_deleted_year_is_gone() {
     data.delete_transaction(id).unwrap();
     assert_eq!(data.yearly_totals(), Vec::new());
 }
+
+#[test]
+fn test_csd032_ac_11_5_unsetting_manual_keeps_the_category_and_lets_rules_in_again() {
+    let mut data = with_rules(&[]);
+    let line = simple("30-10-2026", "Afschrijvingen", "9,00", "Example Shop", "R1");
+    data.import(&export(&[line]), Currency::Eur).unwrap();
+    let id = data.transactions().first().unwrap().id;
+    let shopping = category(&data, "Shopping");
+    data.set_category(id, Some(shopping)).unwrap();
+    data.unset_manual(id).unwrap();
+    let only = data.transactions().first().unwrap();
+    assert_eq!(only.category_id, Some(shopping));
+    assert!(!only.manual);
+    let leisure = category(&data, "Leisure");
+    data.add_rule("Example Shop", leisure).unwrap();
+    assert_eq!(data.reapply_rules(ReapplyScope::AllNonManual), 1);
+    assert_eq!(
+        data.transactions().first().unwrap().category_id,
+        Some(leisure)
+    );
+}
+
+#[test]
+fn test_csd032_ac_11_6_unsetting_manual_on_a_missing_transaction_is_reported() {
+    let error = Transactions::default()
+        .unset_manual(TransactionId::new())
+        .unwrap_err();
+    assert_eq!(error.code(), "TRANSACTION_NOT_FOUND");
+}

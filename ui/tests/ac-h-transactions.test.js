@@ -517,6 +517,7 @@ test('test_csd032_ac_11_4_manual_transactions_carry_a_badge', async () => {
   const [first, second] = tableRows(app);
   assert.equal(first.querySelector('.manual-badge') !== null, true);
   assert.equal(app.text(first.querySelector('.manual-badge')), 'Manual');
+  assert.equal(first.querySelector('.manual-badge').tagName, 'BUTTON', 'a button, to unset it');
   assert.match(first.querySelector('.manual-badge').getAttribute('title'), /leaves it as it is/);
   assert.equal(second.querySelector('.manual-badge'), null);
   app.close();
@@ -582,5 +583,54 @@ test('test_csd032_ac_24_5_discrete_mode_hides_the_yearly_amounts', async () => {
   reads.get_preferences = { theme: 'system', language: 'en', number_format: 'point_comma', discrete_mode: true };
   const app = await transactionsPage(reads);
   assert.deepEqual(totalsRows(app), [['2026', '•••••', '•••••', '•••••']]);
+  app.close();
+});
+
+test('test_csd032_ac_11_5_choosing_the_badge_asks_and_unsets_manual_keeping_the_category', async () => {
+  const manual = { ...transaction('t1', '2026-10-30', '-1.00', 'Example Shop', SHOPPING), manual: true };
+  const app = await transactionsPage(readsWith({ rows: [manual] }), { unset_transaction_manual: null });
+  await app.click(app.$('transactions-rows').querySelector('.manual-badge'));
+  assert.equal(app.$('confirm-dialog').open, true);
+  assert.equal(app.textOf('confirm-title'), 'Unset manual?');
+  assert.match(app.textOf('confirm-message'), /The category Shopping stays/);
+  assert.equal(app.callsOf('unset_transaction_manual').length, 0, 'nothing yet');
+  await app.click(app.$('confirm-ok'));
+  assert.deepEqual(app.callsOf('unset_transaction_manual').at(-1).args, { transactionId: 't1' });
+  app.close();
+});
+
+test('test_csd032_ac_11_6_cancelling_the_popup_changes_nothing', async () => {
+  const manual = { ...transaction('t1', '2026-10-30', '-1.00', 'Example Shop', SHOPPING), manual: true };
+  const app = await transactionsPage(readsWith({ rows: [manual] }), { unset_transaction_manual: null });
+  await app.click(app.$('transactions-rows').querySelector('.manual-badge'));
+  await app.click(app.$('confirm-cancel'));
+  assert.equal(app.callsOf('unset_transaction_manual').length, 0);
+  app.close();
+});
+
+test('test_csd032_ac_11_7_a_stale_screen_shows_the_error_and_reloads', async () => {
+  const manual = { ...transaction('t1', '2026-10-30', '-1.00', 'Example Shop', SHOPPING), manual: true };
+  const app = await transactionsPage(readsWith({ rows: [manual] }), {
+    unset_transaction_manual: () => {
+      throw { code: 'TRANSACTION_NOT_FOUND', message: 'This transaction does not exist.' };
+    },
+  });
+  const before = app.callsOf('list_transactions').length;
+  await app.click(app.$('transactions-rows').querySelector('.manual-badge'));
+  await app.click(app.$('confirm-ok'));
+  assert.equal(app.textOf('toast'), 'This transaction does not exist.');
+  assert.ok(app.callsOf('list_transactions').length > before, 'the list is loaded again');
+  app.close();
+});
+
+test('test_csd032_ac_11_5_the_unset_popup_in_dutch', async () => {
+  const manual = { ...transaction('t1', '2026-10-30', '-1.00', 'Example Shop', SHOPPING), manual: true };
+  const reads = readsWith({ rows: [manual] });
+  reads.get_preferences = { theme: 'system', language: 'nl', number_format: 'point_comma', discrete_mode: false };
+  const app = await transactionsPage(reads);
+  assert.equal(app.text(app.$('transactions-rows').querySelector('.manual-badge')), 'Handmatig');
+  await app.click(app.$('transactions-rows').querySelector('.manual-badge'));
+  assert.equal(app.textOf('confirm-title'), 'Handmatig opheffen?');
+  assert.match(app.textOf('confirm-message'), /De categorie Shopping blijft/);
   app.close();
 });

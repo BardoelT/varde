@@ -122,6 +122,18 @@ pub fn set_transaction_category(
     Ok(())
 }
 
+/// Takes the manual mark off a transaction; its category stays (REQ-11).
+#[tauri::command]
+pub fn unset_transaction_manual(
+    state: State<'_, AppState>,
+    transaction_id: String,
+) -> Result<(), AppError> {
+    let id = TransactionId::parse(&transaction_id)?;
+    let mut project = state.edit(StepLabel::edit(Record::Transaction))?;
+    project.transactions_mut().unset_manual(id)?;
+    Ok(())
+}
+
 #[tauri::command]
 pub fn delete_transaction(
     state: State<'_, AppState>,

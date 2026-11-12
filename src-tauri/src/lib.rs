@@ -141,6 +141,7 @@ fn configure_with<R: Runtime>(
             transactions::list_transactions,
             transactions::yearly_transaction_totals,
             transactions::set_transaction_category,
+            transactions::unset_transaction_manual,
             transactions::delete_transaction,
             transactions::list_transaction_categories,
             transactions::add_transaction_category,

@@ -15,6 +15,10 @@ export default {
   'Showing {shown} of {count}': '{shown} van {count} getoond',
   'Manual': 'Handmatig',
   'Set by hand. Applying the rules leaves it as it is.': 'Met de hand ingesteld. Het toepassen van de regels laat deze ongemoeid.',
+  'Manual: {name}. Choose to unset it.': 'Handmatig: {name}. Kies om dit op te heffen.',
+  'Unset manual?': 'Handmatig opheffen?',
+  'The category {category} stays. Applying the rules to all non-manual transactions may change it.': 'De categorie {category} blijft. Het toepassen van de regels op alle niet-handmatige transacties kan haar wijzigen.',
+  'Unset manual': 'Handmatig opheffen',
   'Category of {name}': 'Categorie van {name}',
   'The transaction of {date} will be deleted. Importing the file again adds it again.':
     'De transactie van {date} wordt verwijderd. Als je het bestand opnieuw importeert, komt ze terug.',

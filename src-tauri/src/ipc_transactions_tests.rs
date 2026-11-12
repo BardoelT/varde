@@ -387,3 +387,35 @@ fn test_csd032_ac_24_1_yearly_totals_over_ipc() {
         }])
     );
 }
+
+#[test]
+fn test_csd032_ac_11_5_unset_manual_over_ipc_is_one_undo_step() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let id = rows(&app).first().unwrap()["id"].clone();
+    let groceries = category_id(&app, "Groceries");
+    app.ok(
+        "set_transaction_category",
+        json!({ "transactionId": id, "categoryId": groceries }),
+    );
+    app.ok("unset_transaction_manual", json!({ "transactionId": id }));
+    let after = rows(&app);
+    let row = after.iter().find(|row| row["id"] == id).unwrap();
+    assert_eq!(row["manual"], false);
+    assert_eq!(row["category_id"], groceries);
+    assert_eq!(
+        app.ok("project_status", json!({}))["undo_label"],
+        "Edit Transaction"
+    );
+    app.ok("undo", json!({}));
+    let undone = rows(&app);
+    assert_eq!(
+        undone.iter().find(|row| row["id"] == id).unwrap()["manual"],
+        true
+    );
+    let error = app.err(
+        "unset_transaction_manual",
+        json!({ "transactionId": "nope" }),
+    );
+    assert_eq!(error["code"], "TRANSACTION_NOT_FOUND");
+}

@@ -239,6 +239,20 @@ impl Transactions {
         Ok(())
     }
 
+    /// Takes the manual mark off a transaction and leaves its category as it
+    /// is, so a later re-apply may change it (REQ-11).
+    ///
+    /// # Errors
+    /// Returns `TransactionNotFound`.
+    pub fn unset_manual(&mut self, id: TransactionId) -> Result<(), DomainError> {
+        let transaction = Arc::make_mut(&mut self.list)
+            .iter_mut()
+            .find(|transaction| transaction.id == id)
+            .ok_or(DomainError::TransactionNotFound)?;
+        transaction.manual = false;
+        Ok(())
+    }
+
     /// Removes one transaction and nothing else (REQ-14).
     ///
     /// # Errors

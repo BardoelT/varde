@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.10
+version: 0.11
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030]
 ---
@@ -403,7 +403,7 @@ Scenario: Matching ignores case but not the text itself
 ```
 
 **REQ-11: Change a category by hand** *(event-driven)*
-When the user sets the category of a transaction, the app shall store it and mark the transaction manual, and shall never change a manual transaction's category by a rule, a re-apply or an import. While a transaction is manual, its row in the list shall show the badge "Manual", with the explanation that applying the rules leaves it as it is, so it is clear which transactions "Apply to all non-manual" skips.
+When the user sets the category of a transaction, the app shall store it and mark the transaction manual, and shall never change a manual transaction's category by a rule, a re-apply or an import. While a transaction is manual, its row in the list shall show the badge "Manual", with the explanation that applying the rules leaves it as it is, so it is clear which transactions "Apply to all non-manual" skips. When the user chooses the badge, the app shall ask for a confirmation that names the category that stays, and when the user confirms, take the manual mark off that transaction and leave its category as it is, as one undo step; from then on the rules may change its category again.
 
 ```gherkin
 @AC-11.1
@@ -420,6 +420,29 @@ Scenario: Manual transactions carry a badge
   Then the row of "Example Shop" shows the badge "Manual" and the row of "Example Cafe" does not
   When the user sets the category of "Example Cafe"
   Then its row shows the badge "Manual" too
+
+@AC-11.5
+Scenario: Unsetting manual keeps the category
+  Given a transaction "Example Shop" in the category "Shopping" that is manual
+  When the user chooses the badge "Manual" on its row
+  Then a popup "Unset manual?" names the category "Shopping"
+  When the user confirms
+  Then the transaction is in the category "Shopping" and has no badge
+  And one Edit > Undo makes it manual again
+  When the rule "Example Shop" → "Leisure" exists and the user applies the rules to all non-manual transactions
+  Then the transaction is in "Leisure"
+
+@AC-11.6
+Scenario: Cancelling changes nothing
+  Given a manual transaction
+  When the user chooses the badge and cancels the popup
+  Then the transaction is still manual
+
+@AC-11.7
+Scenario: A stale screen
+  Given the user chose the badge of a transaction that was deleted in the meantime
+  When the user confirms
+  Then it is rejected with error code "TRANSACTION_NOT_FOUND"
 
 @AC-11.2
 Scenario: Back to Uncategorized by hand
@@ -743,7 +766,7 @@ erDiagram
 Project file: three sections (REQ-17). `transactions` is an array, `transaction_categories` an array of `{ id, name }` (the built-in "Uncategorized" is not stored), `transaction_rules` an ordered array. Dates are ISO 8601, amounts decimal strings with at most two decimals (CSD-000 CON-8, CSD-002 REQ-19), ids are UUIDs.
 
 Commands (names and payloads are indicative; the final signatures belong to the implementation):
-`import_transactions()` → `{ added, skipped }`; `list_transactions(filters, limit)` → `{ rows, total, count }`; `yearly_transaction_totals()` → `[{ year, income, spent, net, transaction_count }]`; `set_transaction_category(id, category_id)`; `delete_transaction(id)`; `list_transaction_categories()`; `add_`/`rename_`/`delete_transaction_category`; `list_transaction_rules()`; `add_`/`edit_`/`move_`/`delete_transaction_rule`; `reapply_transaction_rules(scope)` → `{ changed }`.
+`import_transactions()` → `{ added, skipped }`; `list_transactions(filters, limit)` → `{ rows, total, count }`; `yearly_transaction_totals()` → `[{ year, income, spent, net, transaction_count }]`; `set_transaction_category(id, category_id)`; `unset_transaction_manual(id)`; `delete_transaction(id)`; `list_transaction_categories()`; `add_`/`rename_`/`delete_transaction_category`; `list_transaction_rules()`; `add_`/`edit_`/`move_`/`delete_transaction_rule`; `reapply_transaction_rules(scope)` → `{ changed }`.
 
 Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 text, or is larger than 50 MB), `TRANSACTION_IMPORT_FORMAT`, `_COLUMNS`, `_FIELD`, `_DATE`, `_DIRECTION`, `_AMOUNT`, `_REFERENCE`, `_CURRENCY`, `TRANSACTION_CATEGORY_NAME_REQUIRED`, `_NAME_TOO_LONG`, `_NAME_TAKEN`, `TRANSACTION_CATEGORY_PROTECTED`, `TRANSACTION_CATEGORY_NOT_FOUND`, `TRANSACTION_RULE_TEXT_REQUIRED`, `_TEXT_TOO_LONG`, `_CATEGORY_INVALID`, `TRANSACTION_RULE_NOT_FOUND`, `TRANSACTION_NOT_FOUND`, `TRANSACTION_DATA_INVALID`. The built-in Uncategorized has no id: a transaction without a category holds `null`, and a filter, a rename and a delete name it `uncategorized`. The default categories and rules have fixed ids, so two new projects are equal.
 
@@ -775,6 +798,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.11 (12/11/2026): The badge "Manual" is a button that, after a confirmation, unsets manual and keeps the category (REQ-11, AC-11.5 to AC-11.7). Owner request. Back to `draft` until re-approved.
 - 0.10 (12/11/2026): A table "Yearly totals" (income, spent, net per year) on the Overview tab, like the other pages (REQ-24, AC-24.1 to AC-24.5). Owner request. Back to `draft` until re-approved.
 - 0.9 (12/11/2026): Cancel while naming a new category goes back to the rule instead of closing the dialog (REQ-9, AC-9.9), and a manual transaction shows the badge "Manual" (REQ-11, AC-11.4). Owner requests. Back to `draft` until re-approved.
 - 0.8 (12/11/2026): The dialog of a new rule offers "New category…", which creates the category and the rule as one change (REQ-9, AC-9.6 to AC-9.8). Owner request. Back to `draft` until re-approved.

@@ -2,7 +2,7 @@
 // the rules that categorise them (the Categories and rules tab, CSD-032). Rust parses, categorises, filters, orders, cuts and totals; this file only
 // shows what Rust returns and sends what the user chose.
 import { invoke, errorText } from '../shared/ipc.js';
-import { $, h, iconButton, submitOnce, showToast } from '../shared/dom.js';
+import { $, h, iconButton, submitOnce, showToast, confirmAction } from '../shared/dom.js';
 import { formatAmount, formatDate } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
@@ -69,7 +69,37 @@ function categorySelect(transaction) {
 const transactionLabel = (transaction) => transaction.counterparty_name || transaction.description || formatDate(transaction.date);
 
 /** Marks a category that was set by hand: "Apply to all non-manual" leaves it alone (CSD-032 REQ-11). */
-const manualBadge = () => h('span', { class: 'badge manual-badge', title: t('Set by hand. Applying the rules leaves it as it is.') }, t('Manual'));
+const manualBadge = (transaction) =>
+  h(
+    'button',
+    {
+      type: 'button',
+      class: 'badge manual-badge',
+      title: t('Set by hand. Applying the rules leaves it as it is.'),
+      'aria-label': t('Manual: {name}. Choose to unset it.', { name: transactionLabel(transaction) }),
+      onClick: () => unsetManual(transaction),
+    },
+    t('Manual'),
+  );
+
+/** Asks first, then takes the mark off and keeps the category (CSD-032 REQ-11, AC-11.5). */
+async function unsetManual(transaction) {
+  const confirmed = await confirmAction({
+    title: t('Unset manual?'),
+    message: t('The category {category} stays. Applying the rules to all non-manual transactions may change it.', {
+      category: categoryName(transaction.category_id),
+    }),
+    confirmLabel: t('Unset manual'),
+  });
+  if (!confirmed) return;
+  try {
+    await invoke('unset_transaction_manual', { transactionId: transaction.id });
+    await changed();
+  } catch (error) {
+    showToast(errorText(error));
+    await reloadTransactionsOverview().catch((reloadError) => showToast(errorText(reloadError)));
+  }
+}
 
 function renderList(list, hasData) {
   if (list.count === 0 && !transactionsFilter.payload()) $('transactions-empty').textContent = t('No transactions yet');
@@ -86,7 +116,7 @@ function renderList(list, hasData) {
         rowHeader(formatDate(transaction.date)),
         h('td', { class: 'wrap' }, transaction.counterparty_name),
         h('td', { class: 'wrap' }, transaction.description),
-        h('td', {}, categorySelect(transaction), transaction.manual ? manualBadge() : null),
+        h('td', {}, categorySelect(transaction), transaction.manual ? manualBadge(transaction) : null),
         numCell(formatAmount(transaction.amount)),
         h(
           'td',
