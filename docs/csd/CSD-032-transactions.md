@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.4
+version: 0.5
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030]
 ---
@@ -486,7 +486,7 @@ Scenario: Editing keeps the filter
 ```
 
 **REQ-16: The page in the navigation** *(ubiquitous)*
-The left pane shall list Transactions as the last item of the group Finance (CSD-024 REQ-1), and the page shall have two tabs, left to right "Categories and rules" and "Overview". The Overview tab, which is the one shown first, holds the list and the Import button. The Categories and rules tab holds the management of categories, the management of rules and the two re-apply actions of REQ-12. The message of an import or a re-apply is shown above the tabs, so it is visible on both.
+The left pane shall list Transactions as the last item of the group Finance (CSD-024 REQ-1), and the page shall have two tabs, left to right "Categories and rules" and "Overview". The Overview tab, which is the one shown first, holds the list, the Import button and, at the top, the two re-apply actions of REQ-12. The Categories and rules tab holds the management of categories and the management of rules. The message of an import or a re-apply is shown above the tabs, so it is visible on both.
 
 ```gherkin
 @AC-16.1
@@ -499,15 +499,15 @@ Scenario: Transactions is in the left pane
 @AC-16.3
 Scenario: Categories and rules are on their own tab
   Given the Transactions page is open on the Overview tab
-  Then the list and the Import button are shown, and the categories and the rules are not
+  Then the list, the Import button and the two re-apply buttons are shown, and the categories and the rules are not
   When the user chooses the tab "Categories and rules"
-  Then the categories, the rules and the two re-apply buttons are shown, and the list is not
+  Then the categories and the rules are shown, and the list, the Import button and the two re-apply buttons are not
 
 @AC-16.4
 Scenario: A re-apply message is visible on both tabs
-  Given the user chose "Apply to uncategorized" on the tab "Categories and rules"
+  Given the user chose "Apply to uncategorized" on the tab "Overview"
   Then the message "2 changed" is shown
-  When the user chooses the tab "Overview"
+  When the user chooses the tab "Categories and rules"
   Then the message is still shown
 
 @AC-16.2
@@ -705,6 +705,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.5 (12/11/2026): The two re-apply buttons move from the tab "Categories and rules" to the top of the Overview tab (REQ-16, AC-16.3, AC-16.4). Owner request. Back to `draft` until re-approved.
 - 0.4 (12/11/2026): New REQ-23 (AC-23.1 to AC-23.3): a button on a transaction row starts a new rule from that transaction. Owner request. Back to `draft` until re-approved.
 - 0.3 (12/11/2026): The categories, the rules and the re-apply actions move to their own tab "Categories and rules", left of the Overview (REQ-16, new AC-16.3 and AC-16.4); the result message sits above the tabs. Owner request. Back to `draft` until re-approved.
 - 0.2 (12/11/2026): Clarifications found while implementing, no change of behaviour: a field over 1,000 characters (REQ-3, `TRANSACTION_IMPORT_FIELD`), an unreadable file (`TRANSACTION_IMPORT_UNREADABLE`), the undo label is "Import Transactions" in title case like the other labels (AC-6.1), the file amount example is "-23.975" because "-23.970" is the same value as "-23.97" and the file reader accepts trailing zeros (CSD-002 REQ-19), the ids of the default categories and rules are fixed, and `TRANSACTION_CATEGORY_NOT_FOUND`, `_RULE_NOT_FOUND` and `_DATA_INVALID` are listed.
