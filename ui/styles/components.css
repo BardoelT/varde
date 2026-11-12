@@ -323,6 +323,6 @@ dialog p { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
 }
 /* Yellow, so dark text: white on #ffbb00 is unreadable. */
 .toast-notice { background: #ffbb00; color: #1a1d2e; }
-.note-cell .badge { margin-left: 8px; }
+.note-cell .badge, .manual-badge { margin-left: 8px; }
 /* A hint that follows its field's label (not inside it, so it stays out of the field's name). */
 .field-hint-attached { margin: -7px 0 12px; }

@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.8
+version: 0.9
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030]
 ---
@@ -309,7 +309,7 @@ Scenario: Uncategorized is protected
 ```
 
 **REQ-9: Rules** *(event-driven)*
-When the user adds, edits, reorders or deletes a rule, the app shall apply the change. A rule has a text of 1 to 100 characters after trimming and one category (not "Uncategorized"), and the rules are kept in an order the user can change. A new project holds about 15 seed rules for well-known Dutch chains, which the user may change. When the user adds a rule, the category choice also offers "New category…" as its last option (not when editing a rule); choosing it asks for the name of a new category, and saving adds that category and the rule as one change, or neither when the text or the name is invalid.
+When the user adds, edits, reorders or deletes a rule, the app shall apply the change. A rule has a text of 1 to 100 characters after trimming and one category (not "Uncategorized"), and the rules are kept in an order the user can change. A new project holds about 15 seed rules for well-known Dutch chains, which the user may change. When the user adds a rule, the category choice also offers "New category…" as its last option (not when editing a rule); choosing it asks for the name of a new category, and saving adds that category and the rule as one change, or neither when the text or the name is invalid. While the name is being asked, Cancel (and Escape) goes back to the rule with the category it had, and the dialog stays open; Cancel on the rule itself closes it.
 
 ```gherkin
 @AC-9.1
@@ -348,6 +348,15 @@ Scenario: A rejected name adds nothing
   And saves
   Then it is rejected with error code "TRANSACTION_CATEGORY_NAME_TAKEN"
   And neither a category nor a rule is added
+
+@AC-9.9
+Scenario: Cancelling the new category goes back to the rule
+  Given the user chose "Add a rule from Example Market Town" on a transaction in the category "Groceries"
+  And chose "New category…"
+  When the user chooses Cancel
+  Then the dialog "Add rule" is still open with the category "Groceries" and no name field
+  When the user chooses Cancel again
+  Then the dialog is closed and no rule or category is added
 
 @AC-9.8
 Scenario: The name field only shows for a new category
@@ -394,7 +403,7 @@ Scenario: Matching ignores case but not the text itself
 ```
 
 **REQ-11: Change a category by hand** *(event-driven)*
-When the user sets the category of a transaction, the app shall store it and mark the transaction manual, and shall never change a manual transaction's category by a rule, a re-apply or an import.
+When the user sets the category of a transaction, the app shall store it and mark the transaction manual, and shall never change a manual transaction's category by a rule, a re-apply or an import. While a transaction is manual, its row in the list shall show the badge "Manual", with the explanation that applying the rules leaves it as it is, so it is clear which transactions "Apply to all non-manual" skips.
 
 ```gherkin
 @AC-11.1
@@ -403,6 +412,14 @@ Scenario: A manual choice sticks
   When the user sets its category to "Shopping"
   And adds the rule "Example Shop" → Leisure and re-applies to all non-manual transactions
   Then the transaction has category "Shopping"
+
+@AC-11.4
+Scenario: Manual transactions carry a badge
+  Given a transaction "Example Shop" whose category the user set by hand
+  And a transaction "Example Cafe" whose category a rule set
+  Then the row of "Example Shop" shows the badge "Manual" and the row of "Example Cafe" does not
+  When the user sets the category of "Example Cafe"
+  Then its row shows the badge "Manual" too
 
 @AC-11.2
 Scenario: Back to Uncategorized by hand
@@ -726,6 +743,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.9 (12/11/2026): Cancel while naming a new category goes back to the rule instead of closing the dialog (REQ-9, AC-9.9), and a manual transaction shows the badge "Manual" (REQ-11, AC-11.4). Owner requests. Back to `draft` until re-approved.
 - 0.8 (12/11/2026): The dialog of a new rule offers "New category…", which creates the category and the rule as one change (REQ-9, AC-9.6 to AC-9.8). Owner request. Back to `draft` until re-approved.
 - 0.7 (12/11/2026): The notification of an import or a re-apply is yellow (#ffbb00, dark text) instead of orange (REQ-16, AC-16.2, AC-16.4). Owner request. Back to `draft` until re-approved.
 - 0.6 (12/11/2026): The message of an import or a re-apply becomes an orange notification at the bottom right, like the undo notification, instead of a note on the page (REQ-16, AC-16.2, AC-16.4). Owner request. Back to `draft` until re-approved.

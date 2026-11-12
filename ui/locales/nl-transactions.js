@@ -13,6 +13,8 @@ export default {
   'No transactions match the filters.': 'Geen transacties voldoen aan de filters.',
   'Load more': 'Meer laden',
   'Showing {shown} of {count}': '{shown} van {count} getoond',
+  'Manual': 'Handmatig',
+  'Set by hand. Applying the rules leaves it as it is.': 'Met de hand ingesteld. Het toepassen van de regels laat deze ongemoeid.',
   'Category of {name}': 'Categorie van {name}',
   'The transaction of {date} will be deleted. Importing the file again adds it again.':
     'De transactie van {date} wordt verwijderd. Als je het bestand opnieuw importeert, komt ze terug.',
