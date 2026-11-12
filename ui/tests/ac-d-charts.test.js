@@ -283,3 +283,23 @@ test('test_csd025_ac_14_2_the_eight_colours_are_distinct_and_calm_in_light_and_d
     for (const colour of colours) assert.ok(colour.saturation <= 60, `--bank-${colour.slot} in ${mode}: saturation ${colour.saturation}% is over 60%`);
   }
 });
+
+test('test_csd025_ac_11_4_a_sideways_scrollbar_takes_its_height_from_the_plot', async () => {
+  // jsdom has no scrollbars, so one is given to the probe that measures them: 15 px high. A bank chart with
+  // 14 years never fits the box (jsdom has no width), so it scrolls sideways.
+  const plotHeight = async (scrollbar) => {
+    const app = await openApp();
+    const proto = app.window.HTMLElement.prototype;
+    const real = Object.getOwnPropertyDescriptor(proto, 'offsetHeight');
+    Object.defineProperty(proto, 'offsetHeight', { configurable: true, get() { return this.style?.overflow === 'scroll' ? 100 + scrollbar : 0; } });
+    await app.click(app.item('expenses'));
+    await app.click(app.$('expenses-tab-insights'));
+    const view = app.$('expenses-insights-chart').querySelector('svg').getAttribute('viewBox').split(' ');
+    if (real) Object.defineProperty(proto, 'offsetHeight', real); else delete proto.offsetHeight;
+    app.close();
+    return Number(view[3]);
+  };
+  const without = await plotHeight(0);
+  const withBar = await plotHeight(15);
+  assert.equal(without - withBar, 15, 'the plot is 15 px lower');
+});

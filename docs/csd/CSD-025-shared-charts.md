@@ -1,10 +1,10 @@
 ---
 id: CSD-025
 title: Shared charts
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.5
-last_updated: 03/11/2026
+version: 0.6
+last_updated: 12/11/2026
 related: [CSD-000, CSD-006, CSD-007, CSD-010, CSD-012, CSD-014, CSD-016, CSD-017]
 ---
 
@@ -329,7 +329,7 @@ Scenario: Reduced motion
 ```
 
 **REQ-11: Size** *(ubiquitous)*
-The yearly chart shall have the same size and behaviour in every area: a plot height that scales with the height of the window so that, with the page scrolled to the top, the chart ends at the bottom of the window and is never lower than 260 px, and a slot at least 64 px wide, with horizontal scrolling when the slots do not fit.
+The yearly chart shall have the same size and behaviour in every area: a plot height that scales with the height of the window so that, with the page scrolled to the top, the chart ends at the bottom of the window and is never lower than 260 px, and a slot at least 64 px wide, with horizontal scrolling when the slots do not fit. While the chart scrolls sideways, its scrollbar belongs to the height of the chart, so the plot is lower by the height of that scrollbar (none where scrollbars float over the content) and the page gets no vertical scrollbar of its own because of it.
 
 ```gherkin
 @AC-11.1
@@ -338,6 +338,12 @@ Scenario: The plot follows the height of the window
   When the user makes the window 200 px higher
   Then the plot is about 200 px higher and the chart still ends at the bottom of the window
   And when the window is made so low that the plot would be below 260 px, the plot stays 260 px high
+
+@AC-11.4
+Scenario: The sideways scrollbar does not scroll the page
+  Given a chart whose slots do not fit its box, in a window high enough for it, and scrollbars that take room
+  When the chart is drawn
+  Then the plot is lower by the height of the scrollbar and the page has no vertical scrollbar
 
 @AC-11.2
 Scenario: Slots are at least 64 px wide
@@ -559,6 +565,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-4: (resolved 03/11/2026) CSD-006 and CSD-007 now point here instead of holding copies of the look, size and motion text (CSD-010 already did).
 
 ## 9. Changelog
+- 0.6 (12/11/2026): A chart that scrolls sideways reserves the height of its scrollbar in the plot height, so the scrollbar does not make the page scroll (REQ-11, AC-11.4). Owner report. Back to `draft` until re-approved.
 - 0.5 (03/11/2026): OQ-4 resolved: CSD-006 1.3 and CSD-007 1.3 point to this CSD. No requirement changes.
 - 0.4 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 0.3 (03/11/2026): The section 5 example shows the whole-number axis label "5k" (REQ-17). Back to `draft` until re-approved.

@@ -35,15 +35,34 @@ function spaceBelow(inner) {
   );
 }
 
+/** The height of a horizontal scrollbar that takes room (0 where scrollbars float over the content), measured once. */
+let measuredScrollbar = null;
+function scrollbarHeight() {
+  if (measuredScrollbar === null) {
+    const probe = document.createElement('div');
+    probe.style.overflow = 'scroll';
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    probe.style.width = '100px';
+    probe.style.height = '100px';
+    document.body.append(probe);
+    measuredScrollbar = probe.offsetHeight - probe.clientHeight;
+    probe.remove();
+  }
+  return measuredScrollbar;
+}
+
 /**
  * The plot height that lets the chart end at the bottom of the window with the page
  * scrolled to the top, and never less than `CHART_SIZE.minPlotHeight` (CSD-010 REQ-13).
+ * `scrollbar` is the height of the horizontal scrollbar the chart box is going to show, which
+ * sits below the chart and must fit in the window too, or the page would get a scrollbar of its own.
  */
-function plotHeightFor(inner, margin) {
+function plotHeightFor(inner, margin, scrollbar) {
   const scroller = inner.closest('.content');
   const top = inner.getBoundingClientRect().top + (scroller ? scroller.scrollTop : 0);
   // One pixel less, so rounding never pushes the page into a scrollbar.
-  const room = window.innerHeight - top - margin.top - margin.bottom - spaceBelow(inner) - 1;
+  const room = window.innerHeight - top - margin.top - margin.bottom - spaceBelow(inner) - scrollbar - 1;
   return Math.max(CHART_SIZE.minPlotHeight, Math.floor(room));
 }
 
@@ -99,7 +118,8 @@ export function createYearlyChart(strategy) {
     const slot = plotWidth / count;
     const barWidth = Math.min(slot * 0.5, MAX_BAR_WIDTH);
     const width = margin.left + plotWidth + margin.right;
-    const plotHeight = plotHeightFor(inner, margin);
+    // The chart box scrolls sideways when the slots are wider than its room; its scrollbar then takes height.
+    const plotHeight = plotHeightFor(inner, margin, plotWidth > available ? scrollbarHeight() : 0);
     const height = margin.top + plotHeight + margin.bottom;
     const bottomEdge = margin.top + plotHeight;
 
