@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.3
+version: 0.4
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030]
 ---
@@ -621,6 +621,32 @@ Scenario: Bank exports are git-ignored
   And the fixtures under "src-tauri/fixtures/" are not ignored
 ```
 
+**REQ-23: Add a rule from a transaction** *(event-driven)*
+When the user chooses "Add a rule from this transaction" on a row of the list, which sits left of the delete button, the app shall open the dialog of a new rule with the counterparty name of that transaction (its description when the counterparty is empty) as the text and its category as the category, both editable, and shall store nothing until the user saves the dialog. Saving follows REQ-9.
+
+```gherkin
+@AC-23.1
+Scenario: The dialog starts from the transaction
+  Given a transaction with counterparty "Example Market Town" in the category "Groceries"
+  When the user chooses "Add a rule from Example Market Town" on its row
+  Then the dialog "Add rule" is open with the text "Example Market Town" and the category "Groceries"
+  And no rule exists yet
+
+@AC-23.2
+Scenario: Without a counterparty or a category
+  Given a transaction with an empty counterparty, the description "Rent October 2026" and no category
+  When the user chooses the button on its row
+  Then the text is "Rent October 2026" and the category is the first category of the list
+
+@AC-23.3
+Scenario: Saving and cancelling
+  Given the dialog was opened from a transaction
+  When the user changes the text to "Example Market" and saves
+  Then a rule "Example Market" is added at the end of the rules
+  When the user opens the dialog again and cancels
+  Then no rule is added
+```
+
 ## 5. Interfaces and contracts
 
 ```mermaid
@@ -679,6 +705,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.4 (12/11/2026): New REQ-23 (AC-23.1 to AC-23.3): a button on a transaction row starts a new rule from that transaction. Owner request. Back to `draft` until re-approved.
 - 0.3 (12/11/2026): The categories, the rules and the re-apply actions move to their own tab "Categories and rules", left of the Overview (REQ-16, new AC-16.3 and AC-16.4); the result message sits above the tabs. Owner request. Back to `draft` until re-approved.
 - 0.2 (12/11/2026): Clarifications found while implementing, no change of behaviour: a field over 1,000 characters (REQ-3, `TRANSACTION_IMPORT_FIELD`), an unreadable file (`TRANSACTION_IMPORT_UNREADABLE`), the undo label is "Import Transactions" in title case like the other labels (AC-6.1), the file amount example is "-23.975" because "-23.970" is the same value as "-23.97" and the file reader accepts trailing zeros (CSD-002 REQ-19), the ids of the default categories and rules are fixed, and `TRANSACTION_CATEGORY_NOT_FOUND`, `_RULE_NOT_FOUND` and `_DATA_INVALID` are listed.
 - 0.1 (12/11/2026): initial draft from the grill-me interview of 12/11/2026 (GitHub issue 70). Companion amendments: `CLAUDE.md`, CSD-002 (format 3, sections), CSD-003 (entries), CSD-009 NG-1, CSD-013 NG-9, CSD-024 NG-2, CSD-027 (CON-1, REQ-6).

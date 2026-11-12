@@ -80,6 +80,7 @@ function renderList(list, hasData) {
         h(
           'td',
           { class: 'row-actions' },
+          iconButton('add-rule', t('Add a rule from {name}', { name: transactionLabel(transaction) }), () => openRuleFromTransaction(transaction)),
           iconButton('delete', t('Delete {name}', { name: transactionLabel(transaction) }), () => deleteTransaction(transaction)),
         ),
       ),
@@ -240,7 +241,18 @@ async function moveRule(rule, position) {
 
 let editingRule = null;
 
-function openRuleDialog(rule = null) {
+/**
+ * The rule dialog for a new rule that starts from a transaction: its counterparty (its description
+ * when it has none) as the text and its category as the category, both still editable (CSD-032 REQ-23).
+ */
+function openRuleFromTransaction(transaction) {
+  openRuleDialog(null, {
+    text: transaction.counterparty_name || transaction.description,
+    categoryId: transaction.category_id,
+  });
+}
+
+function openRuleDialog(rule = null, start = null) {
   editingRule = rule;
   openDialog({
     dialog: 'transaction-rule-dialog',
@@ -254,6 +266,9 @@ function openRuleDialog(rule = null) {
       if (rule) {
         form.elements.text.value = rule.text;
         form.elements.category.value = rule.category_id;
+      } else if (start) {
+        form.elements.text.value = start.text;
+        if (start.categoryId) form.elements.category.value = start.categoryId;
       }
     },
   });

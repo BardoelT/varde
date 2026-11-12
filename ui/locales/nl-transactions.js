@@ -39,6 +39,7 @@ export default {
   'Text': 'Tekst',
   'Apply to uncategorized': 'Toepassen op transacties zonder categorie',
   'Apply to all non-manual': 'Toepassen op alle niet-handmatige',
+  'Add a rule from {name}': 'Regel toevoegen vanuit {name}',
   'Move {name} up': '{name} omhoog verplaatsen',
   'Move {name} down': '{name} omlaag verplaatsen',
   'No rules yet. A rule gives a transaction a category when its counterparty or description contains the rule text.':

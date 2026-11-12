@@ -384,3 +384,45 @@ test('test_csd032_ac_16_4_a_reapply_message_is_visible_on_both_tabs', async () =
   assert.ok(app.isShown(app.$('transactions-result')));
   app.close();
 });
+
+test('test_csd032_ac_23_1_the_dialog_starts_from_the_transaction', async () => {
+  const rows = [transaction('t1', '2026-10-30', '-23.97', 'Example Market Town', SHOPPING)];
+  const app = await transactionsPage(readsWith({ rows }));
+  const buttons = [...app.$('transactions-rows').querySelectorAll('.row-actions button')];
+  assert.deepEqual(buttons.map((button) => button.getAttribute('aria-label')), ['Add a rule from Example Market Town', 'Delete Example Market Town'], 'left of delete');
+  await app.click(buttons[0]);
+  const form = app.$('transaction-rule-form');
+  assert.equal(app.$('transaction-rule-dialog').open, true);
+  assert.equal(app.textOf('transaction-rule-dialog-title'), 'Add rule');
+  assert.equal(form.elements.text.value, 'Example Market Town');
+  assert.equal(form.elements.category.value, SHOPPING);
+  assert.equal(app.callsOf('add_transaction_rule').length, 0, 'nothing is stored yet');
+  app.close();
+});
+
+test('test_csd032_ac_23_2_without_a_counterparty_or_a_category', async () => {
+  const row = { ...transaction('t1', '2026-10-30', '-1000.00', ''), description: 'Rent October 2026' };
+  const app = await transactionsPage(readsWith({ rows: [row] }));
+  await app.click(app.$('transactions-rows').querySelector('.row-actions button'));
+  const form = app.$('transaction-rule-form');
+  assert.equal(form.elements.text.value, 'Rent October 2026');
+  assert.equal(form.elements.category.value, GROCERIES, 'the first category');
+  app.close();
+});
+
+test('test_csd032_ac_23_3_saving_adds_the_rule_and_cancelling_adds_none', async () => {
+  const rows = [transaction('t1', '2026-10-30', '-23.97', 'Example Market Town', GROCERIES)];
+  const app = await transactionsPage(readsWith({ rows }), { add_transaction_rule: { id: 'rule-3' } });
+  const open = () => app.click(app.$('transactions-rows').querySelector('.row-actions button'));
+  await open();
+  const form = app.$('transaction-rule-form');
+  form.elements.text.value = 'Example Market';
+  form.requestSubmit();
+  await app.settle();
+  assert.deepEqual(app.callsOf('add_transaction_rule').at(-1).args, { text: 'Example Market', categoryId: GROCERIES });
+  assert.equal(app.$('transaction-rule-dialog').open, false);
+  await open();
+  await app.click(app.$('transaction-rule-dialog').querySelector('[data-cancel]'));
+  assert.equal(app.callsOf('add_transaction_rule').length, 1);
+  app.close();
+});
