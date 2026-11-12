@@ -38,28 +38,12 @@ function describe(row) {
   return row.marker ? `${text}, ${t('income {income}', { income: formatAmount(row.income) })}` : text;
 }
 
-/** The height of one row of the tooltip and of what is not a row (title, note, total, income, padding). */
-const TIP_ROW = 24;
-const TIP_FRAME = 150;
-/** The fewest category rows a tooltip shows, however low the chart is. */
-const MIN_TIP_ROWS = 3;
-
 /**
- * How many category rows the tooltip may show: as many as fit in the height of the chart. A taller
- * tooltip would stick out below the chart, give its scroll box a scrollbar and shift the whole page
- * while the pointer moves over the bars (CSD-033 REQ-8).
+ * The tooltip of a bar: the rows read like the bar, from the top. A tooltip taller than the chart would stick
+ * out below it, so `fitTooltip` leaves rows out when the real height says so (CSD-033 REQ-8).
  */
-function tipRows() {
-  const room = Math.floor(($('transactions-insights-chart').clientHeight - TIP_FRAME) / TIP_ROW);
-  return Math.max(MIN_TIP_ROWS, room);
-}
-
-/** The tooltip of a bar: the rows read like the bar, from the top; rows that do not fit are counted. */
 function tooltipContent(row) {
   const ordered = topToBottom(row.segments, (segment) => keyOf(segment.category), row.pieces);
-  const limit = tipRows();
-  const shown = ordered.length > limit ? ordered.slice(0, limit - 1) : ordered;
-  const hidden = ordered.length - shown.length;
   const partial = row.month === null ? t('Partial year: spending so far') : t('Partial month: spending so far');
   return [
     h('div', { class: 'tip-title' }, periodLabel(row)),
@@ -68,14 +52,38 @@ function tooltipContent(row) {
     h(
       'dl',
       {},
-      ...shown.flatMap((segment) =>
-        tooltipRow(keyOf(segment.category), swatch(`slot-${slotOf(segment.category)}`), categoryName(segment.category), formatAmount(segment.amount)),
-      ),
-      ...(hidden > 0 ? tooltipRow(null, noSwatch(), tn('and {count} more category', 'and {count} more categories', hidden), '') : []),
+      ...ordered.flatMap((segment) => {
+        const [name, amount] = tooltipRow(keyOf(segment.category), swatch(`slot-${slotOf(segment.category)}`), categoryName(segment.category), formatAmount(segment.amount));
+        name.setAttribute('data-tip-category', '');
+        return [name, amount];
+      }),
+      // The row that counts the categories left out; it stays hidden while all of them fit.
+      h('dt', { class: 'tip-more', hidden: true }),
+      h('dd', { class: 'tip-more', hidden: true }),
       ...(row.segments.length === 0 ? [] : tooltipRow(null, noSwatch(), t('Total spent'), formatAmount(row.total))),
       ...(row.marker ? tooltipRow('marker', swatch('marker'), t('Income'), formatAmount(row.income)) : []),
     ),
   ].filter(Boolean);
+}
+
+/**
+ * Leaves category rows out, from the bottom of the bar up, until the tooltip is no taller than `maxHeight`, and
+ * counts them in one row; at least one category stays. Without a measurable height (`maxHeight` 0 or less) nothing is left out.
+ */
+function fitTooltip(element, maxHeight) {
+  if (!(maxHeight > 0)) return;
+  const names = [...element.querySelectorAll('dt[data-tip-category]')];
+  const more = element.querySelector('dt.tip-more');
+  let left = 0;
+  while (element.offsetHeight > maxHeight && names.length - left > 1) {
+    const name = names[names.length - 1 - left];
+    name.hidden = true;
+    name.nextElementSibling.hidden = true;
+    left += 1;
+    more.textContent = tn('and {count} more category', 'and {count} more categories', left);
+    more.hidden = false;
+    more.nextElementSibling.hidden = false;
+  }
 }
 
 /** How a received piece looks: the colour slot and the name of its category, and its accessible name. */
@@ -115,6 +123,7 @@ const chart = createYearlyChart({
   pieceStyle,
   describe,
   tooltipContent,
+  fitTooltip,
   decorate: markerDecorator,
   labelLines: (row) => [{ text: periodLabel(row), className: 'chart-year' }],
 });

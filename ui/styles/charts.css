@@ -47,8 +47,11 @@
 .legend-name { max-width: 16em; min-width: 0; }
 .legend-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 
-.chart-scroll { overflow-x: auto; padding: 16px 12px 12px; }
-.chart-inner { position: relative; }
+/* Sideways only: a chart is as high as its window allows, so it never needs a vertical scrollbar. Without this a tooltip that
+   sticks out below the chart would give it one, which shrinks the chart, redraws it and closes the tooltip, again and again. */
+.chart-scroll { overflow-x: auto; overflow-y: hidden; padding: 16px 12px 12px; }
+/* Clipped, not scrolled: a tooltip that reaches past the chart is cut off here and never adds to what the chart box can scroll, in either direction. */
+.chart-inner { position: relative; overflow: hidden; overflow: clip; }
 .chart-inner svg { display: block; width: 100%; height: auto; }
 .chart-inner [data-legend] { background: none; transition: opacity 140ms ease-out, stroke-width 140ms ease-out; }
 .chart-inner .partial .bar-salary, .chart-inner .partial .bar-holiday, .chart-inner .partial .bar-bonus,

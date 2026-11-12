@@ -3,7 +3,7 @@ id: CSD-033
 title: Transaction insights
 status: draft
 owner: Thijs Bardoel
-version: 0.3
+version: 0.4
 last_updated: 12/11/2026
 related: [CSD-000, CSD-014, CSD-022, CSD-025, CSD-030, CSD-032]
 ---
@@ -187,7 +187,7 @@ Scenario: Every category is listed
 ```
 
 **REQ-8: Details of a bar** *(event-driven)*
-When the user hovers or focuses a bar, the app shall show a tooltip with its label, a note while it is partial, one row per segment in the order of the bar from top to bottom with its amount, the total spent and, when there is income, the income. A bar without a debit shows the note "No spending". The tooltip shall never be taller than the chart: when not every segment fits, it shows the segments from the top of the bar that fit (at least three) and a last row "and N more categories", and the total spent still covers all of them. Rationale: a tooltip that sticks out below the chart gives the chart a scrollbar and shifts the page while the pointer moves over the bars.
+When the user hovers or focuses a bar, the app shall show a tooltip with its label, a note while it is partial, one row per segment in the order of the bar from top to bottom with its amount, the total spent and, when there is income, the income. A bar without a debit shows the note "No spending". The tooltip shall never be taller than the chart: when not every segment fits, it shows the segments from the top of the bar that fit, measured on the real tooltip (at least one) and a last row "and N more categories", and the total spent still covers all of them. Rationale: a tooltip that sticks out below the chart gives the chart a scrollbar and shifts the page while the pointer moves over the bars.
 
 ```gherkin
 @AC-8.1
@@ -198,9 +198,9 @@ Scenario: Tooltip of a year
 
 @AC-8.3
 Scenario: A tooltip that would be taller than the chart
-  Given a bar with 14 segments in a chart that has room for 7 rows
+  Given a bar with 6 segments in a chart that is 200 high, where each row of the tooltip is 24 high
   When the user hovers it
-  Then the tooltip shows the 6 segments from the top of the bar, the row "and 8 more categories", the total spent and the income
+  Then the tooltip shows the 2 segments from the top of the bar, the row "and 4 more categories", the total spent and the income, and is no taller than the chart
   And the chart and the page do not change size
 
 @AC-8.2
@@ -283,6 +283,8 @@ The list is called `years` and a bar `year` because the frame of the yearly char
 - CON-2: The chart reuses the frame of the yearly charts (`createYearlyChart`) with the arguments of the command as the one addition. Rationale: one look and one behaviour for every chart (CSD-025).
 - CON-3: The golden files do not hold this command, because the ids of its categories would renumber the ids of the other areas; the IPC and DOM tests cover it. Rationale: the numbering follows the first appearance of an id.
 
+- CON-4: The scroll boxes of the chart never change size because of a tooltip or a scrollbar: the chart box scrolls sideways only, the box of the chart clips what sticks out of it, and the page keeps the room of its scrollbar (`scrollbar-gutter: stable`). Rationale: a scrollbar that came and went changed the width of the chart, redrew it, closed the tooltip and made the scrollbar come and go again. These rules are shared CSS and apply to every chart (CSD-025).
+
 ## 7. Verification
 | ACs | Proven by |
 |---|---|
@@ -294,6 +296,7 @@ The list is called `years` and a bar `year` because the frame of the yearly char
 - OQ-2: Is 36 months the right length of the Monthly chart? Owner: Thijs. Blocks: REQ-2.
 
 ## 9. Changelog
+- 0.4 (12/11/2026): The tooltip is fitted by measuring it, not by an estimate (REQ-8, AC-8.3), and the scroll boxes of the charts are made steady: sideways scrolling only, a clipped chart box and a stable page scrollbar gutter (new CON-4). The first fix did not stop the scrollbars from appearing and disappearing in the owner's window. Owner report. Back to `draft` until re-approved.
 - 0.3 (12/11/2026): The tooltip is never taller than the chart: segments that do not fit are counted in a last row "and N more categories" (REQ-8, AC-8.3). A tall tooltip made the chart box scroll and shifted the page while hovering. Owner report ("the chart is unstable"). Back to `draft` until re-approved.
 - 0.2 (12/11/2026): The income (the credits) is drawn as a marker across each bar, with an "Income" item in the legend and a row in the tooltip; bars also exist for periods with only income; the panel is titled "Spending and income per year" or "per month"; the empty note is about transactions (REQ-4, REQ-7, REQ-8, REQ-12). Owner request. Back to `draft` until re-approved.
 - 0.1 (12/11/2026): initial draft. A spending-per-category chart on a new Insights tab of the Transactions page, per year or per month. Owner request.

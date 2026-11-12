@@ -117,12 +117,17 @@ export function createTooltip(inner) {
 
   return {
     element,
-    show(content, bar, slot) {
+    /**
+     * Shows `content` at the bar. `fit(element, maxHeight)` (optional) may shorten the content when the
+     * tooltip is taller than the chart, which a page can do because it knows what may be left out.
+     */
+    show(content, bar, slot, fit) {
       clearTimeout(closeTimer);
       const wasOpen = element.classList.contains('is-open');
       // A tooltip that was closed appears in place; only an open one glides.
       if (!wasOpen) element.classList.add('no-glide');
       element.replaceChildren(...content);
+      fit?.(element, inner.getBoundingClientRect().height - TOOLTIP_BOTTOM_ROOM);
       place(bar, slot);
       if (!wasOpen) {
         void element.offsetWidth;

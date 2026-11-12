@@ -74,6 +74,7 @@ export function levelMarker(marker, { centre, barWidth, yOf }) {
  * - `describe(row)`, `tooltipContent(row)`: the screen-reader text and the tooltip rows
  * - `decorate(row, geometry)`: extra nodes for a bar (growth label, marker); `geometry.barTop` is the
  *   y position of the top of the bar
+ * - `fitTooltip(element, maxHeight)` (optional): shortens a tooltip that is taller than the chart
  * - `labelLines(row)`: the lines under the axis, `[{ text, className }]`
  * - `onLoaded(data)` (optional): runs with the whole response before drawing, for a legend built from it
  */
@@ -163,9 +164,9 @@ export function createYearlyChart(strategy) {
         group.append(svg('text', { class: line.className, x: centre, y: bottomEdge + 18 + 16 * i }, line.text)),
       );
 
-      group.addEventListener('mouseenter', () => tooltip.show(strategy.tooltipContent(row), bar, hit));
+      group.addEventListener('mouseenter', () => tooltip.show(strategy.tooltipContent(row), bar, hit, strategy.fitTooltip));
       group.addEventListener('mouseleave', () => tooltip.hide());
-      group.addEventListener('focus', () => tooltip.show(strategy.tooltipContent(row), bar, hit));
+      group.addEventListener('focus', () => tooltip.show(strategy.tooltipContent(row), bar, hit, strategy.fitTooltip));
       group.addEventListener('blur', () => tooltip.hide());
       // A highlighted series is highlighted in every year, not only the hovered one.
       bindHighlight(group, [part('legend'), inner]);
