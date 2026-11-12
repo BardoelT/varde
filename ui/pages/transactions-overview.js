@@ -67,7 +67,7 @@ function categorySelect(transaction) {
 /** A name for a row in labels and messages: the counterparty, else the description. */
 const transactionLabel = (transaction) => transaction.counterparty_name || transaction.description || formatDate(transaction.date);
 
-/** Marks a category that was set by hand: "Apply to all non-manual" leaves it alone (CSD-032 REQ-11). */
+/** Marks a category that was set by hand: "Apply rules" leaves it alone (CSD-032 REQ-11). */
 const manualBadge = (transaction) =>
   h(
     'button',
@@ -180,6 +180,14 @@ async function importTransactions() {
 }
 
 async function reapply(scope) {
+  if (scope === 'all') {
+    const confirmed = await confirmAction({
+      title: t('Apply rules including manually set?'),
+      message: t('The rules will also change the categories you set by hand. You can undo this.'),
+      confirmLabel: t('Apply rules'),
+    });
+    if (!confirmed) return;
+  }
   try {
     const { changed: count } = await invoke('reapply_transaction_rules', { scope });
     showResult(t('{count} changed', { count }));
@@ -392,7 +400,7 @@ export function initTransactionsOverview({ onChanged: callback }) {
   $('transaction-rule-add').addEventListener('click', () => openRuleDialog(null));
   submitOnce($('transaction-rule-form'), submitRule);
   $('transaction-rule-form').elements.category.addEventListener('change', syncNewCategory);
-  $('transaction-reapply-uncategorized').addEventListener('click', () => reapply('uncategorized'));
-  $('transaction-reapply-all').addEventListener('click', () => reapply('all_non_manual'));
+  $('transaction-apply-rules').addEventListener('click', () => reapply('all_non_manual'));
+  $('transaction-apply-rules-all').addEventListener('click', () => reapply('all'));
   $('transaction-delete-all').addEventListener('click', deleteAllTransactions);
 }

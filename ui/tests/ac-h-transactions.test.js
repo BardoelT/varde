@@ -231,16 +231,30 @@ test('test_csd032_ac_3_1_a_rejected_import_shows_its_error_in_the_toast', async 
   app.close();
 });
 
-test('test_csd032_ac_12_1_reapplying_reports_how_many_changed', async () => {
+test('test_csd032_ac_12_1_applying_rules_reports_how_many_changed', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), {
-    reapply_transaction_rules: ({ scope }) => ({ changed: scope === 'uncategorized' ? 2 : 3 }),
+    reapply_transaction_rules: ({ scope }) => ({ changed: scope === 'all' ? 3 : 2 }),
   });
-  await app.click(app.$('transaction-reapply-uncategorized'));
+  await app.click(app.$('transactions-tab-rules'));
+  await app.click(app.$('transaction-apply-rules'));
   assert.equal(app.textOf('toast'), '2 changed');
-  assert.deepEqual(app.callsOf('reapply_transaction_rules').at(-1).args, { scope: 'uncategorized' });
-  await app.click(app.$('transaction-reapply-all'));
-  assert.equal(app.textOf('toast'), '3 changed');
   assert.deepEqual(app.callsOf('reapply_transaction_rules').at(-1).args, { scope: 'all_non_manual' });
+  app.close();
+});
+
+test('test_csd032_ac_12_4_applying_including_manual_asks_first', async () => {
+  const app = await transactionsPage(readsWith({ rows: [], count: 0 }), {
+    reapply_transaction_rules: { changed: 3 },
+  });
+  await app.click(app.$('transactions-tab-rules'));
+  await app.click(app.$('transaction-apply-rules-all'));
+  assert.equal(app.$('confirm-dialog').open, true);
+  await app.click(app.$('confirm-cancel'));
+  assert.equal(app.callsOf('reapply_transaction_rules').length, 0);
+  await app.click(app.$('transaction-apply-rules-all'));
+  await app.click(app.$('confirm-ok'));
+  assert.deepEqual(app.callsOf('reapply_transaction_rules').at(-1).args, { scope: 'all' });
+  assert.equal(app.textOf('toast'), '3 changed');
   app.close();
 });
 
@@ -378,24 +392,25 @@ test('test_csd032_ac_18_1_a_change_reloads_the_settings_for_the_currency_confirm
 
 test('test_csd032_ac_16_3_categories_and_rules_are_on_their_own_tabs', async () => {
   const app = await transactionsPage(readsWith({ rows: [transaction('t1', '2026-10-30', '-1.00', 'Example Shop')] }));
-  const own = ['transaction-categories', 'transaction-rules'];
-  const overview = ['transactions-table', 'transaction-import', 'transaction-reapply-all', 'transaction-reapply-uncategorized'];
+  const own = ['transaction-categories', 'transaction-rules', 'transaction-apply-rules', 'transaction-apply-rules-all'];
+  const overview = ['transactions-table', 'transaction-import'];
   assert.equal(app.$('transactions-tab-overview').getAttribute('aria-selected'), 'true');
   for (const id of overview) assert.ok(app.isShown(app.$(id)), `${id} is on the Overview`);
   for (const id of own) assert.equal(app.isShown(app.$(id)), false, `${id} is not on the Overview`);
   await app.click(app.$('transactions-tab-categories'));
   assert.ok(app.isShown(app.$('transaction-categories')), 'the categories are on their tab');
-  assert.equal(app.isShown(app.$('transaction-rules')), false, 'the rules are not on the Categories tab');
+  for (const id of ['transaction-rules', 'transaction-apply-rules', 'transaction-apply-rules-all']) assert.equal(app.isShown(app.$(id)), false, `${id} is not on the Categories tab`);
   for (const id of overview) assert.equal(app.isShown(app.$(id)), false, `${id} is not on the other tab`);
   await app.click(app.$('transactions-tab-rules'));
-  assert.ok(app.isShown(app.$('transaction-rules')), 'the rules are on their tab');
+  for (const id of ['transaction-rules', 'transaction-apply-rules', 'transaction-apply-rules-all']) assert.ok(app.isShown(app.$(id)), `${id} is on the Rules tab`);
   assert.equal(app.isShown(app.$('transaction-categories')), false, 'the categories are not on the Rules tab');
   app.close();
 });
 
 test('test_csd032_ac_16_4_a_reapply_message_is_a_yellow_notification', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { reapply_transaction_rules: { changed: 2 } });
-  await app.click(app.$('transaction-reapply-uncategorized'));
+  await app.click(app.$('transactions-tab-rules'));
+  await app.click(app.$('transaction-apply-rules'));
   assert.equal(app.textOf('toast'), '2 changed');
   assert.ok(app.isShown(app.$('toast')));
   assert.ok(app.$('toast').classList.contains('toast-notice'));

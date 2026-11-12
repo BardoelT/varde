@@ -44,10 +44,11 @@ pub struct ImportSummary {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReapplyScope {
-    /// Only transactions without a category.
-    Uncategorized,
     /// Every transaction whose category was not set by hand.
     AllNonManual,
+    /// Every transaction, also those whose category was set by hand; a hand-set
+    /// category the rules change loses its manual flag.
+    All,
 }
 
 /// Rough size of one stored transaction, for the memory budget of the undo
@@ -437,16 +438,14 @@ impl Transactions {
     }
 
     /// Runs the rules again on the transactions of `scope` and returns how many
-    /// changed category. Manual transactions are never touched (REQ-12).
+    /// changed category. Manual transactions are only touched by
+    /// [`ReapplyScope::All`] (REQ-12).
     pub fn reapply_rules(&mut self, scope: ReapplyScope) -> usize {
         let changes: Vec<(usize, Option<CategoryId>)> = self
             .list
             .iter()
             .enumerate()
-            .filter(|(_, transaction)| {
-                !transaction.manual
-                    && (scope == ReapplyScope::AllNonManual || transaction.category_id.is_none())
-            })
+            .filter(|(_, transaction)| scope == ReapplyScope::All || !transaction.manual)
             .filter_map(|(index, transaction)| {
                 let found = categorise(
                     &self.rules,
@@ -464,6 +463,7 @@ impl Transactions {
         for (index, category) in changes {
             if let Some(transaction) = list.get_mut(index) {
                 transaction.category_id = category;
+                transaction.manual = false;
             }
         }
         count

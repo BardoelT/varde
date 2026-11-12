@@ -682,7 +682,7 @@ fn reapply_fixture() -> Transactions {
     let id = find(&data, "Example Three").id;
     // Three is categorised by an old rule, not by hand.
     let rule = data.add_rule("Three", shopping).unwrap();
-    data.reapply_rules(ReapplyScope::Uncategorized);
+    data.reapply_rules(ReapplyScope::AllNonManual);
     data.delete_rule(rule.id).unwrap();
     assert_eq!(
         data.transactions()
@@ -698,14 +698,21 @@ fn reapply_fixture() -> Transactions {
 }
 
 #[test]
-fn test_csd032_ac_12_1_reapply_to_uncategorized_only() {
+fn test_csd032_ac_12_1_including_manual_also_changes_hand_set_categories() {
     let mut data = reapply_fixture();
     let leisure = category(&data, "Leisure");
     let shopping = category(&data, "Shopping");
-    assert_eq!(data.reapply_rules(ReapplyScope::Uncategorized), 2);
+    let id = find(&data, "Example One").id;
+    data.set_category(id, Some(shopping)).unwrap();
+    // Apply rules leaves the hand-set category alone: only Two and Three are covered.
+    assert_eq!(data.reapply_rules(ReapplyScope::AllNonManual), 2);
+    assert_eq!(find(&data, "Example One").category_id, Some(shopping));
+    assert!(find(&data, "Example One").manual);
+    // Including manual changes it too, and the transaction is no longer manual.
+    assert_eq!(data.reapply_rules(ReapplyScope::All), 1);
     assert_eq!(find(&data, "Example One").category_id, Some(leisure));
-    assert_eq!(find(&data, "Example Two").category_id, Some(leisure));
-    assert_eq!(find(&data, "Example Three").category_id, Some(shopping));
+    assert!(!find(&data, "Example One").manual);
+    assert_eq!(data.reapply_rules(ReapplyScope::All), 0);
 }
 
 #[test]
@@ -713,6 +720,7 @@ fn test_csd032_ac_12_2_reapply_to_all_non_manual() {
     let mut data = reapply_fixture();
     let leisure = category(&data, "Leisure");
     assert_eq!(data.reapply_rules(ReapplyScope::AllNonManual), 3);
+    assert_eq!(find(&data, "Example One").category_id, Some(leisure));
     assert_eq!(find(&data, "Example Three").category_id, Some(leisure));
 }
 

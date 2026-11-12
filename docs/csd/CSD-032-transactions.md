@@ -1,9 +1,9 @@
 ---
 id: CSD-032
 title: Transactions
-status: draft
+status: approved
 owner: Thijs Bardoel
-version: 0.14
+version: 0.15
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -394,14 +394,14 @@ Scenario: Matching ignores case but not the text itself
 ```
 
 **REQ-11: Change a category by hand** *(event-driven)*
-When the user sets the category of a transaction, the app shall store it and mark the transaction manual, and shall never change a manual transaction's category by a rule, a re-apply or an import. While a transaction is manual, its row in the list shall show the badge "Manual", with the explanation that applying the rules leaves it as it is, so it is clear which transactions "Apply to all non-manual" skips. When the user chooses the badge, the app shall ask for a confirmation that names the category that stays, and when the user confirms, take the manual mark off that transaction and leave its category as it is, as one undo step; from then on the rules may change its category again.
+When the user sets the category of a transaction, the app shall store it and mark the transaction manual, and shall never change a manual transaction's category by a rule, "Apply rules" or an import; only "Apply rules including manually set" (REQ-12) does. While a transaction is manual, its row in the list shall show the badge "Manual", with the explanation that applying the rules leaves it as it is, so it is clear which transactions "Apply rules" skips. When the user chooses the badge, the app shall ask for a confirmation that names the category that stays, and when the user confirms, take the manual mark off that transaction and leave its category as it is, as one undo step; from then on the rules may change its category again.
 
 ```gherkin
 @AC-11.1
 Scenario: A manual choice sticks
   Given a transaction "Example Shop" in "Uncategorized"
   When the user sets its category to "Shopping"
-  And adds the rule "Example Shop" → Leisure and re-applies to all non-manual transactions
+  And adds the rule "Example Shop" → Leisure and applies the rules
   Then the transaction has category "Shopping"
 
 @AC-11.4
@@ -420,7 +420,7 @@ Scenario: Unsetting manual keeps the category
   When the user confirms
   Then the transaction is in the category "Shopping" and has no badge
   And one Edit > Undo makes it manual again
-  When the rule "Example Shop" → "Leisure" exists and the user applies the rules to all non-manual transactions
+  When the rule "Example Shop" → "Leisure" exists and the user applies the rules
   Then the transaction is in "Leisure"
 
 @AC-11.6
@@ -448,30 +448,36 @@ Scenario: A stale screen
   Then it is rejected with error code "TRANSACTION_NOT_FOUND"
 ```
 
-**REQ-12: Re-apply the rules** *(event-driven)*
-When the user chooses to re-apply the rules to the uncategorized transactions, or to all non-manual transactions, the app shall run REQ-10 on those transactions as one change and show how many changed category.
+**REQ-12: Apply the rules** *(event-driven)*
+The Rules tab shall have two buttons. "Apply rules" shall run REQ-10 on every transaction that is not manual, "Apply rules including manually set" on every transaction, manual ones too; each as one change that shows how many changed category. A manual transaction whose category a rule changes shall lose its manual mark, because the rule now sets the category. Before "Apply rules including manually set" changes anything, the app shall ask for a confirmation that says the categories set by hand can change.
 
 ```gherkin
 @AC-12.1
-Scenario: Uncategorized only
-  Given 2 uncategorized transactions and 1 non-manual transaction in "Shopping", none manual
-  And a new rule that matches all three with category "Leisure"
-  When the user re-applies to uncategorized transactions
-  Then the 2 uncategorized transactions are in "Leisure"
-  And the third is still in "Shopping"
-  And the app shows "2 changed"
+Scenario: Including manually set
+  Given the transaction "Example One" is manual in "Shopping" and a rule matches it with category "Leisure"
+  When the user applies the rules
+  Then "Example One" is still in "Shopping" and still manual
+  When the user applies the rules including manually set and confirms
+  Then "Example One" is in "Leisure" and no longer manual
+  And the app shows "1 changed"
 
 @AC-12.2
-Scenario: All non-manual
-  Given the same state
-  When the user re-applies to all non-manual transactions
+Scenario: Apply rules
+  Given 2 uncategorized transactions and 1 non-manual transaction in "Shopping", none manual
+  And a new rule that matches all three with category "Leisure"
+  When the user applies the rules
   Then all three are in "Leisure"
   And the app shows "3 changed"
 
 @AC-12.3
 Scenario: Nothing matches
-  When the user re-applies and no transaction would change
+  When the user applies the rules and no transaction would change
   Then the app shows "0 changed" and records no undo step
+
+@AC-12.4
+Scenario: Including manually set asks first
+  When the user chooses "Apply rules including manually set" and cancels
+  Then no transaction changes
 ```
 
 **REQ-13: Deleting a category** *(event-driven)*
@@ -540,7 +546,7 @@ Scenario: Editing keeps the filter
 ```
 
 **REQ-16: The page in the navigation** *(ubiquitous)*
-The left pane shall list Transactions as the last item of the group Finance (CSD-024 REQ-1), and the page shall have four tabs, left to right "Categories", "Rules", "Overview" and "Insights" (the last is CSD-033). The Overview tab, which is the one shown first, holds the list, the Import button and, at the top, the two re-apply actions of REQ-12. The Categories tab holds the management of categories and the Rules tab the management of rules. The message of an import or a re-apply is shown as a notification at the bottom right of the window, in the style of the notification after an undo but yellow, and goes away by itself like that one.
+The left pane shall list Transactions as the last item of the group Finance (CSD-024 REQ-1), and the page shall have four tabs, left to right "Categories", "Rules", "Overview" and "Insights" (the last is CSD-033). The Overview tab, which is the one shown first, holds the list and the Import button. The Categories tab holds the management of categories and the Rules tab the management of rules and the two apply buttons of REQ-12. The message of an import or a re-apply is shown as a notification at the bottom right of the window, in the style of the notification after an undo but yellow, and goes away by itself like that one.
 
 ```gherkin
 @AC-16.1
@@ -553,15 +559,15 @@ Scenario: Transactions is in the left pane
 @AC-16.3
 Scenario: Categories and rules are on their own tabs
   Given the Transactions page is open on the Overview tab
-  Then the list, the Import button and the two re-apply buttons are shown, and the categories and the rules are not
+  Then the list and the Import button are shown, and the categories, the rules and the two apply buttons are not
   When the user chooses the tab "Categories"
-  Then the categories are shown, and the rules, the list, the Import button and the two re-apply buttons are not
+  Then the categories are shown, and the rules, the two apply buttons, the list and the Import button are not
   When the user chooses the tab "Rules"
-  Then the rules are shown, and the categories, the list, the Import button and the two re-apply buttons are not
+  Then the rules and the two apply buttons are shown, and the categories, the list and the Import button are not
 
 @AC-16.4
 Scenario: A re-apply message is a notification
-  Given the user chose "Apply to uncategorized" on the tab "Overview"
+  Given the user chose "Apply rules" on the tab "Rules"
   Then the yellow notification "2 changed" is shown at the bottom right
 
 @AC-16.2
@@ -814,6 +820,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.15 (12/11/2026): The two re-apply buttons "Apply to uncategorized" and "Apply to all non-manual" become "Apply rules" (non-manual transactions) and "Apply rules including manually set" (every transaction, with a confirmation; a changed manual transaction loses its mark), and move from the Overview tab to the Rules tab (REQ-11, REQ-12, REQ-16, AC-12.1 to AC-12.4, AC-16.3, AC-16.4). Owner request. Back to `draft` until re-approved.
 - 0.14 (12/11/2026): The tab "Categories and rules" is split into the tabs "Categories" and "Rules" (REQ-16, AC-16.1, AC-16.3); CSD-033 REQ-9 follows. Owner request. Back to `draft` until re-approved.
 - 0.13 (12/11/2026): New REQ-25 (AC-25.1 to AC-25.3): a button deletes all transactions and keeps the categories and the rules. Owner request. Back to `draft` until re-approved.
 - 0.12 (12/11/2026): The page has a third tab "Insights" (CSD-033, REQ-16); NG-2 points to it. Owner request. Back to `draft` until re-approved.
