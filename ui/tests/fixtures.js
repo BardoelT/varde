@@ -66,6 +66,7 @@ export function emptyReads() {
     yearly_house_values: [],
     get_house_insights: { houses: [], years: [] },
     list_expenses: { expenses: [], ...emptyList },
+    list_transactions: { rows: [], count: 0, total: '0.00' },
     yearly_expense_totals: [],
     get_expense_insights: { categories: golden.get_expense_insights.categories, years: [] },
     get_net_worth_insights: { years: [] },

@@ -13,8 +13,12 @@ const RECORDS = {
   House: 'Woning',
   'House Valuation': 'Taxatie',
   Expense: 'Uitgave',
+  Transactions: 'Transacties',
+  Transaction: 'Transactie',
+  'Transaction Category': 'Transactiecategorie',
+  'Transaction Rule': 'Transactieregel',
 };
-const ACTIONS = { Add: 'toevoegen', Edit: 'bewerken', Delete: 'verwijderen' };
+const ACTIONS = { Add: 'toevoegen', Edit: 'bewerken', Delete: 'verwijderen', Import: 'importeren', 'Re-apply': 'opnieuw toepassen' };
 
 const steps = {};
 for (const [action, verb] of Object.entries(ACTIONS)) {

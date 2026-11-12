@@ -6,7 +6,7 @@ import { emptyReads, exampleReads } from './fixtures.js';
 
 const GROUPS = [
   ['Overview', ['Dashboard']],
-  ['Finance', ['Income', 'Expenses']],
+  ['Finance', ['Income', 'Expenses', 'Transactions']],
   ['Wealth', ['Bank accounts', 'Investments', 'Houses']],
   ['Liabilities', ['Debts']],
   ['Insights', ['Net worth', 'Ratios']],
@@ -34,16 +34,18 @@ test('test_csd024_ac_1_1_groups_and_pages_in_order', async () => {
 test('test_csd024_ac_1_2_pages_without_a_function_are_not_offered', async () => {
   const app = await openApp();
   const texts = [...app.document.querySelectorAll('.nav-item')].map((item) => app.text(item));
-  for (const name of ['Accounts', 'Transactions', 'Budget']) assert.ok(!texts.includes(name), `${name} must not be offered`);
-  assert.equal(app.document.querySelectorAll('.nav-item').length, 10, 'nine pages and Settings');
+  for (const name of ['Accounts', 'Budget']) assert.ok(!texts.includes(name), `${name} must not be offered`);
+  assert.equal(app.document.querySelectorAll('.nav-item').length, 11, 'ten pages and Settings');
   app.close();
 });
 
 test('test_csd024_ac_1_3_no_example_data_in_a_new_project', async () => {
   const app = await openApp({ reads: emptyReads() });
-  const rows = [...app.document.querySelectorAll('.section tbody tr, .job-row')].filter((row) => !row.hidden);
+  // The default categories and rules of a new project (CSD-032 REQ-8, REQ-9) are not example data.
+  const defaults = '#transaction-categories, #transaction-rules';
+  const rows = [...app.document.querySelectorAll('.section tbody tr, .job-row')].filter((row) => !row.hidden && !row.closest(defaults));
   assert.deepEqual(rows.map((row) => row.outerHTML.slice(0, 80)), [], 'no rows anywhere');
-  assert.equal(app.document.querySelectorAll('.section ul:not(.legend) li').length, 0, 'no list items anywhere');
+  assert.equal(app.document.querySelectorAll('.section ul:not(.legend):not(#transaction-categories) li').length, 0, 'no list items anywhere');
   app.close();
 });
 
@@ -140,7 +142,7 @@ test('test_csd024_ac_6_1_dutch_language_dutch_left_pane', async () => {
   const app = await openApp({ reads });
   assert.deepEqual(readPane(app), [
     ['Overzicht', ['Dashboard']],
-    ['Financiën', ['Inkomen', 'Uitgaven']],
+    ['Financiën', ['Inkomen', 'Uitgaven', 'Transacties']],
     ['Vermogen', ['Bankrekeningen', 'Beleggingen', 'Woningen']],
     ['Verplichtingen', ['Schulden']],
     ['Inzichten', ['Vermogen', 'Kengetallen']],

@@ -63,6 +63,16 @@
           Expenses
         </button>
 
+        <button class="nav-item" data-section="transactions">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 7h13"/>
+            <path d="M16 3l4 4-4 4"/>
+            <path d="M17 17H4"/>
+            <path d="M8 13l-4 4 4 4"/>
+          </svg>
+          Transactions
+        </button>
+
         <div class="nav-section-label">Wealth</div>
 
         <button class="nav-item" data-section="bank">
@@ -584,6 +594,83 @@
                 <div class="chart-inner" id="debts-insights-chart"></div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Transactions -->
+      <section class="section" id="transactions" aria-labelledby="transactions-title">
+        <div class="section-header">
+          <h1 class="section-title" id="transactions-title">Transactions</h1>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Transaction views">
+          <button type="button" class="tab" role="tab" id="transactions-tab-overview" aria-controls="transactions-overview" aria-selected="true">Overview</button>
+        </div>
+
+        <div id="transactions-overview" role="tabpanel" aria-labelledby="transactions-tab-overview">
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Transactions</span>
+              <div class="panel-actions">
+                <button type="button" class="btn primary" id="transaction-import">Import transactions</button>
+              </div>
+            </div>
+            <div class="result-note" id="transactions-result" role="status" hidden>
+              <span id="transactions-result-text"></span>
+              <button type="button" class="btn" id="transactions-result-dismiss">Dismiss</button>
+            </div>
+            <p class="empty-note" id="transactions-empty" hidden></p>
+            <p class="empty-note" id="transactions-nomatch" hidden>No transactions match the filters.</p>
+            <div class="table-wrap">
+              <table class="data-table" id="transactions-table" hidden>
+                <thead>
+                  <tr>
+                    <th scope="col">Date<span class="col-filter" id="transaction-period-filter"></span></th>
+                    <th scope="col">Counterparty</th>
+                    <th scope="col">Description</th>
+                    <th scope="col">Category<span class="col-filter" id="transaction-entity-filter"></span></th>
+                    <th scope="col" class="num">Amount</th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody id="transactions-rows"></tbody>
+                <tfoot>
+                  <tr>
+                    <th scope="row" colspan="4" id="transactions-total-label">Total</th>
+                    <td class="num" id="transactions-total"></td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <div class="list-more" id="transactions-more" hidden>
+              <span id="transactions-shown"></span>
+              <button type="button" class="btn" id="transactions-load-more">Load more</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Categories</span>
+              <div class="panel-actions">
+                <button type="button" class="btn primary" id="transaction-category-add">Add category</button>
+              </div>
+            </div>
+            <ul class="job-list" id="transaction-categories"></ul>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Rules</span>
+              <div class="panel-actions">
+                <button type="button" class="btn" id="transaction-reapply-uncategorized">Apply to uncategorized</button>
+                <button type="button" class="btn" id="transaction-reapply-all">Apply to all non-manual</button>
+                <button type="button" class="btn primary" id="transaction-rule-add">Add rule</button>
+              </div>
+            </div>
+            <p class="empty-note" id="transaction-rules-empty" hidden>No rules yet. A rule gives a transaction a category when its counterparty or description contains the rule text.</p>
+            <ol class="job-list" id="transaction-rules"></ol>
           </div>
         </div>
       </section>
@@ -1112,6 +1199,39 @@
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
         <button type="submit" class="btn primary">Save statement</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="transaction-category-dialog" aria-labelledby="transaction-category-dialog-title">
+    <form method="dialog" id="transaction-category-form" novalidate>
+      <h2 id="transaction-category-dialog-title">Add category</h2>
+      <label class="field">Name
+        <input type="text" name="name" maxlength="50" autocomplete="off" required>
+      </label>
+      <p class="field-hint">A category name can be up to 50 characters and must differ from the other categories and from Uncategorized.</p>
+      <p class="form-error" id="transaction-category-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn" data-cancel>Cancel</button>
+        <button type="submit" class="btn primary">Save category</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="transaction-rule-dialog" aria-labelledby="transaction-rule-dialog-title">
+    <form method="dialog" id="transaction-rule-form" novalidate>
+      <h2 id="transaction-rule-dialog-title">Add rule</h2>
+      <label class="field">Text
+        <input type="text" name="text" maxlength="100" autocomplete="off" required>
+      </label>
+      <label class="field">Category
+        <select name="category"></select>
+      </label>
+      <p class="field-hint">A transaction gets the category of the first rule, from the top, whose text is in its counterparty or description. Capitals do not matter.</p>
+      <p class="form-error" id="transaction-rule-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn" data-cancel>Cancel</button>
+        <button type="submit" class="btn primary">Save rule</button>
       </div>
     </form>
   </dialog>

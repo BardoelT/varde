@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: approved
 owner: Thijs Bardoel
-version: 0.1
+version: 0.2
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030]
 ---
@@ -150,7 +150,7 @@ Scenario: A semicolon inside a quoted field
 ```
 
 **REQ-3: All-or-nothing on malformed input** *(unwanted behaviour)*
-If the header is not the Knab header, or a row has a wrong number of columns, a date that is not a real `dd-mm-yyyy` date, a direction other than `Afschrijvingen` or `Bijschrijvingen`, an empty or unparsable amount, or an amount that is 0,00 or has more than two decimals, or an empty bank reference, then the app shall import nothing and shall show the error code and the line number of the first offending line.
+If the header is not the Knab header, or a row has a wrong number of columns, a date that is not a real `dd-mm-yyyy` date, a field longer than 1,000 characters, a direction other than `Afschrijvingen` or `Bijschrijvingen`, an empty or unparsable amount, or an amount that is 0,00 or has more than two decimals, or an empty bank reference, then the app shall import nothing and shall show the error code and the line number of the first offending line.
 
 ```gherkin
 @AC-3.1
@@ -168,6 +168,7 @@ Scenario Outline: One bad row imports nothing
     | the amount "0,00"          | TRANSACTION_IMPORT_AMOUNT     |
     | the amount "1,234"         | TRANSACTION_IMPORT_AMOUNT     |
     | 14 columns instead of 15   | TRANSACTION_IMPORT_COLUMNS    |
+    | a field of 1001 characters | TRANSACTION_IMPORT_FIELD      |
     | an empty bank reference    | TRANSACTION_IMPORT_REFERENCE  |
 
 @AC-3.2
@@ -235,7 +236,7 @@ Scenario: A deleted transaction can be imported again
 ```
 
 **REQ-6: One import is one undo step** *(ubiquitous)*
-The app shall record an import that added at least one transaction as one undo step labelled "Import transactions", and shall record nothing for an import that added none or was rejected (CSD-027 REQ-1, REQ-7).
+The app shall record an import that added at least one transaction as one undo step labelled "Import Transactions", and shall record nothing for an import that added none or was rejected (CSD-027 REQ-1, REQ-7).
 
 ```gherkin
 @AC-6.1
@@ -244,7 +245,7 @@ Scenario: Undo removes the whole import
   When the user imports a file that adds 3 transactions
   And chooses Edit > Undo
   Then the project holds 2 transactions
-  And the menu item Redo reads "Redo Import transactions"
+  And the menu item Redo reads "Redo Import Transactions"
 
 @AC-6.2
 Scenario: A rejected import records no step
@@ -534,7 +535,7 @@ Scenario: A transaction with an unknown category in the file
 
 @AC-17.5
 Scenario: An amount with three decimals in the file
-  Given a project file with a transaction amount "-23.970"
+  Given a project file with a transaction amount "-23.975"
   When the user opens it
   Then it is rejected with error code "PROJECT_INVALID_FILE"
 ```
@@ -633,7 +634,7 @@ Project file: three sections (REQ-17). `transactions` is an array, `transaction_
 Commands (names and payloads are indicative; the final signatures belong to the implementation):
 `import_transactions()` → `{ added, skipped }`; `list_transactions(filters, page)` → `{ rows, total, count }`; `set_transaction_category(id, category_id)`; `delete_transaction(id)`; `list_transaction_categories()`; `add_`/`rename_`/`delete_transaction_category`; `list_transaction_rules()`; `add_`/`edit_`/`move_`/`delete_transaction_rule`; `reapply_transaction_rules(scope)` → `{ changed }`.
 
-Error codes: `TRANSACTION_IMPORT_FORMAT`, `_COLUMNS`, `_DATE`, `_DIRECTION`, `_AMOUNT`, `_REFERENCE`, `_CURRENCY`, `TRANSACTION_CATEGORY_NAME_REQUIRED`, `_NAME_TOO_LONG`, `_NAME_TAKEN`, `TRANSACTION_CATEGORY_PROTECTED`, `TRANSACTION_RULE_TEXT_REQUIRED`, `_TEXT_TOO_LONG`, `_CATEGORY_INVALID`, `TRANSACTION_NOT_FOUND`.
+Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 text, or is larger than 50 MB), `TRANSACTION_IMPORT_FORMAT`, `_COLUMNS`, `_FIELD`, `_DATE`, `_DIRECTION`, `_AMOUNT`, `_REFERENCE`, `_CURRENCY`, `TRANSACTION_CATEGORY_NAME_REQUIRED`, `_NAME_TOO_LONG`, `_NAME_TAKEN`, `TRANSACTION_CATEGORY_PROTECTED`, `TRANSACTION_CATEGORY_NOT_FOUND`, `TRANSACTION_RULE_TEXT_REQUIRED`, `_TEXT_TOO_LONG`, `_CATEGORY_INVALID`, `TRANSACTION_RULE_NOT_FOUND`, `TRANSACTION_NOT_FOUND`, `TRANSACTION_DATA_INVALID`. The built-in Uncategorized has no id: a transaction without a category holds `null`, and a filter, a rename and a delete name it `uncategorized`. The default categories and rules have fixed ids, so two new projects are equal.
 
 ## 6. Constraints
 - CON-1: All parsing, deduplication, categorisation, filtering and totals are in Rust (`domain/transactions`); the frontend only displays and sends the user's choices. Rationale: `CLAUDE.md` layout rule.
@@ -663,4 +664,5 @@ Error codes: `TRANSACTION_IMPORT_FORMAT`, `_COLUMNS`, `_DATE`, `_DIRECTION`, `_A
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.2 (12/11/2026): Clarifications found while implementing, no change of behaviour: a field over 1,000 characters (REQ-3, `TRANSACTION_IMPORT_FIELD`), an unreadable file (`TRANSACTION_IMPORT_UNREADABLE`), the undo label is "Import Transactions" in title case like the other labels (AC-6.1), the file amount example is "-23.975" because "-23.970" is the same value as "-23.97" and the file reader accepts trailing zeros (CSD-002 REQ-19), the ids of the default categories and rules are fixed, and `TRANSACTION_CATEGORY_NOT_FOUND`, `_RULE_NOT_FOUND` and `_DATA_INVALID` are listed.
 - 0.1 (12/11/2026): initial draft from the grill-me interview of 12/11/2026 (GitHub issue 70). Companion amendments: `CLAUDE.md`, CSD-002 (format 3, sections), CSD-003 (entries), CSD-009 NG-1, CSD-013 NG-9, CSD-024 NG-2, CSD-027 (CON-1, REQ-6).

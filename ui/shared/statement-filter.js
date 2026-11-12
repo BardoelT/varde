@@ -245,14 +245,16 @@ export function createStatementFilter({ periodHost, entityHost, entityTitle, ent
     /**
      * Lists through the filter. `count(result)` is the number of rows in an answer. When the
      * filter leaves no rows, the list is asked again without it to tell "no data yet" from "no
-     * matches" (REQ-8). Resolves to `{ result, hasData }`.
+     * matches" (REQ-8). `extra` holds the other arguments of the command, such as a row limit.
+     * Resolves to `{ result, hasData }`.
      */
-    async load(command, count) {
+    async load(command, count, extra = {}) {
       prune();
       const current = payload();
-      const result = await invoke(command, current ? { filter: current } : undefined);
+      const args = (more) => (Object.keys(more).length > 0 ? more : undefined);
+      const result = await invoke(command, args(current ? { ...extra, filter: current } : extra));
       let hasData = count(result) > 0;
-      if (!hasData && current) hasData = count(await invoke(command)) > 0;
+      if (!hasData && current) hasData = count(await invoke(command, args(extra))) > 0;
       return { result, hasData };
     },
 

@@ -14,6 +14,7 @@ const FIELD_OF_CODE = [
   [/EMPLOYER/, 'employer'],
   [/START_REQUIRED/, 'start_date'],
   [/END_BEFORE_START/, 'end_date'],
+  [/RULE_TEXT/, 'text'],
   [/NAME/, 'name'],
   [/NOTE/, 'note'],
   [/BALANCE/, 'balance'],
