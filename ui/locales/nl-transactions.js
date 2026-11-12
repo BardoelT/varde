@@ -36,6 +36,8 @@ export default {
   'Save rule': 'Regel opslaan',
   'Delete rule': 'Regel verwijderen',
   'Text': 'Tekst',
+  'New category…': 'Nieuwe categorie…',
+  'New category name': 'Naam van de nieuwe categorie',
   'Apply to uncategorized': 'Toepassen op transacties zonder categorie',
   'Apply to all non-manual': 'Toepassen op alle niet-handmatige',
   'Add a rule from {name}': 'Regel toevoegen vanuit {name}',

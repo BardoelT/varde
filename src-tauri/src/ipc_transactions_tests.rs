@@ -324,3 +324,48 @@ fn test_csd032_ac_18_1_transactions_count_as_entries_for_the_currency_confirmati
     import(&app, fixture()).unwrap();
     assert_eq!(app.ok("get_settings", json!({}))["entry_count"], 8);
 }
+
+#[test]
+fn test_csd032_ac_9_6_a_rule_creates_its_category_in_one_undo_step() {
+    let app = harness();
+    let categories = app.ok("list_transaction_categories", json!({}));
+    let count = categories.as_array().unwrap().len();
+    let rule = app.ok(
+        "add_transaction_rule",
+        json!({ "text": "Example Gym", "newCategory": "Example Sport" }),
+    );
+    let after = app.ok("list_transaction_categories", json!({}));
+    assert_eq!(after.as_array().unwrap().len(), count + 1);
+    assert_eq!(
+        rule["category_id"],
+        after.as_array().unwrap().last().unwrap()["id"]
+    );
+    app.ok("undo", json!({}));
+    assert_eq!(
+        app.ok("list_transaction_categories", json!({}))
+            .as_array()
+            .unwrap()
+            .len(),
+        count
+    );
+    let rules = app.ok("list_transaction_rules", json!({}));
+    assert!(rules
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|r| r["text"] != "Example Gym"));
+}
+
+#[test]
+fn test_csd032_ac_9_7_a_rejected_name_over_ipc_changes_nothing() {
+    let app = harness();
+    let error = app.err(
+        "add_transaction_rule",
+        json!({ "text": "Example Gym", "newCategory": "groceries" }),
+    );
+    assert_eq!(error["code"], "TRANSACTION_CATEGORY_NAME_TAKEN");
+    assert_eq!(
+        app.ok("project_status", json!({}))["undo_label"],
+        Value::Null
+    );
+}

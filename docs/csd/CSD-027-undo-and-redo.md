@@ -273,14 +273,14 @@ Scenario: A vanished selection returns to the list
 ```
 
 **REQ-13: Say what happened** *(event-driven)*
-When a step is undone or redone, the app shall show a short message that names the step, in the language of the app, with no button, as an yellow notification at the bottom right of the window (an error is shown in red).
+When a step is undone or redone, the app shall show a short message that names the step, in the language of the app, with no button, as a yellow notification at the bottom right of the window (an error is shown in red).
 
 ```gherkin
 @AC-13.1
 Scenario: Message after undo
   Given the user deleted a bank account
   When the user chooses Edit > Undo
-  Then the message "Undid: Delete Bank Account" is shown as an yellow notification
+  Then the message "Undid: Delete Bank Account" is shown as a yellow notification
 
 @AC-13.2
 Scenario: Message in Dutch

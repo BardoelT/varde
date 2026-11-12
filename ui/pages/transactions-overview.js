@@ -113,7 +113,7 @@ function deleteTransaction(transaction) {
 
 // ---- Messages of an import or a re-apply ----
 
-/** The result as an yellow notification bottom right, like the one after an undo (CSD-032 REQ-16). */
+/** The result as a yellow notification bottom right, like the one after an undo (CSD-032 REQ-16). */
 const showResult = (text) => showToast(text, 'notice');
 
 async function importTransactions() {
@@ -234,6 +234,16 @@ async function moveRule(rule, position) {
 }
 
 let editingRule = null;
+/** The value of the last option of the category choice of a new rule: the rule creates its category. */
+const NEW_CATEGORY = '__new__';
+
+/** Shows the name field while "New category…" is chosen, and only then (CSD-032 REQ-9). */
+function syncNewCategory() {
+  const form = $('transaction-rule-form');
+  const creating = form.elements.category.value === NEW_CATEGORY;
+  $('transaction-rule-new-category').hidden = !creating;
+  if (creating) form.elements.name.focus();
+}
 
 /**
  * The rule dialog for a new rule that starts from a transaction: its counterparty (its description
@@ -256,7 +266,12 @@ function openRuleDialog(rule = null, start = null) {
     titleText: rule ? t('Edit rule') : t('Add rule'),
     focus: 'text',
     fill(form) {
-      form.elements.category.replaceChildren(...categories.map((category) => h('option', { value: category.id }, category.name)));
+      form.elements.category.replaceChildren(
+        ...categories.map((category) => h('option', { value: category.id }, category.name)),
+        // A new rule may create its category; an edit chooses among the existing ones.
+        rule ? null : h('option', { value: NEW_CATEGORY }, t('New category…')),
+      );
+      form.elements.name.value = '';
       if (rule) {
         form.elements.text.value = rule.text;
         form.elements.category.value = rule.category_id;
@@ -264,6 +279,7 @@ function openRuleDialog(rule = null, start = null) {
         form.elements.text.value = start.text;
         if (start.categoryId) form.elements.category.value = start.categoryId;
       }
+      syncNewCategory();
     },
   });
 }
@@ -272,6 +288,7 @@ function submitRule() {
   const form = $('transaction-rule-form');
   const text = form.elements.text.value;
   const categoryId = form.elements.category.value;
+  const creating = categoryId === NEW_CATEGORY;
   return saveDialog({
     dialog: 'transaction-rule-dialog',
     error: 'transaction-rule-error',
@@ -279,7 +296,7 @@ function submitRule() {
     save: () =>
       editingRule
         ? invoke('edit_transaction_rule', { ruleId: editingRule.id, text, categoryId })
-        : invoke('add_transaction_rule', { text, categoryId }),
+        : invoke('add_transaction_rule', creating ? { text, newCategory: form.elements.name.value } : { text, categoryId }),
   });
 }
 
@@ -326,6 +343,7 @@ export function initTransactionsOverview({ onChanged: callback }) {
   submitOnce($('transaction-category-form'), submitCategory);
   $('transaction-rule-add').addEventListener('click', () => openRuleDialog(null));
   submitOnce($('transaction-rule-form'), submitRule);
+  $('transaction-rule-form').elements.category.addEventListener('change', syncNewCategory);
   $('transaction-reapply-uncategorized').addEventListener('click', () => reapply('uncategorized'));
   $('transaction-reapply-all').addEventListener('click', () => reapply('all_non_manual'));
 }

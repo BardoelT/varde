@@ -187,13 +187,23 @@ fn rule_category(text: &str) -> Result<CategoryId, DomainError> {
     CategoryId::parse(text).map_err(|_| DomainError::TransactionRuleCategoryInvalid)
 }
 
+/// Adds a rule. With `new_category` the rule names a category that is created
+/// with it, as one undo step; otherwise it names `category_id` (REQ-9).
 #[tauri::command]
 pub fn add_transaction_rule(
     state: State<'_, AppState>,
     text: String,
-    category_id: String,
+    category_id: Option<String>,
+    new_category: Option<String>,
 ) -> Result<Rule, AppError> {
-    let category = rule_category(&category_id)?;
+    if let Some(name) = new_category {
+        let mut project = state.edit(StepLabel::add(Record::TransactionRule))?;
+        let (_, rule) = project
+            .transactions_mut()
+            .add_rule_with_new_category(&text, &name)?;
+        return Ok(rule);
+    }
+    let category = rule_category(category_id.as_deref().unwrap_or_default())?;
     let mut project = state.edit(StepLabel::add(Record::TransactionRule))?;
     Ok(project.transactions_mut().add_rule(&text, category)?)
 }

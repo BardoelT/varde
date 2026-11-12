@@ -180,7 +180,7 @@ test('test_csd032_ac_14_1_a_confirmed_deletion_sends_the_id', async () => {
   app.close();
 });
 
-test('test_csd032_ac_16_2_the_import_result_is_an_yellow_notification', async () => {
+test('test_csd032_ac_16_2_the_import_result_is_a_yellow_notification', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), {
     import_transactions: { added: 3, skipped: 2 },
   });
@@ -284,7 +284,7 @@ test('test_csd032_ac_9_3_the_rule_form_offers_the_existing_categories_and_sends_
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { add_transaction_rule: { id: 'rule-3' } });
   await app.click(app.$('transaction-rule-add'));
   const form = app.$('transaction-rule-form');
-  assert.deepEqual([...form.elements.category.options].map((option) => app.text(option)), ['Groceries', 'Shopping']);
+  assert.deepEqual([...form.elements.category.options].map((option) => app.text(option)), ['Groceries', 'Shopping', 'New category…']);
   form.elements.text.value = 'Example Gym';
   form.elements.category.value = SHOPPING;
   form.requestSubmit();
@@ -369,7 +369,7 @@ test('test_csd032_ac_16_3_categories_and_rules_are_on_their_own_tab', async () =
   app.close();
 });
 
-test('test_csd032_ac_16_4_a_reapply_message_is_an_yellow_notification', async () => {
+test('test_csd032_ac_16_4_a_reapply_message_is_a_yellow_notification', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { reapply_transaction_rules: { changed: 2 } });
   await app.click(app.$('transaction-reapply-uncategorized'));
   assert.equal(app.textOf('toast'), '2 changed');
@@ -417,5 +417,64 @@ test('test_csd032_ac_23_3_saving_adds_the_rule_and_cancelling_adds_none', async 
   await open();
   await app.click(app.$('transaction-rule-dialog').querySelector('[data-cancel]'));
   assert.equal(app.callsOf('add_transaction_rule').length, 1);
+  app.close();
+});
+
+test('test_csd032_ac_9_8_new_category_is_the_last_option_of_a_new_rule_only', async () => {
+  const app = await transactionsPage(readsWith({ rows: [], count: 0 }));
+  await app.click(app.$('transaction-rule-add'));
+  const form = app.$('transaction-rule-form');
+  const options = [...form.elements.category.options].map((option) => app.text(option));
+  assert.equal(options.at(-1), 'New category…');
+  assert.equal(app.$('transaction-rule-new-category').hidden, true);
+  await app.choose(form.elements.category, '__new__');
+  assert.equal(app.$('transaction-rule-new-category').hidden, false);
+  await app.choose(form.elements.category, SHOPPING);
+  assert.equal(app.$('transaction-rule-new-category').hidden, true);
+  await app.click(app.$('transaction-rule-dialog').querySelector('[data-cancel]'));
+  await app.click(app.$('transaction-rules').querySelector('[aria-label="Edit Example"]'));
+  assert.ok(![...form.elements.category.options].some((option) => option.value === '__new__'), 'no new category when editing');
+  app.close();
+});
+
+test('test_csd032_ac_9_6_saving_with_a_new_category_sends_the_name', async () => {
+  const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { add_transaction_rule: { id: 'rule-3' } });
+  await app.click(app.$('transaction-rule-add'));
+  const form = app.$('transaction-rule-form');
+  form.elements.text.value = 'Example Gym';
+  await app.choose(form.elements.category, '__new__');
+  form.elements.name.value = 'Example Sport';
+  form.requestSubmit();
+  await app.settle();
+  assert.deepEqual(app.callsOf('add_transaction_rule').at(-1).args, { text: 'Example Gym', newCategory: 'Example Sport' });
+  assert.equal(app.$('transaction-rule-dialog').open, false);
+  app.close();
+});
+
+test('test_csd032_ac_9_7_a_rejected_new_category_name_marks_the_name_field', async () => {
+  const app = await transactionsPage(readsWith({ rows: [], count: 0 }), {
+    add_transaction_rule: () => {
+      throw { code: 'TRANSACTION_CATEGORY_NAME_TAKEN', message: 'A category with this name already exists.' };
+    },
+  });
+  await app.click(app.$('transaction-rule-add'));
+  const form = app.$('transaction-rule-form');
+  form.elements.text.value = 'Example Gym';
+  await app.choose(form.elements.category, '__new__');
+  form.elements.name.value = 'groceries';
+  form.requestSubmit();
+  await app.settle();
+  assert.equal(app.$('transaction-rule-dialog').open, true);
+  assert.equal(form.elements.name.getAttribute('aria-invalid'), 'true');
+  app.close();
+});
+
+test('test_csd032_ac_9_8_a_rule_from_a_transaction_can_also_create_a_category', async () => {
+  const rows = [transaction('t1', '2026-10-30', '-23.97', 'Example Market Town', GROCERIES)];
+  const app = await transactionsPage(readsWith({ rows }));
+  await app.click(app.$('transactions-rows').querySelector('.row-actions button'));
+  const form = app.$('transaction-rule-form');
+  assert.equal(form.elements.category.value, GROCERIES);
+  assert.ok([...form.elements.category.options].some((option) => option.value === '__new__'));
   app.close();
 });

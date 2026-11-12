@@ -1,9 +1,9 @@
 ---
 id: CSD-032
 title: Transactions
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.7
+version: 0.8
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030]
 ---
@@ -309,7 +309,7 @@ Scenario: Uncategorized is protected
 ```
 
 **REQ-9: Rules** *(event-driven)*
-When the user adds, edits, reorders or deletes a rule, the app shall apply the change. A rule has a text of 1 to 100 characters after trimming and one category (not "Uncategorized"), and the rules are kept in an order the user can change. A new project holds about 15 seed rules for well-known Dutch chains, which the user may change.
+When the user adds, edits, reorders or deletes a rule, the app shall apply the change. A rule has a text of 1 to 100 characters after trimming and one category (not "Uncategorized"), and the rules are kept in an order the user can change. A new project holds about 15 seed rules for well-known Dutch chains, which the user may change. When the user adds a rule, the category choice also offers "New category…" as its last option (not when editing a rule); choosing it asks for the name of a new category, and saving adds that category and the rule as one change, or neither when the text or the name is invalid.
 
 ```gherkin
 @AC-9.1
@@ -334,6 +334,29 @@ Scenario Outline: Invalid rules rejected
     | (101 characters)| Groceries     | TRANSACTION_RULE_TEXT_TOO_LONG |
     | Example         | Uncategorized | TRANSACTION_RULE_CATEGORY_INVALID |
     | Example         | Nonexistent   | TRANSACTION_RULE_CATEGORY_INVALID |
+
+@AC-9.6
+Scenario: A rule creates its category
+  When the user adds the rule "Example Gym", chooses "New category…" and types the name "Example Sport"
+  And saves
+  Then the category "Example Sport" exists and the rule "Example Gym" names it
+  And one Edit > Undo removes both
+
+@AC-9.7
+Scenario: A rejected name adds nothing
+  When the user adds the rule "Example Gym", chooses "New category…" and types the name "groceries"
+  And saves
+  Then it is rejected with error code "TRANSACTION_CATEGORY_NAME_TAKEN"
+  And neither a category nor a rule is added
+
+@AC-9.8
+Scenario: The name field only shows for a new category
+  When the user opens the dialog of a new rule
+  Then the last option of the category choice is "New category…" and no name field is shown
+  When the user chooses "New category…"
+  Then the name field is shown
+  When the user opens the dialog to edit a rule
+  Then there is no option "New category…"
 
 @AC-9.4
 Scenario: A new project has seed rules
@@ -703,6 +726,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.8 (12/11/2026): The dialog of a new rule offers "New category…", which creates the category and the rule as one change (REQ-9, AC-9.6 to AC-9.8). Owner request. Back to `draft` until re-approved.
 - 0.7 (12/11/2026): The notification of an import or a re-apply is yellow (#ffbb00, dark text) instead of orange (REQ-16, AC-16.2, AC-16.4). Owner request. Back to `draft` until re-approved.
 - 0.6 (12/11/2026): The message of an import or a re-apply becomes an orange notification at the bottom right, like the undo notification, instead of a note on the page (REQ-16, AC-16.2, AC-16.4). Owner request. Back to `draft` until re-approved.
 - 0.5 (12/11/2026): The two re-apply buttons move from the tab "Categories and rules" to the top of the Overview tab (REQ-16, AC-16.3, AC-16.4). Owner request. Back to `draft` until re-approved.

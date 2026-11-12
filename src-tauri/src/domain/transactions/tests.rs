@@ -888,3 +888,36 @@ fn test_csd032_ac_19_1_a_clone_shares_the_list_until_it_changes() {
     assert_ne!(data.shared_weight().0, before.shared_weight().0);
     assert!(!before.transactions().first().unwrap().manual);
 }
+
+#[test]
+fn test_csd032_ac_9_6_a_rule_can_create_its_category_with_it() {
+    let mut data = Transactions::default();
+    let (categories, rules) = (data.categories().len(), data.rules().len());
+    let (category, rule) = data
+        .add_rule_with_new_category("Example Gym", "Example Sport")
+        .unwrap();
+    assert_eq!(data.categories().len(), categories + 1);
+    assert_eq!(data.categories().last().unwrap().name, "Example Sport");
+    assert_eq!(data.rules().len(), rules + 1);
+    assert_eq!(data.rules().last().unwrap().category_id, category.id);
+    assert_eq!(rule.text, "Example Gym");
+}
+
+#[test]
+fn test_csd032_ac_9_7_a_rejected_rule_or_name_adds_neither() {
+    let mut data = Transactions::default();
+    let before = data.clone();
+    for (text, name, code) in [
+        ("", "Example Sport", "TRANSACTION_RULE_TEXT_REQUIRED"),
+        ("Example Gym", "", "TRANSACTION_CATEGORY_NAME_REQUIRED"),
+        (
+            "Example Gym",
+            "groceries",
+            "TRANSACTION_CATEGORY_NAME_TAKEN",
+        ),
+    ] {
+        let error = data.add_rule_with_new_category(text, name).unwrap_err();
+        assert_eq!(error.code(), code);
+        assert_eq!(data, before, "{code}");
+    }
+}

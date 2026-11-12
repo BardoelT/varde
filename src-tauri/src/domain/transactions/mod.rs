@@ -336,6 +336,28 @@ impl Transactions {
         Ok(rule)
     }
 
+    /// Adds a rule at the end of the list together with a new category it
+    /// names, as one change: when the text or the name is invalid, neither is
+    /// added (REQ-9).
+    ///
+    /// # Errors
+    /// Returns the violated text rule, or the violated name rule.
+    pub fn add_rule_with_new_category(
+        &mut self,
+        text: &str,
+        name: &str,
+    ) -> Result<(Category, Rule), DomainError> {
+        let text = valid_rule_text(text)?;
+        let category = self.add_category(name)?;
+        let rule = Rule {
+            id: RuleId::new(),
+            text,
+            category_id: category.id,
+        };
+        self.rules.push(rule.clone());
+        Ok((category, rule))
+    }
+
     /// Changes the text and category of a rule (REQ-9).
     ///
     /// # Errors
