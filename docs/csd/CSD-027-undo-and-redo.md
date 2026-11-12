@@ -1,11 +1,11 @@
 ---
 id: CSD-027
 title: Undo and redo
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.1
-last_updated: 07/11/2026
-related: [CSD-002, CSD-003, CSD-008, CSD-022, CSD-024, CSD-026]
+version: 0.2
+last_updated: 12/11/2026
+related: [CSD-002, CSD-003, CSD-008, CSD-022, CSD-024, CSD-026, CSD-032]
 ---
 
 # CSD-027: Undo and redo
@@ -157,7 +157,7 @@ Scenario: Redo is gone after a new edit
 ```
 
 **REQ-6: Limit** *(ubiquitous)*
-The app shall keep at most 100 undo steps per open project and shall drop the oldest step when a 101st is made.
+The app shall keep at most 100 undo steps per open project and shall drop the oldest step when a 101st is made, and shall also drop the oldest steps while the history exceeds a memory budget of about 200 MB (CSD-032 REQ-19).
 
 ```gherkin
 @AC-6.1
@@ -308,7 +308,7 @@ Scenario: Message in Dutch
 - Errors follow `CLAUDE.md`: a safe code and message, no data in the text.
 
 ## 6. Constraints
-- CON-1: The history holds copies of the whole project data, kept in the Rust project, and every command that changes project data goes through one place that records the step. Rationale: a cascade (a deleted job, a settled debt) is then undone atomically, and no command needs its own inverse. The project data is small (about 40 KB for the example project), so 100 copies cost a few MB.
+- CON-1: The history holds copies of the whole project data, kept in the Rust project, and every command that changes project data goes through one place that records the step. Rationale: a cascade (a deleted job, a settled debt) is then undone atomically, and no command needs its own inverse. The project data without transactions is small (about 40 KB for the example project), so 100 copies cost a few MB. The transaction list (CSD-032, up to about 20,000 transactions) is held behind shared references, so a copy shares it with the other steps and only a step that changes transactions pays for a new one (CSD-032 CON-4).
 - CON-2: Rust owns the history, the labels and the unsaved flag. The frontend only asks for undo or redo and reloads. Rationale: `CLAUDE.md` keeps business logic out of `ui/`.
 - CON-3: The Edit menu keeps the standard items (cut, copy, paste, select all) and replaces only the predefined Undo and Redo with the items of REQ-10. Rationale: text fields keep working (REQ-11). This changes CSD-024 CON-2 and CSD-002 CON-6.
 - CON-4: The history is never written to disk and never logged. Rationale: it holds amounts and names (`CLAUDE.md` privacy rules), and NG-1, NG-2.
@@ -330,4 +330,5 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-1: How does the Edit menu know a form is open or a text field has the focus (REQ-11)? The draft only fixes what the user sees: project undo does nothing in those states. Whether the item is also greyed out is left to the implementation. Owner: Thijs. Blocks: AC-11.2 only if greying out is required.
 
 ## 9. Changelog
+- 0.2 (12/11/2026): The history shares the transaction list between steps (CON-1) and has a memory budget in addition to the 100-step limit (REQ-6), for CSD-032 (GitHub issue 70). Back to `draft` until re-approved.
 - 0.1 (07/11/2026): initial draft, from GitHub issue 43 and the grill-me interview of 07/11/2026. Amends CSD-002 (NG-2, CON-6, REQ-3) and CSD-024 (REQ-5, CON-2).

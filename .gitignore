@@ -22,3 +22,9 @@ node_modules/
 
 # Claude Code local settings
 .claude/
+
+# Bank exports hold real financial data — never commit (CSD-032 CON-8)
+*.csv
+Rekeningafschrift*.pdf
+# ...except the synthetic test fixtures
+!src-tauri/fixtures/**/*.csv

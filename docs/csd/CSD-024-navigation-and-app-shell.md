@@ -1,10 +1,10 @@
 ---
 id: CSD-024
 title: Navigation and app shell
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.6
-last_updated: 09/11/2026
+version: 0.7
+last_updated: 12/11/2026
 related: [CSD-002, CSD-003, CSD-004, CSD-022, CSD-027, CSD-031]
 ---
 
@@ -22,7 +22,7 @@ The app has one window with a left pane that opens the pages, and a native macOS
 
 ### 2.2 Non-goals
 - NG-1: Any page in the Insights group other than the Net worth page of CSD-017 and the Ratios page of CSD-018 (moved from CSD-004 NG-5).
-- NG-2: Pages that have no function yet: Accounts, Transactions and Budget.
+- NG-2: Pages that have no function yet: Accounts and Budget. (Transactions has a function from CSD-032 and is no longer in this list. Changed in v0.7.)
 - NG-3: Collapsible groups, and a user-defined order of the items.
 - NG-4: Keyboard shortcuts that open a page, other than ⌘, for Settings (CSD-003 REQ-2). Decided for the first release (OQ-1).
 - NG-5: The content of a page, its tabs (such as Overview and Insights) and the actions behind the menu items (the owning CSDs).
@@ -56,24 +56,24 @@ sequenceDiagram
 ```
 
 **REQ-1: Structure of the left pane** *(ubiquitous)*
-The app shall group the pages in the left pane under plain, non-collapsible headings, in this order: Overview (Dashboard), Finance (Income, Expenses), Wealth (Bank accounts, Investments, Houses), Liabilities (Debts) and Insights (Net worth, Ratios). This requirement is the one place that states the order; the capabilities that add a page do not repeat it.
+The app shall group the pages in the left pane under plain, non-collapsible headings, in this order: Overview (Dashboard), Finance (Income, Expenses, Transactions), Wealth (Bank accounts, Investments, Houses), Liabilities (Debts) and Insights (Net worth, Ratios). This requirement is the one place that states the order; the capabilities that add a page do not repeat it.
 
 ```gherkin
 @AC-1.1
 Scenario: Groups and pages in order
   Given the app has started
   Then the left pane shows the headings "Overview", "Finance", "Wealth", "Liabilities" and "Insights" in that order
-  And "Overview" holds "Dashboard", "Finance" holds "Income" and "Expenses", "Wealth" holds "Bank accounts", "Investments" and "Houses", "Liabilities" holds "Debts" and "Insights" holds "Net worth" and "Ratios", each in that order
+  And "Overview" holds "Dashboard", "Finance" holds "Income", "Expenses" and "Transactions", "Wealth" holds "Bank accounts", "Investments" and "Houses", "Liabilities" holds "Debts" and "Insights" holds "Net worth" and "Ratios", each in that order
 
 @AC-1.2
 Scenario: Pages without a function are not offered
   Given the app has started
-  Then there is no "Accounts", "Transactions" or "Budget" in the left pane
+  Then there is no "Accounts" or "Budget" in the left pane
 
 @AC-1.3
 Scenario: No example data
   Given the app has started
-  Then no page shows example transactions, accounts or budgets
+  Then no page shows example accounts or budgets
 ```
 
 **REQ-2: The app opens on the Dashboard** *(event-driven)*
@@ -296,6 +296,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-3: (resolved 03/11/2026) The native menu is specified only as the standard menus (app, File, Edit, View, Window) plus the items already named; it is not listed item by item (REQ-5).
 
 ## 9. Changelog
+- 0.7 (12/11/2026): The Transactions page of CSD-032 (GitHub issue 70) joins the left pane as the last item of Finance; REQ-1 and AC-1.1 to AC-1.3 change with it and NG-2 no longer lists it. Back to `draft` until re-approved.
 - 0.6 (09/11/2026): REQ-5 says the content of the "About" item is specified in CSD-031 (GitHub issue 54); related adds CSD-031. No other change. Back to `draft` until re-approved.
 - 0.5 (09/11/2026): The name of the open file in the window title (GitHub issue 20). New REQ-8 (AC-8.1 to AC-8.6: the file name with extension, `Untitled` for a new project, no folder, no app name, English only) and REQ-9 (AC-9.1 to AC-9.5: the dot `●` after the name while there are unsaved changes). REQ-4 now pins only Settings and the project status text leaves the left pane (new AC-4.3, NG-7); the unsaved indicator of CSD-002 REQ-3 becomes the dot. New NG-8, NG-9, CON-4, and the window title in section 5 and 7. Owner decisions from the grill-me interview of 09/11/2026. Back to `draft` until re-approved.
 - 0.4 (07/11/2026): Undo and redo of project data (CSD-027, GitHub issue 43): REQ-5 names the Edit items Undo (⌘Z) and Redo (⇧⌘Z), CON-2 says they replace the predefined ones. Back to `draft` until re-approved.
