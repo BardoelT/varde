@@ -14,6 +14,8 @@ build.keychain
 
 # Project files hold real financial data — never commit
 *.varde
+# The copy the migration script writes before it upgrades a file (CSD-002 REQ-20) holds the same data
+*.varde.bak
 # ...except the synthetic example project (CSD-002 REQ-21)
 !examples/example.varde
 

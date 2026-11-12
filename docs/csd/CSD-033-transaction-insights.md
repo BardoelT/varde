@@ -3,7 +3,7 @@ id: CSD-033
 title: Transaction insights
 status: draft
 owner: Thijs Bardoel
-version: 0.2
+version: 0.3
 last_updated: 12/11/2026
 related: [CSD-000, CSD-014, CSD-022, CSD-025, CSD-030, CSD-032]
 ---
@@ -187,7 +187,7 @@ Scenario: Every category is listed
 ```
 
 **REQ-8: Details of a bar** *(event-driven)*
-When the user hovers or focuses a bar, the app shall show a tooltip with its label, a note while it is partial, one row per segment in the order of the bar from top to bottom with its amount, the total spent and, when there is income, the income. A bar without a debit shows the note "No spending".
+When the user hovers or focuses a bar, the app shall show a tooltip with its label, a note while it is partial, one row per segment in the order of the bar from top to bottom with its amount, the total spent and, when there is income, the income. A bar without a debit shows the note "No spending". The tooltip shall never be taller than the chart: when not every segment fits, it shows the segments from the top of the bar that fit (at least three) and a last row "and N more categories", and the total spent still covers all of them. Rationale: a tooltip that sticks out below the chart gives the chart a scrollbar and shifts the page while the pointer moves over the bars.
 
 ```gherkin
 @AC-8.1
@@ -195,6 +195,13 @@ Scenario: Tooltip of a year
   Given the bar of 2026 with Groceries 15.00 and Uncategorized 7.50, which is partial
   When the user hovers it
   Then the tooltip reads "2026 YTD", "Partial year: spending so far", Uncategorized 7.50, Groceries 15.00, Total spent 22.50 and Income 30.00
+
+@AC-8.3
+Scenario: A tooltip that would be taller than the chart
+  Given a bar with 14 segments in a chart that has room for 7 rows
+  When the user hovers it
+  Then the tooltip shows the 6 segments from the top of the bar, the row "and 8 more categories", the total spent and the income
+  And the chart and the page do not change size
 
 @AC-8.2
 Scenario: Tooltip of a month
@@ -287,5 +294,6 @@ The list is called `years` and a bar `year` because the frame of the yearly char
 - OQ-2: Is 36 months the right length of the Monthly chart? Owner: Thijs. Blocks: REQ-2.
 
 ## 9. Changelog
+- 0.3 (12/11/2026): The tooltip is never taller than the chart: segments that do not fit are counted in a last row "and N more categories" (REQ-8, AC-8.3). A tall tooltip made the chart box scroll and shifted the page while hovering. Owner report ("the chart is unstable"). Back to `draft` until re-approved.
 - 0.2 (12/11/2026): The income (the credits) is drawn as a marker across each bar, with an "Income" item in the legend and a row in the tooltip; bars also exist for periods with only income; the panel is titled "Spending and income per year" or "per month"; the empty note is about transactions (REQ-4, REQ-7, REQ-8, REQ-12). Owner request. Back to `draft` until re-approved.
 - 0.1 (12/11/2026): initial draft. A spending-per-category chart on a new Insights tab of the Transactions page, per year or per month. Owner request.

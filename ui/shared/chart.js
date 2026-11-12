@@ -19,6 +19,9 @@ export function svg(tag, attrs = {}, ...children) {
  */
 export const toPosition = (text) => Number.parseFloat(text);
 
+/** The space a tooltip keeps free below it inside the chart: the scroll box around the chart has padding, and a tooltip that reaches the very bottom would give it a scrollbar. */
+const TOOLTIP_BOTTOM_ROOM = 12;
+
 const clamp = (value, low, high) => Math.min(Math.max(value, low), Math.max(high, low));
 
 const BAR_GAP = 1;
@@ -107,7 +110,7 @@ export function createTooltip(inner) {
       slide = '4px';
     }
     element.style.left = `${clamp(left, 0, box.width - width)}px`;
-    element.style.top = `${clamp(edge.top - box.top, 0, box.height - height)}px`;
+    element.style.top = `${clamp(edge.top - box.top, 0, box.height - height - TOOLTIP_BOTTOM_ROOM)}px`;
     element.style.setProperty('--slide-x', slide);
     element.style.setProperty('--slide-y', '0px');
   }

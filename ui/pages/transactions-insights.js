@@ -8,7 +8,7 @@ import { swatch, noSwatch, legendLabel, tooltipRow, topToBottom } from '../share
 import { createYearlyChart, yearLabel } from '../shared/yearly-chart.js';
 import { fillLegend, markerDecorator } from '../shared/insights-page.js';
 import { initTabs } from '../shared/tabs.js';
-import { t } from '../shared/i18n.js';
+import { t, tn } from '../shared/i18n.js';
 import { errorText } from '../shared/ipc.js';
 import { showToast } from '../shared/dom.js';
 
@@ -38,8 +38,28 @@ function describe(row) {
   return row.marker ? `${text}, ${t('income {income}', { income: formatAmount(row.income) })}` : text;
 }
 
-/** The tooltip of a bar: the rows read like the bar, the highest segment first. */
+/** The height of one row of the tooltip and of what is not a row (title, note, total, income, padding). */
+const TIP_ROW = 24;
+const TIP_FRAME = 150;
+/** The fewest category rows a tooltip shows, however low the chart is. */
+const MIN_TIP_ROWS = 3;
+
+/**
+ * How many category rows the tooltip may show: as many as fit in the height of the chart. A taller
+ * tooltip would stick out below the chart, give its scroll box a scrollbar and shift the whole page
+ * while the pointer moves over the bars (CSD-033 REQ-8).
+ */
+function tipRows() {
+  const room = Math.floor(($('transactions-insights-chart').clientHeight - TIP_FRAME) / TIP_ROW);
+  return Math.max(MIN_TIP_ROWS, room);
+}
+
+/** The tooltip of a bar: the rows read like the bar, from the top; rows that do not fit are counted. */
 function tooltipContent(row) {
+  const ordered = topToBottom(row.segments, (segment) => keyOf(segment.category), row.pieces);
+  const limit = tipRows();
+  const shown = ordered.length > limit ? ordered.slice(0, limit - 1) : ordered;
+  const hidden = ordered.length - shown.length;
   const partial = row.month === null ? t('Partial year: spending so far') : t('Partial month: spending so far');
   return [
     h('div', { class: 'tip-title' }, periodLabel(row)),
@@ -48,9 +68,10 @@ function tooltipContent(row) {
     h(
       'dl',
       {},
-      ...topToBottom(row.segments, (segment) => keyOf(segment.category), row.pieces).flatMap((segment) =>
+      ...shown.flatMap((segment) =>
         tooltipRow(keyOf(segment.category), swatch(`slot-${slotOf(segment.category)}`), categoryName(segment.category), formatAmount(segment.amount)),
       ),
+      ...(hidden > 0 ? tooltipRow(null, noSwatch(), tn('and {count} more category', 'and {count} more categories', hidden), '') : []),
       ...(row.segments.length === 0 ? [] : tooltipRow(null, noSwatch(), t('Total spent'), formatAmount(row.total))),
       ...(row.marker ? tooltipRow('marker', swatch('marker'), t('Income'), formatAmount(row.income)) : []),
     ),

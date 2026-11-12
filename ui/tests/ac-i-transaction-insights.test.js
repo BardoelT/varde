@@ -209,3 +209,18 @@ test('test_csd033_ac_4_3_the_accessible_name_of_a_bar_names_the_income', async (
   assert.match(groups(app)[1].getAttribute('aria-label'), /income 30\.00$/);
   app.close();
 });
+
+test('test_csd033_ac_8_3_a_tooltip_that_does_not_fit_counts_the_segments_it_leaves_out', async () => {
+  // jsdom has no layout, so the room is the least the page allows: three rows.
+  const many = ['cat-groceries', 'cat-shopping', 'uncategorized'];
+  const crowded = yearly([bar(2026, null, [...many, ...many.map((id) => id)].map((id, index) => [index < 3 ? id : id, '1.00']), { partial: true, income: 9 })]);
+  crowded.years[0].segments = Array.from({ length: 6 }, (_, i) => ({ category: i % 3 === 0 ? 'cat-groceries' : i % 3 === 1 ? 'cat-shopping' : 'uncategorized', amount: '1.00' }));
+  const app = await insightsPage({ get_transaction_insights: () => crowded });
+  groups(app)[0].dispatchEvent(new app.window.MouseEvent('mouseenter'));
+  await app.settle();
+  const text = app.text(app.$('transactions-insights-chart').querySelector('.chart-tooltip'));
+  assert.match(text, /and 4 more categories/, text);
+  assert.match(text, /Total spent/);
+  assert.match(text, /Income9\.00$/);
+  app.close();
+});

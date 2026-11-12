@@ -37,6 +37,8 @@ export default {
   '{period}: no transactions': '{period}: geen transacties',
   'income {income}': 'inkomsten {income}',
   'Total spent': 'Totaal uitgegeven',
+  'and {count} more category': 'en {count} andere categorie',
+  'and {count} more categories': 'en {count} andere categorieën',
   'No transactions': 'Geen transacties',
   '{period}: {parts}, total {total}': '{period}: {parts}, totaal {total}',
   'Partial year: spending so far': 'Gedeeltelijk jaar: uitgaven tot nu toe',
