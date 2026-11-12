@@ -58,7 +58,7 @@ export function iconButton(kind, label, onClick) {
 
 let toastTimer = null;
 
-/** Shows `message` bottom right for six seconds. `tone` `'notice'` makes it orange, for a result that is no error. */
+/** Shows `message` bottom right for six seconds. `tone` `'notice'` makes it yellow, for a result that is no error. */
 export function showToast(message, tone = 'error') {
   const toast = document.getElementById('toast');
   toast.classList.toggle('toast-notice', tone === 'notice');

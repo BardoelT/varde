@@ -113,7 +113,7 @@ function deleteTransaction(transaction) {
 
 // ---- Messages of an import or a re-apply ----
 
-/** The result as an orange notification bottom right, like the one after an undo (CSD-032 REQ-16). */
+/** The result as an yellow notification bottom right, like the one after an undo (CSD-032 REQ-16). */
 const showResult = (text) => showToast(text, 'notice');
 
 async function importTransactions() {

@@ -180,14 +180,14 @@ test('test_csd032_ac_14_1_a_confirmed_deletion_sends_the_id', async () => {
   app.close();
 });
 
-test('test_csd032_ac_16_2_the_import_result_is_an_orange_notification', async () => {
+test('test_csd032_ac_16_2_the_import_result_is_an_yellow_notification', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), {
     import_transactions: { added: 3, skipped: 2 },
   });
   await app.click(app.$('transaction-import'));
   assert.equal(app.textOf('toast'), '3 added, 2 skipped as duplicates');
   assert.ok(app.isShown(app.$('toast')));
-  assert.ok(app.$('toast').classList.contains('toast-notice'), 'orange, not the red of an error');
+  assert.ok(app.$('toast').classList.contains('toast-notice'), 'yellow, not the red of an error');
   app.close();
 });
 
@@ -369,7 +369,7 @@ test('test_csd032_ac_16_3_categories_and_rules_are_on_their_own_tab', async () =
   app.close();
 });
 
-test('test_csd032_ac_16_4_a_reapply_message_is_an_orange_notification', async () => {
+test('test_csd032_ac_16_4_a_reapply_message_is_an_yellow_notification', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { reapply_transaction_rules: { changed: 2 } });
   await app.click(app.$('transaction-reapply-uncategorized'));
   assert.equal(app.textOf('toast'), '2 changed');
