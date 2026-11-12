@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: approved
 owner: Thijs Bardoel
-version: 0.17
+version: 0.19  
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -373,7 +373,7 @@ Scenario: A new project has seed rules
 ```
 
 **REQ-10: Categorise on import** *(event-driven)*
-When a transaction is added by an import, the app shall give it the category of the first rule, in order, whose text is contained, ignoring case, in the counterparty name followed by a space and the description, and "Uncategorized" if no rule matches.
+When a transaction is added by an import, the app shall give it the category of the first rule, in order, whose text is contained, ignoring case, in the counterparty name followed by a space and the description, and "Uncategorized" if no rule matches. In a rule text a star (`*`) stands for any run of characters, none included, and the parts between the stars have to be found in that order; a text without a star is found as it is.
 
 ```gherkin
 @AC-10.1
@@ -381,6 +381,13 @@ Scenario: First matching rule wins
   Given the rules "Example Market" → Groceries and "Example" → Shopping, in that order
   When the user imports a row with counterparty "EXAMPLE MARKET Town"
   Then the transaction has category "Groceries"
+
+@AC-10.4
+Scenario: A star is a wildcard
+  Given the rule "Albert Heijn*" → Groceries and the rule "Albert*1157" → Shopping
+  Then "Albert Heijn B.V." and "Albert Heijn 1157" both match "Albert Heijn*"
+  And "Albert Heijn 1157" matches "Albert*1157", but "1157 Albert Heijn" does not
+  And a rule without a star, such as "Heijn", still matches "Albert Heijn 1157"
 
 @AC-10.2
 Scenario: The description is matched too
@@ -794,6 +801,29 @@ Scenario: No manual transactions
   Then the note "No transactions match the filters." is shown, not "No transactions yet"
 ```
 
+**REQ-27: Transactions per rule** *(ubiquitous)*
+Every rule in the list on the Rules tab shall show how many transactions it categorises: the number of transactions that are not manual and for which it is the first matching rule, in the order of the list (REQ-10), as "N transactions" ("1 transaction" for one). A rule that another rule above it already covers, or that matches nothing, shows 0. Rust counts them and the count follows every change of the rules, the categories and the transactions.
+
+```gherkin
+@AC-27.1
+Scenario: The first match counts
+  Given the rules "Example Market", "Example*" and "Nothing Matches This", in that order
+  And the transactions "Example Market One", "Example Market Two", "Example Cafe", "Example Bakery" and "Other Place"
+  Then the counts are 2, 2 and 0
+  When the category of "Example Cafe" is set by hand
+  Then the counts are 2, 1 and 0
+
+@AC-27.2
+Scenario: The list shows the counts
+  Given the counts 3 and 1
+  Then the rows of the Rules tab show "3 transactions" and "1 transaction"
+
+@AC-27.3
+Scenario: The count comes with the rule list
+  When the frontend asks for the rules
+  Then every rule carries its transaction count
+```
+
 ## 5. Interfaces and contracts
 
 ```mermaid
@@ -852,6 +882,8 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.19 (12/11/2026): Every rule shows the number of transactions it categorises (REQ-27, AC-27.1 to AC-27.3). Owner request. Back to `draft` until re-approved.
+- 0.18 (12/11/2026): A star in a rule text is a wildcard for any run of characters (REQ-10, AC-10.4); a text without a star behaves as before, so existing rules are unchanged. Owner request. Back to `draft` until re-approved.
 - 0.17 (12/11/2026): A rule whose text another rule already has (ignoring case and surrounding spaces) is rejected with `TRANSACTION_RULE_TEXT_TAKEN`, when adding and when editing (REQ-9, AC-9.10). Owner request. Back to `draft` until re-approved.
 - 0.16 (12/11/2026): New REQ-26 (AC-26.1 to AC-26.3): a checkbox "Manual only" on the Overview tab lists only the transactions whose category was set by hand. Owner request. Back to `draft` until re-approved.
 - 0.15 (12/11/2026): The two re-apply buttons "Apply to uncategorized" and "Apply to all non-manual" become "Apply rules" (non-manual transactions) and "Apply rules including manually set" (every transaction, with a confirmation; a changed manual transaction loses its mark), and move from the Overview tab to the Rules tab (REQ-11, REQ-12, REQ-16, AC-12.1 to AC-12.4, AC-16.3, AC-16.4). Owner request. Back to `draft` until re-approved.

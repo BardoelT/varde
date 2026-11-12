@@ -29,7 +29,7 @@ pub use list::TransactionList;
 pub use totals::TransactionYearlyTotal;
 pub use transaction::{Transaction, TransactionId};
 
-use category::{categorise, defaults, valid_name, valid_rule_text};
+use category::{categorise, defaults, matching_rule, valid_name, valid_rule_text};
 
 /// What an import did (CSD-032 REQ-1).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
@@ -451,6 +451,25 @@ impl Transactions {
             return Err(DomainError::TransactionRuleNotFound);
         }
         Ok(())
+    }
+
+    /// For each rule, in order, how many transactions it would categorise: the
+    /// transactions that are not manual and whose first matching rule it is
+    /// (REQ-27).
+    #[must_use]
+    pub fn rule_counts(&self) -> Vec<usize> {
+        let mut counts = vec![0; self.rules.len()];
+        for transaction in self.list.iter().filter(|transaction| !transaction.manual) {
+            let found = matching_rule(
+                &self.rules,
+                &transaction.counterparty_name,
+                &transaction.description,
+            );
+            if let Some(count) = found.and_then(|index| counts.get_mut(index)) {
+                *count += 1;
+            }
+        }
+        counts
     }
 
     /// Runs the rules again on the transactions of `scope` and returns how many

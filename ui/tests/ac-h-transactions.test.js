@@ -14,8 +14,8 @@ const CATEGORIES = [
   { id: SHOPPING, name: 'Shopping' },
 ];
 const RULES = [
-  { id: 'rule-1', text: 'Example Market', category_id: GROCERIES },
-  { id: 'rule-2', text: 'Example', category_id: SHOPPING },
+  { id: 'rule-1', text: 'Example Market', category_id: GROCERIES, transaction_count: 3 },
+  { id: 'rule-2', text: 'Example', category_id: SHOPPING, transaction_count: 1 },
 ];
 
 const transaction = (id, date, amount, name, category = null) => ({
@@ -300,6 +300,13 @@ test('test_csd032_ac_13_1_deleting_a_category_asks_first_and_names_the_consequen
   await app.click(app.document.querySelector('[aria-label="Delete Groceries"]'));
   await app.click(app.$('confirm-ok'));
   assert.deepEqual(app.callsOf('delete_transaction_category').at(-1).args, { categoryId: GROCERIES });
+  app.close();
+});
+
+test('test_csd032_ac_27_2_every_rule_shows_how_many_transactions_it_categorises', async () => {
+  const app = await transactionsPage(readsWith({ rows: [], count: 0 }));
+  const counts = [...app.$('transaction-rules').querySelectorAll('li')].map((row) => app.text(row.querySelector('.rule-count')));
+  assert.deepEqual(counts, ['3 transactions', '1 transaction']);
   app.close();
 });
 

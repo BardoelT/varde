@@ -212,11 +212,29 @@ pub fn delete_transaction_category(
     Ok(())
 }
 
-/// The rules, in the order they are applied (REQ-9).
+/// A rule with the number of transactions it would categorise (REQ-27).
+#[derive(Serialize)]
+pub struct RuleRow {
+    #[serde(flatten)]
+    rule: Rule,
+    transaction_count: usize,
+}
+
+/// The rules, in the order they are applied, each with the number of
+/// non-manual transactions it is the first match of (REQ-9, REQ-27).
 #[tauri::command]
-pub fn list_transaction_rules(state: State<'_, AppState>) -> Result<Vec<Rule>, AppError> {
+pub fn list_transaction_rules(state: State<'_, AppState>) -> Result<Vec<RuleRow>, AppError> {
     let project = state.project()?;
-    Ok(project.transactions().rules().to_vec())
+    let transactions = project.transactions();
+    Ok(transactions
+        .rules()
+        .iter()
+        .zip(transactions.rule_counts())
+        .map(|(rule, transaction_count)| RuleRow {
+            rule: rule.clone(),
+            transaction_count,
+        })
+        .collect())
 }
 
 /// The id of a category to rename or delete. The built-in Uncategorized has

@@ -39,6 +39,8 @@ export default {
   '{period}: no transactions': '{period}: geen transacties',
   'income {income}': 'inkomsten {income}',
   'Total spent': 'Totaal uitgegeven',
+  '{count} transaction': '{count} transactie',
+  '{count} transactions': '{count} transacties',
   'and {count} more category': 'en {count} andere categorie',
   'and {count} more categories': 'en {count} andere categorieën',
   'No transactions': 'Geen transacties',
@@ -73,10 +75,10 @@ export default {
   'Add a rule from {name}': 'Regel toevoegen vanuit {name}',
   'Move {name} up': '{name} omhoog verplaatsen',
   'Move {name} down': '{name} omlaag verplaatsen',
-  'No rules yet. A rule gives a transaction a category when its counterparty or description contains the rule text.':
-    'Nog geen regels. Een regel geeft een transactie een categorie als de tegenpartij of de omschrijving de regeltekst bevat.',
-  'A transaction gets the category of the first rule, from the top, whose text is in its counterparty or description. Capitals do not matter.':
-    'Een transactie krijgt de categorie van de eerste regel, van boven af, waarvan de tekst in de tegenpartij of omschrijving staat. Hoofdletters maken niet uit.',
+  'No rules yet. A rule gives a transaction a category when its counterparty or description contains the rule text. A * in the text stands for any characters.':
+    'Nog geen regels. Een regel geeft een transactie een categorie als de tegenpartij of de omschrijving de regeltekst bevat. Een * in de tekst staat voor willekeurige tekens.',
+  'A transaction gets the category of the first rule, from the top, whose text is in its counterparty or description. Capitals do not matter. A * stands for any characters, so "Albert Heijn*" finds "Albert Heijn 1157".':
+    'Een transactie krijgt de categorie van de eerste regel, van boven af, waarvan de tekst in de tegenpartij of omschrijving staat. Hoofdletters maken niet uit. Een * staat voor willekeurige tekens, dus "Albert Heijn*" vindt "Albert Heijn 1157".',
   'Transactions that already have a category keep it.': 'Transacties die al een categorie hebben, houden die.',
   // Errors from Rust
   'code:TRANSACTION_IMPORT_UNREADABLE': 'Het bestand kon niet worden gelezen als Knab-export.',

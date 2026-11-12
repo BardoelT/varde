@@ -238,14 +238,43 @@ fn test_csd032_ac_26_4_manual_only_filters_the_list_over_ipc() {
 }
 
 #[test]
+fn test_csd032_ac_27_3_the_rule_list_carries_a_count_over_ipc() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let rules = app.ok("list_transaction_rules", json!({}));
+    let rules = rules.as_array().unwrap();
+    assert_ne!(rules.len(), 0);
+    assert!(rules
+        .iter()
+        .all(|rule| rule["transaction_count"].is_u64() && rule["text"].is_string()));
+    let counted: u64 = rules
+        .iter()
+        .map(|rule| rule["transaction_count"].as_u64().unwrap())
+        .sum();
+    assert!(
+        counted > 0 && counted <= 7,
+        "the seed rules categorise some of the 7 rows"
+    );
+}
+
+#[test]
 fn test_csd032_ac_25_2_delete_all_is_one_undo_step() {
     let app = harness();
     import(&app, fixture()).unwrap();
     let before = rows(&app).len();
-    let rules = app.ok("list_transaction_rules", json!({}));
+    let texts = |app: &Harness| -> Vec<Value> {
+        let rules = app.ok("list_transaction_rules", json!({}));
+        rules
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|rule| rule["text"].clone())
+            .collect()
+    };
+    let rules = texts(&app);
     app.ok("delete_all_transactions", json!({}));
     assert_eq!(rows(&app), Vec::<Value>::new());
-    assert_eq!(app.ok("list_transaction_rules", json!({})), rules);
+    assert_eq!(texts(&app), rules);
     app.ok("undo", json!({}));
     assert_eq!(rows(&app).len(), before);
 }

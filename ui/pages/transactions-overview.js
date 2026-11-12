@@ -4,7 +4,7 @@
 import { invoke, errorText } from '../shared/ipc.js';
 import { $, h, iconButton, submitOnce, showToast, confirmAction } from '../shared/dom.js';
 import { formatAmount, formatDate } from '../shared/format.js';
-import { t } from '../shared/i18n.js';
+import { t, tn } from '../shared/i18n.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
 import { numCell, renderTable, rowHeader } from '../shared/list-rows.js';
@@ -279,6 +279,7 @@ function renderRules() {
         { class: 'job-row' },
         h('span', { class: 'job-name' }, rule.text),
         h('span', { class: 'job-meta' }, `→ ${categoryName(rule.category_id)}`),
+        h('span', { class: 'job-meta rule-count' }, tn('{count} transaction', '{count} transactions', rule.transaction_count)),
         h(
           'span',
           { class: 'job-actions' },

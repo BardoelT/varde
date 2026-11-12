@@ -159,17 +159,42 @@ pub(super) fn valid_rule_text(typed: &str) -> Result<String, DomainError> {
     Ok(text.to_owned())
 }
 
-/// The category of the first rule, in order, whose text is contained, ignoring
-/// case, in the counterparty name followed by a space and the description
-/// (CSD-032 REQ-10).
+/// Whether `haystack` contains `pattern`, where each `*` in the pattern stands
+/// for any run of characters, none included; both are already lower case. The
+/// parts between the stars have to be found in that order, so a pattern with
+/// no star is a plain "contains" (CSD-032 REQ-10).
+fn contains_pattern(haystack: &str, pattern: &str) -> bool {
+    let mut rest = haystack;
+    for part in pattern.split('*').filter(|part| !part.is_empty()) {
+        match rest.find(part) {
+            Some(at) => rest = rest.get(at + part.len()..).unwrap_or_default(),
+            None => return false,
+        }
+    }
+    true
+}
+
+/// The position of the first rule, in order, whose text is contained, ignoring
+/// case and with `*` as a wildcard, in the counterparty name followed by a
+/// space and the description (CSD-032 REQ-10).
+pub(super) fn matching_rule(
+    rules: &[Rule],
+    counterparty: &str,
+    description: &str,
+) -> Option<usize> {
+    let haystack = format!("{counterparty} {description}").to_lowercase();
+    rules
+        .iter()
+        .position(|rule| contains_pattern(&haystack, &rule.text.to_lowercase()))
+}
+
+/// The category of the first matching rule (CSD-032 REQ-10).
 pub(super) fn categorise(
     rules: &[Rule],
     counterparty: &str,
     description: &str,
 ) -> Option<CategoryId> {
-    let haystack = format!("{counterparty} {description}").to_lowercase();
-    rules
-        .iter()
-        .find(|rule| haystack.contains(&rule.text.to_lowercase()))
+    matching_rule(rules, counterparty, description)
+        .and_then(|index| rules.get(index))
         .map(|rule| rule.category_id)
 }

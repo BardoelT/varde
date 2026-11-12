@@ -955,6 +955,86 @@ fn test_csd032_ac_9_6_a_rule_can_create_its_category_with_it() {
 }
 
 #[test]
+fn test_csd032_ac_10_4_a_star_in_a_rule_matches_any_text() {
+    let rules = |text: &str| {
+        // The seed rules would match too, so start from none.
+        let mut data = Transactions::default();
+        let seeds: Vec<RuleId> = data.rules().iter().map(|rule| rule.id).collect();
+        for id in seeds {
+            data.delete_rule(id).unwrap();
+        }
+        let groceries = category(&data, "Groceries");
+        data.add_rule(text, groceries).unwrap();
+        data
+    };
+    let hit = |data: &Transactions, counterparty: &str, description: &str| {
+        categorise(data.rules(), counterparty, description).is_some()
+    };
+    let trailing = rules("Albert Heijn*");
+    assert!(hit(&trailing, "Albert Heijn B.V.", ""));
+    assert!(hit(&trailing, "ALBERT HEIJN 1157", "Pinbetaling"));
+    assert!(hit(&trailing, "Albert Heijn", ""));
+    assert!(!hit(&trailing, "Jumbo 1157", "Albert Hein"));
+    // A star inside: the parts must come in that order.
+    let inner = rules("Albert*1157");
+    assert!(hit(&inner, "Albert Heijn 1157", ""));
+    assert!(hit(&inner, "Albert", "Heijn 1157"));
+    assert!(!hit(&inner, "1157 Albert Heijn", ""));
+    // Two stars, a leading star, and a text without a star is still "contains".
+    assert!(hit(&rules("*heijn*1157*"), "Albert Heijn 1157 Utrecht", ""));
+    assert!(hit(&rules("Heijn"), "Albert Heijn 1157", ""));
+    assert!(!hit(&rules("Albert*Jumbo"), "Albert Heijn 1157", ""));
+    // A star alone matches everything.
+    assert!(hit(&rules("*"), "Anything", ""));
+}
+
+#[test]
+fn test_csd032_ac_27_1_a_rule_counts_the_transactions_it_categorises() {
+    let mut data = Transactions::default();
+    let seeds: Vec<RuleId> = data.rules().iter().map(|rule| rule.id).collect();
+    for id in seeds {
+        data.delete_rule(id).unwrap();
+    }
+    let groceries = category(&data, "Groceries");
+    let leisure = category(&data, "Leisure");
+    data.add_rule("Example Market", groceries).unwrap();
+    data.add_rule("Example C*", leisure).unwrap();
+    data.add_rule("Nothing Matches This", leisure).unwrap();
+    let rows = [
+        simple(
+            "30-10-2026",
+            "Afschrijvingen",
+            "9,00",
+            "Example Market One",
+            "R1",
+        ),
+        simple(
+            "29-10-2026",
+            "Afschrijvingen",
+            "9,00",
+            "Example Market Two",
+            "R2",
+        ),
+        simple("28-10-2026", "Afschrijvingen", "9,00", "Example Cafe", "R3"),
+        simple(
+            "27-10-2026",
+            "Afschrijvingen",
+            "9,00",
+            "Example Bakery",
+            "R4",
+        ),
+        simple("26-10-2026", "Afschrijvingen", "9,00", "Other Place", "R5"),
+    ];
+    data.import(&export(&rows), Currency::Eur).unwrap();
+    // The first match counts: "Example Market One" and "Two" belong to the first rule.
+    assert_eq!(data.rule_counts(), vec![2, 1, 0]);
+    // A hand-set transaction is not counted.
+    let cafe = find(&data, "Example Cafe").id;
+    data.set_category(cafe, Some(groceries)).unwrap();
+    assert_eq!(data.rule_counts(), vec![2, 0, 0]);
+}
+
+#[test]
 fn test_csd032_ac_9_10_a_rule_with_the_same_text_is_rejected() {
     let mut data = Transactions::default();
     let groceries = category(&data, "Groceries");
