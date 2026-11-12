@@ -407,6 +407,35 @@ test('test_csd032_ac_16_3_categories_and_rules_are_on_their_own_tabs', async () 
   app.close();
 });
 
+test('test_csd032_ac_26_2_manual_only_asks_rust_for_the_hand_set_transactions', async () => {
+  const manual = { ...transaction('t1', '2026-10-30', '-1.00', 'Example Shop'), manual: true };
+  const app = await transactionsPage(readsWith({ rows: [manual, transaction('t2', '2026-10-29', '-2.00', 'Example Cafe')], count: 2 }), {
+    list_transactions: (args) => (args?.manualOnly ? { rows: [manual], count: 1, total: '-1.00' } : { rows: [manual, transaction('t2', '2026-10-29', '-2.00', 'Example Cafe')], count: 2, total: '-3.00' }),
+  });
+  assert.equal(app.$('transaction-manual-only').checked, false);
+  assert.equal(tableRows(app).length, 2);
+  await app.click(app.$('transaction-manual-only'));
+  assert.equal(app.callsOf('list_transactions').at(-1).args.manualOnly, true);
+  assert.equal(tableRows(app).length, 1);
+  assert.equal(app.textOf('transactions-total-label'), 'Filtered total');
+  await app.click(app.$('transaction-manual-only'));
+  assert.equal(app.callsOf('list_transactions').at(-1).args?.manualOnly, undefined);
+  assert.equal(tableRows(app).length, 2);
+  app.close();
+});
+
+test('test_csd032_ac_26_3_no_manual_transactions_is_no_matches_not_no_data', async () => {
+  const rows = [transaction('t2', '2026-10-29', '-2.00', 'Example Cafe')];
+  const app = await transactionsPage(readsWith({ rows, count: 1 }), {
+    list_transactions: (args) => (args?.manualOnly ? { rows: [], count: 0, total: '0.00' } : { rows, count: 1, total: '-2.00' }),
+  });
+  await app.click(app.$('transaction-manual-only'));
+  assert.equal(app.isShown(app.$('transactions-nomatch')), true);
+  assert.equal(app.isShown(app.$('transactions-empty')), false);
+  assert.equal(app.isShown(app.$('transactions-table')), true, 'the header stays, so the checkbox can be unticked');
+  app.close();
+});
+
 test('test_csd032_ac_16_4_a_reapply_message_is_a_yellow_notification', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { reapply_transaction_rules: { changed: 2 } });
   await app.click(app.$('transactions-tab-rules'));

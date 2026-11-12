@@ -246,15 +246,18 @@ export function createStatementFilter({ periodHost, entityHost, entityTitle, ent
      * Lists through the filter. `count(result)` is the number of rows in an answer. When the
      * filter leaves no rows, the list is asked again without it to tell "no data yet" from "no
      * matches" (REQ-8). `extra` holds the other arguments of the command, such as a row limit.
+     * `narrowing` holds arguments that also hide rows, such as "manual only"; they count as a
+     * filter and are left out of the second question.
      * Resolves to `{ result, hasData }`.
      */
-    async load(command, count, extra = {}) {
+    async load(command, count, extra = {}, narrowing = {}) {
       prune();
       const current = payload();
       const args = (more) => (Object.keys(more).length > 0 ? more : undefined);
-      const result = await invoke(command, args(current ? { ...extra, filter: current } : extra));
+      const narrowed = Object.keys(narrowing).length > 0;
+      const result = await invoke(command, args({ ...extra, ...narrowing, ...(current ? { filter: current } : {}) }));
       let hasData = count(result) > 0;
-      if (!hasData && current) hasData = count(await invoke(command, args(extra))) > 0;
+      if (!hasData && (current || narrowed)) hasData = count(await invoke(command, args(extra))) > 0;
       return { result, hasData };
     },
 

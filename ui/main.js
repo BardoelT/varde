@@ -20,7 +20,7 @@ import { initDebtsInsights, reloadDebtsInsightsIfOpen } from './pages/debts-insi
 import { initDebtsOverview, reloadDebtsOverview } from './pages/debts-overview.js';
 import { initExpensesInsights, reloadExpensesInsightsIfOpen } from './pages/expenses-insights.js';
 import { initExpensesOverview, reloadExpensesOverview } from './pages/expenses-overview.js';
-import { initTransactionsOverview, reloadTransactionsOverview } from './pages/transactions-overview.js';
+import { initTransactionsOverview, reloadTransactionsOverview, resetTransactionsManualFilter } from './pages/transactions-overview.js';
 import { initTransactionsInsights, reloadTransactionsInsightsIfOpen } from './pages/transactions-insights.js';
 import { initSettings, loadPreferences, reloadSettings, toggleDiscreteMode } from './pages/settings.js';
 import { reloadDashboard } from './pages/dashboard.js';
@@ -143,7 +143,11 @@ async function start() {
         reloadDashboard,
       ]),
     );
-  await initProject({ onReplaced: reloadEverything, onSwitched: resetAllFilters });
+  await initProject({ onReplaced: reloadEverything, onSwitched: () => {
+      resetAllFilters();
+      resetTransactionsManualFilter();
+    },
+  });
   const redraw = async () => {
     await refreshProjectStatus();
     await reloadEverything();

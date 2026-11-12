@@ -810,13 +810,13 @@ fn many(count: u32) -> Transactions {
 #[test]
 fn test_csd032_ac_15_1_newest_first_and_cut_to_the_limit() {
     let data = many(450);
-    let page = data.list_filtered(None, 200);
+    let page = data.list_filtered(None, false, 200);
     assert_eq!(page.rows.len(), 200);
     assert_eq!(page.count, 450);
     let dates: Vec<_> = page.rows.iter().map(|row| row.date).collect();
     assert!(dates.windows(2).all(|pair| pair[0] >= pair[1]));
-    assert_eq!(data.list_filtered(None, 400).rows.len(), 400);
-    assert_eq!(data.list_filtered(None, 600).rows.len(), 450);
+    assert_eq!(data.list_filtered(None, false, 400).rows.len(), 400);
+    assert_eq!(data.list_filtered(None, false, 600).rows.len(), 450);
 }
 
 #[test]
@@ -829,7 +829,7 @@ fn test_csd032_ac_15_2_the_total_covers_all_matches() {
     }
     let filter: StatementFilter =
         serde_json::from_value(serde_json::json!({ "ids": [groceries.to_string()] })).unwrap();
-    let page = data.list_filtered(Some(&filter), 10);
+    let page = data.list_filtered(Some(&filter), false, 10);
     assert_eq!(page.rows.len(), 10);
     assert_eq!(page.count, 450);
     assert_eq!(page.total, money("-450.00"));
@@ -841,8 +841,37 @@ fn test_csd032_ac_15_5_equal_dates_list_the_one_added_last_first() {
         simple("30-10-2026", "Afschrijvingen", "9,00", "First added", "R1"),
         simple("30-10-2026", "Afschrijvingen", "9,00", "Second added", "R2"),
     ]);
-    let page = data.list_filtered(None, 10);
+    let page = data.list_filtered(None, false, 10);
     assert_eq!(page.rows.first().unwrap().counterparty_name, "Second added");
+}
+
+#[test]
+fn test_csd032_ac_26_1_manual_only_lists_the_hand_set_transactions() {
+    let mut data = imported(&[
+        simple("30-10-2026", "Afschrijvingen", "9,00", "Example Shop", "R1"),
+        simple("29-10-2026", "Afschrijvingen", "5,00", "Example Cafe", "R2"),
+        simple(
+            "28-10-2026",
+            "Afschrijvingen",
+            "1,00",
+            "Example Bakery",
+            "R3",
+        ),
+    ]);
+    let shopping = category(&data, "Shopping");
+    let shop = find(&data, "Example Shop").id;
+    data.set_category(shop, Some(shopping)).unwrap();
+    let page = data.list_filtered(None, true, 10);
+    assert_eq!(page.count, 1);
+    assert_eq!(page.rows.first().unwrap().counterparty_name, "Example Shop");
+    assert_eq!(page.total, money("-9.00"));
+    // Without the filter every transaction is listed.
+    assert_eq!(data.list_filtered(None, false, 10).count, 3);
+    // It combines with the filter of CSD-028: manual and not in "Shopping" is nothing.
+    let leisure = category(&data, "Leisure");
+    let other: StatementFilter =
+        serde_json::from_value(serde_json::json!({ "ids": [leisure.to_string()] })).unwrap();
+    assert_eq!(data.list_filtered(Some(&other), true, 10).count, 0);
 }
 
 #[test]
@@ -855,7 +884,7 @@ fn test_csd032_ac_15_6_uncategorized_can_be_filtered() {
     data.import(&export(&rows), Currency::Eur).unwrap();
     let filter: StatementFilter =
         serde_json::from_value(serde_json::json!({ "ids": ["uncategorized"] })).unwrap();
-    let page = data.list_filtered(Some(&filter), 10);
+    let page = data.list_filtered(Some(&filter), false, 10);
     assert_eq!(page.count, 1);
     assert_eq!(page.rows.first().unwrap().counterparty_name, "Example Cafe");
 }

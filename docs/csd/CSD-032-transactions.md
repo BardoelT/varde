@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: approved
 owner: Thijs Bardoel
-version: 0.15
+version: 0.16
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -762,6 +762,30 @@ Scenario: Cancelled
   Then every transaction still exists
 ```
 
+**REQ-26: Manual only** *(event-driven)*
+The Overview tab shall have a checkbox "Manual only" above the list. While it is on, the list, its count and its filtered total shall cover only the transactions whose category was set by hand (the ones with the badge "Manual"), together with the filters of CSD-028. The choice shall not be remembered when another project is opened. Rust applies it; the checkbox only sends it. When no transaction is manual, the list shall show "No transactions match the filters." and the checkbox stays reachable.
+
+```gherkin
+@AC-26.1
+Scenario: Only the hand-set transactions
+  Given the transactions "Example Shop" (manual), "Example Cafe" and "Example Bakery"
+  When the user turns on "Manual only"
+  Then only "Example Shop" is listed and the filtered total is its amount
+  When the user turns it off
+  Then all three are listed
+
+@AC-26.2
+Scenario: Combined with the other filters
+  Given "Manual only" is on and the category filter is "Leisure"
+  Then only manual transactions in "Leisure" are listed
+
+@AC-26.3
+Scenario: No manual transactions
+  Given no transaction is manual
+  When the user turns on "Manual only"
+  Then the note "No transactions match the filters." is shown, not "No transactions yet"
+```
+
 ## 5. Interfaces and contracts
 
 ```mermaid
@@ -820,6 +844,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.16 (12/11/2026): New REQ-26 (AC-26.1 to AC-26.3): a checkbox "Manual only" on the Overview tab lists only the transactions whose category was set by hand. Owner request. Back to `draft` until re-approved.
 - 0.15 (12/11/2026): The two re-apply buttons "Apply to uncategorized" and "Apply to all non-manual" become "Apply rules" (non-manual transactions) and "Apply rules including manually set" (every transaction, with a confirmation; a changed manual transaction loses its mark), and move from the Overview tab to the Rules tab (REQ-11, REQ-12, REQ-16, AC-12.1 to AC-12.4, AC-16.3, AC-16.4). Owner request. Back to `draft` until re-approved.
 - 0.14 (12/11/2026): The tab "Categories and rules" is split into the tabs "Categories" and "Rules" (REQ-16, AC-16.1, AC-16.3); CSD-033 REQ-9 follows. Owner request. Back to `draft` until re-approved.
 - 0.13 (12/11/2026): New REQ-25 (AC-25.1 to AC-25.3): a button deletes all transactions and keeps the categories and the rules. Owner request. Back to `draft` until re-approved.

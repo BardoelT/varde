@@ -86,12 +86,15 @@ pub fn import_transactions<R: Runtime>(
 pub fn list_transactions(
     state: State<'_, AppState>,
     filter: Option<StatementFilter>,
+    manual_only: Option<bool>,
     limit: Option<usize>,
 ) -> Result<TransactionList, AppError> {
     let project = state.project()?;
-    Ok(project
-        .transactions()
-        .list_filtered(filter.as_ref(), limit.unwrap_or(PAGE_ROWS)))
+    Ok(project.transactions().list_filtered(
+        filter.as_ref(),
+        manual_only.unwrap_or(false),
+        limit.unwrap_or(PAGE_ROWS),
+    ))
 }
 
 /// Yearly totals over all transactions, newest year first (CSD-032 REQ-24).

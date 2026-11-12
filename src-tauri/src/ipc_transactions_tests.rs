@@ -222,6 +222,22 @@ fn test_csd032_ac_11_3_a_deleted_transaction_cannot_be_edited() {
 }
 
 #[test]
+fn test_csd032_ac_26_4_manual_only_filters_the_list_over_ipc() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let all = rows(&app);
+    let id = all.first().unwrap()["id"].clone();
+    app.ok(
+        "set_transaction_category",
+        json!({ "transactionId": id, "categoryId": null }),
+    );
+    let list = app.ok("list_transactions", json!({ "manualOnly": true }));
+    assert_eq!(list["count"], 1);
+    assert_eq!(list["rows"][0]["id"], id);
+    assert_eq!(rows(&app).len(), all.len());
+}
+
+#[test]
 fn test_csd032_ac_25_2_delete_all_is_one_undo_step() {
     let app = harness();
     import(&app, fixture()).unwrap();

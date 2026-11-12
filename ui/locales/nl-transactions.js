@@ -66,6 +66,7 @@ export default {
   'New category…': 'Nieuwe categorie…',
   'New category name': 'Naam van de nieuwe categorie',
   'Apply rules': 'Regels toepassen',
+  'Manual only': 'Alleen handmatig',
   'Apply rules including manually set': 'Regels toepassen, ook op handmatig ingesteld',
   'Apply rules including manually set?': 'Regels toepassen, ook op handmatig ingesteld?',
   'The rules will also change the categories you set by hand. You can undo this.': 'De regels wijzigen ook de categorieën die je met de hand hebt ingesteld. Je kunt dit ongedaan maken.',

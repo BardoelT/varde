@@ -19,6 +19,14 @@ let categories = [];
 let rules = [];
 let limit = PAGE_ROWS;
 
+/** Whether the list shows only the transactions whose category was set by hand (CSD-032 REQ-26). */
+const manualOnly = () => $('transaction-manual-only').checked;
+
+/** Back to the whole list, when another project is opened. */
+export function resetTransactionsManualFilter() {
+  $('transaction-manual-only').checked = false;
+}
+
 const categoryName = (id) => categories.find((category) => category.id === id)?.name ?? t('Uncategorized');
 
 const transactionsFilter = createStatementFilter({
@@ -47,7 +55,7 @@ function renderTotals(totals) {
 
 /** Loads the transactions through the filter and shows them. */
 async function loadList() {
-  const { result, hasData } = await transactionsFilter.load('list_transactions', (list) => list.count, { limit });
+  const { result, hasData } = await transactionsFilter.load('list_transactions', (list) => list.count, { limit }, manualOnly() ? { manualOnly: true } : {});
   transactionsFilter.show(hasData);
   renderList(result, hasData);
 }
@@ -101,10 +109,10 @@ async function unsetManual(transaction) {
 }
 
 function renderList(list, hasData) {
-  if (list.count === 0 && !transactionsFilter.payload()) $('transactions-empty').textContent = t('No transactions yet');
+  if (list.count === 0 && !transactionsFilter.payload() && !manualOnly()) $('transactions-empty').textContent = t('No transactions yet');
   // The total of every transaction that passes the filter, as Rust added it up (CSD-032 REQ-15).
   $('transactions-total').textContent = formatAmount(list.total);
-  $('transactions-total-label').textContent = transactionsFilter.payload() ? t('Filtered total') : t('Total');
+  $('transactions-total-label').textContent = transactionsFilter.payload() || manualOnly() ? t('Filtered total') : t('Total');
   renderFilteredTable(
     { empty: 'transactions-empty', nomatch: 'transactions-nomatch', table: 'transactions-table', body: 'transactions-rows' },
     { rows: list.rows, hasData },
@@ -391,6 +399,10 @@ async function changed() {
 export function initTransactionsOverview({ onChanged: callback }) {
   onChanged = callback;
   $('transaction-import').addEventListener('click', importTransactions);
+  $('transaction-manual-only').addEventListener('change', () => {
+    limit = PAGE_ROWS;
+    loadList().catch((error) => showToast(errorText(error)));
+  });
   $('transactions-load-more').addEventListener('click', () => {
     limit += PAGE_ROWS;
     loadList().catch((error) => showToast(errorText(error)));
