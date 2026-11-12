@@ -3,6 +3,7 @@ export default {
   // Page and table
   'Transactions': 'Transacties',
   'Transaction views': 'Transactieweergaven',
+  'Categories and rules': 'Categorieën en regels',
   'Import transactions': 'Transacties importeren',
   'Dismiss': 'Sluiten',
   'Counterparty': 'Tegenpartij',

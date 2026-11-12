@@ -57,7 +57,7 @@ test('test_csd032_ac_16_1_transactions_is_in_the_left_pane_after_expenses_and_sh
   await app.click(app.item('transactions'));
   assert.ok(app.isShown(app.$('transactions')));
   assert.equal(app.textOf('transactions-tab-overview'), 'Overview');
-  assert.equal(app.document.querySelectorAll('#transactions [role="tab"]').length, 1, 'no Insights tab yet');
+  assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Categories and rules', 'Overview'], 'no Insights tab yet');
   app.close();
 });
 
@@ -358,5 +358,29 @@ test('test_csd032_ac_18_1_a_change_reloads_the_settings_for_the_currency_confirm
   await app.click(app.document.querySelector('[aria-label="Delete Example Shop"]'));
   await app.click(app.$('confirm-ok'));
   assert.ok(app.callsOf('get_settings').length > before);
+  app.close();
+});
+
+test('test_csd032_ac_16_3_categories_and_rules_are_on_their_own_tab', async () => {
+  const app = await transactionsPage(readsWith({ rows: [transaction('t1', '2026-10-30', '-1.00', 'Example Shop')] }));
+  const own = ['transaction-categories', 'transaction-rules', 'transaction-reapply-all', 'transaction-reapply-uncategorized'];
+  assert.equal(app.$('transactions-tab-overview').getAttribute('aria-selected'), 'true');
+  assert.ok(app.isShown(app.$('transactions-table')) && app.isShown(app.$('transaction-import')));
+  for (const id of own) assert.equal(app.isShown(app.$(id)), false, `${id} is not on the Overview`);
+  await app.click(app.$('transactions-tab-categories'));
+  for (const id of own) assert.ok(app.isShown(app.$(id)), `${id} is on its own tab`);
+  assert.equal(app.isShown(app.$('transactions-table')), false);
+  assert.equal(app.isShown(app.$('transaction-import')), false);
+  app.close();
+});
+
+test('test_csd032_ac_16_4_a_reapply_message_is_visible_on_both_tabs', async () => {
+  const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { reapply_transaction_rules: { changed: 2 } });
+  await app.click(app.$('transactions-tab-categories'));
+  await app.click(app.$('transaction-reapply-uncategorized'));
+  assert.equal(app.textOf('transactions-result-text'), '2 changed');
+  assert.ok(app.isShown(app.$('transactions-result')));
+  await app.click(app.$('transactions-tab-overview'));
+  assert.ok(app.isShown(app.$('transactions-result')));
   app.close();
 });

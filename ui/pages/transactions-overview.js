@@ -1,5 +1,5 @@
-// Transactions: bank transactions imported from a Knab export, their categories and the rules that
-// categorise them (CSD-032). Rust parses, categorises, filters, orders, cuts and totals; this file only
+// Transactions: bank transactions imported from a Knab export (the Overview tab), and their categories and
+// the rules that categorise them (the Categories and rules tab, CSD-032). Rust parses, categorises, filters, orders, cuts and totals; this file only
 // shows what Rust returns and sends what the user chose.
 import { invoke, errorText } from '../shared/ipc.js';
 import { $, h, iconButton, submitOnce, showToast } from '../shared/dom.js';
@@ -8,6 +8,7 @@ import { t } from '../shared/i18n.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
 import { numCell, rowHeader } from '../shared/list-rows.js';
+import { initTabs } from '../shared/tabs.js';
 
 /** How many rows one step of "Load more" adds, and the rows shown first (CSD-032 REQ-15). */
 const PAGE_ROWS = 200;
@@ -302,6 +303,11 @@ async function changed() {
 
 export function initTransactionsOverview({ onChanged: callback }) {
   onChanged = callback;
+  // Categories and rules sit left of the Overview; the Overview opens first (CSD-032 REQ-16).
+  initTabs([
+    { tab: 'transactions-tab-categories', panel: 'transactions-categories' },
+    { tab: 'transactions-tab-overview', panel: 'transactions-overview' },
+  ]);
   $('transaction-import').addEventListener('click', importTransactions);
   $('transactions-result-dismiss').addEventListener('click', hideResult);
   // The message stays until it is dismissed or the user goes to another page (CSD-032 REQ-16).

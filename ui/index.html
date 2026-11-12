@@ -605,7 +605,38 @@
         </div>
 
         <div class="tabs" role="tablist" aria-label="Transaction views">
+          <button type="button" class="tab" role="tab" id="transactions-tab-categories" aria-controls="transactions-categories" aria-selected="false" tabindex="-1">Categories and rules</button>
           <button type="button" class="tab" role="tab" id="transactions-tab-overview" aria-controls="transactions-overview" aria-selected="true">Overview</button>
+        </div>
+
+        <div class="result-note" id="transactions-result" role="status" hidden>
+          <span id="transactions-result-text"></span>
+          <button type="button" class="btn" id="transactions-result-dismiss">Dismiss</button>
+        </div>
+
+        <div id="transactions-categories" role="tabpanel" aria-labelledby="transactions-tab-categories" hidden>
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Categories</span>
+              <div class="panel-actions">
+                <button type="button" class="btn primary" id="transaction-category-add">Add category</button>
+              </div>
+            </div>
+            <ul class="job-list" id="transaction-categories"></ul>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Rules</span>
+              <div class="panel-actions">
+                <button type="button" class="btn" id="transaction-reapply-uncategorized">Apply to uncategorized</button>
+                <button type="button" class="btn" id="transaction-reapply-all">Apply to all non-manual</button>
+                <button type="button" class="btn primary" id="transaction-rule-add">Add rule</button>
+              </div>
+            </div>
+            <p class="empty-note" id="transaction-rules-empty" hidden>No rules yet. A rule gives a transaction a category when its counterparty or description contains the rule text.</p>
+            <ol class="job-list" id="transaction-rules"></ol>
+          </div>
         </div>
 
         <div id="transactions-overview" role="tabpanel" aria-labelledby="transactions-tab-overview">
@@ -615,10 +646,6 @@
               <div class="panel-actions">
                 <button type="button" class="btn primary" id="transaction-import">Import transactions</button>
               </div>
-            </div>
-            <div class="result-note" id="transactions-result" role="status" hidden>
-              <span id="transactions-result-text"></span>
-              <button type="button" class="btn" id="transactions-result-dismiss">Dismiss</button>
             </div>
             <p class="empty-note" id="transactions-empty" hidden></p>
             <p class="empty-note" id="transactions-nomatch" hidden>No transactions match the filters.</p>
@@ -648,29 +675,6 @@
               <span id="transactions-shown"></span>
               <button type="button" class="btn" id="transactions-load-more">Load more</button>
             </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Categories</span>
-              <div class="panel-actions">
-                <button type="button" class="btn primary" id="transaction-category-add">Add category</button>
-              </div>
-            </div>
-            <ul class="job-list" id="transaction-categories"></ul>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Rules</span>
-              <div class="panel-actions">
-                <button type="button" class="btn" id="transaction-reapply-uncategorized">Apply to uncategorized</button>
-                <button type="button" class="btn" id="transaction-reapply-all">Apply to all non-manual</button>
-                <button type="button" class="btn primary" id="transaction-rule-add">Add rule</button>
-              </div>
-            </div>
-            <p class="empty-note" id="transaction-rules-empty" hidden>No rules yet. A rule gives a transaction a category when its counterparty or description contains the rule text.</p>
-            <ol class="job-list" id="transaction-rules"></ol>
           </div>
         </div>
       </section>
