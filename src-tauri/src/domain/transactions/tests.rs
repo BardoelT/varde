@@ -764,6 +764,20 @@ fn test_csd032_ac_14_1_deleting_a_transaction_removes_only_that_one() {
     );
 }
 
+#[test]
+fn test_csd032_ac_25_1_deleting_all_transactions_keeps_categories_and_rules() {
+    let mut data = imported(&[
+        simple("30-10-2026", "Afschrijvingen", "9,00", "Example Shop", "R1"),
+        simple("29-10-2026", "Afschrijvingen", "9,00", "Example Cafe", "R2"),
+    ]);
+    let categories = data.categories().to_vec();
+    let rules = data.rules().to_vec();
+    assert_eq!(data.delete_all_transactions(), 2);
+    assert_eq!(data.total_count(), 0);
+    assert_eq!(data.categories(), categories.as_slice());
+    assert_eq!(data.rules(), rules.as_slice());
+}
+
 // REQ-15
 
 fn many(count: u32) -> Transactions {

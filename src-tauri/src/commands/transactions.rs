@@ -159,6 +159,15 @@ pub fn delete_transaction(
     Ok(())
 }
 
+/// Removes every transaction; the categories and the rules stay (CSD-032
+/// REQ-25). One undo step.
+#[tauri::command]
+pub fn delete_all_transactions(state: State<'_, AppState>) -> Result<(), AppError> {
+    let mut project = state.edit(StepLabel::delete(Record::Transactions))?;
+    project.transactions_mut().delete_all_transactions();
+    Ok(())
+}
+
 /// The categories, in the order they were added; "Uncategorized" is built in
 /// and not listed (REQ-8).
 #[tauri::command]

@@ -180,6 +180,26 @@ test('test_csd032_ac_14_1_a_confirmed_deletion_sends_the_id', async () => {
   app.close();
 });
 
+test('test_csd032_ac_25_3_delete_all_asks_first_and_cancel_changes_nothing', async () => {
+  const rows = [transaction('t1', '2026-10-30', '-1.00', 'Example Shop')];
+  const app = await transactionsPage(readsWith({ rows }));
+  await app.click(app.$('transaction-delete-all'));
+  assert.equal(app.$('confirm-dialog').open, true);
+  await app.click(app.$('confirm-cancel'));
+  assert.equal(app.callsOf('delete_all_transactions').length, 0);
+  assert.equal(tableRows(app).length, 1);
+  app.close();
+});
+
+test('test_csd032_ac_25_1_a_confirmed_delete_all_sends_the_command', async () => {
+  const rows = [transaction('t1', '2026-10-30', '-1.00', 'Example Shop')];
+  const app = await transactionsPage(readsWith({ rows }), { delete_all_transactions: null });
+  await app.click(app.$('transaction-delete-all'));
+  await app.click(app.$('confirm-ok'));
+  assert.equal(app.callsOf('delete_all_transactions').length, 1);
+  app.close();
+});
+
 test('test_csd032_ac_16_2_the_import_result_is_a_yellow_notification', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), {
     import_transactions: { added: 3, skipped: 2 },

@@ -269,6 +269,14 @@ impl Transactions {
         Ok(())
     }
 
+    /// Removes every transaction and nothing else: the categories and the
+    /// rules stay (REQ-25). Returns how many were removed.
+    pub fn delete_all_transactions(&mut self) -> usize {
+        let count = self.list.len();
+        self.list = Arc::new(Vec::new());
+        count
+    }
+
     fn has_category(&self, id: CategoryId) -> bool {
         self.categories.iter().any(|category| category.id == id)
     }

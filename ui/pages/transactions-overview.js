@@ -151,6 +151,18 @@ function deleteTransaction(transaction) {
   });
 }
 
+/** Removes every transaction after a confirmation; categories and rules stay (CSD-032 REQ-25). */
+function deleteAllTransactions() {
+  return deleteWithConfirm({
+    title: t('Delete all transactions?'),
+    message: t('All transactions will be deleted. The categories and the rules stay. You can undo this.'),
+    confirmLabel: t('Delete all transactions'),
+    command: 'delete_all_transactions',
+    args: {},
+    changed,
+  });
+}
+
 // ---- Messages of an import or a re-apply ----
 
 /** The result as a yellow notification bottom right, like the one after an undo (CSD-032 REQ-16). */
@@ -382,4 +394,5 @@ export function initTransactionsOverview({ onChanged: callback }) {
   $('transaction-rule-form').elements.category.addEventListener('change', syncNewCategory);
   $('transaction-reapply-uncategorized').addEventListener('click', () => reapply('uncategorized'));
   $('transaction-reapply-all').addEventListener('click', () => reapply('all_non_manual'));
+  $('transaction-delete-all').addEventListener('click', deleteAllTransactions);
 }

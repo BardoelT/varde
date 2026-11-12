@@ -222,6 +222,19 @@ fn test_csd032_ac_11_3_a_deleted_transaction_cannot_be_edited() {
 }
 
 #[test]
+fn test_csd032_ac_25_2_delete_all_is_one_undo_step() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let before = rows(&app).len();
+    let rules = app.ok("list_transaction_rules", json!({}));
+    app.ok("delete_all_transactions", json!({}));
+    assert_eq!(rows(&app), Vec::<Value>::new());
+    assert_eq!(app.ok("list_transaction_rules", json!({})), rules);
+    app.ok("undo", json!({}));
+    assert_eq!(rows(&app).len(), before);
+}
+
+#[test]
 fn test_csd032_ac_8_4_uncategorized_cannot_be_renamed_or_deleted() {
     let app = harness();
     for command in ["rename_transaction_category", "delete_transaction_category"] {

@@ -23,6 +23,9 @@ export default {
   'The transaction of {date} will be deleted. Importing the file again adds it again.':
     'De transactie van {date} wordt verwijderd. Als je het bestand opnieuw importeert, komt ze terug.',
   'Delete transaction': 'Transactie verwijderen',
+  'Delete all transactions': 'Alle transacties verwijderen',
+  'Delete all transactions?': 'Alle transacties verwijderen?',
+  'All transactions will be deleted. The categories and the rules stay. You can undo this.': 'Alle transacties worden verwijderd. De categorieën en de regels blijven bestaan. Je kunt dit ongedaan maken.',
   '{added} added, {skipped} skipped as duplicates': '{added} toegevoegd, {skipped} overgeslagen als dubbel',
   '{count} changed': '{count} gewijzigd',
   'No totals yet. Totals appear once there is a transaction.': 'Nog geen totalen. Totalen verschijnen zodra er een transactie is.',

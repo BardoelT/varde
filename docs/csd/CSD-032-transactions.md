@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.12
+version: 0.13
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -731,6 +731,29 @@ Scenario: Discrete mode hides the amounts
   Given Discrete mode is on
   Then the income, spent and net of every year are hidden and the years are shown
 
+**REQ-25: Delete all transactions** *(event-driven)*
+The Overview tab shall have a button "Delete all transactions". When the user confirms, the app shall remove every transaction, whatever the filters of the list are, and no other data: the categories and the rules shall stay. The deletion shall be one undo step "Delete Transactions" (CSD-027).
+
+```gherkin
+@AC-25.1
+Scenario: Everything goes, categories and rules stay
+  Given transactions, the category "Leisure" and a rule for "Example Cafe"
+  When the user deletes all transactions and confirms
+  Then no transaction remains
+  And the category "Leisure" and the rule for "Example Cafe" are unchanged
+
+@AC-25.2
+Scenario: One undo step
+  Given all transactions were deleted
+  When the user undoes
+  Then every transaction is back
+
+@AC-25.3
+Scenario: Cancelled
+  When the user starts deleting all transactions and cancels
+  Then every transaction still exists
+```
+
 ## 5. Interfaces and contracts
 
 ```mermaid
@@ -789,6 +812,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.13 (12/11/2026): New REQ-25 (AC-25.1 to AC-25.3): a button deletes all transactions and keeps the categories and the rules. Owner request. Back to `draft` until re-approved.
 - 0.12 (12/11/2026): The page has a third tab "Insights" (CSD-033, REQ-16); NG-2 points to it. Owner request. Back to `draft` until re-approved.
 - 0.11 (12/11/2026): The badge "Manual" is a button that, after a confirmation, unsets manual and keeps the category (REQ-11, AC-11.5 to AC-11.7). Owner request. Back to `draft` until re-approved.
 - 0.10 (12/11/2026): A table "Yearly totals" (income, spent, net per year) on the Overview tab, like the other pages (REQ-24, AC-24.1 to AC-24.5). Owner request. Back to `draft` until re-approved.
