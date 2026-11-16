@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.30
+version: 0.31
 last_updated: 16/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -318,10 +318,14 @@ Scenario: Add a rule
   Then the rule list ends with "Example Market" → Groceries
 
 @AC-9.2
-Scenario: Reorder
+Scenario: Reorder by dragging
   Given rules A, B and C in that order
-  When the user moves C to the top
+  And every row starts with a handle of three horizontal lines, on the left, and has no arrow buttons
+  When the user grabs the handle of C and drops it above A
   Then the order is C, A, B
+  And while dragging, the row follows the pointer and nothing is sent until the drop
+  And dropping a row where it was, or pressing Escape, changes nothing
+  And with the handle focused, the arrow keys up and down move the rule one place
 
 @AC-9.3
 Scenario Outline: Invalid rules rejected
@@ -1061,7 +1065,7 @@ Scenario: The count comes with the category list
   Then every category carries its transaction count
 
 **REQ-31: Categorized share** *(ubiquitous)*
-The Rules tab shall show, in an area of its own above the Rules panel, a line with the percentage of the transactions that have a category, so 100% is the best and the numbers behind it, as "87.50% of the transactions are categorized (35 of 40)". Rust counts and computes the percentage (two decimals, half-up, CSD-000 CON-8), and the line follows every change of the transactions, the rules and the categories. While there are no transactions the line is not shown.
+The Overview tab shall show, right-aligned in the header of the Yearly totals panel, a line with the percentage of the transactions that have a category, so 100% is the best and the numbers behind it, as "87.50% of the transactions are categorized (35 of 40)". Rust counts and computes the percentage (two decimals, half-up, CSD-000 CON-8), and the line follows every change of the transactions, the rules and the categories. While there are no transactions the line is not shown.
 
 ```gherkin
 @AC-31.1
@@ -1073,9 +1077,9 @@ Scenario: The share of categorized transactions
   And with no transactions there is no percentage
 
 @AC-31.2
-Scenario: The Rules tab shows the line
-  Given the summary 5 of 40 and "12.50%"
-  Then the Rules tab shows "87.50% of the transactions are categorized (35 of 40)"
+Scenario: The Overview tab shows the line
+  Given the summary 35 of 40 and "87.50%"
+  Then the Yearly totals panel of the Overview tab shows "87.50% of the transactions are categorized (35 of 40)"
   And the line is hidden while there are no transactions
 
 ## 5. Interfaces and contracts
@@ -1136,6 +1140,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.31 (16/11/2026): Rules are ordered by dragging a handle of three horizontal lines at the left of the row, instead of the arrow buttons; the arrow keys work on the handle (REQ-9, AC-9.2). The categorized share moves from the Rules tab to the header of the Yearly totals panel on the Overview tab, right-aligned (REQ-31, AC-31.2). Owner requests. Back to `draft` until re-approved.
 - 0.30 (16/11/2026): The line on the Rules tab gives the percentage of categorized transactions, 100% being the best, instead of the uncategorized share (REQ-31, AC-31.1, AC-31.2). Owner request. Back to `draft` until re-approved.
 - 0.29 (16/11/2026): The uncategorized share is shown in an area of its own above the Rules panel, not inside it (REQ-31). Owner request. Back to `draft` until re-approved.
 - 0.28 (16/11/2026): Rules and the text filters match strictly: a text without `*` is the exact counterparty or description, `*` is the only wildcard (starts with, ends with, contains), and a rule no longer matches across the counterparty and the description joined (REQ-10, AC-10.1 to AC-10.5, AC-15.9, AC-29.3). The seed rules end with `*`. Existing rules keep their text and so match strictly from now on. Owner request. Back to `draft` until re-approved.

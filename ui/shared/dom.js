@@ -33,8 +33,7 @@ const ICON_PATHS = {
   filter: ['M3 4h18l-7 8v6l-4 2v-8Z'],
   'filter-active': ['M3 4h18l-7 8v6l-4 2v-8Z'],
   'add-rule': ['M12 5v14', 'M5 12h14'],
-  up: ['M12 19V5', 'M5 12l7-7 7 7'],
-  down: ['M12 5v14', 'M19 12l-7 7-7-7'],
+  grip: ['M4 7h16', 'M4 12h16', 'M4 17h16'],
   delete: ['M3 6h18', 'M8 6V4h8v2', 'M19 6l-1 14H6L5 6', 'M10 11v6', 'M14 11v6'],
 };
 

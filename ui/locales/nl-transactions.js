@@ -104,8 +104,7 @@ export default {
   'Apply rules including manually set?': 'Regels toepassen, ook op handmatig ingesteld?',
   'The rules will also change the categories you set by hand. You can undo this.': 'De regels wijzigen ook de categorieën die je met de hand hebt ingesteld. Je kunt dit ongedaan maken.',
   'Add a rule from {name}': 'Regel toevoegen vanuit {name}',
-  'Move {name} up': '{name} omhoog verplaatsen',
-  'Move {name} down': '{name} omlaag verplaatsen',
+  'Reorder {name}': '{name} van volgorde veranderen',
   'No rules yet. A rule gives a transaction a category when its counterparty or description is exactly the rule text. A * in the text stands for any characters, so Example* matches a text that starts with Example, *Example one that ends with it and *Example* one that contains it.':
     'Nog geen regels. Een regel geeft een transactie een categorie als de tegenpartij of de omschrijving precies de regeltekst is. Een * in de tekst staat voor willekeurige tekens: Voorbeeld* past op een tekst die met Voorbeeld begint, *Voorbeeld op een tekst die ermee eindigt en *Voorbeeld* op een tekst die het bevat.',
   'A transaction gets the category of the first rule, from the top, whose text is in its counterparty or description. Capitals do not matter. A * stands for any characters, so "Albert Heijn*" finds "Albert Heijn 1157".':

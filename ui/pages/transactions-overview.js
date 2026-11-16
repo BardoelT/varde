@@ -7,6 +7,7 @@ import { formatAmount, formatDate, formatLabel } from '../shared/format.js';
 import { t, tn } from '../shared/i18n.js';
 import { initTransactionSuggest } from './transactions-suggest.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
+import { makeSortable } from '../shared/sortable.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
 import { numCell, renderTable, rowHeader } from '../shared/list-rows.js';
 
@@ -418,37 +419,46 @@ function deleteCategory(category) {
 
 /** The share of categorized transactions, as Rust labelled it; hidden while there are no transactions (CSD-032 REQ-31). */
 function renderCategorisation(summary) {
-  const panel = $('transaction-categorisation-panel');
-  panel.hidden = summary.percent_label === null;
-  if (panel.hidden) return;
-  $('transaction-categorisation').textContent = t('{percent} of the transactions are categorized ({categorized} of {total})', {
+  const note = $('transaction-categorisation');
+  note.hidden = summary.percent_label === null;
+  if (note.hidden) return;
+  note.textContent = t('{percent} of the transactions are categorized ({categorized} of {total})', {
     percent: formatLabel(summary.percent_label),
     categorized: summary.categorized,
     total: summary.total,
   });
 }
 
+/** The rule whose handle gets the focus back after the list is drawn again, so the keys can move it on. */
+let focusRuleHandle = null;
+
 function renderRules() {
   $('transaction-rules-empty').hidden = rules.length > 0;
   $('transaction-rules').replaceChildren(
-    ...rules.map((rule, index) =>
-      h(
+    ...rules.map((rule) => {
+      const handle = iconButton('grip', t('Reorder {name}', { name: rule.text }), () => {});
+      handle.classList.add('drag-handle');
+      handle.dataset.ruleId = rule.id;
+      return h(
         'li',
         { class: 'job-row' },
+        handle,
         h('span', { class: 'job-name' }, rule.text),
         h('span', { class: 'job-meta' }, `→ ${categoryName(rule.category_id)}`),
         h('span', { class: 'job-meta rule-count' }, tn('{count} transaction', '{count} transactions', rule.transaction_count)),
         h(
           'span',
           { class: 'job-actions' },
-          index > 0 ? iconButton('up', t('Move {name} up', { name: rule.text }), () => moveRule(rule, index - 1)) : null,
-          index < rules.length - 1 ? iconButton('down', t('Move {name} down', { name: rule.text }), () => moveRule(rule, index + 1)) : null,
           iconButton('edit', t('Edit {name}', { name: rule.text }), () => openRuleDialog(rule)),
           iconButton('delete', t('Delete {name}', { name: rule.text }), () => deleteRule(rule)),
         ),
-      ),
-    ),
+      );
+    }),
   );
+  if (focusRuleHandle !== null) {
+    $('transaction-rules').querySelector(`.drag-handle[data-rule-id="${focusRuleHandle}"]`)?.focus();
+    focusRuleHandle = null;
+  }
 }
 
 async function moveRule(rule, position) {
@@ -560,6 +570,15 @@ async function changed() {
 export function initTransactionsOverview({ onChanged: callback }) {
   onChanged = callback;
   initTransactionSuggest({ categories: () => categories, changed });
+  makeSortable($('transaction-rules'), {
+    handle: '.drag-handle',
+    onMove: (from, to) => {
+      const rule = rules[from];
+      focusRuleHandle = rule.id;
+      return moveRule(rule, to);
+    },
+    onCancel: renderRules,
+  });
   $('transaction-import').addEventListener('click', importTransactions);
   $('transaction-bulk-toggle').addEventListener('click', () => toggleBulk(!bulk));
   $('transactions-bulk-set').addEventListener('click', setSelectedCategory);

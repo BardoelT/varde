@@ -624,9 +624,6 @@
         </div>
 
         <div id="transactions-rules" role="tabpanel" aria-labelledby="transactions-tab-rules" hidden>
-          <div class="panel" id="transaction-categorisation-panel" hidden>
-            <p class="summary-note" id="transaction-categorisation"></p>
-          </div>
           <div class="panel">
             <div class="panel-header">
               <span class="panel-title">Rules</span>
@@ -644,7 +641,10 @@
 
         <div id="transactions-overview" role="tabpanel" aria-labelledby="transactions-tab-overview">
           <div class="panel">
-            <div class="panel-header"><span class="panel-title">Yearly totals</span></div>
+            <div class="panel-header">
+              <span class="panel-title">Yearly totals</span>
+              <span class="summary-note" id="transaction-categorisation" hidden></span>
+            </div>
             <p class="empty-note" id="transaction-totals-empty" hidden>No totals yet. Totals appear once there is a transaction.</p>
             <div class="table-wrap">
               <table class="data-table" id="transaction-totals-table" hidden>

@@ -318,29 +318,88 @@ test('test_csd032_ac_27_2_every_rule_shows_how_many_transactions_it_categorises'
   app.close();
 });
 
-test('test_csd032_ac_31_2_the_rules_tab_shows_the_categorized_share', async () => {
+test('test_csd032_ac_31_2_the_overview_shows_the_categorized_share_in_the_yearly_totals', async () => {
   const reads = readsWith({ rows: [], count: 0 });
   reads.get_categorisation_summary = { total: 40, categorized: 35, percent_label: '87.50%' };
   const app = await transactionsPage(reads);
-  assert.equal(app.textOf('transaction-categorisation'), '87.50% of the transactions are categorized (35 of 40)');
-  assert.ok(!app.$('transaction-categorisation-panel').hidden);
-  assert.ok(app.$('transaction-categorisation-panel').nextElementSibling.querySelector('#transaction-rules'), 'its own area right above the rules');
+  const note = app.$('transaction-categorisation');
+  assert.equal(app.text(note), '87.50% of the transactions are categorized (35 of 40)');
+  await app.click(app.$('transactions-tab-overview'));
+  assert.ok(app.isShown(note));
+  assert.equal(note.closest('.panel').querySelector('.panel-title').textContent, 'Yearly totals', 'in the panel of the yearly totals');
+  assert.equal(app.$('transactions-rules').contains(note), false, 'not on the Rules tab');
   app.close();
   const empty = readsWith({ rows: [], count: 0 });
   empty.get_categorisation_summary = { total: 0, categorized: 0, percent_label: null };
   const none = await transactionsPage(empty);
-  assert.ok(none.$('transaction-categorisation-panel').hidden, 'no area without transactions');
+  assert.ok(none.$('transaction-categorisation').hidden, 'no line without transactions');
   none.close();
 });
 
-test('test_csd032_ac_9_1_the_rules_are_listed_in_order_with_their_category_and_can_move', async () => {
+test('test_csd032_ac_9_1_the_rules_are_listed_in_order_with_their_category_and_a_handle', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { move_transaction_rule: null });
   const rows = [...app.$('transaction-rules').querySelectorAll('li')];
   assert.deepEqual(rows.map((row) => app.text(row.querySelector('.job-name'))), ['Example Market', 'Example']);
   assert.equal(app.text(rows[0].querySelector('.job-meta')), '→ Groceries');
-  assert.equal(rows[0].querySelector('[aria-label="Move Example Market up"]'), null, 'the first cannot move up');
-  await app.click(rows[1].querySelector('[aria-label="Move Example up"]'));
+  assert.equal(rows[0].firstElementChild.classList.contains('drag-handle'), true, 'the handle is the first thing in the row');
+  assert.equal(rows[0].querySelector('[aria-label^="Move "]'), null, 'no arrows any more');
+  app.close();
+});
+
+/** Lays the rule rows out as 40-pixel rows from the top, since jsdom has no layout. */
+function layOutRules(app) {
+  [...app.$('transaction-rules').querySelectorAll('li')].forEach((row, index) => {
+    row.getBoundingClientRect = () => ({ top: index * 40, height: 40, bottom: index * 40 + 40, left: 0, right: 100, width: 100 });
+  });
+}
+const pointer = (app, target, type, clientY = 0) =>
+  target.dispatchEvent(new app.window.MouseEvent(type, { bubbles: true, cancelable: true, button: 0, clientY }));
+
+test('test_csd032_ac_9_2_a_rule_is_ordered_by_dragging_its_handle', async () => {
+  const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { move_transaction_rule: null });
+  layOutRules(app);
+  const handle = app.$('transaction-rules').querySelectorAll('.drag-handle')[1];
+  pointer(app, handle, 'pointerdown', 60);
+  pointer(app, app.document, 'pointermove', 5);
+  const preview = [...app.$('transaction-rules').querySelectorAll('li')].map((row) => app.text(row.querySelector('.job-name')));
+  assert.deepEqual(preview, ['Example', 'Example Market'], 'the row follows the pointer while dragging');
+  assert.equal(app.callsOf('move_transaction_rule').length, 0, 'nothing is sent before the drop');
+  pointer(app, app.document, 'pointerup', 5);
+  await app.settle();
   assert.deepEqual(app.callsOf('move_transaction_rule').at(-1).args, { ruleId: 'rule-2', position: 0 });
+  app.close();
+});
+
+test('test_csd032_ac_9_2_dropping_a_rule_where_it_was_or_pressing_escape_changes_nothing', async () => {
+  const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { move_transaction_rule: null });
+  layOutRules(app);
+  const handle = app.$('transaction-rules').querySelectorAll('.drag-handle')[0];
+  pointer(app, handle, 'pointerdown', 10);
+  pointer(app, app.document, 'pointermove', 15);
+  pointer(app, app.document, 'pointerup', 15);
+  await app.settle();
+  assert.equal(app.callsOf('move_transaction_rule').length, 0, 'dropped on its own place');
+  pointer(app, app.$('transaction-rules').querySelectorAll('.drag-handle')[0], 'pointerdown', 10);
+  pointer(app, app.document, 'pointermove', 70);
+  app.document.dispatchEvent(new app.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  pointer(app, app.document, 'pointerup', 70);
+  await app.settle();
+  assert.equal(app.callsOf('move_transaction_rule').length, 0, 'Escape cancels the drag');
+  const names = [...app.$('transaction-rules').querySelectorAll('li .job-name')].map((cell) => app.text(cell));
+  assert.deepEqual(names, ['Example Market', 'Example'], 'the list is as it was');
+  assert.equal(app.$('transaction-rules').classList.contains('sorting'), false);
+  app.close();
+});
+
+test('test_csd032_ac_9_2_the_arrow_keys_on_the_handle_move_a_rule_too', async () => {
+  const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { move_transaction_rule: null });
+  const handles = app.$('transaction-rules').querySelectorAll('.drag-handle');
+  handles[1].dispatchEvent(new app.window.KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
+  await app.settle();
+  assert.deepEqual(app.callsOf('move_transaction_rule').at(-1).args, { ruleId: 'rule-2', position: 0 });
+  handles[0].dispatchEvent(new app.window.KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
+  await app.settle();
+  assert.equal(app.callsOf('move_transaction_rule').length, 1, 'the first rule cannot move up');
   app.close();
 });
 
