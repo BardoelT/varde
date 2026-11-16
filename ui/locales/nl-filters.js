@@ -7,6 +7,8 @@ export default {
   'Filter by {entity} (active)': 'Filteren op {entity} (actief)',
   'From month': 'Vanaf maand',
   'To month': 'Tot en met maand',
+  'From date': 'Vanaf datum',
+  'To date': 'Tot en met datum',
   'Filtered total': 'Gefilterd totaal',
   'No paychecks or annual statements match the filters.': 'Geen salarisstroken of jaaroverzichten voldoen aan de filters.',
   'No statements match the filters.': 'Geen overzichten voldoen aan de filters.',

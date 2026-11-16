@@ -470,11 +470,27 @@ const bulkHandlers = (extra = {}) => ({
   ...extra,
 });
 
+test('test_csd032_ac_15_7_the_period_filter_of_the_list_asks_for_days', async () => {
+  const app = await transactionsPage(readsWith({ rows: bulkRows(), count: 3 }), bulkHandlers());
+  await app.click(app.document.querySelector('#transaction-period-filter button'));
+  const fields = [...app.document.querySelectorAll('#transaction-period-filter input[data-mask]')];
+  assert.deepEqual(fields.map((input) => app.text(input.closest('label'))), ['From date', 'To date']);
+  assert.deepEqual(fields.map((input) => input.getAttribute('placeholder')), ['dd/mm/yyyy', 'dd/mm/yyyy']);
+  await app.type(fields[0], '29102026');
+  assert.equal(fields[0].value, '29/10/2026', 'typed digits are laid out as a day');
+  assert.deepEqual(app.callsOf('list_transactions').at(-1).args.filter, { from: '2026-10-29', to: null, ids: [] }, 'Rust gets the ISO day');
+  await app.type(fields[1], '31022026');
+  assert.deepEqual(app.callsOf('list_transactions').at(-1).args.filter.to, null, 'a day that is not on the calendar is not sent');
+  app.close();
+});
+
 test('test_csd032_ac_28_1_bulk_select_is_off_until_enabled', async () => {
   const app = await transactionsPage(readsWith({ rows: bulkRows(), count: 3 }), bulkHandlers());
   assert.equal(app.document.querySelectorAll('#transactions-rows input[type="checkbox"]').length, 0);
   assert.equal(app.isShown(app.$('transactions-bulk')), false);
-  assert.equal(app.isShown(app.$('transactions-select-all')), false);
+  assert.equal(app.$('transactions-select-all'), null, 'no header checkbox while it is off');
+  const dateHead = app.document.querySelector('#transactions-table thead th');
+  assert.equal(app.text(dateHead).startsWith('Date'), true, 'the date column heads the table, so its padding matches the rows');
   await app.click(app.$('transaction-bulk-toggle'));
   assert.equal(app.document.querySelectorAll('#transactions-rows input[type="checkbox"]').length, 3);
   assert.equal(app.isShown(app.$('transactions-bulk')), true);

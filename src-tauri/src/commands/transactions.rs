@@ -13,10 +13,11 @@ use tauri_plugin_dialog::DialogExt;
 
 use super::AppState;
 use crate::domain::transactions::{
-    Category, CategoryId, Granularity, ImportSummary, ReapplyScope, Rule, RuleId, TransactionId,
-    TransactionInsights, TransactionList, TransactionYearlyTotal, UNCATEGORIZED_ENTITY,
+    Category, CategoryId, Granularity, ImportSummary, ReapplyScope, Rule, RuleId,
+    TransactionFilter, TransactionId, TransactionInsights, TransactionList, TransactionYearlyTotal,
+    UNCATEGORIZED_ENTITY,
 };
-use crate::domain::{DomainError, StatementFilter};
+use crate::domain::DomainError;
 use crate::error::AppError;
 use crate::storage::{Record, StepLabel};
 
@@ -85,7 +86,7 @@ pub fn import_transactions<R: Runtime>(
 #[tauri::command]
 pub fn list_transactions(
     state: State<'_, AppState>,
-    filter: Option<StatementFilter>,
+    filter: Option<TransactionFilter>,
     manual_only: Option<bool>,
     limit: Option<usize>,
 ) -> Result<TransactionList, AppError> {
@@ -180,7 +181,7 @@ fn parse_ids(texts: &[String]) -> Result<Vec<TransactionId>, AppError> {
 #[tauri::command]
 pub fn list_transaction_ids(
     state: State<'_, AppState>,
-    filter: Option<StatementFilter>,
+    filter: Option<TransactionFilter>,
     manual_only: Option<bool>,
 ) -> Result<Vec<TransactionId>, AppError> {
     let project = state.project()?;

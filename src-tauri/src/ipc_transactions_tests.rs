@@ -406,12 +406,18 @@ fn test_csd032_ac_15_1_the_list_is_filtered_and_cut_by_rust() {
         json!({ "filter": { "ids": ["uncategorized"] } }),
     );
     assert_eq!(filtered["count"], 6);
-    let february = app.ok(
+    // The period goes down to the day (AC-15.7): all of October, then none after it.
+    let october = app.ok(
         "list_transactions",
-        json!({ "filter": { "from": "2026-11", "to": "2026-12" } }),
+        json!({ "filter": { "from": "2026-10-01", "to": "2026-10-31" } }),
     );
-    assert_eq!(february["count"], 0);
-    assert_eq!(february["total"], "0.00");
+    assert_eq!(october["count"], 8);
+    let november = app.ok(
+        "list_transactions",
+        json!({ "filter": { "from": "2026-11-01", "to": "2026-12-31" } }),
+    );
+    assert_eq!(november["count"], 0);
+    assert_eq!(november["total"], "0.00");
 }
 
 #[test]

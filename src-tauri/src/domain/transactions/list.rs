@@ -2,11 +2,10 @@
 
 use serde::Serialize;
 
-use crate::domain::common::StatementFilter;
 use crate::domain::money::Money;
 
 use super::category::UNCATEGORIZED_ENTITY;
-use super::{Transaction, TransactionId, Transactions};
+use super::{Transaction, TransactionFilter, TransactionId, Transactions};
 
 /// The most rows one answer holds, a bound on what the frontend can ask for.
 pub const MAX_ROWS: usize = 20_000;
@@ -23,16 +22,20 @@ pub struct TransactionList {
     pub total: Money,
 }
 
-/// Whether a transaction passes the filters of the list: the filter of CSD-028
-/// on its date and its category (the entity is the category id, or
+/// Whether a transaction passes the filters of the list: the filter on its day
+/// and its category (the entity is the category id, or
 /// `uncategorized`), and, with `manual_only`, the manual mark (REQ-26).
-fn passes(transaction: &Transaction, filter: Option<&StatementFilter>, manual_only: bool) -> bool {
+fn passes(
+    transaction: &Transaction,
+    filter: Option<&TransactionFilter>,
+    manual_only: bool,
+) -> bool {
     (!manual_only || transaction.manual)
         && filter.is_none_or(|filter| {
             let entity = transaction
                 .category_id
                 .map_or_else(|| UNCATEGORIZED_ENTITY.to_owned(), |id| id.to_string());
-            filter.matches(Some(transaction.date.year_month()), &entity)
+            filter.matches(transaction.date, &entity)
         })
 }
 
@@ -43,7 +46,7 @@ impl Transactions {
     #[must_use]
     pub fn matching_ids(
         &self,
-        filter: Option<&StatementFilter>,
+        filter: Option<&TransactionFilter>,
         manual_only: bool,
     ) -> Vec<TransactionId> {
         self.transactions()
@@ -61,7 +64,7 @@ impl Transactions {
     #[must_use]
     pub fn list_filtered(
         &self,
-        filter: Option<&StatementFilter>,
+        filter: Option<&TransactionFilter>,
         manual_only: bool,
         limit: usize,
     ) -> TransactionList {

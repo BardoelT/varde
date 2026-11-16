@@ -9,6 +9,17 @@ import { t } from './i18n.js';
 import { maskInput } from './date-mask.js';
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
+const DAY = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+
+/** The ISO day of a typed `dd/mm/yyyy` that is a real calendar day, else `null`. Display-level only: Rust reads the ISO day. */
+function isoDay(text) {
+  const found = DAY.exec(text);
+  if (!found) return null;
+  const [, day, month, year] = found;
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  const real = date.getUTCFullYear() === Number(year) && date.getUTCMonth() === Number(month) - 1 && date.getUTCDate() === Number(day);
+  return real ? `${year}-${month}-${day}` : null;
+}
 const PANEL_WIDTH = 280;
 /** Space kept between the panel and the icon, and between the panel and the window edge. */
 const GAP = 4;
@@ -31,22 +42,26 @@ export function resetAllFilters() {
  * `periodHost` and `entityHost` are the ids of the empty elements in the column headers that
  * hold the buttons, `entityTitle` the English title of the entity column (a text with a Dutch
  * version) and `entities()` gives the `{ id, label }` choices.
+ * `period` is `'month'` (the default) or, for the Transactions list only, `'day'`: the period panel then asks for
+ * `dd/mm/yyyy` days and Rust gets `YYYY-MM-DD` (CSD-032 REQ-15).
  * `onChange()` reloads the table; it is called at once for every change (REQ-2).
  */
-export function createStatementFilter({ periodHost, entityHost, entityTitle, entities, onChange }) {
+export function createStatementFilter({ periodHost, entityHost, entityTitle, entities, onChange, period = 'month' }) {
   let from = '';
   let to = '';
   const ids = new Set();
 
-  const validMonth = (text) => MONTH.test(text);
-  const periodActive = () => validMonth(from) || validMonth(to);
+  const days = period === 'day';
+  /** The value Rust gets for a typed bound, or null while the text is not a valid month (or day). */
+  const bound = (text) => (days ? isoDay(text) : MONTH.test(text) ? text : null);
+  const periodActive = () => bound(from) !== null || bound(to) !== null;
   const entityActive = () => ids.size > 0;
   const entityName = () => t(entityTitle).toLocaleLowerCase();
 
   /** What Rust gets, or null when no part of the filter is active. */
   function payload() {
     if (!periodActive() && !entityActive()) return null;
-    return { from: validMonth(from) ? from : null, to: validMonth(to) ? to : null, ids: [...ids] };
+    return { from: bound(from), to: bound(to), ids: [...ids] };
   }
 
   /** Drops the choices of entities that no longer exist, without a message (REQ-12). */
@@ -56,9 +71,9 @@ export function createStatementFilter({ periodHost, entityHost, entityTitle, ent
   }
 
   function monthField(label, value, onValue) {
-    const input = h('input', {
-      type: 'text', 'data-mask': 'month', inputmode: 'numeric', placeholder: 'yyyy-mm', maxlength: '7', autocomplete: 'off', value,
-    });
+    const input = h('input', days
+      ? { type: 'text', 'data-mask': 'date', inputmode: 'numeric', placeholder: 'dd/mm/yyyy', maxlength: '10', autocomplete: 'off', value }
+      : { type: 'text', 'data-mask': 'month', inputmode: 'numeric', placeholder: 'yyyy-mm', maxlength: '7', autocomplete: 'off', value });
     maskInput(input);
     input.addEventListener('input', () => {
       onValue(input.value);
@@ -71,8 +86,8 @@ export function createStatementFilter({ periodHost, entityHost, entityTitle, ent
     return h(
       'div',
       { class: 'filter-panel', role: 'group', 'aria-label': t('Filter by period') },
-      monthField(t('From month'), from, (value) => { from = value; }),
-      monthField(t('To month'), to, (value) => { to = value; }),
+      monthField(days ? t('From date') : t('From month'), from, (value) => { from = value; }),
+      monthField(days ? t('To date') : t('To month'), to, (value) => { to = value; }),
     );
   }
 

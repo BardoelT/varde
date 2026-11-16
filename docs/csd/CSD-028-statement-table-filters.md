@@ -3,7 +3,7 @@ id: CSD-028
 title: Filters in the statement tables
 status: approved
 owner: Thijs Bardoel
-version: 0.5
+version: 0.6
 last_updated: 07/11/2026
 related: [CSD-001, CSD-005, CSD-009, CSD-011, CSD-013, CSD-015, CSD-022, CSD-024, CSD-027]
 ---
@@ -21,6 +21,7 @@ Every area keeps a growing table of records: paychecks, investment statements, b
 - How the filter relates to editing, deleting, closing the project and undo.
 
 ### 2.2 Non-goals
+- NG-0: The period of the Transactions list is not a month range: it goes down to the day, "From date" and "To date" (CSD-032 REQ-15, AC-15.7). Everything else of this CSD applies to it, and REQ-3 stays as it is for the other tables.
 - NG-1: Filtering or searching the yearly totals tables, the ratios table, the charts and the insights tabs.
 - NG-2: Filtering on amount, note or free text, and sorting by column.
 - NG-3: Saving filters in the project file or in the application preferences, or remembering them after the app closes.
@@ -461,6 +462,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-3 (resolved in v0.1): Live or explicit apply? Answer: live, with no Apply button (REQ-2).
 
 ## 9. Changelog
+- 0.6 (12/11/2026): the Transactions list filters its period by day instead of month; REQ-3 is unchanged for the other tables (NG-0, CSD-032 REQ-15). Owner request. Back to `draft` until re-approved.
 - 0.5 (07/11/2026): the panel stays inside the window: below the icon when it fits, else above it, else scrolling inside (REQ-2, AC-2.10). Owner request.
 - 0.4 (07/11/2026): a filtered column keeps its filter icon, shown filled, so the filter can be adjusted; the clear icon is replaced by a text button "Reset filter" in each panel (REQ-2, REQ-6, REQ-7, REQ-8). The panel texts use the case of the items, and clicking the text of an item works like its checkbox (AC-2.6 to AC-2.9). Owner request. Back to `draft` until re-approved.
 - 0.3 (07/11/2026): the filter is split over the column headers: one icon next to the period title and one next to the entity title, each with its own panel; an active filter replaces its filter icon by the clear icon, and the dot, the count and the single reset button are gone (REQ-1, REQ-2, REQ-5 to REQ-8). The header row stays visible while nothing matches. Owner request. Back to `draft` until re-approved.

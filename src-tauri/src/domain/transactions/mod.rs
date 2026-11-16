@@ -6,6 +6,7 @@
 //! steps and a step pays only for a list it changes (CSD-032 CON-4).
 
 mod category;
+mod filter;
 mod import;
 mod insights;
 mod list;
@@ -24,6 +25,7 @@ use crate::domain::error::DomainError;
 use crate::domain::money::Currency;
 
 pub use category::{Category, CategoryId, Rule, RuleId, UNCATEGORIZED_ENTITY};
+pub use filter::TransactionFilter;
 pub use insights::{Granularity, TransactionInsights};
 pub use list::TransactionList;
 pub use totals::TransactionYearlyTotal;

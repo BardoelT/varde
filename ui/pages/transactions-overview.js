@@ -42,13 +42,32 @@ function filterArgs() {
   return Object.keys(args).length > 0 ? args : undefined;
 }
 
+let selectHeadCell = null;
+
+/**
+ * The header cell with the checkbox that selects all. It is in the header only while bulk select is on: a
+ * hidden cell would still be the first child, and the date column would lose its left padding.
+ */
+function selectHead() {
+  if (!selectHeadCell) {
+    const box = h('input', { type: 'checkbox', id: 'transactions-select-all' });
+    box.addEventListener('change', selectAll);
+    selectHeadCell = h('th', { scope: 'col', class: 'select-col', id: 'transactions-select-head' }, box);
+  }
+  return selectHeadCell;
+}
+
 /** Shows how many are selected, and the state of the checkbox of the header. */
 function syncBulk() {
   $('transactions-bulk').hidden = !bulk;
-  $('transactions-select-head').hidden = !bulk;
+  if (bulk) {
+    if (!selectHead().isConnected) $('transactions-table').tHead.rows[0].prepend(selectHead());
+  } else {
+    selectHead().remove();
+  }
   $('transaction-bulk-toggle').setAttribute('aria-pressed', String(bulk));
   $('transactions-bulk-count').textContent = t('{count} selected', { count: selected.size });
-  const all = $('transactions-select-all');
+  const all = selectHead().firstElementChild;
   all.checked = shownCount > 0 && selected.size === shownCount;
   all.indeterminate = selected.size > 0 && selected.size < shownCount;
   all.setAttribute('aria-label', t('Select all {count} in the filter', { count: shownCount }));
@@ -88,7 +107,7 @@ function endBulk() {
 /** The header checkbox: selects every transaction the filters show, also those not loaded yet, or none. */
 async function selectAll() {
   try {
-    if ($('transactions-select-all').checked) {
+    if (selectHead().firstElementChild.checked) {
       for (const id of await invoke('list_transaction_ids', filterArgs())) selected.add(id);
     } else {
       selected.clear();
@@ -146,6 +165,7 @@ const categoryName = (id) => categories.find((category) => category.id === id)?.
 const transactionsFilter = createStatementFilter({
   periodHost: 'transaction-period-filter',
   entityHost: 'transaction-entity-filter',
+  period: 'day',
   entityTitle: 'Category',
   entities: () => [
     { id: UNCATEGORIZED, label: t('Uncategorized') },
@@ -525,7 +545,6 @@ export function initTransactionsOverview({ onChanged: callback }) {
   onChanged = callback;
   $('transaction-import').addEventListener('click', importTransactions);
   $('transaction-bulk-toggle').addEventListener('click', () => toggleBulk(!bulk));
-  $('transactions-select-all').addEventListener('change', selectAll);
   $('transactions-bulk-set').addEventListener('click', setSelectedCategory);
   $('transactions-bulk-delete').addEventListener('click', deleteSelected);
   $('transaction-manual-only').addEventListener('change', () => {

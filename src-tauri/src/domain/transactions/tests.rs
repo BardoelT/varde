@@ -1,7 +1,7 @@
 //! Tests of CSD-032 on synthetic exports ("Example" names, round amounts).
 
 use super::*;
-use crate::domain::common::{StatementFilter, YearMonth};
+use crate::domain::common::YearMonth;
 use crate::domain::money::Money;
 
 const HEADER: &str = "Rekeningnummer;Transactiedatum;Valutacode;CreditDebet;Bedrag;Tegenrekeningnummer;Tegenrekeninghouder;Valutadatum;Betaalwijze;Omschrijving;Type betaling;Machtigingsnummer;Incassant ID;Referentie;Boekdatum";
@@ -827,7 +827,7 @@ fn test_csd032_ac_15_2_the_total_covers_all_matches() {
     for id in ids {
         data.set_category(id, Some(groceries)).unwrap();
     }
-    let filter: StatementFilter =
+    let filter: TransactionFilter =
         serde_json::from_value(serde_json::json!({ "ids": [groceries.to_string()] })).unwrap();
     let page = data.list_filtered(Some(&filter), false, 10);
     assert_eq!(page.rows.len(), 10);
@@ -869,7 +869,7 @@ fn test_csd032_ac_26_1_manual_only_lists_the_hand_set_transactions() {
     assert_eq!(data.list_filtered(None, false, 10).count, 3);
     // It combines with the filter of CSD-028: manual and not in "Shopping" is nothing.
     let leisure = category(&data, "Leisure");
-    let other: StatementFilter =
+    let other: TransactionFilter =
         serde_json::from_value(serde_json::json!({ "ids": [leisure.to_string()] })).unwrap();
     assert_eq!(data.list_filtered(Some(&other), true, 10).count, 0);
 }
@@ -882,7 +882,7 @@ fn test_csd032_ac_15_6_uncategorized_can_be_filtered() {
         simple("30-10-2026", "Afschrijvingen", "9,00", "Example Cafe", "R2"),
     ];
     data.import(&export(&rows), Currency::Eur).unwrap();
-    let filter: StatementFilter =
+    let filter: TransactionFilter =
         serde_json::from_value(serde_json::json!({ "ids": ["uncategorized"] })).unwrap();
     let page = data.list_filtered(Some(&filter), false, 10);
     assert_eq!(page.count, 1);
@@ -1032,6 +1032,65 @@ fn test_csd032_ac_27_1_a_rule_counts_the_transactions_it_categorises() {
     let cafe = find(&data, "Example Cafe").id;
     data.set_category(cafe, Some(groceries)).unwrap();
     assert_eq!(data.rule_counts(), vec![2, 0, 0]);
+}
+
+#[test]
+fn test_csd032_ac_15_7_the_period_filter_goes_down_to_the_day() {
+    let data = imported(&[
+        simple("31-10-2026", "Afschrijvingen", "9,00", "Example Late", "R1"),
+        simple(
+            "15-10-2026",
+            "Afschrijvingen",
+            "5,00",
+            "Example Middle",
+            "R2",
+        ),
+        simple(
+            "01-10-2026",
+            "Afschrijvingen",
+            "1,00",
+            "Example Early",
+            "R3",
+        ),
+        simple(
+            "30-09-2026",
+            "Afschrijvingen",
+            "2,00",
+            "Example Before",
+            "R4",
+        ),
+    ]);
+    let filter =
+        |json: serde_json::Value| -> TransactionFilter { serde_json::from_value(json).unwrap() };
+    let count = |filter: &TransactionFilter| data.list_filtered(Some(filter), false, 10).count;
+    // Both ends are included, to the day.
+    assert_eq!(
+        count(&filter(
+            serde_json::json!({ "from": "2026-10-01", "to": "2026-10-15" })
+        )),
+        2
+    );
+    assert_eq!(
+        count(&filter(
+            serde_json::json!({ "from": "2026-10-02", "to": "2026-10-30" })
+        )),
+        1
+    );
+    assert_eq!(
+        count(&filter(serde_json::json!({ "from": "2026-10-15" }))),
+        2
+    );
+    assert_eq!(count(&filter(serde_json::json!({ "to": "2026-09-30" }))), 1);
+    // An inverted range shows nothing, and the ids of the same filter agree.
+    let inverted = filter(serde_json::json!({ "from": "2026-10-20", "to": "2026-10-10" }));
+    assert_eq!(count(&inverted), 0);
+    let range = filter(serde_json::json!({ "from": "2026-10-01", "to": "2026-10-15" }));
+    assert_eq!(data.matching_ids(Some(&range), false).len(), 2);
+    // A month is no longer a valid bound for this list.
+    assert!(
+        serde_json::from_value::<TransactionFilter>(serde_json::json!({ "from": "2026-10" }))
+            .is_err()
+    );
 }
 
 #[test]
