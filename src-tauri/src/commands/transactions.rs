@@ -14,12 +14,12 @@ use tauri_plugin_dialog::DialogExt;
 use super::AppState;
 use crate::domain::transactions::{
     Category, CategoryId, Granularity, ImportSummary, ReapplyScope, Rule, RuleId,
-    TransactionFilter, TransactionId, TransactionInsights, TransactionList, TransactionYearlyTotal,
-    UNCATEGORIZED_ENTITY,
+    TransactionFilterInput, TransactionId, TransactionInsights, TransactionList,
+    TransactionYearlyTotal, UNCATEGORIZED_ENTITY,
 };
 use crate::domain::DomainError;
 use crate::error::AppError;
-use crate::storage::{Record, StepLabel};
+use crate::storage::{Preferences, Record, StepLabel};
 
 /// Rows the page shows before "Load more" (CSD-032 REQ-15).
 const PAGE_ROWS: usize = 200;
@@ -86,10 +86,12 @@ pub fn import_transactions<R: Runtime>(
 #[tauri::command]
 pub fn list_transactions(
     state: State<'_, AppState>,
-    filter: Option<TransactionFilter>,
+    filter: Option<TransactionFilterInput>,
     manual_only: Option<bool>,
     limit: Option<usize>,
+    preferences: State<'_, Preferences>,
 ) -> Result<TransactionList, AppError> {
+    let filter = filter.map(|input| input.resolve(preferences.load_number_format()));
     let project = state.project()?;
     Ok(project.transactions().list_filtered(
         filter.as_ref(),
@@ -181,9 +183,11 @@ fn parse_ids(texts: &[String]) -> Result<Vec<TransactionId>, AppError> {
 #[tauri::command]
 pub fn list_transaction_ids(
     state: State<'_, AppState>,
-    filter: Option<TransactionFilter>,
+    filter: Option<TransactionFilterInput>,
     manual_only: Option<bool>,
+    preferences: State<'_, Preferences>,
 ) -> Result<Vec<TransactionId>, AppError> {
+    let filter = filter.map(|input| input.resolve(preferences.load_number_format()));
     let project = state.project()?;
     Ok(project
         .transactions()

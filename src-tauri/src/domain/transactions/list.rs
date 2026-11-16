@@ -22,8 +22,8 @@ pub struct TransactionList {
     pub total: Money,
 }
 
-/// Whether a transaction passes the filters of the list: the filter on its day
-/// and its category (the entity is the category id, or
+/// Whether a transaction passes the filters of the list: the filter on its day,
+/// its category and its amount (the entity is the category id, or
 /// `uncategorized`), and, with `manual_only`, the manual mark (REQ-26).
 fn passes(
     transaction: &Transaction,
@@ -35,7 +35,7 @@ fn passes(
             let entity = transaction
                 .category_id
                 .map_or_else(|| UNCATEGORIZED_ENTITY.to_owned(), |id| id.to_string());
-            filter.matches(transaction.date, &entity)
+            filter.matches(transaction.date, &entity, transaction.amount)
         })
 }
 

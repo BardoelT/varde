@@ -478,9 +478,23 @@ test('test_csd032_ac_15_7_the_period_filter_of_the_list_asks_for_days', async ()
   assert.deepEqual(fields.map((input) => input.getAttribute('placeholder')), ['dd/mm/yyyy', 'dd/mm/yyyy']);
   await app.type(fields[0], '29102026');
   assert.equal(fields[0].value, '29/10/2026', 'typed digits are laid out as a day');
-  assert.deepEqual(app.callsOf('list_transactions').at(-1).args.filter, { from: '2026-10-29', to: null, ids: [] }, 'Rust gets the ISO day');
+  assert.deepEqual(app.callsOf('list_transactions').at(-1).args.filter, { from: '2026-10-29', to: null, ids: [], min_amount: null, max_amount: null }, 'Rust gets the ISO day');
   await app.type(fields[1], '31022026');
   assert.deepEqual(app.callsOf('list_transactions').at(-1).args.filter.to, null, 'a day that is not on the calendar is not sent');
+  app.close();
+});
+
+test('test_csd032_ac_15_8_the_amount_filter_sends_the_typed_range', async () => {
+  const app = await transactionsPage(readsWith({ rows: bulkRows(), count: 3 }), bulkHandlers());
+  await app.click(app.document.querySelector('#transaction-amount-filter button'));
+  const panel = app.document.querySelector('#transaction-amount-filter .filter-panel');
+  const fields = [...panel.querySelectorAll('input')];
+  assert.deepEqual(fields.map((input) => app.text(input.closest('label'))), ['From amount', 'To amount']);
+  await app.type(fields[0], '-50,5');
+  assert.deepEqual(app.callsOf('list_transactions').at(-1).args.filter, { from: null, to: null, ids: [], min_amount: '-50,5', max_amount: null }, 'the typed text goes to Rust');
+  await app.type(fields[1], 'abc');
+  assert.equal(app.callsOf('list_transactions').at(-1).args.filter.max_amount, null, 'text without a digit is not sent');
+  assert.match(app.document.querySelector('#transaction-amount-filter button').getAttribute('aria-label'), /active/);
   app.close();
 });
 

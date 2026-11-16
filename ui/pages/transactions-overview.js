@@ -165,6 +165,7 @@ const categoryName = (id) => categories.find((category) => category.id === id)?.
 const transactionsFilter = createStatementFilter({
   periodHost: 'transaction-period-filter',
   entityHost: 'transaction-entity-filter',
+  amountHost: 'transaction-amount-filter',
   period: 'day',
   entityTitle: 'Category',
   entities: () => [

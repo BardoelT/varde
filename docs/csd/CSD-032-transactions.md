@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: approved
 owner: Thijs Bardoel
-version: 0.21  
+version: 0.22  
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -531,7 +531,7 @@ Scenario: Cancelled deletion
 ### 4.3 The Transactions page
 
 **REQ-15: The list** *(ubiquitous)*
-The Transactions page shall show an Overview tab with the transactions newest first (equal dates in the order they were added, newest added first), 200 rows at a time with a "Load more" control, the filters of CSD-028 (the period of this list goes down to the day, AC-15.7) with Rust computing the filtered rows and the total of the amounts over all matching transactions, and the empty state "No transactions yet" with the Import button when there are none.
+The Transactions page shall show an Overview tab with the transactions newest first (equal dates in the order they were added, newest added first), 200 rows at a time with a "Load more" control, the filters of CSD-028 (the period of this list goes down to the day, AC-15.7, and it has an amount filter, AC-15.8) with Rust computing the filtered rows and the total of the amounts over all matching transactions, and the empty state "No transactions yet" with the Import button when there are none.
 
 ```gherkin
 @AC-15.1
@@ -563,6 +563,19 @@ Scenario: The period filter goes down to the day
   And a from day after the to day lists nothing
   And a day that is not on the calendar, such as "31/02/2026", is ignored
   And the filtered total, the count and "select all in the filter" (REQ-28) follow the same days
+
+@AC-15.8
+Scenario: The amount filter
+  Given the transactions -100.00, -10.00, -10.00 and 2,500.00
+  When the user opens the filter in the header of the column Amount
+  Then its fields are "From amount" and "To amount", typed in the number format of the app
+  When the user sets from "-100" and to "-10"
+  Then the three debits are listed, both ends included
+  And "From amount" 0 lists only the credit
+  And a from amount above the to amount lists nothing
+  And text that is not an amount leaves that end open
+  And the filtered total, the count and "select all in the filter" (REQ-28) follow the same range
+  And the amounts are signed, as the list shows them: a debit is negative
 
 @AC-15.4
 Scenario: Editing keeps the filter
@@ -952,6 +965,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.22 (16/11/2026): The Transactions list has a filter on the amount ("From amount", "To amount") in the header of the Amount column, on the signed amount (REQ-15, AC-15.8). Owner request; filtering on the signed amount, not its size, is my choice. Back to `draft` until re-approved.
 - 0.21 (12/11/2026): The period filter of the Transactions list goes down to the day ("From date", "To date", dd/mm/yyyy) instead of the month; only this list does (REQ-15, AC-15.7). CSD-028 REQ-3 keeps the month for the other tables. Owner request. Back to `draft` until re-approved.
 - 0.20 (12/11/2026): Bulk select (REQ-28, AC-28.1 to AC-28.7): a button switches on checkboxes on the Overview tab, with a header checkbox that selects everything in the filter, and bulk "Set category" and "Delete selected". Owner request; the two bulk actions are my choice, as the request named none. Back to `draft` until re-approved.
 - 0.19 (12/11/2026): Every rule shows the number of transactions it categorises (REQ-27, AC-27.1 to AC-27.3). Owner request. Back to `draft` until re-approved.

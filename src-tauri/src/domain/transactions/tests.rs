@@ -3,6 +3,14 @@
 use super::*;
 use crate::domain::common::YearMonth;
 use crate::domain::money::Money;
+use crate::domain::NumberFormat;
+
+/// A filter as the frontend sends it, read in the default number format.
+fn filter_of(json: serde_json::Value) -> TransactionFilter {
+    serde_json::from_value::<TransactionFilterInput>(json)
+        .unwrap()
+        .resolve(NumberFormat::default())
+}
 
 const HEADER: &str = "Rekeningnummer;Transactiedatum;Valutacode;CreditDebet;Bedrag;Tegenrekeningnummer;Tegenrekeninghouder;Valutadatum;Betaalwijze;Omschrijving;Type betaling;Machtigingsnummer;Incassant ID;Referentie;Boekdatum";
 
@@ -827,8 +835,7 @@ fn test_csd032_ac_15_2_the_total_covers_all_matches() {
     for id in ids {
         data.set_category(id, Some(groceries)).unwrap();
     }
-    let filter: TransactionFilter =
-        serde_json::from_value(serde_json::json!({ "ids": [groceries.to_string()] })).unwrap();
+    let filter = filter_of(serde_json::json!({ "ids": [groceries.to_string()] }));
     let page = data.list_filtered(Some(&filter), false, 10);
     assert_eq!(page.rows.len(), 10);
     assert_eq!(page.count, 450);
@@ -869,8 +876,7 @@ fn test_csd032_ac_26_1_manual_only_lists_the_hand_set_transactions() {
     assert_eq!(data.list_filtered(None, false, 10).count, 3);
     // It combines with the filter of CSD-028: manual and not in "Shopping" is nothing.
     let leisure = category(&data, "Leisure");
-    let other: TransactionFilter =
-        serde_json::from_value(serde_json::json!({ "ids": [leisure.to_string()] })).unwrap();
+    let other = filter_of(serde_json::json!({ "ids": [leisure.to_string()] }));
     assert_eq!(data.list_filtered(Some(&other), true, 10).count, 0);
 }
 
@@ -882,8 +888,7 @@ fn test_csd032_ac_15_6_uncategorized_can_be_filtered() {
         simple("30-10-2026", "Afschrijvingen", "9,00", "Example Cafe", "R2"),
     ];
     data.import(&export(&rows), Currency::Eur).unwrap();
-    let filter: TransactionFilter =
-        serde_json::from_value(serde_json::json!({ "ids": ["uncategorized"] })).unwrap();
+    let filter = filter_of(serde_json::json!({ "ids": ["uncategorized"] }));
     let page = data.list_filtered(Some(&filter), false, 10);
     assert_eq!(page.count, 1);
     assert_eq!(page.rows.first().unwrap().counterparty_name, "Example Cafe");
@@ -1060,8 +1065,7 @@ fn test_csd032_ac_15_7_the_period_filter_goes_down_to_the_day() {
             "R4",
         ),
     ]);
-    let filter =
-        |json: serde_json::Value| -> TransactionFilter { serde_json::from_value(json).unwrap() };
+    let filter = |json: serde_json::Value| -> TransactionFilter { filter_of(json) };
     let count = |filter: &TransactionFilter| data.list_filtered(Some(filter), false, 10).count;
     // Both ends are included, to the day.
     assert_eq!(
@@ -1087,10 +1091,80 @@ fn test_csd032_ac_15_7_the_period_filter_goes_down_to_the_day() {
     let range = filter(serde_json::json!({ "from": "2026-10-01", "to": "2026-10-15" }));
     assert_eq!(data.matching_ids(Some(&range), false).len(), 2);
     // A month is no longer a valid bound for this list.
-    assert!(
-        serde_json::from_value::<TransactionFilter>(serde_json::json!({ "from": "2026-10" }))
-            .is_err()
+    assert!(serde_json::from_value::<TransactionFilterInput>(
+        serde_json::json!({ "from": "2026-10" })
+    )
+    .is_err());
+}
+
+#[test]
+fn test_csd032_ac_15_8_the_amount_filter_is_a_range_of_signed_amounts() {
+    let data = imported(&[
+        simple(
+            "30-10-2026",
+            "Afschrijvingen",
+            "100,00",
+            "Example Big",
+            "R1",
+        ),
+        simple(
+            "29-10-2026",
+            "Afschrijvingen",
+            "10,00",
+            "Example Small",
+            "R2",
+        ),
+        simple(
+            "28-10-2026",
+            "Afschrijvingen",
+            "10,00",
+            "Example Small Too",
+            "R3",
+        ),
+        simple(
+            "27-10-2026",
+            "Bijschrijvingen",
+            "2500,00",
+            "Example Salary",
+            "R4",
+        ),
+    ]);
+    let count =
+        |json: serde_json::Value| data.list_filtered(Some(&filter_of(json)), false, 10).count;
+    // A debit is negative; both ends are included.
+    assert_eq!(
+        count(serde_json::json!({ "min_amount": "-100", "max_amount": "-10" })),
+        3
     );
+    assert_eq!(
+        count(serde_json::json!({ "min_amount": "-99.99", "max_amount": "-10.00" })),
+        2
+    );
+    assert_eq!(count(serde_json::json!({ "min_amount": "0" })), 1);
+    assert_eq!(count(serde_json::json!({ "max_amount": "-100" })), 1);
+    // Typed amounts are rounded like every typed amount, text that is not an amount leaves the end open.
+    assert_eq!(
+        count(serde_json::json!({ "min_amount": "-10.004", "max_amount": "-9.996" })),
+        2
+    );
+    assert_eq!(
+        count(serde_json::json!({ "min_amount": "abc", "max_amount": "" })),
+        4
+    );
+    // An inverted range shows nothing; the ids of the same filter agree; it combines with the days.
+    assert_eq!(
+        count(serde_json::json!({ "min_amount": "-10", "max_amount": "-100" })),
+        0
+    );
+    let range = filter_of(
+        serde_json::json!({ "min_amount": "-100", "max_amount": "-10", "from": "2026-10-29" }),
+    );
+    assert_eq!(data.matching_ids(Some(&range), false).len(), 2);
+    // The number format decides how the text is read: "1.000,50" in the comma-point format.
+    let input: TransactionFilterInput =
+        serde_json::from_value(serde_json::json!({ "min_amount": "1.000,50" })).unwrap();
+    let thousands = input.resolve(NumberFormat::CommaPoint);
+    assert_eq!(data.list_filtered(Some(&thousands), false, 10).count, 1);
 }
 
 #[test]

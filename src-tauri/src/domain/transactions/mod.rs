@@ -25,7 +25,7 @@ use crate::domain::error::DomainError;
 use crate::domain::money::Currency;
 
 pub use category::{Category, CategoryId, Rule, RuleId, UNCATEGORIZED_ENTITY};
-pub use filter::TransactionFilter;
+pub use filter::{TransactionFilter, TransactionFilterInput};
 pub use insights::{Granularity, TransactionInsights};
 pub use list::TransactionList;
 pub use totals::TransactionYearlyTotal;

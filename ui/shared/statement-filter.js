@@ -44,11 +44,15 @@ export function resetAllFilters() {
  * version) and `entities()` gives the `{ id, label }` choices.
  * `period` is `'month'` (the default) or, for the Transactions list only, `'day'`: the period panel then asks for
  * `dd/mm/yyyy` days and Rust gets `YYYY-MM-DD` (CSD-032 REQ-15).
+ * `amountHost` is the id of the header element of an amount column; with it the filter also has an amount
+ * range, typed in the number format of the app and read by Rust (for the Transactions list only, CSD-032 REQ-15).
  * `onChange()` reloads the table; it is called at once for every change (REQ-2).
  */
-export function createStatementFilter({ periodHost, entityHost, entityTitle, entities, onChange, period = 'month' }) {
+export function createStatementFilter({ periodHost, entityHost, amountHost = null, entityTitle, entities, onChange, period = 'month' }) {
   let from = '';
   let to = '';
+  let minAmount = '';
+  let maxAmount = '';
   const ids = new Set();
 
   const days = period === 'day';
@@ -56,12 +60,15 @@ export function createStatementFilter({ periodHost, entityHost, entityTitle, ent
   const bound = (text) => (days ? isoDay(text) : MONTH.test(text) ? text : null);
   const periodActive = () => bound(from) !== null || bound(to) !== null;
   const entityActive = () => ids.size > 0;
+  const amountText = (text) => (/\d/.test(text) ? text.trim() : null);
+  const amountActive = () => amountHost !== null && (amountText(minAmount) !== null || amountText(maxAmount) !== null);
   const entityName = () => t(entityTitle).toLocaleLowerCase();
 
   /** What Rust gets, or null when no part of the filter is active. */
   function payload() {
-    if (!periodActive() && !entityActive()) return null;
-    return { from: bound(from), to: bound(to), ids: [...ids] };
+    if (!periodActive() && !entityActive() && !amountActive()) return null;
+    const range = { from: bound(from), to: bound(to), ids: [...ids] };
+    return amountHost === null ? range : { ...range, min_amount: amountText(minAmount), max_amount: amountText(maxAmount) };
   }
 
   /** Drops the choices of entities that no longer exist, without a message (REQ-12). */
@@ -88,6 +95,24 @@ export function createStatementFilter({ periodHost, entityHost, entityTitle, ent
       { class: 'filter-panel', role: 'group', 'aria-label': t('Filter by period') },
       monthField(days ? t('From date') : t('From month'), from, (value) => { from = value; }),
       monthField(days ? t('To date') : t('To month'), to, (value) => { to = value; }),
+    );
+  }
+
+  function amountField(label, value, onValue) {
+    const input = h('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', value });
+    input.addEventListener('input', () => {
+      onValue(input.value);
+      changed();
+    });
+    return h('label', { class: 'filter-field' }, h('span', {}, label), input);
+  }
+
+  function amountPanel() {
+    return h(
+      'div',
+      { class: 'filter-panel', role: 'group', 'aria-label': t('Filter by amount') },
+      amountField(t('From amount'), minAmount, (value) => { minAmount = value; }),
+      amountField(t('To amount'), maxAmount, (value) => { maxAmount = value; }),
     );
   }
 
@@ -238,6 +263,18 @@ export function createStatementFilter({ periodHost, entityHost, entityTitle, ent
       clearPart: () => ids.clear(),
       buildPanel: entityPanel,
     }),
+    ...(amountHost === null
+      ? []
+      : [
+          column({
+            host: amountHost,
+            filterLabel: () => t('Filter by amount'),
+            activeLabel: () => t('Filter by amount (active)'),
+            active: amountActive,
+            clearPart: () => { minAmount = ''; maxAmount = ''; },
+            buildPanel: amountPanel,
+          }),
+        ]),
   ];
 
   function changed() {
@@ -253,6 +290,8 @@ export function createStatementFilter({ periodHost, entityHost, entityTitle, ent
       from = '';
       to = '';
       ids.clear();
+      minAmount = '';
+      maxAmount = '';
       for (const each of columns) each.closePanel();
       if ($(periodHost)?.querySelector('.filter-controls')) for (const each of columns) each.render();
     },
