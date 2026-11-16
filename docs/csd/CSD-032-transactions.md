@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: approved
 owner: Thijs Bardoel
-version: 0.22  
+version: 0.24  
 last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -907,6 +907,115 @@ Scenario: One undo step each
   Then one Edit > Undo brings both back
 ```
 
+**REQ-29: Suggest rules from the transactions** *(event-driven)*
+The Rules tab shall have a button "Suggest rules" next to "Add rule". It opens one dialog with a field "Minimal count" (a whole number of 1 or more, 5 when the dialog opens, not remembered) and, below it, a list of suggested rules that follows the field as the user types.
+
+Rust shall build the suggestions from every transaction, manual and already categorised ones included, skipping those without a counterparty:
+1. The counterparty name is normalised: trailing words that contain a digit and a trailing legal form (B.V., BV, N.V., NV, V.O.F., VOF, ignoring case) are dropped, repeatedly, then trailing `.`, `,` and `-` are trimmed. A name that is empty afterwards is skipped.
+2. Transactions with the same normalised name, ignoring case, form one suggestion. Its text is the most frequent spelling of the normalised name, followed by `*` when a name of the group had something dropped.
+3. The count of a suggestion is the number of transactions the rule with that text would match, by the matching of REQ-10 on the counterparty and the description, whatever their category or manual mark. A suggestion is listed when its count is at least the minimal count.
+4. A suggestion whose text equals the text of an existing rule, ignoring case, is not listed.
+5. The suggestions are sorted by count, highest first, then by text, and at most 100 are shown, with the note "N more not shown: raise the minimal count" when there are more.
+6. The suggested category is the one most used among the categorised transactions the rule would match (a tie goes to the category listed first), and none when none of them has a category.
+
+Every row shall start with a checkbox that is not ticked when the dialog opens and can be ticked only while the row has a category (clearing the category unticks it), and shall show the text (an editable field), the count and a choice of category ("—" for none, then the categories). When the user edits the text, the count of that row shall be recounted by Rust after a short pause; an edited row stays in the list whatever its new count is. When the minimal count changes, the ticked rows shall stay, with the text the user typed, even when they are no longer suggested. The dialog shall show "N rules chosen" for the ticked rows and the button "Add N rules", disabled while N is 0; a suggested category alone never adds anything. The dialog shall be tall by default, 1,000 pixels high at most and 96 pixels lower than the window when the window is lower than that, so it scales with the window, and the list of suggestions shall fill it and scroll inside it, with its header row in view, so that every row can be reached however small the window is. When the user chooses it, the app shall add the rules of the ticked rows at the end of the rule list, in the order of the list, and apply the rules to the transactions that are not manual (REQ-12), as one undo step, and show the notification "N rules added, M transactions categorised". When a row is invalid (REQ-9: empty text, too long, a text another rule has, or a text two chosen rows have), nothing shall be added or applied, the dialog shall stay open and the text field of the first invalid row shall be marked with the error message.
+
+```gherkin
+@AC-29.1
+Scenario: The dialog opens with 5 and a live list
+  When the user chooses "Suggest rules"
+  Then the dialog shows "Minimal count" with 5 and the suggestions with a count of at least 5
+  When the user types 2
+  Then the list shows the suggestions with a count of at least 2
+
+@AC-29.2
+Scenario: Store numbers and legal forms are dropped
+  Given the counterparties "Albert Heijn 1157" (3 times), "Albert Heijn 2210" (2 times), "Albert Heijn B.V." (1 time) and "Example Cafe" (4 times)
+  When the minimal count is 5
+  Then the list shows "Albert Heijn*" with count 6 and not "Example Cafe"
+  When the minimal count is 4
+  Then the list shows "Albert Heijn*" and "Example Cafe", the latter without a star
+
+@AC-29.3
+Scenario: The count is what the rule matches
+  Given the suggestion "Example Cafe" and two more transactions with the counterparty "Example Cafe Amsterdam", one of them manual, in categories
+  Then the count of "Example Cafe" includes them
+  And a transaction whose counterparty is empty is not counted for a suggestion, but is counted when its description contains the text
+
+@AC-29.4
+Scenario: Nothing to suggest
+  Given a transaction without a counterparty and a counterparty that is only digits
+  Then neither gives a suggestion
+  And with the rule "Example Cafe" existing, "Example Cafe" is not listed, while "Example Cafe*" is
+
+@AC-29.5
+Scenario: Order and cap
+  Given 130 suggestions with a count of at least 1
+  Then 100 are listed, highest count first, equal counts by text
+  And the note "30 more not shown: raise the minimal count" is shown
+
+@AC-29.6
+Scenario: The most used category is suggested, nothing is ticked
+  Given the matching transactions of "Example Cafe" are in "Leisure" (3 times), "Shopping" (1 time) and "Uncategorized" (2 times)
+  Then the row of "Example Cafe" starts on "Leisure"
+  And a row whose transactions are all uncategorized starts on "—"
+  And no row is ticked
+
+@AC-29.7
+Scenario Outline: A minimal count that is not a whole number of 1 or more
+  When the user types "<text>" in "Minimal count"
+  Then the list is not changed and a message "Enter a whole number of 1 or more." is shown
+  Examples:
+    | text |
+    | (empty) |
+    | 0 |
+    | 2.5 |
+    | abc |
+
+@AC-29.8
+Scenario: Editing a text recounts it
+  When the user changes the text of a row from "Albert Heijn*" to "Albert*"
+  Then after a short pause the count of that row is the number of transactions "Albert*" matches
+  And the row stays even when the new count is below the minimal count
+
+@AC-29.12
+Scenario: Ticked rows stay
+  Given the user ticked the suggestion "Example Cafe" with a count of 4
+  When the user changes the minimal count to 5
+  Then "Example Cafe" is still listed, ticked, with its category
+
+@AC-29.13
+Scenario: The dialog is tall and the list scrolls
+  Given the window is 900 pixels high
+  Then the dialog is about 800 pixels high and the list takes the room left in it
+  When the window is made lower or higher
+  Then the dialog follows, up to 1,000 pixels, and stays inside the window
+  And with more suggestions than fit, the list scrolls inside the dialog and its header row stays in view
+
+@AC-29.9
+Scenario: Adding the chosen rules
+  Given 3 rows ticked and 2 rows not ticked
+  Then the dialog shows "3 rules chosen" and the button "Add 3 rules"
+  When the user chooses it
+  Then the 3 rules are the last 3 rules of the list, in the order of the dialog
+  And the rules are applied to the transactions that are not manual
+  And the notification shows "3 rules added, 40 transactions categorised"
+  And one Edit > Undo removes the rules and restores the categories
+
+@AC-29.10
+Scenario: An invalid row adds nothing
+  Given two ticked rows with the text "Example Cafe"
+  When the user chooses "Add 2 rules"
+  Then no rule is added, no category changes and the dialog stays open
+  And the text of the first of the two rows is marked with the error message
+
+@AC-29.11
+Scenario: Nothing ticked
+  Given rows with a suggested category and no row ticked
+  Then the dialog shows "0 rules chosen" and "Add 0 rules" is disabled
+  And a row without a category cannot be ticked, and clearing the category of a ticked row unticks it
+```
+
 ## 5. Interfaces and contracts
 
 ```mermaid
@@ -935,7 +1044,7 @@ Project file: three sections (REQ-17). `transactions` is an array, `transaction_
 Commands (names and payloads are indicative; the final signatures belong to the implementation):
 `import_transactions()` → `{ added, skipped }`; `list_transactions(filters, limit)` → `{ rows, total, count }`; `yearly_transaction_totals()` → `[{ year, income, spent, net, transaction_count }]`; `set_transaction_category(id, category_id)`; `unset_transaction_manual(id)`; `delete_transaction(id)`; `list_transaction_categories()`; `add_`/`rename_`/`delete_transaction_category`; `list_transaction_rules()`; `add_`/`edit_`/`move_`/`delete_transaction_rule`; `reapply_transaction_rules(scope)` → `{ changed }`.
 
-Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 text, or is larger than 50 MB), `TRANSACTION_IMPORT_FORMAT`, `_COLUMNS`, `_FIELD`, `_DATE`, `_DIRECTION`, `_AMOUNT`, `_REFERENCE`, `_CURRENCY`, `TRANSACTION_CATEGORY_NAME_REQUIRED`, `_NAME_TOO_LONG`, `_NAME_TAKEN`, `TRANSACTION_CATEGORY_PROTECTED`, `TRANSACTION_CATEGORY_NOT_FOUND`, `TRANSACTION_RULE_TEXT_REQUIRED`, `_TEXT_TOO_LONG`, `_TEXT_TAKEN`, `_CATEGORY_INVALID`, `TRANSACTION_RULE_NOT_FOUND`, `TRANSACTION_NOT_FOUND`, `TRANSACTION_DATA_INVALID`. The built-in Uncategorized has no id: a transaction without a category holds `null`, and a filter, a rename and a delete name it `uncategorized`. The default categories and rules have fixed ids, so two new projects are equal.
+Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 text, or is larger than 50 MB), `TRANSACTION_IMPORT_FORMAT`, `_COLUMNS`, `_FIELD`, `_DATE`, `_DIRECTION`, `_AMOUNT`, `_REFERENCE`, `_CURRENCY`, `TRANSACTION_CATEGORY_NAME_REQUIRED`, `_NAME_TOO_LONG`, `_NAME_TAKEN`, `TRANSACTION_CATEGORY_PROTECTED`, `TRANSACTION_CATEGORY_NOT_FOUND`, `TRANSACTION_RULE_TEXT_REQUIRED`, `_TEXT_TOO_LONG`, `_TEXT_TAKEN`, `_CATEGORY_INVALID`, `TRANSACTION_RULE_NOT_FOUND`, `TRANSACTION_NOT_FOUND`, `TRANSACTION_DATA_INVALID`, `TRANSACTION_SUGGEST_MIN_COUNT` (the minimal count is 0). The built-in Uncategorized has no id: a transaction without a category holds `null`, and a filter, a rename and a delete name it `uncategorized`. The default categories and rules have fixed ids, so two new projects are equal.
 
 ## 6. Constraints
 - CON-1: All parsing, deduplication, categorisation, filtering and totals are in Rust (`domain/transactions`); the frontend only displays and sends the user's choices. Rationale: `CLAUDE.md` layout rule.
@@ -965,6 +1074,8 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.24 (16/11/2026): Every suggestion has a checkbox that is not ticked by default, and only ticked rows are added (REQ-29, AC-29.6, AC-29.9 to AC-29.12). The dialog is tall by default and follows the window, and the list of suggestions scrolls inside it (AC-29.13). Owner request. Back to `draft` until re-approved.
+- 0.23 (16/11/2026): New REQ-29 (AC-29.1 to AC-29.11): "Suggest rules" proposes rules from the counterparties of the existing transactions, with a minimal count, and adds the chosen ones. From the grill-me interview of 16/11/2026. Back to `draft` until re-approved.
 - 0.22 (16/11/2026): The Transactions list has a filter on the amount ("From amount", "To amount") in the header of the Amount column, on the signed amount (REQ-15, AC-15.8). Owner request; filtering on the signed amount, not its size, is my choice. Back to `draft` until re-approved.
 - 0.21 (12/11/2026): The period filter of the Transactions list goes down to the day ("From date", "To date", dd/mm/yyyy) instead of the month; only this list does (REQ-15, AC-15.7). CSD-028 REQ-3 keeps the month for the other tables. Owner request. Back to `draft` until re-approved.
 - 0.20 (12/11/2026): Bulk select (REQ-28, AC-28.1 to AC-28.7): a button switches on checkboxes on the Overview tab, with a header checkbox that selects everything in the filter, and bulk "Set category" and "Delete selected". Owner request; the two bulk actions are my choice, as the request named none. Back to `draft` until re-approved.

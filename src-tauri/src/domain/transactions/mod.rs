@@ -10,6 +10,7 @@ mod filter;
 mod import;
 mod insights;
 mod list;
+mod suggest;
 mod totals;
 mod transaction;
 
@@ -28,6 +29,7 @@ pub use category::{Category, CategoryId, Rule, RuleId, UNCATEGORIZED_ENTITY};
 pub use filter::{TransactionFilter, TransactionFilterInput};
 pub use insights::{Granularity, TransactionInsights};
 pub use list::TransactionList;
+pub use suggest::RuleSuggestions;
 pub use totals::TransactionYearlyTotal;
 pub use transaction::{Transaction, TransactionId};
 
@@ -446,6 +448,29 @@ impl Transactions {
         };
         self.rules.push(rule.clone());
         Ok(rule)
+    }
+
+    /// Adds `rules`, each a text and a category, at the end of the list in
+    /// their order, as one change: when one is invalid, none is added and the
+    /// position of the first invalid one comes with the error (REQ-29).
+    ///
+    /// # Errors
+    /// Returns the position and the violated rule of the first invalid rule,
+    /// a text another rule or an earlier one of `rules` has included.
+    pub fn add_rules(
+        &mut self,
+        rules: &[(String, CategoryId)],
+    ) -> Result<Vec<Rule>, (usize, DomainError)> {
+        let mut working = self.clone();
+        let mut added = Vec::with_capacity(rules.len());
+        for (position, (text, category)) in rules.iter().enumerate() {
+            let rule = working
+                .add_rule(text, *category)
+                .map_err(|error| (position, error))?;
+            added.push(rule);
+        }
+        *self = working;
+        Ok(added)
     }
 
     /// Adds a rule at the end of the list together with a new category it

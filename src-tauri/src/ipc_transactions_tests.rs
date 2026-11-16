@@ -297,6 +297,69 @@ fn test_csd032_ac_28_7_bulk_commands_are_one_undo_step_each() {
 }
 
 #[test]
+fn test_csd032_ac_29_9_suggested_rules_are_added_and_applied_in_one_undo_step() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let suggested = app.ok("suggest_transaction_rules", json!({ "minCount": 1 }));
+    let list = suggested["suggestions"].as_array().unwrap();
+    assert_ne!(list.len(), 0);
+    assert!(list[0]["text"].is_string() && list[0]["count"].is_u64());
+    assert_eq!(suggested["not_shown"], 0);
+    let rules_before = app.ok("list_transaction_rules", json!({}));
+    let rules_before = rules_before.as_array().unwrap().len();
+    let uncategorized = |app: &Harness| {
+        app.ok(
+            "list_transactions",
+            json!({ "filter": { "ids": ["uncategorized"] } }),
+        )["count"]
+            .as_u64()
+            .unwrap()
+    };
+    let before = uncategorized(&app);
+    let leisure = category_id(&app, "Leisure");
+    let chosen: Vec<Value> = list
+        .iter()
+        .take(2)
+        .map(|suggestion| json!({ "text": suggestion["text"], "category_id": leisure }))
+        .collect();
+    let result = app.ok("add_transaction_rules", json!({ "rules": chosen }));
+    assert_eq!(result["added"], 2);
+    assert!(result["rejected"].is_null());
+    assert!(result["changed"].as_u64().unwrap() > 0);
+    let after_rules = app.ok("list_transaction_rules", json!({}));
+    assert_eq!(after_rules.as_array().unwrap().len(), rules_before + 2);
+    assert!(uncategorized(&app) < before);
+    app.ok("undo", json!({}));
+    let undone = app.ok("list_transaction_rules", json!({}));
+    assert_eq!(undone.as_array().unwrap().len(), rules_before);
+    assert_eq!(uncategorized(&app), before);
+}
+
+#[test]
+fn test_csd032_ac_29_10_an_invalid_row_adds_nothing_and_is_named() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let leisure = category_id(&app, "Leisure");
+    let rules_before = app.ok("list_transaction_rules", json!({}));
+    let rejected = app.ok(
+        "add_transaction_rules",
+        json!({ "rules": [
+            { "text": "Example Cafe", "category_id": leisure },
+            { "text": "example cafe", "category_id": leisure },
+        ] }),
+    );
+    assert_eq!(rejected["added"], 0);
+    assert_eq!(rejected["rejected"]["index"], 1);
+    assert_eq!(rejected["rejected"]["code"], "TRANSACTION_RULE_TEXT_TAKEN");
+    assert!(rejected["rejected"]["message"].is_string());
+    assert_eq!(app.ok("list_transaction_rules", json!({})), rules_before);
+    let zero = app.err("suggest_transaction_rules", json!({ "minCount": 0 }));
+    assert_eq!(zero["code"], "TRANSACTION_SUGGEST_MIN_COUNT");
+    let count = app.ok("count_transaction_rule_matches", json!({ "text": "*" }));
+    assert_eq!(count, 8, "a lone star matches every transaction");
+}
+
+#[test]
 fn test_csd032_ac_25_2_delete_all_is_one_undo_step() {
     let app = harness();
     import(&app, fixture()).unwrap();

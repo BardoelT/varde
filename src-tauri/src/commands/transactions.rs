@@ -7,13 +7,13 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Runtime, State};
 use tauri_plugin_dialog::DialogExt;
 
 use super::AppState;
 use crate::domain::transactions::{
-    Category, CategoryId, Granularity, ImportSummary, ReapplyScope, Rule, RuleId,
+    Category, CategoryId, Granularity, ImportSummary, ReapplyScope, Rule, RuleId, RuleSuggestions,
     TransactionFilterInput, TransactionId, TransactionInsights, TransactionList,
     TransactionYearlyTotal, UNCATEGORIZED_ENTITY,
 };
@@ -299,6 +299,94 @@ pub fn list_transaction_rules(state: State<'_, AppState>) -> Result<Vec<RuleRow>
             transaction_count,
         })
         .collect())
+}
+
+/// The rules worth adding, from the counterparties of the transactions (REQ-29).
+#[tauri::command]
+pub fn suggest_transaction_rules(
+    state: State<'_, AppState>,
+    min_count: usize,
+) -> Result<RuleSuggestions, AppError> {
+    let project = state.project()?;
+    Ok(project.transactions().suggest_rules(min_count)?)
+}
+
+/// How many transactions a rule with this text would match (REQ-29).
+#[tauri::command]
+pub fn count_transaction_rule_matches(
+    state: State<'_, AppState>,
+    text: String,
+) -> Result<usize, AppError> {
+    let project = state.project()?;
+    Ok(project.transactions().count_rule_matches(&text)?)
+}
+
+/// One rule of "Add rules": a text and the id of its category.
+#[derive(Deserialize)]
+pub struct NewRule {
+    text: String,
+    category_id: String,
+}
+
+/// The first invalid rule of "Add rules", by its position in the list sent.
+#[derive(Serialize)]
+pub struct RejectedRule {
+    index: usize,
+    code: &'static str,
+    message: String,
+}
+
+/// The result of "Add rules": how many rules were added and how many
+/// transactions the rules then changed, or the first invalid rule when
+/// nothing was added.
+#[derive(Serialize)]
+pub struct AddRulesResult {
+    added: usize,
+    changed: usize,
+    rejected: Option<RejectedRule>,
+}
+
+/// Adds the rules at the end of the list and applies the rules to the
+/// transactions that are not manual, as one change; when one rule is invalid,
+/// nothing changes and the answer names it (REQ-29).
+#[tauri::command]
+pub fn add_transaction_rules(
+    state: State<'_, AppState>,
+    rules: Vec<NewRule>,
+) -> Result<AddRulesResult, AppError> {
+    let mut parsed = Vec::with_capacity(rules.len());
+    for (index, rule) in rules.into_iter().enumerate() {
+        match CategoryId::parse(&rule.category_id) {
+            Ok(category) => parsed.push((rule.text, category)),
+            Err(error) => return Ok(rejected(index, &error)),
+        }
+    }
+    let mut project = state.edit(StepLabel::add(Record::TransactionRule))?;
+    match project.transactions_mut().add_rules(&parsed) {
+        Ok(added) => {
+            let changed = project
+                .transactions_mut()
+                .reapply_rules(ReapplyScope::AllNonManual);
+            Ok(AddRulesResult {
+                added: added.len(),
+                changed,
+                rejected: None,
+            })
+        }
+        Err((index, error)) => Ok(rejected(index, &error)),
+    }
+}
+
+fn rejected(index: usize, error: &DomainError) -> AddRulesResult {
+    AddRulesResult {
+        added: 0,
+        changed: 0,
+        rejected: Some(RejectedRule {
+            index,
+            code: error.code(),
+            message: error.to_string(),
+        }),
+    }
 }
 
 /// The id of a category to rename or delete. The built-in Uncategorized has

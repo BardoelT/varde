@@ -163,7 +163,7 @@ pub(super) fn valid_rule_text(typed: &str) -> Result<String, DomainError> {
 /// for any run of characters, none included; both are already lower case. The
 /// parts between the stars have to be found in that order, so a pattern with
 /// no star is a plain "contains" (CSD-032 REQ-10).
-fn contains_pattern(haystack: &str, pattern: &str) -> bool {
+pub(super) fn contains_pattern(haystack: &str, pattern: &str) -> bool {
     let mut rest = haystack;
     for part in pattern.split('*').filter(|part| !part.is_empty()) {
         match rest.find(part) {
@@ -174,6 +174,12 @@ fn contains_pattern(haystack: &str, pattern: &str) -> bool {
     true
 }
 
+/// The lower-case text a rule is matched against: the counterparty name
+/// followed by a space and the description (CSD-032 REQ-10).
+pub(super) fn haystack_of(counterparty: &str, description: &str) -> String {
+    format!("{counterparty} {description}").to_lowercase()
+}
+
 /// The position of the first rule, in order, whose text is contained, ignoring
 /// case and with `*` as a wildcard, in the counterparty name followed by a
 /// space and the description (CSD-032 REQ-10).
@@ -182,7 +188,7 @@ pub(super) fn matching_rule(
     counterparty: &str,
     description: &str,
 ) -> Option<usize> {
-    let haystack = format!("{counterparty} {description}").to_lowercase();
+    let haystack = haystack_of(counterparty, description);
     rules
         .iter()
         .position(|rule| contains_pattern(&haystack, &rule.text.to_lowercase()))

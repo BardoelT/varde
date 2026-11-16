@@ -5,6 +5,7 @@ import { invoke, errorText } from '../shared/ipc.js';
 import { $, h, iconButton, submitOnce, showToast, confirmAction } from '../shared/dom.js';
 import { formatAmount, formatDate } from '../shared/format.js';
 import { t, tn } from '../shared/i18n.js';
+import { initTransactionSuggest } from './transactions-suggest.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { openDialog, saveDialog, deleteWithConfirm } from '../shared/crud.js';
 import { numCell, renderTable, rowHeader } from '../shared/list-rows.js';
@@ -544,6 +545,7 @@ async function changed() {
 
 export function initTransactionsOverview({ onChanged: callback }) {
   onChanged = callback;
+  initTransactionSuggest({ categories: () => categories, changed });
   $('transaction-import').addEventListener('click', importTransactions);
   $('transaction-bulk-toggle').addEventListener('click', () => toggleBulk(!bulk));
   $('transactions-bulk-set').addEventListener('click', setSelectedCategory);

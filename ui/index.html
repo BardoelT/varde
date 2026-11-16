@@ -630,6 +630,7 @@
               <div class="panel-actions">
                 <button type="button" class="btn" id="transaction-apply-rules">Apply rules</button>
                 <button type="button" class="btn" id="transaction-apply-rules-all">Apply rules including manually set</button>
+                <button type="button" class="btn" id="transaction-suggest">Suggest rules</button>
                 <button type="button" class="btn primary" id="transaction-rule-add">Add rule</button>
               </div>
             </div>
@@ -1283,6 +1284,38 @@
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
         <button type="submit" class="btn primary">Save rule</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="transaction-suggest-dialog" class="wide" aria-labelledby="transaction-suggest-title">
+    <form method="dialog" id="transaction-suggest-form" novalidate>
+      <h2 id="transaction-suggest-title">Suggest rules</h2>
+      <label class="field">Minimal count
+        <input type="text" name="min_count" inputmode="numeric" autocomplete="off" value="5">
+      </label>
+      <p class="form-error" id="transaction-suggest-min-error" role="alert" hidden>Enter a whole number of 1 or more.</p>
+      <p class="field-hint">The counterparties of your transactions, with the number of transactions a rule with that text would match. Tick the suggestions to add as rules; nothing is added until you do.</p>
+      <p class="empty-note" id="transaction-suggest-empty" hidden>No suggestions. Try a lower minimal count.</p>
+      <div class="table-wrap in-dialog suggest-wrap" id="transaction-suggest-wrap" hidden>
+        <table class="data-table compact">
+          <thead>
+            <tr>
+              <th scope="col" class="select-col"><span class="visually-hidden">Add</span></th>
+              <th scope="col">Rule text</th>
+              <th scope="col" class="num">Matches</th>
+              <th scope="col">Category</th>
+            </tr>
+          </thead>
+          <tbody id="transaction-suggest-rows"></tbody>
+        </table>
+      </div>
+      <p class="empty-note" id="transaction-suggest-more" hidden></p>
+      <p class="form-error" id="transaction-suggest-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <span class="dialog-note" id="transaction-suggest-chosen"></span>
+        <button type="button" class="btn" data-cancel>Cancel</button>
+        <button type="submit" class="btn primary" id="transaction-suggest-add" disabled>Add 0 rules</button>
       </div>
     </form>
   </dialog>

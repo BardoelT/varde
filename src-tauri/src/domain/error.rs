@@ -476,6 +476,9 @@ pub enum DomainError {
     /// Reported as: "The rule text can be at most 100 characters."
     #[error("The rule text can be at most 100 characters.")]
     TransactionRuleTextTooLong,
+    /// Reported as: "Enter a whole number of 1 or more."
+    #[error("Enter a whole number of 1 or more.")]
+    TransactionSuggestMinCount,
     /// Reported as: "A rule with this text already exists."
     #[error("A rule with this text already exists.")]
     TransactionRuleTextTaken,
@@ -650,6 +653,7 @@ impl DomainError {
             Self::TransactionCategoryNotFound => "TRANSACTION_CATEGORY_NOT_FOUND",
             Self::TransactionRuleTextRequired => "TRANSACTION_RULE_TEXT_REQUIRED",
             Self::TransactionRuleTextTooLong => "TRANSACTION_RULE_TEXT_TOO_LONG",
+            Self::TransactionSuggestMinCount => "TRANSACTION_SUGGEST_MIN_COUNT",
             Self::TransactionRuleTextTaken => "TRANSACTION_RULE_TEXT_TAKEN",
             Self::TransactionRuleCategoryInvalid => "TRANSACTION_RULE_CATEGORY_INVALID",
             Self::TransactionRuleNotFound => "TRANSACTION_RULE_NOT_FOUND",

@@ -354,3 +354,16 @@ button.manual-badge:hover { color: var(--text); border-color: var(--muted); }
 }
 .bulk-bar [id="transactions-bulk-count"] { color: var(--muted); margin-right: auto; }
 .select-col { width: 1%; }
+
+/* ── Suggest rules dialog (CSD-032 REQ-29) ── */
+
+/* The list of a wide dialog scrolls inside it, so every row can be reached on a small window. The header row
+   stays in view. `.table-wrap.in-dialog` hides overflow, so this rule is as specific as that one. */
+dialog.wide { width: min(720px, calc(100vw - 32px)); }
+dialog.wide[open] { display: flex; flex-direction: column; height: min(1000px, calc(100vh - 96px)); max-height: calc(100vh - 32px); }
+dialog.wide form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.table-wrap.in-dialog.suggest-wrap { flex: 1 1 0; min-height: 120px; overflow: auto; }
+.suggest-wrap thead th { position: sticky; top: 0; z-index: 1; background: var(--card-bg); }
+.suggest-wrap input[type="text"] { width: 100%; font: inherit; }
+.row-error { display: block; margin-top: 3px; font-size: 12px; color: var(--negative); }
+.dialog-note { margin-right: auto; align-self: center; font-size: 13px; color: var(--muted); }
