@@ -13,9 +13,9 @@ use tauri_plugin_dialog::DialogExt;
 
 use super::AppState;
 use crate::domain::transactions::{
-    Category, CategoryId, Granularity, ImportSummary, ReapplyScope, Rule, RuleId, RuleSuggestions,
-    TransactionFilterInput, TransactionId, TransactionInsights, TransactionList,
-    TransactionYearlyTotal, UNCATEGORIZED_ENTITY,
+    CategorisationSummary, Category, CategoryId, Granularity, ImportSummary, ReapplyScope, Rule,
+    RuleId, RuleSuggestions, TransactionFilterInput, TransactionId, TransactionInsights,
+    TransactionList, TransactionYearlyTotal, UNCATEGORIZED_ENTITY,
 };
 use crate::domain::DomainError;
 use crate::error::AppError;
@@ -318,6 +318,15 @@ pub fn list_transaction_rules(state: State<'_, AppState>) -> Result<Vec<RuleRow>
             transaction_count,
         })
         .collect())
+}
+
+/// How many transactions are uncategorized and what share that is (REQ-31).
+#[tauri::command]
+pub fn get_categorisation_summary(
+    state: State<'_, AppState>,
+) -> Result<CategorisationSummary, AppError> {
+    let project = state.project()?;
+    Ok(project.transactions().categorisation_summary())
 }
 
 /// The rules worth adding, from the counterparties of the transactions (REQ-29).

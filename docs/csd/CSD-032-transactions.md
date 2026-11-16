@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.26
+version: 0.27
 last_updated: 16/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -1051,6 +1051,24 @@ Scenario: The count comes with the category list
   When the frontend asks for the categories
   Then every category carries its transaction count
 
+**REQ-31: Uncategorized share** *(ubiquitous)*
+The Rules tab shall show, above the list of rules, a line with the percentage of the transactions that are uncategorized and the numbers behind it, as "12.50% of the transactions are uncategorized (5 of 40)". Rust counts and computes the percentage (two decimals, half-up, CSD-000 CON-8), and the line follows every change of the transactions, the rules and the categories. While there are no transactions the line is not shown.
+
+```gherkin
+@AC-31.1
+Scenario: The share of uncategorized transactions
+  Given 8 transactions of which 1 has no category
+  Then the summary is 1 of 8 and "12.50%"
+  When 3 more transactions without a category are imported
+  Then the summary is 4 of 11 and "36.36%"
+  And with no transactions there is no percentage
+
+@AC-31.2
+Scenario: The Rules tab shows the line
+  Given the summary 5 of 40 and "12.50%"
+  Then the Rules tab shows "12.50% of the transactions are uncategorized (5 of 40)"
+  And the line is hidden while there are no transactions
+
 ## 5. Interfaces and contracts
 
 ```mermaid
@@ -1109,6 +1127,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.27 (16/11/2026): The Rules tab shows the percentage of uncategorized transactions (REQ-31, AC-31.1, AC-31.2). Owner request. Back to `draft` until re-approved.
 - 0.26 (16/11/2026): Every category on the Categories tab shows the number of transactions in it (REQ-30, AC-30.1 to AC-30.3). Owner request. Back to `draft` until re-approved.
 - 0.25 (16/11/2026): The Transactions list has a text filter on the counterparty and one on the description, each a case-insensitive "contains" in its own column header (REQ-15, AC-15.9). Owner request; plain "contains" without `*` is my choice. Back to `draft` until re-approved.
 - 0.24 (16/11/2026): Every suggestion has a checkbox that is not ticked by default, and only ticked rows are added (REQ-29, AC-29.6, AC-29.9 to AC-29.12). The dialog is tall by default and follows the window, and the list of suggestions scrolls inside it (AC-29.13). Owner request. Back to `draft` until re-approved.

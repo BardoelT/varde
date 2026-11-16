@@ -1081,6 +1081,52 @@ fn test_csd032_ac_30_1_a_category_counts_its_transactions_by_whoever_set_them() 
 }
 
 #[test]
+fn test_csd032_ac_31_1_the_summary_gives_the_share_of_uncategorized_transactions() {
+    let mut data = Transactions::default();
+    assert_eq!(data.categorisation_summary().percent_label, None);
+    let seeds: Vec<RuleId> = data.rules().iter().map(|rule| rule.id).collect();
+    for id in seeds {
+        data.delete_rule(id).unwrap();
+    }
+    let rows: Vec<String> = (1..=8)
+        .map(|day| {
+            simple(
+                &format!("{day:02}-10-2026"),
+                "Afschrijvingen",
+                "9,00",
+                &format!("Example {day}"),
+                &format!("R{day}"),
+            )
+        })
+        .collect();
+    data.import(&export(&rows), Currency::Eur).unwrap();
+    let groceries = category(&data, "Groceries");
+    for day in 1..=7 {
+        let id = find(&data, &format!("Example {day}")).id;
+        data.set_category(id, Some(groceries)).unwrap();
+    }
+    let summary = data.categorisation_summary();
+    assert_eq!((summary.uncategorized, summary.total), (1, 8));
+    assert_eq!(summary.percent_label.as_deref(), Some("12.50%"));
+    // Rounded half-up to two decimals: 4 of 11 is 36.3636...
+    let more: Vec<String> = (9..=11)
+        .map(|day| {
+            simple(
+                &format!("{day:02}-10-2026"),
+                "Afschrijvingen",
+                "9,00",
+                &format!("Example {day}"),
+                &format!("R{day}"),
+            )
+        })
+        .collect();
+    data.import(&export(&more), Currency::Eur).unwrap();
+    let summary = data.categorisation_summary();
+    assert_eq!((summary.uncategorized, summary.total), (4, 11));
+    assert_eq!(summary.percent_label.as_deref(), Some("36.36%"));
+}
+
+#[test]
 fn test_csd032_ac_15_7_the_period_filter_goes_down_to_the_day() {
     let data = imported(&[
         simple("31-10-2026", "Afschrijvingen", "9,00", "Example Late", "R1"),

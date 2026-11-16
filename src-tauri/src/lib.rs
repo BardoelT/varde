@@ -153,6 +153,7 @@ fn configure_with<R: Runtime>(
             transactions::rename_transaction_category,
             transactions::delete_transaction_category,
             transactions::list_transaction_rules,
+            transactions::get_categorisation_summary,
             transactions::add_transaction_rule,
             transactions::edit_transaction_rule,
             transactions::move_transaction_rule,

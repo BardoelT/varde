@@ -11,6 +11,7 @@ mod import;
 mod insights;
 mod list;
 mod suggest;
+mod summary;
 mod totals;
 mod transaction;
 
@@ -30,6 +31,7 @@ pub use filter::{TransactionFilter, TransactionFilterInput};
 pub use insights::{Granularity, TransactionInsights};
 pub use list::TransactionList;
 pub use suggest::RuleSuggestions;
+pub use summary::CategorisationSummary;
 pub use totals::TransactionYearlyTotal;
 pub use transaction::{Transaction, TransactionId};
 

@@ -318,6 +318,20 @@ test('test_csd032_ac_27_2_every_rule_shows_how_many_transactions_it_categorises'
   app.close();
 });
 
+test('test_csd032_ac_31_2_the_rules_tab_shows_the_uncategorized_share', async () => {
+  const reads = readsWith({ rows: [], count: 0 });
+  reads.get_categorisation_summary = { total: 40, uncategorized: 5, percent_label: '12.50%' };
+  const app = await transactionsPage(reads);
+  assert.equal(app.textOf('transaction-categorisation'), '12.50% of the transactions are uncategorized (5 of 40)');
+  assert.ok(!app.$('transaction-categorisation').hidden);
+  app.close();
+  const empty = readsWith({ rows: [], count: 0 });
+  empty.get_categorisation_summary = { total: 0, uncategorized: 0, percent_label: null };
+  const none = await transactionsPage(empty);
+  assert.ok(none.$('transaction-categorisation').hidden, 'no line without transactions');
+  none.close();
+});
+
 test('test_csd032_ac_9_1_the_rules_are_listed_in_order_with_their_category_and_can_move', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { move_transaction_rule: null });
   const rows = [...app.$('transaction-rules').querySelectorAll('li')];

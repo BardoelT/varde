@@ -3,7 +3,7 @@
 // shows what Rust returns and sends what the user chose.
 import { invoke, errorText } from '../shared/ipc.js';
 import { $, h, iconButton, submitOnce, showToast, confirmAction } from '../shared/dom.js';
-import { formatAmount, formatDate } from '../shared/format.js';
+import { formatAmount, formatDate, formatLabel } from '../shared/format.js';
 import { t, tn } from '../shared/i18n.js';
 import { initTransactionSuggest } from './transactions-suggest.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
@@ -416,6 +416,18 @@ function deleteCategory(category) {
 
 // ---- Rules ----
 
+/** The share of uncategorized transactions, as Rust labelled it; hidden while there are no transactions (CSD-032 REQ-31). */
+function renderCategorisation(summary) {
+  const note = $('transaction-categorisation');
+  note.hidden = summary.percent_label === null;
+  if (note.hidden) return;
+  note.textContent = t('{percent} of the transactions are uncategorized ({uncategorized} of {total})', {
+    percent: formatLabel(summary.percent_label),
+    uncategorized: summary.uncategorized,
+    total: summary.total,
+  });
+}
+
 function renderRules() {
   $('transaction-rules-empty').hidden = rules.length > 0;
   $('transaction-rules').replaceChildren(
@@ -535,6 +547,7 @@ export async function reloadTransactionsOverview() {
   renderCategories();
   renderBulkCategories();
   renderRules();
+  renderCategorisation(await invoke('get_categorisation_summary'));
   await loadList();
   renderTotals(await invoke('yearly_transaction_totals'));
 }

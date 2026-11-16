@@ -564,6 +564,11 @@
       }
     ]
   },
+  "get_categorisation_summary": {
+    "percent_label": "62.50%",
+    "total": 8,
+    "uncategorized": 5
+  },
   "get_dashboard": {
     "bank_accounts": {
       "as_of": "2027",
