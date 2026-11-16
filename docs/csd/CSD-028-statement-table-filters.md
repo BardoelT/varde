@@ -1,10 +1,10 @@
 ---
 id: CSD-028
 title: Filters in the statement tables
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.7
-last_updated: 07/11/2026
+version: 0.8
+last_updated: 16/11/2026
 related: [CSD-001, CSD-005, CSD-009, CSD-011, CSD-013, CSD-015, CSD-022, CSD-024, CSD-027]
 ---
 
@@ -23,7 +23,7 @@ Every area keeps a growing table of records: paychecks, investment statements, b
 ### 2.2 Non-goals
 - NG-0: The period of the Transactions list is not a month range: it goes down to the day, "From date" and "To date" (CSD-032 REQ-15, AC-15.7). Everything else of this CSD applies to it, and REQ-3 stays as it is for the other tables.
 - NG-1: Filtering or searching the yearly totals tables, the ratios table, the charts and the insights tabs.
-- NG-2: Filtering on note or free text, and sorting by column. The Transactions list is the one table that filters on the amount too (CSD-032 REQ-15, AC-15.8).
+- NG-2: Filtering on note or free text, and sorting by column. The Transactions list is the one table that filters on the amount and on the text of the counterparty and the description too (CSD-032 REQ-15, AC-15.8, AC-15.9).
 - NG-3: Saving filters in the project file or in the application preferences, or remembering them after the app closes.
 - NG-4: Named or saved filters.
 - NG-5: Putting filter changes in the undo history (CSD-027): a filter is view state, not project data.
@@ -462,6 +462,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-3 (resolved in v0.1): Live or explicit apply? Answer: live, with no Apply button (REQ-2).
 
 ## 9. Changelog
+- 0.8 (16/11/2026): the Transactions list also filters on the text of the counterparty and the description (NG-2, CSD-032 REQ-15). Owner request. Back to `draft` until re-approved.
 - 0.7 (16/11/2026): the Transactions list also filters on the amount (NG-2, CSD-032 REQ-15). Owner request. Back to `draft` until re-approved.
 - 0.6 (12/11/2026): the Transactions list filters its period by day instead of month; REQ-3 is unchanged for the other tables (NG-0, CSD-032 REQ-15). Owner request. Back to `draft` until re-approved.
 - 0.5 (07/11/2026): the panel stays inside the window: below the icon when it fits, else above it, else scrolling inside (REQ-2, AC-2.10). Owner request.

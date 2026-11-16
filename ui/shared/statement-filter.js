@@ -46,13 +46,16 @@ export function resetAllFilters() {
  * `dd/mm/yyyy` days and Rust gets `YYYY-MM-DD` (CSD-032 REQ-15).
  * `amountHost` is the id of the header element of an amount column; with it the filter also has an amount
  * range, typed in the number format of the app and read by Rust (for the Transactions list only, CSD-032 REQ-15).
+ * `textHosts` (`{ counterparty, description }`, the ids of the header elements of those columns) adds a "contains"
+ * filter on each, ignoring case; Rust reads the text (for the Transactions list only, CSD-032 REQ-15).
  * `onChange()` reloads the table; it is called at once for every change (REQ-2).
  */
-export function createStatementFilter({ periodHost, entityHost, amountHost = null, entityTitle, entities, onChange, period = 'month' }) {
+export function createStatementFilter({ periodHost, entityHost, amountHost = null, textHosts = null, entityTitle, entities, onChange, period = 'month' }) {
   let from = '';
   let to = '';
   let minAmount = '';
   let maxAmount = '';
+  const texts = { counterparty: '', description: '' };
   const ids = new Set();
 
   const days = period === 'day';
@@ -62,13 +65,16 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
   const entityActive = () => ids.size > 0;
   const amountText = (text) => (/\d/.test(text) ? text.trim() : null);
   const amountActive = () => amountHost !== null && (amountText(minAmount) !== null || amountText(maxAmount) !== null);
+  const textActive = (key) => textHosts !== null && texts[key].trim() !== '';
   const entityName = () => t(entityTitle).toLocaleLowerCase();
 
   /** What Rust gets, or null when no part of the filter is active. */
   function payload() {
-    if (!periodActive() && !entityActive() && !amountActive()) return null;
+    if (!periodActive() && !entityActive() && !amountActive() && !textActive('counterparty') && !textActive('description')) return null;
     const range = { from: bound(from), to: bound(to), ids: [...ids] };
-    return amountHost === null ? range : { ...range, min_amount: amountText(minAmount), max_amount: amountText(maxAmount) };
+    const withAmount = amountHost === null ? range : { ...range, min_amount: amountText(minAmount), max_amount: amountText(maxAmount) };
+    if (textHosts === null) return withAmount;
+    return { ...withAmount, counterparty: textActive('counterparty') ? texts.counterparty.trim() : null, description: textActive('description') ? texts.description.trim() : null };
   }
 
   /** Drops the choices of entities that no longer exist, without a message (REQ-12). */
@@ -114,6 +120,17 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
       amountField(t('From amount'), minAmount, (value) => { minAmount = value; }),
       amountField(t('To amount'), maxAmount, (value) => { maxAmount = value; }),
     );
+  }
+
+  function textPanel(key, label, groupLabel) {
+    return () => {
+      const input = h('input', { type: 'text', autocomplete: 'off', value: texts[key] });
+      input.addEventListener('input', () => {
+        texts[key] = input.value;
+        changed();
+      });
+      return h('div', { class: 'filter-panel', role: 'group', 'aria-label': groupLabel() }, h('label', { class: 'filter-field' }, h('span', {}, label()), input));
+    };
   }
 
   function entityPanel() {
@@ -246,6 +263,19 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
     return self;
   }
 
+  /** The "contains" filter of a text column; `title` is the English column title. */
+  function textColumn(key, host, title) {
+    const name = () => t(title).toLocaleLowerCase();
+    return column({
+      host,
+      filterLabel: () => t('Filter by {entity}', { entity: name() }),
+      activeLabel: () => t('Filter by {entity} (active)', { entity: name() }),
+      active: () => textActive(key),
+      clearPart: () => { texts[key] = ''; },
+      buildPanel: textPanel(key, () => t('{entity} contains', { entity: t(title) }), () => t('Filter by {entity}', { entity: name() })),
+    });
+  }
+
   const columns = [
     column({
       host: periodHost,
@@ -275,6 +305,12 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
             buildPanel: amountPanel,
           }),
         ]),
+    ...(textHosts === null
+      ? []
+      : [
+          textColumn('counterparty', textHosts.counterparty, 'Counterparty'),
+          textColumn('description', textHosts.description, 'Description'),
+        ]),
   ];
 
   function changed() {
@@ -292,6 +328,8 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
       ids.clear();
       minAmount = '';
       maxAmount = '';
+      texts.counterparty = '';
+      texts.description = '';
       for (const each of columns) each.closePanel();
       if ($(periodHost)?.querySelector('.filter-controls')) for (const each of columns) each.render();
     },

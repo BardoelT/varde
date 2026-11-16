@@ -1168,6 +1168,70 @@ fn test_csd032_ac_15_8_the_amount_filter_is_a_range_of_signed_amounts() {
 }
 
 #[test]
+fn test_csd032_ac_15_9_the_text_filters_look_in_counterparty_and_description() {
+    let own = "NL00EXAM0000000001";
+    let data = imported(&[
+        row(
+            own,
+            "30-10-2026",
+            "EUR",
+            "Afschrijvingen",
+            "9,00",
+            "Example Shop",
+            "Weekly groceries",
+            "R1",
+        ),
+        row(
+            own,
+            "29-10-2026",
+            "EUR",
+            "Afschrijvingen",
+            "5,00",
+            "Example Cafe",
+            "Coffee at the shop",
+            "R2",
+        ),
+        row(
+            own,
+            "28-10-2026",
+            "EUR",
+            "Afschrijvingen",
+            "7,00",
+            "Other Place",
+            "",
+            "R3",
+        ),
+    ]);
+    let count =
+        |json: serde_json::Value| data.list_filtered(Some(&filter_of(json)), false, 10).count;
+    // Contains, anywhere in the text, ignoring case and surrounding spaces.
+    assert_eq!(count(serde_json::json!({ "counterparty": "EXAMPLE" })), 2);
+    assert_eq!(count(serde_json::json!({ "counterparty": " shop " })), 1);
+    assert_eq!(count(serde_json::json!({ "description": "SHOP" })), 1);
+    // Each field looks only in its own column; together they both have to match.
+    assert_eq!(count(serde_json::json!({ "counterparty": "coffee" })), 0);
+    assert_eq!(
+        count(serde_json::json!({ "counterparty": "example", "description": "groceries" })),
+        1
+    );
+    // An empty field leaves the filter open; `*` is no wildcard here.
+    assert_eq!(
+        count(serde_json::json!({ "counterparty": "  ", "description": "" })),
+        3
+    );
+    assert_eq!(count(serde_json::json!({ "counterparty": "Example*" })), 0);
+    // The ids, count and total of the same filter agree, and it combines with the others.
+    let narrow = filter_of(serde_json::json!({ "counterparty": "example", "from": "2026-10-30" }));
+    assert_eq!(data.matching_ids(Some(&narrow), false).len(), 1);
+    assert_eq!(
+        data.list_filtered(Some(&narrow), false, 10)
+            .total
+            .to_string(),
+        "-9.00"
+    );
+}
+
+#[test]
 fn test_csd032_ac_28_6_bulk_changes_are_all_or_nothing() {
     let mut data = imported(&[
         simple("30-10-2026", "Afschrijvingen", "9,00", "Example Shop", "R1"),

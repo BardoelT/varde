@@ -1,7 +1,7 @@
 //! The filter of the Transactions list (CSD-032 REQ-15): a range of days, the
-//! categories to keep and a range of amounts. The other statement tables
-//! filter on months (CSD-028); only this one goes down to the day and filters
-//! on the amount.
+//! categories to keep, a range of amounts and text in the counterparty and the
+//! description. The other statement tables filter on months (CSD-028); only
+//! this one goes down to the day and filters on the amount and the text.
 
 use serde::Deserialize;
 
@@ -9,6 +9,7 @@ use crate::domain::money::Money;
 use crate::domain::NumberFormat;
 
 use super::transaction::TransactionDate;
+use super::Transaction;
 
 /// The filter as the frontend sends it: the amounts are the text the user
 /// typed, in the number format of the app (CSD-029 REQ-6).
@@ -24,6 +25,16 @@ pub struct TransactionFilterInput {
     min_amount: Option<String>,
     #[serde(default)]
     max_amount: Option<String>,
+    #[serde(default)]
+    counterparty: Option<String>,
+    #[serde(default)]
+    description: Option<String>,
+}
+
+/// The text to look for, lower-cased; `None` for an empty (or blank) field.
+fn typed_text(text: Option<&str>) -> Option<String> {
+    let trimmed = text?.trim();
+    (!trimmed.is_empty()).then(|| trimmed.to_lowercase())
 }
 
 /// An amount typed in `format`, rounded as every typed amount is (CSD-000
@@ -44,6 +55,8 @@ impl TransactionFilterInput {
             ids: self.ids,
             min_amount: typed_bound(format, self.min_amount.as_deref()),
             max_amount: typed_bound(format, self.max_amount.as_deref()),
+            counterparty: typed_text(self.counterparty.as_deref()),
+            description: typed_text(self.description.as_deref()),
         }
     }
 }
@@ -63,17 +76,28 @@ pub struct TransactionFilter {
     min_amount: Option<Money>,
     /// The highest amount to show, itself included.
     max_amount: Option<Money>,
+    /// Text the counterparty name must contain, lower-cased; any when `None`.
+    counterparty: Option<String>,
+    /// Text the description must contain, lower-cased; any when `None`.
+    description: Option<String>,
 }
 
 impl TransactionFilter {
-    /// Whether a transaction on `date` in the category `entity` with `amount`
-    /// passes.
+    /// Whether `transaction`, in the category `entity`, passes. The text
+    /// filters look for the typed text anywhere, ignoring case.
     #[must_use]
-    pub fn matches(&self, date: TransactionDate, entity: &str, amount: Money) -> bool {
-        self.from.is_none_or(|from| from <= date)
-            && self.to.is_none_or(|to| date <= to)
+    pub fn matches(&self, transaction: &Transaction, entity: &str) -> bool {
+        let contains = |wanted: &Option<String>, text: &str| {
+            wanted
+                .as_ref()
+                .is_none_or(|wanted| text.to_lowercase().contains(wanted.as_str()))
+        };
+        self.from.is_none_or(|from| from <= transaction.date)
+            && self.to.is_none_or(|to| transaction.date <= to)
             && (self.ids.is_empty() || self.ids.iter().any(|id| id == entity))
-            && self.min_amount.is_none_or(|min| min <= amount)
-            && self.max_amount.is_none_or(|max| amount <= max)
+            && self.min_amount.is_none_or(|min| min <= transaction.amount)
+            && self.max_amount.is_none_or(|max| transaction.amount <= max)
+            && contains(&self.counterparty, &transaction.counterparty_name)
+            && contains(&self.description, &transaction.description)
     }
 }

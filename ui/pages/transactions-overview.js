@@ -167,6 +167,7 @@ const transactionsFilter = createStatementFilter({
   periodHost: 'transaction-period-filter',
   entityHost: 'transaction-entity-filter',
   amountHost: 'transaction-amount-filter',
+  textHosts: { counterparty: 'transaction-counterparty-filter', description: 'transaction-description-filter' },
   period: 'day',
   entityTitle: 'Category',
   entities: () => [

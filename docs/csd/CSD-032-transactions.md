@@ -1,10 +1,10 @@
 ---
 id: CSD-032
 title: Transactions
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.24  
-last_updated: 12/11/2026
+version: 0.25
+last_updated: 16/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
 
@@ -531,7 +531,7 @@ Scenario: Cancelled deletion
 ### 4.3 The Transactions page
 
 **REQ-15: The list** *(ubiquitous)*
-The Transactions page shall show an Overview tab with the transactions newest first (equal dates in the order they were added, newest added first), 200 rows at a time with a "Load more" control, the filters of CSD-028 (the period of this list goes down to the day, AC-15.7, and it has an amount filter, AC-15.8) with Rust computing the filtered rows and the total of the amounts over all matching transactions, and the empty state "No transactions yet" with the Import button when there are none.
+The Transactions page shall show an Overview tab with the transactions newest first (equal dates in the order they were added, newest added first), 200 rows at a time with a "Load more" control, the filters of CSD-028 (the period of this list goes down to the day, AC-15.7, it has an amount filter, AC-15.8, and a text filter on the counterparty and on the description, AC-15.9) with Rust computing the filtered rows and the total of the amounts over all matching transactions, and the empty state "No transactions yet" with the Import button when there are none.
 
 ```gherkin
 @AC-15.1
@@ -576,6 +576,19 @@ Scenario: The amount filter
   And text that is not an amount leaves that end open
   And the filtered total, the count and "select all in the filter" (REQ-28) follow the same range
   And the amounts are signed, as the list shows them: a debit is negative
+
+@AC-15.9
+Scenario: The text filters on counterparty and description
+  Given the transactions "Example Shop" / "Weekly groceries", "Example Cafe" / "Coffee at the shop" and "Other Place" / ""
+  When the user opens the filter in the header of the column Counterparty
+  Then its field is "Counterparty contains"
+  When the user types "example"
+  Then the two transactions whose counterparty contains "example" are listed, ignoring case and surrounding spaces
+  And the same filter in the header of the column Description ("Description contains") looks only in the description
+  And when both are set, a transaction has to match both
+  And an empty field leaves that column unfiltered
+  And "*" is no wildcard in these filters
+  And the filtered total, the count and "select all in the filter" (REQ-28) follow the same text
 
 @AC-15.4
 Scenario: Editing keeps the filter
@@ -1074,6 +1087,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.25 (16/11/2026): The Transactions list has a text filter on the counterparty and one on the description, each a case-insensitive "contains" in its own column header (REQ-15, AC-15.9). Owner request; plain "contains" without `*` is my choice. Back to `draft` until re-approved.
 - 0.24 (16/11/2026): Every suggestion has a checkbox that is not ticked by default, and only ticked rows are added (REQ-29, AC-29.6, AC-29.9 to AC-29.12). The dialog is tall by default and follows the window, and the list of suggestions scrolls inside it (AC-29.13). Owner request. Back to `draft` until re-approved.
 - 0.23 (16/11/2026): New REQ-29 (AC-29.1 to AC-29.11): "Suggest rules" proposes rules from the counterparties of the existing transactions, with a minimal count, and adds the chosen ones. From the grill-me interview of 16/11/2026. Back to `draft` until re-approved.
 - 0.22 (16/11/2026): The Transactions list has a filter on the amount ("From amount", "To amount") in the header of the Amount column, on the signed amount (REQ-15, AC-15.8). Owner request; filtering on the signed amount, not its size, is my choice. Back to `draft` until re-approved.
