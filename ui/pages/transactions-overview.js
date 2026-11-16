@@ -361,7 +361,7 @@ function renderCategories() {
         'li',
         { class: 'job-row' },
         h('span', { class: 'job-name' }, category.name),
-        h('span', { class: 'job-meta' }),
+        h('span', { class: 'job-meta rule-count' }, tn('{count} transaction', '{count} transactions', category.transaction_count)),
         h(
           'span',
           { class: 'job-actions' },

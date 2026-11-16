@@ -235,12 +235,31 @@ pub fn delete_all_transactions(state: State<'_, AppState>) -> Result<(), AppErro
     Ok(())
 }
 
-/// The categories, in the order they were added; "Uncategorized" is built in
-/// and not listed (REQ-8).
+/// A category with the number of transactions in it (REQ-30).
+#[derive(Serialize)]
+pub struct CategoryRow {
+    #[serde(flatten)]
+    category: Category,
+    transaction_count: usize,
+}
+
+/// The categories, in the order they were added, each with its number of
+/// transactions; "Uncategorized" is built in and not listed (REQ-8, REQ-30).
 #[tauri::command]
-pub fn list_transaction_categories(state: State<'_, AppState>) -> Result<Vec<Category>, AppError> {
+pub fn list_transaction_categories(
+    state: State<'_, AppState>,
+) -> Result<Vec<CategoryRow>, AppError> {
     let project = state.project()?;
-    Ok(project.transactions().categories().to_vec())
+    let transactions = project.transactions();
+    Ok(transactions
+        .categories()
+        .iter()
+        .zip(transactions.category_counts())
+        .map(|(category, transaction_count)| CategoryRow {
+            category: category.clone(),
+            transaction_count,
+        })
+        .collect())
 }
 
 #[tauri::command]

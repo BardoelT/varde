@@ -3710,59 +3710,73 @@
   "list_transaction_categories": [
     {
       "id": "id-18",
-      "name": "Salary"
+      "name": "Salary",
+      "transaction_count": 0
     },
     {
       "id": "id-19",
-      "name": "Groceries"
+      "name": "Groceries",
+      "transaction_count": 1
     },
     {
       "id": "id-20",
-      "name": "Housing"
+      "name": "Housing",
+      "transaction_count": 0
     },
     {
       "id": "id-21",
-      "name": "Utilities"
+      "name": "Utilities",
+      "transaction_count": 0
     },
     {
       "id": "id-22",
-      "name": "Insurance"
+      "name": "Insurance",
+      "transaction_count": 0
     },
     {
       "id": "id-23",
-      "name": "Transport"
+      "name": "Transport",
+      "transaction_count": 0
     },
     {
       "id": "id-24",
-      "name": "Eating out"
+      "name": "Eating out",
+      "transaction_count": 0
     },
     {
       "id": "id-25",
-      "name": "Shopping"
+      "name": "Shopping",
+      "transaction_count": 0
     },
     {
       "id": "id-26",
-      "name": "Health"
+      "name": "Health",
+      "transaction_count": 0
     },
     {
       "id": "id-27",
-      "name": "Leisure"
+      "name": "Leisure",
+      "transaction_count": 0
     },
     {
       "id": "id-28",
-      "name": "Subscriptions"
+      "name": "Subscriptions",
+      "transaction_count": 1
     },
     {
       "id": "id-29",
-      "name": "Savings & transfers"
+      "name": "Savings & transfers",
+      "transaction_count": 0
     },
     {
       "id": "id-30",
-      "name": "Taxes"
+      "name": "Taxes",
+      "transaction_count": 0
     },
     {
       "id": "id-31",
-      "name": "Other"
+      "name": "Other",
+      "transaction_count": 1
     }
   ],
   "list_transaction_rules": [

@@ -1040,6 +1040,47 @@ fn test_csd032_ac_27_1_a_rule_counts_the_transactions_it_categorises() {
 }
 
 #[test]
+fn test_csd032_ac_30_1_a_category_counts_its_transactions_by_whoever_set_them() {
+    let mut data = imported(&[
+        simple("30-10-2026", "Afschrijvingen", "9,00", "Example One", "R1"),
+        simple("29-10-2026", "Afschrijvingen", "9,00", "Example Two", "R2"),
+        simple(
+            "28-10-2026",
+            "Afschrijvingen",
+            "9,00",
+            "Example Three",
+            "R3",
+        ),
+        simple("27-10-2026", "Afschrijvingen", "9,00", "Example Four", "R4"),
+    ]);
+    let groceries = category(&data, "Groceries");
+    let leisure = category(&data, "Leisure");
+    let counts = |data: &Transactions| -> (usize, usize) {
+        let all = data.category_counts();
+        let at = |id| {
+            data.categories()
+                .iter()
+                .position(|each| each.id == id)
+                .and_then(|index| all.get(index).copied())
+                .unwrap()
+        };
+        (at(groceries), at(leisure))
+    };
+    assert_eq!(data.category_counts().len(), data.categories().len());
+    for name in ["Example One", "Example Two"] {
+        let id = find(&data, name).id;
+        data.set_category(id, Some(groceries)).unwrap();
+    }
+    let three = find(&data, "Example Three").id;
+    data.set_category(three, Some(leisure)).unwrap();
+    // A hand-set transaction counts too; the uncategorized one does not.
+    assert_eq!(counts(&data), (2, 1));
+    let four = find(&data, "Example Four").id;
+    data.set_category(four, Some(leisure)).unwrap();
+    assert_eq!(counts(&data), (2, 2));
+}
+
+#[test]
 fn test_csd032_ac_15_7_the_period_filter_goes_down_to_the_day() {
     let data = imported(&[
         simple("31-10-2026", "Afschrijvingen", "9,00", "Example Late", "R1"),

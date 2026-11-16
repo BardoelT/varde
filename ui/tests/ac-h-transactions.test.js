@@ -10,8 +10,8 @@ import { exampleReads } from './fixtures.js';
 const GROCERIES = 'cat-groceries';
 const SHOPPING = 'cat-shopping';
 const CATEGORIES = [
-  { id: GROCERIES, name: 'Groceries' },
-  { id: SHOPPING, name: 'Shopping' },
+  { id: GROCERIES, name: 'Groceries', transaction_count: 3 },
+  { id: SHOPPING, name: 'Shopping', transaction_count: 1 },
 ];
 const RULES = [
   { id: 'rule-1', text: 'Example Market', category_id: GROCERIES, transaction_count: 3 },
@@ -265,6 +265,14 @@ test('test_csd032_ac_8_1_uncategorized_is_listed_first_and_cannot_be_edited', as
   assert.equal(app.text(items[0].querySelector('.job-meta')), 'Built in');
   assert.equal(items[0].querySelectorAll('button').length, 0, 'no edit or delete');
   assert.deepEqual(items.slice(1).map((item) => app.text(item.querySelector('.job-name'))), ['Groceries', 'Shopping']);
+  app.close();
+});
+
+test('test_csd032_ac_30_2_the_categories_show_their_transaction_counts', async () => {
+  const app = await transactionsPage(readsWith({ rows: [], count: 0 }));
+  const items = [...app.$('transaction-categories').querySelectorAll('li')];
+  assert.deepEqual(items.slice(1).map((item) => app.text(item.querySelector('.rule-count'))), ['3 transactions', '1 transaction']);
+  assert.equal(items[0].querySelector('.rule-count'), null, 'Uncategorized shows no count');
   app.close();
 });
 

@@ -258,6 +258,26 @@ fn test_csd032_ac_27_3_the_rule_list_carries_a_count_over_ipc() {
 }
 
 #[test]
+fn test_csd032_ac_30_3_the_category_list_carries_a_count_over_ipc() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let categories = app.ok("list_transaction_categories", json!({}));
+    let categories = categories.as_array().unwrap();
+    assert_ne!(categories.len(), 0);
+    assert!(categories
+        .iter()
+        .all(|category| category["transaction_count"].is_u64() && category["name"].is_string()));
+    let counted: u64 = categories
+        .iter()
+        .map(|category| category["transaction_count"].as_u64().unwrap())
+        .sum();
+    assert!(
+        counted <= 7,
+        "at most the 7 imported rows are in a category"
+    );
+}
+
+#[test]
 fn test_csd032_ac_28_7_bulk_commands_are_one_undo_step_each() {
     let app = harness();
     import(&app, fixture()).unwrap();

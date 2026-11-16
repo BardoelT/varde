@@ -566,6 +566,21 @@ impl Transactions {
         counts
     }
 
+    /// For every category, in the order of [`Transactions::categories`], how
+    /// many transactions are in it, whoever set the category (REQ-30).
+    #[must_use]
+    pub fn category_counts(&self) -> Vec<usize> {
+        self.categories
+            .iter()
+            .map(|category| {
+                self.list
+                    .iter()
+                    .filter(|transaction| transaction.category_id == Some(category.id))
+                    .count()
+            })
+            .collect()
+    }
+
     /// Runs the rules again on the transactions of `scope` and returns how many
     /// changed category. Manual transactions are only touched by
     /// [`ReapplyScope::All`] (REQ-12).

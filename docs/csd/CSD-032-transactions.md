@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.25
+version: 0.26
 last_updated: 16/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -1029,6 +1029,28 @@ Scenario: Nothing ticked
   And a row without a category cannot be ticked, and clearing the category of a ticked row unticks it
 ```
 
+**REQ-30: Transactions per category** *(ubiquitous)*
+Every category in the list on the Categories tab shall show how many transactions are in it, whoever set the category (the rules or the user), as "N transactions" ("1 transaction" for one). Rust counts them and the count comes with the category list, so it follows every change of the transactions, the rules and the categories. "Uncategorized" shows no count.
+
+```gherkin
+@AC-30.1
+Scenario: Counts per category
+  Given the categories "Groceries" and "Leisure"
+  And two transactions in Groceries (one set by hand), one in Leisure and one uncategorized
+  Then the counts are 2 and 1
+  When the category of the uncategorized transaction is set to Leisure
+  Then the counts are 2 and 2
+
+@AC-30.2
+Scenario: The list shows the counts
+  Given the counts 3 and 1
+  Then the rows of the Categories tab show "3 transactions" and "1 transaction"
+
+@AC-30.3
+Scenario: The count comes with the category list
+  When the frontend asks for the categories
+  Then every category carries its transaction count
+
 ## 5. Interfaces and contracts
 
 ```mermaid
@@ -1087,6 +1109,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.26 (16/11/2026): Every category on the Categories tab shows the number of transactions in it (REQ-30, AC-30.1 to AC-30.3). Owner request. Back to `draft` until re-approved.
 - 0.25 (16/11/2026): The Transactions list has a text filter on the counterparty and one on the description, each a case-insensitive "contains" in its own column header (REQ-15, AC-15.9). Owner request; plain "contains" without `*` is my choice. Back to `draft` until re-approved.
 - 0.24 (16/11/2026): Every suggestion has a checkbox that is not ticked by default, and only ticked rows are added (REQ-29, AC-29.6, AC-29.9 to AC-29.12). The dialog is tall by default and follows the window, and the list of suggestions scrolls inside it (AC-29.13). Owner request. Back to `draft` until re-approved.
 - 0.23 (16/11/2026): New REQ-29 (AC-29.1 to AC-29.11): "Suggest rules" proposes rules from the counterparties of the existing transactions, with a minimal count, and adds the chosen ones. From the grill-me interview of 16/11/2026. Back to `draft` until re-approved.
