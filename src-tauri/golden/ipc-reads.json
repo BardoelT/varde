@@ -565,9 +565,9 @@
     ]
   },
   "get_categorisation_summary": {
-    "percent_label": "62.50%",
-    "total": 8,
-    "uncategorized": 5
+    "categorized": 3,
+    "percent_label": "37.50%",
+    "total": 8
   },
   "get_dashboard": {
     "bank_accounts": {

@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.29
+version: 0.30
 last_updated: 16/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -1060,22 +1060,22 @@ Scenario: The count comes with the category list
   When the frontend asks for the categories
   Then every category carries its transaction count
 
-**REQ-31: Uncategorized share** *(ubiquitous)*
-The Rules tab shall show, in an area of its own above the Rules panel, a line with the percentage of the transactions that are uncategorized and the numbers behind it, as "12.50% of the transactions are uncategorized (5 of 40)". Rust counts and computes the percentage (two decimals, half-up, CSD-000 CON-8), and the line follows every change of the transactions, the rules and the categories. While there are no transactions the line is not shown.
+**REQ-31: Categorized share** *(ubiquitous)*
+The Rules tab shall show, in an area of its own above the Rules panel, a line with the percentage of the transactions that have a category, so 100% is the best and the numbers behind it, as "87.50% of the transactions are categorized (35 of 40)". Rust counts and computes the percentage (two decimals, half-up, CSD-000 CON-8), and the line follows every change of the transactions, the rules and the categories. While there are no transactions the line is not shown.
 
 ```gherkin
 @AC-31.1
-Scenario: The share of uncategorized transactions
-  Given 8 transactions of which 1 has no category
-  Then the summary is 1 of 8 and "12.50%"
+Scenario: The share of categorized transactions
+  Given 8 transactions of which 7 have a category
+  Then the summary is 7 of 8 and "87.50%"
   When 3 more transactions without a category are imported
-  Then the summary is 4 of 11 and "36.36%"
+  Then the summary is 7 of 11 and "63.64%"
   And with no transactions there is no percentage
 
 @AC-31.2
 Scenario: The Rules tab shows the line
   Given the summary 5 of 40 and "12.50%"
-  Then the Rules tab shows "12.50% of the transactions are uncategorized (5 of 40)"
+  Then the Rules tab shows "87.50% of the transactions are categorized (35 of 40)"
   And the line is hidden while there are no transactions
 
 ## 5. Interfaces and contracts
@@ -1136,6 +1136,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.30 (16/11/2026): The line on the Rules tab gives the percentage of categorized transactions, 100% being the best, instead of the uncategorized share (REQ-31, AC-31.1, AC-31.2). Owner request. Back to `draft` until re-approved.
 - 0.29 (16/11/2026): The uncategorized share is shown in an area of its own above the Rules panel, not inside it (REQ-31). Owner request. Back to `draft` until re-approved.
 - 0.28 (16/11/2026): Rules and the text filters match strictly: a text without `*` is the exact counterparty or description, `*` is the only wildcard (starts with, ends with, contains), and a rule no longer matches across the counterparty and the description joined (REQ-10, AC-10.1 to AC-10.5, AC-15.9, AC-29.3). The seed rules end with `*`. Existing rules keep their text and so match strictly from now on. Owner request. Back to `draft` until re-approved.
 - 0.27 (16/11/2026): The Rules tab shows the percentage of uncategorized transactions (REQ-31, AC-31.1, AC-31.2). Owner request. Back to `draft` until re-approved.

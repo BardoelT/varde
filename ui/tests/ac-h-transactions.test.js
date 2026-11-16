@@ -318,16 +318,16 @@ test('test_csd032_ac_27_2_every_rule_shows_how_many_transactions_it_categorises'
   app.close();
 });
 
-test('test_csd032_ac_31_2_the_rules_tab_shows_the_uncategorized_share', async () => {
+test('test_csd032_ac_31_2_the_rules_tab_shows_the_categorized_share', async () => {
   const reads = readsWith({ rows: [], count: 0 });
-  reads.get_categorisation_summary = { total: 40, uncategorized: 5, percent_label: '12.50%' };
+  reads.get_categorisation_summary = { total: 40, categorized: 35, percent_label: '87.50%' };
   const app = await transactionsPage(reads);
-  assert.equal(app.textOf('transaction-categorisation'), '12.50% of the transactions are uncategorized (5 of 40)');
+  assert.equal(app.textOf('transaction-categorisation'), '87.50% of the transactions are categorized (35 of 40)');
   assert.ok(!app.$('transaction-categorisation-panel').hidden);
   assert.ok(app.$('transaction-categorisation-panel').nextElementSibling.querySelector('#transaction-rules'), 'its own area right above the rules');
   app.close();
   const empty = readsWith({ rows: [], count: 0 });
-  empty.get_categorisation_summary = { total: 0, uncategorized: 0, percent_label: null };
+  empty.get_categorisation_summary = { total: 0, categorized: 0, percent_label: null };
   const none = await transactionsPage(empty);
   assert.ok(none.$('transaction-categorisation-panel').hidden, 'no area without transactions');
   none.close();

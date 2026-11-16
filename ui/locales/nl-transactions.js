@@ -5,7 +5,7 @@ export default {
   'Transaction views': 'Transactieweergaven',
   'Import transactions': 'Transacties importeren',
   'Counterparty': 'Tegenpartij',
-  '{percent} of the transactions are uncategorized ({uncategorized} of {total})': '{percent} van de transacties heeft geen categorie ({uncategorized} van {total})',
+  '{percent} of the transactions are categorized ({categorized} of {total})': '{percent} van de transacties heeft een categorie ({categorized} van {total})',
   'Description': 'Omschrijving',
   'Uncategorized': 'Zonder categorie',
   'Built in': 'Ingebouwd',

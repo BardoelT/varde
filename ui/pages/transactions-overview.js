@@ -416,14 +416,14 @@ function deleteCategory(category) {
 
 // ---- Rules ----
 
-/** The share of uncategorized transactions, as Rust labelled it; hidden while there are no transactions (CSD-032 REQ-31). */
+/** The share of categorized transactions, as Rust labelled it; hidden while there are no transactions (CSD-032 REQ-31). */
 function renderCategorisation(summary) {
   const panel = $('transaction-categorisation-panel');
   panel.hidden = summary.percent_label === null;
   if (panel.hidden) return;
-  $('transaction-categorisation').textContent = t('{percent} of the transactions are uncategorized ({uncategorized} of {total})', {
+  $('transaction-categorisation').textContent = t('{percent} of the transactions are categorized ({categorized} of {total})', {
     percent: formatLabel(summary.percent_label),
-    uncategorized: summary.uncategorized,
+    categorized: summary.categorized,
     total: summary.total,
   });
 }

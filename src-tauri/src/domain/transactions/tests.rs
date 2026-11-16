@@ -1133,7 +1133,7 @@ fn test_csd032_ac_30_1_a_category_counts_its_transactions_by_whoever_set_them() 
 }
 
 #[test]
-fn test_csd032_ac_31_1_the_summary_gives_the_share_of_uncategorized_transactions() {
+fn test_csd032_ac_31_1_the_summary_gives_the_share_of_categorized_transactions() {
     let mut data = Transactions::default();
     assert_eq!(data.categorisation_summary().percent_label, None);
     let seeds: Vec<RuleId> = data.rules().iter().map(|rule| rule.id).collect();
@@ -1158,9 +1158,9 @@ fn test_csd032_ac_31_1_the_summary_gives_the_share_of_uncategorized_transactions
         data.set_category(id, Some(groceries)).unwrap();
     }
     let summary = data.categorisation_summary();
-    assert_eq!((summary.uncategorized, summary.total), (1, 8));
-    assert_eq!(summary.percent_label.as_deref(), Some("12.50%"));
-    // Rounded half-up to two decimals: 4 of 11 is 36.3636...
+    assert_eq!((summary.categorized, summary.total), (7, 8));
+    assert_eq!(summary.percent_label.as_deref(), Some("87.50%"));
+    // Rounded half-up to two decimals: 7 of 11 is 63.6363...
     let more: Vec<String> = (9..=11)
         .map(|day| {
             simple(
@@ -1174,8 +1174,8 @@ fn test_csd032_ac_31_1_the_summary_gives_the_share_of_uncategorized_transactions
         .collect();
     data.import(&export(&more), Currency::Eur).unwrap();
     let summary = data.categorisation_summary();
-    assert_eq!((summary.uncategorized, summary.total), (4, 11));
-    assert_eq!(summary.percent_label.as_deref(), Some("36.36%"));
+    assert_eq!((summary.categorized, summary.total), (7, 11));
+    assert_eq!(summary.percent_label.as_deref(), Some("63.64%"));
 }
 
 #[test]

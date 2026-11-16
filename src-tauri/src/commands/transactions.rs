@@ -320,7 +320,7 @@ pub fn list_transaction_rules(state: State<'_, AppState>) -> Result<Vec<RuleRow>
         .collect())
 }
 
-/// How many transactions are uncategorized and what share that is (REQ-31).
+/// How many transactions are categorized and what share that is (REQ-31).
 #[tauri::command]
 pub fn get_categorisation_summary(
     state: State<'_, AppState>,

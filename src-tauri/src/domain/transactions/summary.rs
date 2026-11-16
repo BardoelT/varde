@@ -1,4 +1,4 @@
-//! The share of transactions without a category (CSD-032 REQ-31).
+//! The share of transactions with a category (CSD-032 REQ-31).
 
 use rust_decimal::Decimal;
 use serde::Serialize;
@@ -7,31 +7,31 @@ use crate::domain::money::Money;
 
 use super::Transactions;
 
-/// How many transactions have no category, and what share that is.
+/// How many transactions have a category, and what share that is.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct CategorisationSummary {
     /// All transactions.
     pub total: usize,
-    /// The transactions without a category.
-    pub uncategorized: usize,
+    /// The transactions with a category.
+    pub categorized: usize,
     /// The share as a label such as `12.50%` (two decimals, half-up, CSD-000
     /// CON-8); `None` while there are no transactions.
     pub percent_label: Option<String>,
 }
 
 impl Transactions {
-    /// The number and the share of the transactions that are uncategorized.
+    /// The number and the share of the transactions that are categorized.
     #[must_use]
     pub fn categorisation_summary(&self) -> CategorisationSummary {
         let total = self.list.len();
-        let uncategorized = self
+        let categorized = self
             .list
             .iter()
-            .filter(|transaction| transaction.category_id.is_none())
+            .filter(|transaction| transaction.category_id.is_some())
             .count();
         let percent_label = (total > 0)
             .then(|| {
-                Decimal::from(uncategorized)
+                Decimal::from(categorized)
                     .checked_mul(Decimal::ONE_HUNDRED)?
                     .checked_div(Decimal::from(total))
             })
@@ -40,7 +40,7 @@ impl Transactions {
             .map(|percent| format!("{:.2}%", percent.value()));
         CategorisationSummary {
             total,
-            uncategorized,
+            categorized,
             percent_label,
         }
     }
