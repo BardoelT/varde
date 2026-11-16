@@ -39,6 +39,14 @@ impl TransactionDate {
             .map(Self)
     }
 
+    /// Parses the `dd/mm/yyyy` the user types.
+    #[must_use]
+    pub fn parse_typed(text: &str) -> Option<Self> {
+        Date::parse(text.trim(), format_description!("[day]/[month]/[year]"))
+            .ok()
+            .map(Self)
+    }
+
     /// The calendar year.
     #[must_use]
     pub fn year(self) -> i32 {

@@ -1274,7 +1274,7 @@
     <form method="dialog" id="transaction-rule-form" novalidate>
       <h2 id="transaction-rule-dialog-title">Add rule</h2>
       <label class="field">Text
-        <input type="text" name="text" maxlength="100" autocomplete="off" required>
+        <input type="text" name="text" maxlength="100" autocomplete="off">
       </label>
       <label class="field">Category
         <select name="category"></select>
@@ -1282,7 +1282,15 @@
       <label class="field" id="transaction-rule-new-category" hidden>New category name
         <input type="text" name="name" maxlength="50" autocomplete="off">
       </label>
-      <p class="field-hint">A transaction gets the category of the first rule, from the top, whose text is in its counterparty or description. Capitals do not matter. A * stands for any characters, so "Albert Heijn*" finds "Albert Heijn 1157".</p>
+      <div class="field-row">
+        <label class="field">From date (optional)
+          <input data-mask="date" type="text" name="from" inputmode="numeric" placeholder="dd/mm/yyyy" maxlength="10" autocomplete="off">
+        </label>
+        <label class="field">To date (optional)
+          <input data-mask="date" type="text" name="to" inputmode="numeric" placeholder="dd/mm/yyyy" maxlength="10" autocomplete="off">
+        </label>
+      </div>
+      <p class="field-hint">A transaction gets the category of the first rule, from the top, whose text is exactly its counterparty or description. Capitals do not matter. A * stands for any characters, so "Albert Heijn*" finds "Albert Heijn 1157". With a from date, a to date or both, the rule only applies to transactions in that period, both days included. Leave the text empty to categorise every transaction in the period, for example a holiday. Drag the rule above the others to let it win.</p>
       <p class="form-error" id="transaction-rule-error" role="alert" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>

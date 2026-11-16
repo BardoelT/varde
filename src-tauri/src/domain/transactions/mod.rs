@@ -26,16 +26,16 @@ use serde::Deserialize;
 use crate::domain::error::DomainError;
 use crate::domain::money::Currency;
 
-pub use category::{Category, CategoryId, Rule, RuleId, UNCATEGORIZED_ENTITY};
+pub use category::{Category, CategoryId, Rule, RuleId, RulePeriod, UNCATEGORIZED_ENTITY};
 pub use filter::{TransactionFilter, TransactionFilterInput};
 pub use insights::{Granularity, TransactionInsights};
 pub use list::TransactionList;
 pub use suggest::RuleSuggestions;
 pub use summary::CategorisationSummary;
 pub use totals::TransactionYearlyTotal;
-pub use transaction::{Transaction, TransactionId};
+pub use transaction::{Transaction, TransactionDate, TransactionId};
 
-use category::{categorise, defaults, matching_rule, valid_name, valid_rule_text};
+use category::{categorise, defaults, matching_rule, rule_text, valid_name};
 
 /// What an import did (CSD-032 REQ-1).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
@@ -118,8 +118,9 @@ impl Transactions {
         }
         let mut rule_ids = HashSet::new();
         for rule in &self.rules {
-            if valid_rule_text(&rule.text).is_err()
+            if rule_text(&rule.text, rule.period().is_set()).is_err()
                 || rule.text != rule.text.trim()
+                || rule.from.zip(rule.to).is_some_and(|(from, to)| from > to)
                 || !rule_ids.insert(rule.id)
                 || !category_ids.contains(&rule.category_id)
             {
@@ -205,7 +206,12 @@ impl Transactions {
                 id: TransactionId::new(),
                 date: row.date,
                 amount: row.amount,
-                category_id: categorise(&self.rules, &row.counterparty_name, &row.description),
+                category_id: categorise(
+                    &self.rules,
+                    row.date,
+                    &row.counterparty_name,
+                    &row.description,
+                ),
                 counterparty_name: row.counterparty_name,
                 counterparty_iban: row.counterparty_iban,
                 description: row.description,
@@ -420,16 +426,29 @@ impl Transactions {
         }
     }
 
-    /// The text of a rule, trimmed, when no other rule has it: the same text
-    /// in another case is the same rule, because matching ignores case
-    /// (REQ-9). `own` is the rule being edited.
-    fn free_rule_text(&self, typed: &str, own: Option<RuleId>) -> Result<String, DomainError> {
-        let text = valid_rule_text(typed)?;
+    /// Checks the text and the period typed for a rule and returns the text
+    /// trimmed. Without a period the text is required; a rule that has the same
+    /// text, ignoring case, and the same period as another one is the same
+    /// rule, because matching ignores case (REQ-9, REQ-32). `own` is the rule
+    /// being edited.
+    fn free_rule_text(
+        &self,
+        typed: &str,
+        period: RulePeriod,
+        own: Option<RuleId>,
+    ) -> Result<String, DomainError> {
+        let text = rule_text(typed, period.is_set())?;
+        if period
+            .from
+            .zip(period.to)
+            .is_some_and(|(from, to)| from > to)
+        {
+            return Err(DomainError::TransactionRulePeriodInvalid);
+        }
         let lower = text.to_lowercase();
-        let taken = self
-            .rules
-            .iter()
-            .any(|rule| Some(rule.id) != own && rule.text.to_lowercase() == lower);
+        let taken = self.rules.iter().any(|rule| {
+            Some(rule.id) != own && rule.text.to_lowercase() == lower && rule.period() == period
+        });
         if taken {
             return Err(DomainError::TransactionRuleTextTaken);
         }
@@ -441,12 +460,28 @@ impl Transactions {
     /// # Errors
     /// Returns the violated text or category rule, or `TransactionRuleTextTaken`.
     pub fn add_rule(&mut self, text: &str, category: CategoryId) -> Result<Rule, DomainError> {
-        let text = self.free_rule_text(text, None)?;
+        self.add_rule_in(text, RulePeriod::default(), category)
+    }
+
+    /// Adds a rule limited to `period` at the end of the list (REQ-32).
+    ///
+    /// # Errors
+    /// Returns the violated text, period or category rule, or
+    /// `TransactionRuleTextTaken`.
+    pub fn add_rule_in(
+        &mut self,
+        text: &str,
+        period: RulePeriod,
+        category: CategoryId,
+    ) -> Result<Rule, DomainError> {
+        let text = self.free_rule_text(text, period, None)?;
         let category_id = self.rule_category(category)?;
         let rule = Rule {
             id: RuleId::new(),
             text,
             category_id,
+            from: period.from,
+            to: period.to,
         };
         self.rules.push(rule.clone());
         Ok(rule)
@@ -484,20 +519,23 @@ impl Transactions {
     pub fn add_rule_with_new_category(
         &mut self,
         text: &str,
+        period: RulePeriod,
         name: &str,
     ) -> Result<(Category, Rule), DomainError> {
-        let text = self.free_rule_text(text, None)?;
+        let text = self.free_rule_text(text, period, None)?;
         let category = self.add_category(name)?;
         let rule = Rule {
             id: RuleId::new(),
             text,
             category_id: category.id,
+            from: period.from,
+            to: period.to,
         };
         self.rules.push(rule.clone());
         Ok((category, rule))
     }
 
-    /// Changes the text and category of a rule (REQ-9).
+    /// Changes the text, period and category of a rule (REQ-9, REQ-32).
     ///
     /// # Errors
     /// Returns `TransactionRuleNotFound`, `TransactionRuleTextTaken` or the violated text or category rule.
@@ -505,9 +543,10 @@ impl Transactions {
         &mut self,
         id: RuleId,
         text: &str,
+        period: RulePeriod,
         category: CategoryId,
     ) -> Result<Rule, DomainError> {
-        let text = self.free_rule_text(text, Some(id))?;
+        let text = self.free_rule_text(text, period, Some(id))?;
         let category_id = self.rule_category(category)?;
         let rule = self
             .rules
@@ -516,6 +555,8 @@ impl Transactions {
             .ok_or(DomainError::TransactionRuleNotFound)?;
         rule.text = text;
         rule.category_id = category_id;
+        rule.from = period.from;
+        rule.to = period.to;
         Ok(rule.clone())
     }
 
@@ -558,6 +599,7 @@ impl Transactions {
         for transaction in self.list.iter().filter(|transaction| !transaction.manual) {
             let found = matching_rule(
                 &self.rules,
+                transaction.date,
                 &transaction.counterparty_name,
                 &transaction.description,
             );
@@ -595,6 +637,7 @@ impl Transactions {
             .filter_map(|(index, transaction)| {
                 let found = categorise(
                     &self.rules,
+                    transaction.date,
                     &transaction.counterparty_name,
                     &transaction.description,
                 );

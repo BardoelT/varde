@@ -470,8 +470,8 @@ pub enum DomainError {
     /// Reported as: "This category does not exist."
     #[error("This category does not exist.")]
     TransactionCategoryNotFound,
-    /// Reported as: "Enter the text the rule looks for."
-    #[error("Enter the text the rule looks for.")]
+    /// Reported as: "Enter the text the rule looks for, or give it a period."
+    #[error("Enter the text the rule looks for, or give it a period.")]
     TransactionRuleTextRequired,
     /// Reported as: "The rule text can be at most 100 characters."
     #[error("The rule text can be at most 100 characters.")]
@@ -482,6 +482,12 @@ pub enum DomainError {
     /// Reported as: "A rule with this text already exists."
     #[error("A rule with this text already exists.")]
     TransactionRuleTextTaken,
+    /// Reported as: "The first day cannot be after the last day."
+    #[error("The first day cannot be after the last day.")]
+    TransactionRulePeriodInvalid,
+    /// Reported as: "Enter a date as dd/mm/yyyy."
+    #[error("Enter a date as dd/mm/yyyy.")]
+    TransactionRuleDateInvalid,
     /// Reported as: "Choose an existing category other than Uncategorized."
     #[error("Choose an existing category other than Uncategorized.")]
     TransactionRuleCategoryInvalid,
@@ -655,6 +661,8 @@ impl DomainError {
             Self::TransactionRuleTextTooLong => "TRANSACTION_RULE_TEXT_TOO_LONG",
             Self::TransactionSuggestMinCount => "TRANSACTION_SUGGEST_MIN_COUNT",
             Self::TransactionRuleTextTaken => "TRANSACTION_RULE_TEXT_TAKEN",
+            Self::TransactionRulePeriodInvalid => "TRANSACTION_RULE_PERIOD_INVALID",
+            Self::TransactionRuleDateInvalid => "TRANSACTION_RULE_DATE_INVALID",
             Self::TransactionRuleCategoryInvalid => "TRANSACTION_RULE_CATEGORY_INVALID",
             Self::TransactionRuleNotFound => "TRANSACTION_RULE_NOT_FOUND",
             Self::TransactionNotFound => "TRANSACTION_NOT_FOUND",

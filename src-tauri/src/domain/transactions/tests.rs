@@ -5,6 +5,19 @@ use crate::domain::common::YearMonth;
 use crate::domain::money::Money;
 use crate::domain::NumberFormat;
 
+/// A day written as in the export, `dd-mm-yyyy`.
+fn day(text: &str) -> TransactionDate {
+    TransactionDate::parse_export(text).unwrap()
+}
+
+/// The days from `from` to `to`, `dd-mm-yyyy`, an empty text leaving the end open.
+fn period(from: &str, to: &str) -> RulePeriod {
+    RulePeriod {
+        from: (!from.is_empty()).then(|| day(from)),
+        to: (!to.is_empty()).then(|| day(to)),
+    }
+}
+
 /// A filter as the frontend sends it, read in the default number format.
 fn filter_of(json: serde_json::Value) -> TransactionFilter {
     serde_json::from_value::<TransactionFilterInput>(json)
@@ -545,7 +558,9 @@ fn test_csd032_ac_9_5_edit_and_delete_a_rule() {
     let mut data = Transactions::default();
     let leisure = category(&data, "Leisure");
     let rule = data.add_rule("Example Gym", leisure).unwrap();
-    let edited = data.edit_rule(rule.id, "Example Club", leisure).unwrap();
+    let edited = data
+        .edit_rule(rule.id, "Example Club", RulePeriod::default(), leisure)
+        .unwrap();
     assert_eq!(edited.text, "Example Club");
     data.delete_rule(rule.id).unwrap();
     assert_eq!(
@@ -950,7 +965,7 @@ fn test_csd032_ac_9_6_a_rule_can_create_its_category_with_it() {
     let mut data = Transactions::default();
     let (categories, rules) = (data.categories().len(), data.rules().len());
     let (category, rule) = data
-        .add_rule_with_new_category("Example Gym", "Example Sport")
+        .add_rule_with_new_category("Example Gym", RulePeriod::default(), "Example Sport")
         .unwrap();
     assert_eq!(data.categories().len(), categories + 1);
     assert_eq!(data.categories().last().unwrap().name, "Example Sport");
@@ -973,7 +988,7 @@ fn test_csd032_ac_10_4_a_star_in_a_rule_matches_any_text() {
         data
     };
     let hit = |data: &Transactions, counterparty: &str, description: &str| {
-        categorise(data.rules(), counterparty, description).is_some()
+        categorise(data.rules(), day("15-10-2026"), counterparty, description).is_some()
     };
     let trailing = rules("Albert Heijn*");
     assert!(hit(&trailing, "Albert Heijn B.V.", ""));
@@ -1018,7 +1033,7 @@ fn test_csd032_ac_10_5_a_rule_without_a_star_is_the_exact_text() {
         data
     };
     let hit = |data: &Transactions, counterparty: &str, description: &str| {
-        categorise(data.rules(), counterparty, description).is_some()
+        categorise(data.rules(), day("15-10-2026"), counterparty, description).is_some()
     };
     let exact = rules("CA");
     assert!(hit(&exact, "CA", ""));
@@ -1751,7 +1766,7 @@ fn test_csd032_ac_9_10_a_rule_with_the_same_text_is_rejected() {
         }
     }
     assert_eq!(
-        data.add_rule_with_new_category("example market", "Example Sport")
+        data.add_rule_with_new_category("example market", RulePeriod::default(), "Example Sport")
             .unwrap_err()
             .code(),
         "TRANSACTION_RULE_TEXT_TAKEN"
@@ -1762,11 +1777,18 @@ fn test_csd032_ac_9_10_a_rule_with_the_same_text_is_rejected() {
     );
     // Another text is fine, and editing a rule to keep its own text is too.
     let second = data.add_rule("Example Cafe", groceries).unwrap();
-    assert!(data.edit_rule(first.id, "EXAMPLE MARKET", leisure).is_ok());
+    assert!(data
+        .edit_rule(first.id, "EXAMPLE MARKET", RulePeriod::default(), leisure)
+        .is_ok());
     assert_eq!(
-        data.edit_rule(second.id, "example market", groceries)
-            .unwrap_err()
-            .code(),
+        data.edit_rule(
+            second.id,
+            "example market",
+            RulePeriod::default(),
+            groceries
+        )
+        .unwrap_err()
+        .code(),
         "TRANSACTION_RULE_TEXT_TAKEN"
     );
 }
@@ -1784,7 +1806,9 @@ fn test_csd032_ac_9_7_a_rejected_rule_or_name_adds_neither() {
             "TRANSACTION_CATEGORY_NAME_TAKEN",
         ),
     ] {
-        let error = data.add_rule_with_new_category(text, name).unwrap_err();
+        let error = data
+            .add_rule_with_new_category(text, RulePeriod::default(), name)
+            .unwrap_err();
         assert_eq!(error.code(), code);
         assert_eq!(data, before, "{code}");
     }
@@ -2106,4 +2130,223 @@ fn test_csd033_ac_6_2_a_category_keeps_its_colour_while_others_are_added() {
         .insights(Granularity::Yearly, month(2026, 6))
         .categories;
     assert_eq!(&after[..14], &before[..14]);
+}
+
+// ---- REQ-32: rules for a period ----
+
+/// A project without the seed rules, with transactions on 30/06, 01/07, 15/07
+/// and 16/07/2026 (counterparty "Example Shop", then "Example Hotel" on 15/07).
+fn holiday_fixture() -> Transactions {
+    let mut data = with_rules(&[]);
+    let rows = [
+        simple("30-06-2026", "Afschrijvingen", "9,00", "Example Shop", "R1"),
+        simple("01-07-2026", "Afschrijvingen", "9,00", "Example Shop", "R2"),
+        simple(
+            "15-07-2026",
+            "Afschrijvingen",
+            "9,00",
+            "Example Hotel",
+            "R3",
+        ),
+        simple("16-07-2026", "Afschrijvingen", "9,00", "Example Shop", "R4"),
+    ];
+    data.import(&export(&rows), Currency::Eur).unwrap();
+    data
+}
+
+fn category_on(data: &Transactions, reference: &str) -> Option<CategoryId> {
+    data.transactions()
+        .iter()
+        .find(|transaction| transaction.reference == reference)
+        .unwrap()
+        .category_id
+}
+
+#[test]
+fn test_csd032_ac_32_1_a_rule_without_text_categorises_every_transaction_in_its_period() {
+    let mut data = holiday_fixture();
+    let leisure = category(&data, "Leisure");
+    data.add_rule_in("", period("01-07-2026", "15-07-2026"), leisure)
+        .unwrap();
+    assert_eq!(data.reapply_rules(ReapplyScope::AllNonManual), 2);
+    assert_eq!(category_on(&data, "R1"), None, "the day before");
+    assert_eq!(
+        category_on(&data, "R2"),
+        Some(leisure),
+        "first day included"
+    );
+    assert_eq!(category_on(&data, "R3"), Some(leisure), "last day included");
+    assert_eq!(category_on(&data, "R4"), None, "the day after");
+    // Rust counts what the rule categorises.
+    assert_eq!(data.rule_counts(), vec![2]);
+    // Imports follow the rule too.
+    data.import(
+        &export(&[simple(
+            "10-07-2026",
+            "Afschrijvingen",
+            "5,00",
+            "Other",
+            "R5",
+        )]),
+        Currency::Eur,
+    )
+    .unwrap();
+    assert_eq!(category_on(&data, "R5"), Some(leisure));
+}
+
+#[test]
+fn test_csd032_ac_32_2_text_and_period_both_have_to_fit() {
+    let mut data = holiday_fixture();
+    let leisure = category(&data, "Leisure");
+    data.add_rule_in("Example Hotel", period("01-07-2026", "15-07-2026"), leisure)
+        .unwrap();
+    data.reapply_rules(ReapplyScope::AllNonManual);
+    assert_eq!(category_on(&data, "R3"), Some(leisure));
+    assert_eq!(category_on(&data, "R2"), None, "in the period, wrong text");
+    // The same text outside the period does not match.
+    let mut outside = holiday_fixture();
+    outside
+        .add_rule_in("Example Hotel", period("01-08-2026", "15-08-2026"), leisure)
+        .unwrap();
+    assert_eq!(outside.reapply_rules(ReapplyScope::AllNonManual), 0);
+}
+
+#[test]
+fn test_csd032_ac_32_3_one_open_end_is_allowed() {
+    let leisure_rule = |from: &str, to: &str| {
+        let mut data = holiday_fixture();
+        let leisure = category(&data, "Leisure");
+        data.add_rule_in("", period(from, to), leisure).unwrap();
+        data.reapply_rules(ReapplyScope::AllNonManual);
+        ["R1", "R2", "R3", "R4"].map(|reference| category_on(&data, reference).is_some())
+    };
+    assert_eq!(leisure_rule("15-07-2026", ""), [false, false, true, true]);
+    assert_eq!(leisure_rule("", "01-07-2026"), [true, true, false, false]);
+}
+
+#[test]
+fn test_csd032_ac_32_4_the_order_of_the_rules_decides() {
+    let mut data = holiday_fixture();
+    let leisure = category(&data, "Leisure");
+    let shopping = category(&data, "Shopping");
+    data.add_rule("Example Shop", shopping).unwrap();
+    let holiday = data
+        .add_rule_in("", period("01-07-2026", "15-07-2026"), leisure)
+        .unwrap();
+    data.reapply_rules(ReapplyScope::AllNonManual);
+    assert_eq!(
+        category_on(&data, "R2"),
+        Some(shopping),
+        "the text rule is first"
+    );
+    data.move_rule(holiday.id, 0).unwrap();
+    data.reapply_rules(ReapplyScope::AllNonManual);
+    assert_eq!(
+        category_on(&data, "R2"),
+        Some(leisure),
+        "the holiday rule moved to the top"
+    );
+    assert_eq!(
+        category_on(&data, "R1"),
+        Some(shopping),
+        "outside the period the text rule rules"
+    );
+    // Hand-set categories stay.
+    let id = find(&data, "Example Hotel").id;
+    data.set_category(id, Some(shopping)).unwrap();
+    data.reapply_rules(ReapplyScope::AllNonManual);
+    assert_eq!(category_on(&data, "R3"), Some(shopping));
+}
+
+#[test]
+fn test_csd032_ac_32_5_invalid_periods_are_rejected() {
+    let mut data = holiday_fixture();
+    let leisure = category(&data, "Leisure");
+    let code = |data: &mut Transactions, text: &str, period: RulePeriod| {
+        data.add_rule_in(text, period, leisure).unwrap_err().code()
+    };
+    assert_eq!(
+        code(&mut data, "Example", period("15-07-2026", "01-07-2026")),
+        "TRANSACTION_RULE_PERIOD_INVALID"
+    );
+    assert_eq!(
+        code(&mut data, "", RulePeriod::default()),
+        "TRANSACTION_RULE_TEXT_REQUIRED",
+        "no text needs a period"
+    );
+    assert_eq!(
+        code(&mut data, "  ", RulePeriod::default()),
+        "TRANSACTION_RULE_TEXT_REQUIRED"
+    );
+    // The same day on both ends is one day.
+    assert!(data
+        .add_rule_in("", period("01-07-2026", "01-07-2026"), leisure)
+        .is_ok());
+    // Editing validates the same way.
+    let rule = data.rules().first().unwrap().clone();
+    assert_eq!(
+        data.edit_rule(rule.id, "", RulePeriod::default(), leisure)
+            .unwrap_err()
+            .code(),
+        "TRANSACTION_RULE_TEXT_REQUIRED"
+    );
+    assert!(data
+        .edit_rule(rule.id, "", period("", "05-07-2026"), leisure)
+        .is_ok());
+}
+
+#[test]
+fn test_csd032_ac_32_6_the_same_text_may_have_another_period() {
+    let mut data = holiday_fixture();
+    let leisure = category(&data, "Leisure");
+    data.add_rule_in("Example", period("01-07-2026", "15-07-2026"), leisure)
+        .unwrap();
+    assert_eq!(
+        data.add_rule_in("EXAMPLE", period("01-07-2026", "15-07-2026"), leisure)
+            .unwrap_err()
+            .code(),
+        "TRANSACTION_RULE_TEXT_TAKEN"
+    );
+    assert!(data
+        .add_rule_in("Example", period("01-08-2026", "15-08-2026"), leisure)
+        .is_ok());
+    assert!(
+        data.add_rule("Example", leisure).is_ok(),
+        "no period is a period of its own"
+    );
+    // A period rule does not hide the same text from the suggestions.
+    assert!(
+        data.rules()
+            .iter()
+            .filter(|rule| rule.text == "Example")
+            .count()
+            >= 3
+    );
+}
+
+#[test]
+fn test_csd032_ac_32_7_a_period_survives_the_project_file_and_is_checked_on_load() {
+    let mut data = holiday_fixture();
+    let leisure = category(&data, "Leisure");
+    data.add_rule_in("", period("01-07-2026", "15-07-2026"), leisure)
+        .unwrap();
+    data.add_rule("Example Shop", leisure).unwrap();
+    let json = serde_json::to_value(data.rules()).unwrap();
+    assert_eq!(json[0]["from"], "2026-07-01");
+    assert_eq!(json[0]["to"], "2026-07-15");
+    assert!(
+        json[1].get("from").is_none(),
+        "a rule without a period writes no dates"
+    );
+    let rules: Vec<Rule> = serde_json::from_value(json).unwrap();
+    let list = data.transactions().to_vec();
+    let categories = data.categories().to_vec();
+    assert!(Transactions::from_parts(list.clone(), categories.clone(), rules.clone()).is_ok());
+    // An empty text needs a period, and the first day cannot be after the last.
+    let mut no_text = rules.clone();
+    no_text[1].text = String::new();
+    assert!(Transactions::from_parts(list.clone(), categories.clone(), no_text).is_err());
+    let mut inverted = rules;
+    inverted[0].from = Some(day("20-07-2026"));
+    assert!(Transactions::from_parts(list, categories, inverted).is_err());
 }

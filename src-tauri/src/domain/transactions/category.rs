@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use crate::domain::common::{Id, IdKind};
 use crate::domain::error::DomainError;
 
+use super::transaction::TransactionDate;
+
 /// Identifies a category.
 pub type CategoryId = Id<Category>;
 /// Identifies a rule.
@@ -42,6 +44,30 @@ pub struct Category {
     pub name: String,
 }
 
+/// The days a rule is limited to, both ends included; an end that is `None`
+/// is open. With neither end the rule is not limited in time (CSD-032 REQ-32).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RulePeriod {
+    /// First day, or no lower bound.
+    pub from: Option<TransactionDate>,
+    /// Last day, or no upper bound.
+    pub to: Option<TransactionDate>,
+}
+
+impl RulePeriod {
+    /// Whether the rule is limited in time at all.
+    #[must_use]
+    pub fn is_set(self) -> bool {
+        self.from.is_some() || self.to.is_some()
+    }
+
+    /// Whether `date` is inside the period.
+    #[must_use]
+    pub fn contains(self, date: TransactionDate) -> bool {
+        self.from.is_none_or(|from| from <= date) && self.to.is_none_or(|to| date <= to)
+    }
+}
+
 /// A text a transaction is matched against, and the category it gets.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -53,6 +79,35 @@ pub struct Rule {
     pub text: String,
     /// The category a match gets.
     pub category_id: CategoryId,
+    /// First day the rule applies to, itself included (REQ-32).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from: Option<TransactionDate>,
+    /// Last day the rule applies to, itself included (REQ-32).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub to: Option<TransactionDate>,
+}
+
+impl Rule {
+    /// The days the rule is limited to.
+    #[must_use]
+    pub fn period(&self) -> RulePeriod {
+        RulePeriod {
+            from: self.from,
+            to: self.to,
+        }
+    }
+
+    /// Whether the rule applies to a transaction on `date` with these lower-case
+    /// fields: the date is in the period and the text, when there is one, fits
+    /// the counterparty or the description. A rule without a text applies to
+    /// every transaction in its period (REQ-10, REQ-32).
+    fn fits(&self, date: TransactionDate, fields: &(String, String)) -> bool {
+        let pattern = self.text.trim().to_lowercase();
+        let has_text = !pattern.is_empty();
+        (has_text || self.period().is_set())
+            && self.period().contains(date)
+            && (!has_text || fields_match(fields, &pattern))
+    }
 }
 
 /// The categories a new project holds (CSD-032 REQ-8).
@@ -117,6 +172,8 @@ pub(super) fn defaults() -> (Vec<Category>, Vec<Rule>) {
                     id: RuleId::from_number(number),
                     text: (*text).to_owned(),
                     category_id: found.id,
+                    from: None,
+                    to: None,
                 })
         })
         .collect();
@@ -146,6 +203,15 @@ pub(super) fn valid_name(
         return Err(DomainError::TransactionCategoryNameTaken);
     }
     Ok(name.to_owned())
+}
+
+/// Checks a rule text typed by the user and returns it trimmed. A rule with a
+/// period may have no text (CSD-032 REQ-32).
+pub(super) fn rule_text(typed: &str, has_period: bool) -> Result<String, DomainError> {
+    if has_period && typed.trim().is_empty() {
+        return Ok(String::new());
+    }
+    valid_rule_text(typed)
 }
 
 /// Checks a rule text typed by the user and returns it trimmed.
@@ -206,27 +272,28 @@ pub(super) fn fields_match(fields: &(String, String), pattern: &str) -> bool {
     pattern_matches(&fields.0, pattern) || pattern_matches(&fields.1, pattern)
 }
 
-/// The position of the first rule, in order, whose text fits, ignoring case,
-/// the whole counterparty name or the whole description, with `*` as a
-/// wildcard (CSD-032 REQ-10).
+/// The position of the first rule, in order, that applies on `date`: its text
+/// fits, ignoring case, the whole counterparty name or the whole description,
+/// with `*` as a wildcard, and the date is in its period (CSD-032 REQ-10,
+/// REQ-32).
 pub(super) fn matching_rule(
     rules: &[Rule],
+    date: TransactionDate,
     counterparty: &str,
     description: &str,
 ) -> Option<usize> {
     let fields = fields_of(counterparty, description);
-    rules
-        .iter()
-        .position(|rule| fields_match(&fields, rule.text.trim().to_lowercase().as_str()))
+    rules.iter().position(|rule| rule.fits(date, &fields))
 }
 
 /// The category of the first matching rule (CSD-032 REQ-10).
 pub(super) fn categorise(
     rules: &[Rule],
+    date: TransactionDate,
     counterparty: &str,
     description: &str,
 ) -> Option<CategoryId> {
-    matching_rule(rules, counterparty, description)
+    matching_rule(rules, date, counterparty, description)
         .and_then(|index| rules.get(index))
         .map(|rule| rule.category_id)
 }

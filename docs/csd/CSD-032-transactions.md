@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.31
+version: 0.32
 last_updated: 16/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -309,7 +309,7 @@ Scenario: Uncategorized is protected
 ```
 
 **REQ-9: Rules** *(event-driven)*
-When the user adds, edits, reorders or deletes a rule, the app shall apply the change. A rule has a text of 1 to 100 characters after trimming and one category (not "Uncategorized"); no two rules have the same text, ignoring case and the spaces around it, whatever their categories, so adding or editing a rule to a text another rule has shall be rejected, and the rules are kept in an order the user can change. A new project holds about 15 seed rules for well-known Dutch chains, which the user may change. When the user adds a rule, the category choice also offers "New category…" as its last option (not when editing a rule); choosing it asks for the name of a new category, and saving adds that category and the rule as one change, or neither when the text or the name is invalid.
+When the user adds, edits, reorders or deletes a rule, the app shall apply the change. A rule has a text of 1 to 100 characters after trimming (empty only for a rule with a period, REQ-32) and one category (not "Uncategorized"); no two rules have the same text, ignoring case and the spaces around it, and the same period, whatever their categories, so adding or editing a rule to a text another rule has shall be rejected, and the rules are kept in an order the user can change. A new project holds about 15 seed rules for well-known Dutch chains, which the user may change. When the user adds a rule, the category choice also offers "New category…" as its last option (not when editing a rule); choosing it asks for the name of a new category, and saving adds that category and the rule as one change, or neither when the text or the name is invalid.
 
 ```gherkin
 @AC-9.1
@@ -377,7 +377,7 @@ Scenario: A new project has seed rules
 ```
 
 **REQ-10: Categorise on import** *(event-driven)*
-When a transaction is added by an import, the app shall give it the category of the first rule, in order, whose text fits, ignoring case and the spaces around the field, the whole counterparty name or the whole description (each on its own), and "Uncategorized" if no rule matches. A text without a star is the exact text: `CA` matches only a field that is `CA`. A star (`*`) stands for any run of characters, none included: `CA*` matches a field that starts with `CA`, `*CA` one that ends with it and `*CA*` one that contains it; the parts between the stars have to be found in that order. The seed rules of a new project end with a star, so they match the start of a name.
+When a transaction is added by an import, the app shall give it the category of the first rule, in order, whose text fits, ignoring case and the spaces around the field, the whole counterparty name or the whole description (each on its own), and "Uncategorized" if no rule matches. Unless the rule has a period (REQ-32), in which case the transaction's day also has to be in it, a text without a star is the exact text: `CA` matches only a field that is `CA`. A star (`*`) stands for any run of characters, none included: `CA*` matches a field that starts with `CA`, `*CA` one that ends with it and `*CA*` one that contains it; the parts between the stars have to be found in that order. The seed rules of a new project end with a star, so they match the start of a name.
 
 ```gherkin
 @AC-10.1
@@ -1082,6 +1082,71 @@ Scenario: The Overview tab shows the line
   Then the Yearly totals panel of the Overview tab shows "87.50% of the transactions are categorized (35 of 40)"
   And the line is hidden while there are no transactions
 
+**REQ-32: Rules for a period** *(ubiquitous)*
+A rule may be limited to a period: an optional "From date" and an optional "To date" (typed `dd/mm/yyyy`, both days included, one of them may be left empty to leave that end open). A rule with a period applies to a transaction only when the transaction's date is in the period and, when the rule has a text, the text fits as in REQ-10. A rule with a period and no text applies to every transaction in its period, so one rule can categorise a holiday. A rule without a period needs a text; a rule with neither is rejected, as is one whose from date is after its to date, or a date that is not on the calendar. Two rules are the same rule only when their text (ignoring case) and their period are both equal (REQ-9). Rules with a period stand in the one ordered list of REQ-9 and follow REQ-10 to REQ-12 in every way: the first rule that applies wins, so the user drags the rule above the others to let it win; manual categories stay; "Apply rules" and an import use them; the transaction count of REQ-27 counts them. The rule list shows the period (as "01/07/2026 – 15/07/2026", "from …" or "until …") and names a rule without text "Any transaction". In the project file a rule with a period has the optional ISO dates `from` and `to` (REQ-17); a rule without a period writes neither, and a file whose rule has an empty text and no period, or `from` after `to`, is invalid.
+
+```gherkin
+@AC-32.1
+Scenario: A rule without a text categorises its whole period
+  Given the rule "" from 01/07/2026 to 15/07/2026 → Leisure
+  And transactions on 30/06, 01/07, 15/07 and 16/07/2026
+  When the user applies the rules
+  Then the transactions of 01/07 and 15/07 are in Leisure, both ends included, and the other two are not
+  And the rule's count is 2, and a new import of a transaction on 10/07/2026 also gets Leisure
+
+@AC-32.2
+Scenario: Text and period both have to fit
+  Given the rule "Example Hotel" from 01/07/2026 to 15/07/2026
+  Then "Example Hotel" on 15/07/2026 matches, "Example Shop" on 01/07/2026 does not,
+  And "Example Hotel" on a day outside the period does not
+
+@AC-32.3
+Scenario: One end may be open
+  Given the rule "" from 15/07/2026 and no to date
+  Then every transaction from 15/07/2026 on matches and the earlier ones do not
+  And a rule with only a to date matches every transaction up to and including that day
+
+@AC-32.4
+Scenario: The order decides
+  Given the rule "Example Shop" → Shopping above the rule "" from 01/07/2026 to 15/07/2026 → Leisure
+  Then "Example Shop" on 01/07/2026 is Shopping
+  When the user drags the period rule to the top
+  Then it is Leisure, and "Example Shop" on 30/06/2026 is still Shopping
+  And a category set by hand stays
+
+@AC-32.5
+Scenario: Invalid rules are rejected
+  Then a rule with from 15/07/2026 and to 01/07/2026 is rejected with "TRANSACTION_RULE_PERIOD_INVALID"
+  And a rule with no text and no period is rejected with "TRANSACTION_RULE_TEXT_REQUIRED"
+  And a date that is not dd/mm/yyyy or not on the calendar is rejected with "TRANSACTION_RULE_DATE_INVALID"
+  And the same day on both ends is accepted, as one day
+
+@AC-32.6
+Scenario: The same text with another period is another rule
+  Given the rule "Example" from 01/07/2026 to 15/07/2026
+  Then "EXAMPLE" with the same period is rejected as TRANSACTION_RULE_TEXT_TAKEN
+  And "Example" with another period, and "Example" without a period, are accepted
+
+@AC-32.7
+Scenario: The project file
+  Then a rule with a period is saved with the ISO dates "from" and "to", and one without writes neither
+  And loading a file with an empty rule text and no period, or from after to, is invalid
+
+@AC-32.8
+Scenario: The commands take typed days and answer ISO days
+  When the frontend adds a rule with from "01/10/2026" and to "31/10/2026"
+  Then the rule list holds that rule with "from" "2026-10-01" and "to" "2026-10-31" and its count
+
+@AC-32.9
+Scenario: The list shows the period
+  Then a rule with both ends shows "01/07/2026 – 15/07/2026 → Leisure", one with only a from date "from 01/07/2026 → Leisure", one with only a to date "until 15/07/2026 → Leisure", and a rule without a text is named "Any transaction"
+
+@AC-32.10
+Scenario: The rule form
+  Then the form has the optional date fields "From date (optional)" and "To date (optional)", typed with the date mask, and sends them with the rule
+  And editing a rule with a period fills them, and an error of Rust is shown in the dialog, in Dutch when the language is Dutch
+```
+
 ## 5. Interfaces and contracts
 
 ```mermaid
@@ -1108,7 +1173,7 @@ erDiagram
 Project file: three sections (REQ-17). `transactions` is an array, `transaction_categories` an array of `{ id, name }` (the built-in "Uncategorized" is not stored), `transaction_rules` an ordered array. Dates are ISO 8601, amounts decimal strings with at most two decimals (CSD-000 CON-8, CSD-002 REQ-19), ids are UUIDs.
 
 Commands (names and payloads are indicative; the final signatures belong to the implementation):
-`import_transactions()` → `{ added, skipped }`; `list_transactions(filters, limit)` → `{ rows, total, count }`; `yearly_transaction_totals()` → `[{ year, income, spent, net, transaction_count }]`; `set_transaction_category(id, category_id)`; `unset_transaction_manual(id)`; `delete_transaction(id)`; `list_transaction_categories()`; `add_`/`rename_`/`delete_transaction_category`; `list_transaction_rules()`; `add_`/`edit_`/`move_`/`delete_transaction_rule`; `reapply_transaction_rules(scope)` → `{ changed }`.
+`import_transactions()` → `{ added, skipped }`; `list_transactions(filters, limit)` → `{ rows, total, count }`; `yearly_transaction_totals()` → `[{ year, income, spent, net, transaction_count }]`; `set_transaction_category(id, category_id)`; `unset_transaction_manual(id)`; `delete_transaction(id)`; `list_transaction_categories()`; `add_`/`rename_`/`delete_transaction_category`; `list_transaction_rules()` (each rule with `text`, `category_id`, optional `from` and `to`, and its `transaction_count`); `add_`/`edit_`/`move_`/`delete_transaction_rule` (add and edit also take the typed days `from` and `to`); `reapply_transaction_rules(scope)` → `{ changed }`.
 
 Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 text, or is larger than 50 MB), `TRANSACTION_IMPORT_FORMAT`, `_COLUMNS`, `_FIELD`, `_DATE`, `_DIRECTION`, `_AMOUNT`, `_REFERENCE`, `_CURRENCY`, `TRANSACTION_CATEGORY_NAME_REQUIRED`, `_NAME_TOO_LONG`, `_NAME_TAKEN`, `TRANSACTION_CATEGORY_PROTECTED`, `TRANSACTION_CATEGORY_NOT_FOUND`, `TRANSACTION_RULE_TEXT_REQUIRED`, `_TEXT_TOO_LONG`, `_TEXT_TAKEN`, `_CATEGORY_INVALID`, `TRANSACTION_RULE_NOT_FOUND`, `TRANSACTION_NOT_FOUND`, `TRANSACTION_DATA_INVALID`, `TRANSACTION_SUGGEST_MIN_COUNT` (the minimal count is 0). The built-in Uncategorized has no id: a transaction without a category holds `null`, and a filter, a rename and a delete name it `uncategorized`. The default categories and rules have fixed ids, so two new projects are equal.
 
@@ -1140,6 +1205,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.32 (16/11/2026): A rule may be limited to a period, with an optional from and to date, and without a text it categorises every transaction in the period, for example a holiday (new REQ-32, AC-32.1 to AC-32.10; REQ-9, REQ-10, REQ-17). Owner request. My choices: the period rules share the one ordered list and its first-match-wins order, instead of being a separate kind; both ends are included and either may be open; the project file gets the optional `from` and `to` on a rule (format version stays 3, older files load as they are). Back to `draft` until re-approved.
 - 0.31 (16/11/2026): Rules are ordered by dragging a handle of three horizontal lines at the left of the row, instead of the arrow buttons; the arrow keys work on the handle (REQ-9, AC-9.2). The categorized share moves from the Rules tab to the header of the Yearly totals panel on the Overview tab, right-aligned (REQ-31, AC-31.2). Owner requests. Back to `draft` until re-approved.
 - 0.30 (16/11/2026): The line on the Rules tab gives the percentage of categorized transactions, 100% being the best, instead of the uncategorized share (REQ-31, AC-31.1, AC-31.2). Owner request. Back to `draft` until re-approved.
 - 0.29 (16/11/2026): The uncategorized share is shown in an area of its own above the Rules panel, not inside it (REQ-31). Owner request. Back to `draft` until re-approved.

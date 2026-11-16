@@ -412,7 +412,59 @@ test('test_csd032_ac_9_3_the_rule_form_offers_the_existing_categories_and_sends_
   form.elements.category.value = SHOPPING;
   form.requestSubmit();
   await app.settle();
-  assert.deepEqual(app.callsOf('add_transaction_rule').at(-1).args, { text: 'Example Gym', categoryId: SHOPPING });
+  assert.deepEqual(app.callsOf('add_transaction_rule').at(-1).args, { text: 'Example Gym', categoryId: SHOPPING, from: '', to: '' });
+  app.close();
+});
+
+const HOLIDAY_RULE = { id: 'rule-3', text: '', category_id: SHOPPING, transaction_count: 4, from: '2026-07-01', to: '2026-07-15' };
+
+test('test_csd032_ac_32_9_a_rule_with_a_period_is_listed_with_its_days', async () => {
+  const reads = readsWith({ rows: [], count: 0, rules: [...RULES, HOLIDAY_RULE, { ...HOLIDAY_RULE, id: 'rule-4', to: null }, { ...HOLIDAY_RULE, id: 'rule-5', from: null, text: 'Example' }] });
+  const app = await transactionsPage(reads);
+  const rows = [...app.$('transaction-rules').querySelectorAll('li')];
+  assert.equal(app.text(rows[2].querySelector('.job-name')), 'Any transaction', 'no text, so every transaction');
+  assert.equal(app.text(rows[2].querySelector('.job-meta')), '01/07/2026 – 15/07/2026 → Shopping');
+  assert.equal(app.text(rows[3].querySelector('.job-meta')), 'from 01/07/2026 → Shopping');
+  assert.equal(app.text(rows[4].querySelector('.job-meta')), 'until 15/07/2026 → Shopping');
+  assert.equal(app.text(rows[4].querySelector('.job-name')), 'Example');
+  assert.ok(rows[2].querySelector('[aria-label="Edit Any transaction"]'), 'the buttons name the rule');
+  assert.equal(app.text(rows[0].querySelector('.job-meta')), '→ Groceries', 'a rule without a period shows none');
+  app.close();
+});
+
+test('test_csd032_ac_32_10_the_rule_form_has_optional_dates_and_sends_them', async () => {
+  const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { add_transaction_rule: { id: 'rule-3' } });
+  await app.click(app.$('transaction-rule-add'));
+  const form = app.$('transaction-rule-form');
+  assert.deepEqual([...form.querySelectorAll('input[data-mask="date"]')].map((input) => input.name), ['from', 'to']);
+  assert.equal(app.text(form.elements.from.closest('label')), 'From date (optional)');
+  form.elements.category.value = SHOPPING;
+  await app.type(form.elements.from, '01072026');
+  await app.type(form.elements.to, '15072026');
+  assert.equal(form.elements.from.value, '01/07/2026', 'typed digits are laid out as a day');
+  form.requestSubmit();
+  await app.settle();
+  assert.deepEqual(app.callsOf('add_transaction_rule').at(-1).args, { text: '', categoryId: SHOPPING, from: '01/07/2026', to: '15/07/2026' });
+  app.close();
+});
+
+test('test_csd032_ac_32_11_editing_a_period_rule_fills_the_days_and_a_bad_date_shows_in_the_dialog_in_dutch', async () => {
+  const app = await transactionsPage(readsWith({ rows: [], count: 0, rules: [HOLIDAY_RULE] }), {
+    edit_transaction_rule: () => {
+      throw { code: 'TRANSACTION_RULE_PERIOD_INVALID', message: 'The first day cannot be after the last day.' };
+    },
+  });
+  await app.click(app.$('transactions-tab-rules'));
+  await app.click(app.$('transaction-rules').querySelector('[aria-label="Edit Any transaction"]'));
+  const form = app.$('transaction-rule-form');
+  assert.equal(form.elements.from.value, '01/07/2026');
+  assert.equal(form.elements.to.value, '15/07/2026');
+  assert.equal(form.elements.text.value, '');
+  form.requestSubmit();
+  await app.settle();
+  assert.deepEqual(app.callsOf('edit_transaction_rule').at(-1).args, { ruleId: 'rule-3', text: '', categoryId: SHOPPING, from: '01/07/2026', to: '15/07/2026' });
+  assert.match(app.textOf('transaction-rule-error'), /first day cannot be after the last day/);
+  assert.ok(app.isShown(app.$('transaction-rule-dialog')), 'the dialog stays open');
   app.close();
 });
 
@@ -435,7 +487,7 @@ test('test_csd032_ac_9_10_a_duplicate_rule_text_marks_its_text_field_in_dutch', 
 test('test_csd032_ac_9_3_a_rejected_rule_marks_its_text_field', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }), {
     add_transaction_rule: () => {
-      throw { code: 'TRANSACTION_RULE_TEXT_REQUIRED', message: 'Enter the text the rule looks for.' };
+      throw { code: 'TRANSACTION_RULE_TEXT_REQUIRED', message: 'Enter the text the rule looks for, or give it a period.' };
     },
   });
   await app.click(app.$('transaction-rule-add'));
@@ -897,7 +949,7 @@ test('test_csd032_ac_23_3_saving_adds_the_rule_and_cancelling_adds_none', async 
   form.elements.text.value = 'Example Market';
   form.requestSubmit();
   await app.settle();
-  assert.deepEqual(app.callsOf('add_transaction_rule').at(-1).args, { text: 'Example Market', categoryId: GROCERIES });
+  assert.deepEqual(app.callsOf('add_transaction_rule').at(-1).args, { text: 'Example Market', categoryId: GROCERIES, from: '', to: '' });
   assert.equal(app.$('transaction-rule-dialog').open, false);
   await open();
   await app.click(app.$('transaction-rule-dialog').querySelector('[data-cancel]'));
@@ -931,7 +983,7 @@ test('test_csd032_ac_9_6_saving_with_a_new_category_sends_the_name', async () =>
   form.elements.name.value = 'Example Sport';
   form.requestSubmit();
   await app.settle();
-  assert.deepEqual(app.callsOf('add_transaction_rule').at(-1).args, { text: 'Example Gym', newCategory: 'Example Sport' });
+  assert.deepEqual(app.callsOf('add_transaction_rule').at(-1).args, { text: 'Example Gym', newCategory: 'Example Sport', from: '', to: '' });
   assert.equal(app.$('transaction-rule-dialog').open, false);
   app.close();
 });

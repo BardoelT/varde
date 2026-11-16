@@ -476,6 +476,62 @@ fn test_csd032_ac_9_1_rules_are_reordered_over_ipc() {
 }
 
 #[test]
+fn test_csd032_ac_32_8_a_rule_for_a_period_is_typed_as_days_and_listed_as_iso_over_ipc() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let leisure = category_id(&app, "Leisure");
+    let rule = app.ok(
+        "add_transaction_rule",
+        json!({ "text": "", "categoryId": leisure, "from": "01/10/2026", "to": " 31/10/2026 " }),
+    );
+    assert_eq!(rule["from"], "2026-10-01");
+    assert_eq!(rule["to"], "2026-10-31");
+    let listed = app.ok("list_transaction_rules", json!({}));
+    let last = listed.as_array().unwrap().last().unwrap().clone();
+    assert_eq!(last["id"], rule["id"]);
+    assert!(last["transaction_count"].is_u64());
+    let result = app.ok(
+        "reapply_transaction_rules",
+        json!({ "scope": "all_non_manual" }),
+    );
+    assert!(
+        result["changed"].as_u64().unwrap() > 0,
+        "the October rows are covered"
+    );
+    assert_eq!(
+        row_of(&rows(&app), "Example Landlord")["category_id"],
+        leisure
+    );
+    // Bad input is a coded error and changes nothing.
+    for (from, to, code) in [
+        ("31/02/2026", "", "TRANSACTION_RULE_DATE_INVALID"),
+        ("2026-10-01", "", "TRANSACTION_RULE_DATE_INVALID"),
+        (
+            "20/10/2026",
+            "01/10/2026",
+            "TRANSACTION_RULE_PERIOD_INVALID",
+        ),
+    ] {
+        let error = app.err(
+            "add_transaction_rule",
+            json!({ "text": "", "categoryId": leisure, "from": from, "to": to }),
+        );
+        assert_eq!(error["code"], code);
+    }
+    let error = app.err(
+        "add_transaction_rule",
+        json!({ "text": "", "categoryId": leisure }),
+    );
+    assert_eq!(error["code"], "TRANSACTION_RULE_TEXT_REQUIRED");
+    let edited = app.ok(
+        "edit_transaction_rule",
+        json!({ "ruleId": rule["id"], "text": "", "categoryId": leisure, "from": "", "to": "05/10/2026" }),
+    );
+    assert!(edited.get("from").is_none());
+    assert_eq!(edited["to"], "2026-10-05");
+}
+
+#[test]
 fn test_csd032_ac_15_1_the_list_is_filtered_and_cut_by_rust() {
     let app = harness();
     import(&app, fixture()).unwrap();

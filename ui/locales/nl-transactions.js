@@ -104,11 +104,16 @@ export default {
   'Apply rules including manually set?': 'Regels toepassen, ook op handmatig ingesteld?',
   'The rules will also change the categories you set by hand. You can undo this.': 'De regels wijzigen ook de categorieën die je met de hand hebt ingesteld. Je kunt dit ongedaan maken.',
   'Add a rule from {name}': 'Regel toevoegen vanuit {name}',
+  'Any transaction': 'Elke transactie',
+  'from {date}': 'vanaf {date}',
+  'until {date}': 'tot en met {date}',
+  'From date (optional)': 'Vanaf datum (optioneel)',
+  'To date (optional)': 'Tot en met datum (optioneel)',
   'Reorder {name}': '{name} van volgorde veranderen',
   'No rules yet. A rule gives a transaction a category when its counterparty or description is exactly the rule text. A * in the text stands for any characters, so Example* matches a text that starts with Example, *Example one that ends with it and *Example* one that contains it.':
     'Nog geen regels. Een regel geeft een transactie een categorie als de tegenpartij of de omschrijving precies de regeltekst is. Een * in de tekst staat voor willekeurige tekens: Voorbeeld* past op een tekst die met Voorbeeld begint, *Voorbeeld op een tekst die ermee eindigt en *Voorbeeld* op een tekst die het bevat.',
-  'A transaction gets the category of the first rule, from the top, whose text is in its counterparty or description. Capitals do not matter. A * stands for any characters, so "Albert Heijn*" finds "Albert Heijn 1157".':
-    'Een transactie krijgt de categorie van de eerste regel, van boven af, waarvan de tekst in de tegenpartij of omschrijving staat. Hoofdletters maken niet uit. Een * staat voor willekeurige tekens, dus "Albert Heijn*" vindt "Albert Heijn 1157".',
+  'A transaction gets the category of the first rule, from the top, whose text is exactly its counterparty or description. Capitals do not matter. A * stands for any characters, so "Albert Heijn*" finds "Albert Heijn 1157". With a from date, a to date or both, the rule only applies to transactions in that period, both days included. Leave the text empty to categorise every transaction in the period, for example a holiday. Drag the rule above the others to let it win.':
+    'Een transactie krijgt de categorie van de eerste regel, van boven af, waarvan de tekst precies de tegenpartij of omschrijving is. Hoofdletters maken niet uit. Een * staat voor willekeurige tekens, dus "Albert Heijn*" vindt "Albert Heijn 1157". Met een vanaf-datum, een tot-en-met-datum of beide geldt de regel alleen voor transacties in die periode, beide dagen inbegrepen. Laat de tekst leeg om elke transactie in de periode te categoriseren, bijvoorbeeld een vakantie. Sleep de regel boven de andere om hem voor te laten gaan.',
   'Transactions that already have a category keep it.': 'Transacties die al een categorie hebben, houden die.',
   // Errors from Rust
   'code:TRANSACTION_IMPORT_UNREADABLE': 'Het bestand kon niet worden gelezen als Knab-export.',
@@ -125,7 +130,9 @@ export default {
   'code:TRANSACTION_CATEGORY_NAME_TAKEN': 'Er bestaat al een categorie met deze naam.',
   'code:TRANSACTION_CATEGORY_PROTECTED': 'Zonder categorie kan niet worden hernoemd of verwijderd.',
   'code:TRANSACTION_CATEGORY_NOT_FOUND': 'Deze categorie bestaat niet.',
-  'code:TRANSACTION_RULE_TEXT_REQUIRED': 'Vul de tekst in waarop de regel zoekt.',
+  'code:TRANSACTION_RULE_TEXT_REQUIRED': 'Vul de tekst in waarop de regel zoekt, of geef de regel een periode.',
+  'code:TRANSACTION_RULE_PERIOD_INVALID': 'De eerste dag mag niet na de laatste dag liggen.',
+  'code:TRANSACTION_RULE_DATE_INVALID': 'Vul een datum in als dd/mm/jjjj.',
   'code:TRANSACTION_RULE_TEXT_TOO_LONG': 'De regeltekst mag maximaal 100 tekens bevatten.',
   'code:TRANSACTION_RULE_TEXT_TAKEN': 'Er bestaat al een regel met deze tekst.',
   'code:TRANSACTION_RULE_CATEGORY_INVALID': 'Kies een bestaande categorie, niet Zonder categorie.',

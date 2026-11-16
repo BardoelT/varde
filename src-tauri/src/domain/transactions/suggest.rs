@@ -150,9 +150,11 @@ impl Transactions {
                 group.dropped |= dropped;
             }
         }
+        // Only a rule without a period covers a text everywhere (REQ-32).
         let existing: HashSet<String> = self
             .rules()
             .iter()
+            .filter(|rule| !rule.period().is_set())
             .map(|rule| rule.text.to_lowercase())
             .collect();
         let haystacks = self.haystacks();

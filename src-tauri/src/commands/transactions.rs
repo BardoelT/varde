@@ -14,8 +14,8 @@ use tauri_plugin_dialog::DialogExt;
 use super::AppState;
 use crate::domain::transactions::{
     CategorisationSummary, Category, CategoryId, Granularity, ImportSummary, ReapplyScope, Rule,
-    RuleId, RuleSuggestions, TransactionFilterInput, TransactionId, TransactionInsights,
-    TransactionList, TransactionYearlyTotal, UNCATEGORIZED_ENTITY,
+    RuleId, RulePeriod, RuleSuggestions, TransactionDate, TransactionFilterInput, TransactionId,
+    TransactionInsights, TransactionList, TransactionYearlyTotal, UNCATEGORIZED_ENTITY,
 };
 use crate::domain::DomainError;
 use crate::error::AppError;
@@ -432,25 +432,50 @@ fn rule_category(text: &str) -> Result<CategoryId, DomainError> {
     CategoryId::parse(text).map_err(|_| DomainError::TransactionRuleCategoryInvalid)
 }
 
-/// Adds a rule. With `new_category` the rule names a category that is created
-/// with it, as one undo step; otherwise it names `category_id` (REQ-9).
+/// One end of a rule's period as typed, `dd/mm/yyyy`; empty leaves the end
+/// open (REQ-32).
+fn typed_day(typed: Option<&str>) -> Result<Option<TransactionDate>, DomainError> {
+    match typed.map(str::trim).filter(|text| !text.is_empty()) {
+        None => Ok(None),
+        Some(text) => TransactionDate::parse_typed(text)
+            .map(Some)
+            .ok_or(DomainError::TransactionRuleDateInvalid),
+    }
+}
+
+/// The period of a rule from the two typed days (REQ-32).
+fn typed_period(from: Option<&str>, to: Option<&str>) -> Result<RulePeriod, DomainError> {
+    Ok(RulePeriod {
+        from: typed_day(from)?,
+        to: typed_day(to)?,
+    })
+}
+
+/// Adds a rule, optionally limited to the days `from` to `to` (REQ-32). With
+/// `new_category` the rule names a category that is created with it, as one
+/// undo step; otherwise it names `category_id` (REQ-9).
 #[tauri::command]
 pub fn add_transaction_rule(
     state: State<'_, AppState>,
     text: String,
     category_id: Option<String>,
     new_category: Option<String>,
+    from: Option<String>,
+    to: Option<String>,
 ) -> Result<Rule, AppError> {
+    let period = typed_period(from.as_deref(), to.as_deref())?;
     if let Some(name) = new_category {
         let mut project = state.edit(StepLabel::add(Record::TransactionRule))?;
         let (_, rule) = project
             .transactions_mut()
-            .add_rule_with_new_category(&text, &name)?;
+            .add_rule_with_new_category(&text, period, &name)?;
         return Ok(rule);
     }
     let category = rule_category(category_id.as_deref().unwrap_or_default())?;
     let mut project = state.edit(StepLabel::add(Record::TransactionRule))?;
-    Ok(project.transactions_mut().add_rule(&text, category)?)
+    Ok(project
+        .transactions_mut()
+        .add_rule_in(&text, period, category)?)
 }
 
 #[tauri::command]
@@ -459,11 +484,16 @@ pub fn edit_transaction_rule(
     rule_id: String,
     text: String,
     category_id: String,
+    from: Option<String>,
+    to: Option<String>,
 ) -> Result<Rule, AppError> {
     let id = RuleId::parse(&rule_id)?;
     let category = rule_category(&category_id)?;
+    let period = typed_period(from.as_deref(), to.as_deref())?;
     let mut project = state.edit(StepLabel::edit(Record::TransactionRule))?;
-    Ok(project.transactions_mut().edit_rule(id, &text, category)?)
+    Ok(project
+        .transactions_mut()
+        .edit_rule(id, &text, period, category)?)
 }
 
 /// Moves a rule to a position, counted from 0 at the top (REQ-9).
