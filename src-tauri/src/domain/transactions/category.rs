@@ -48,7 +48,8 @@ pub struct Category {
 pub struct Rule {
     /// Identifier of the rule.
     pub id: RuleId,
-    /// The text to look for, ignoring case.
+    /// The text a counterparty or description has to fit as a whole, ignoring
+    /// case; `*` stands for any characters (REQ-10).
     pub text: String,
     /// The category a match gets.
     pub category_id: CategoryId,
@@ -75,21 +76,21 @@ const DEFAULT_CATEGORIES: [&str; 14] = [
 /// The rules a new project holds: well-known chains and their categories
 /// (CSD-032 REQ-9).
 const DEFAULT_RULES: [(&str, &str); 15] = [
-    ("Albert Heijn", "Groceries"),
-    ("Jumbo", "Groceries"),
-    ("Lidl", "Groceries"),
-    ("Aldi", "Groceries"),
-    ("Dirk van den Broek", "Groceries"),
-    ("HEMA", "Shopping"),
-    ("bol.com", "Shopping"),
-    ("Coolblue", "Shopping"),
-    ("Kruidvat", "Health"),
-    ("NS Reizigers", "Transport"),
-    ("Shell", "Transport"),
-    ("Thuisbezorgd", "Eating out"),
-    ("Netflix", "Subscriptions"),
-    ("Spotify", "Subscriptions"),
-    ("Zilveren Kruis", "Insurance"),
+    ("Albert Heijn*", "Groceries"),
+    ("Jumbo*", "Groceries"),
+    ("Lidl*", "Groceries"),
+    ("Aldi*", "Groceries"),
+    ("Dirk van den Broek*", "Groceries"),
+    ("HEMA*", "Shopping"),
+    ("bol.com*", "Shopping"),
+    ("Coolblue*", "Shopping"),
+    ("Kruidvat*", "Health"),
+    ("NS Reizigers*", "Transport"),
+    ("Shell*", "Transport"),
+    ("Thuisbezorgd*", "Eating out"),
+    ("Netflix*", "Subscriptions"),
+    ("Spotify*", "Subscriptions"),
+    ("Zilveren Kruis*", "Insurance"),
 ];
 
 /// The ids of the default categories and rules count up from these, so every
@@ -159,39 +160,64 @@ pub(super) fn valid_rule_text(typed: &str) -> Result<String, DomainError> {
     Ok(text.to_owned())
 }
 
-/// Whether `haystack` contains `pattern`, where each `*` in the pattern stands
-/// for any run of characters, none included; both are already lower case. The
-/// parts between the stars have to be found in that order, so a pattern with
-/// no star is a plain "contains" (CSD-032 REQ-10).
-pub(super) fn contains_pattern(haystack: &str, pattern: &str) -> bool {
-    let mut rest = haystack;
-    for part in pattern.split('*').filter(|part| !part.is_empty()) {
-        match rest.find(part) {
-            Some(at) => rest = rest.get(at + part.len()..).unwrap_or_default(),
+/// Whether the whole of `text` fits `pattern`, where each `*` in the pattern
+/// stands for any run of characters, none included; both are already lower
+/// case. A pattern without a star is the exact text, `ca*` is a text that
+/// starts with `ca`, `*ca` one that ends with it and `*ca*` one that contains
+/// it; parts between stars have to be found in that order (CSD-032 REQ-10).
+pub(super) fn pattern_matches(text: &str, pattern: &str) -> bool {
+    let mut parts = pattern.split('*');
+    let Some(first) = parts.next() else {
+        return false;
+    };
+    let rest: Vec<&str> = parts.collect();
+    let Some((last, middle)) = rest.split_last() else {
+        return text == first;
+    };
+    let Some(mut remaining) = text.strip_prefix(first) else {
+        return false;
+    };
+    let Some(trimmed) = remaining.strip_suffix(last) else {
+        return false;
+    };
+    remaining = trimmed;
+    for part in middle.iter().filter(|part| !part.is_empty()) {
+        match remaining.find(part) {
+            Some(at) => remaining = remaining.get(at + part.len()..).unwrap_or_default(),
             None => return false,
         }
     }
     true
 }
 
-/// The lower-case text a rule is matched against: the counterparty name
-/// followed by a space and the description (CSD-032 REQ-10).
-pub(super) fn haystack_of(counterparty: &str, description: &str) -> String {
-    format!("{counterparty} {description}").to_lowercase()
+/// The lower-case, trimmed counterparty name and description of a
+/// transaction: the two texts a rule is matched against, each on its own
+/// (CSD-032 REQ-10).
+pub(super) fn fields_of(counterparty: &str, description: &str) -> (String, String) {
+    (
+        counterparty.trim().to_lowercase(),
+        description.trim().to_lowercase(),
+    )
 }
 
-/// The position of the first rule, in order, whose text is contained, ignoring
-/// case and with `*` as a wildcard, in the counterparty name followed by a
-/// space and the description (CSD-032 REQ-10).
+/// Whether the lower-case `pattern` fits the counterparty or the description
+/// (from [`fields_of`]) as a whole (CSD-032 REQ-10).
+pub(super) fn fields_match(fields: &(String, String), pattern: &str) -> bool {
+    pattern_matches(&fields.0, pattern) || pattern_matches(&fields.1, pattern)
+}
+
+/// The position of the first rule, in order, whose text fits, ignoring case,
+/// the whole counterparty name or the whole description, with `*` as a
+/// wildcard (CSD-032 REQ-10).
 pub(super) fn matching_rule(
     rules: &[Rule],
     counterparty: &str,
     description: &str,
 ) -> Option<usize> {
-    let haystack = haystack_of(counterparty, description);
+    let fields = fields_of(counterparty, description);
     rules
         .iter()
-        .position(|rule| contains_pattern(&haystack, &rule.text.to_lowercase()))
+        .position(|rule| fields_match(&fields, rule.text.trim().to_lowercase().as_str()))
 }
 
 /// The category of the first matching rule (CSD-032 REQ-10).

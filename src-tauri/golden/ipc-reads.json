@@ -3788,91 +3788,91 @@
     {
       "category_id": "id-19",
       "id": "id-32",
-      "text": "Albert Heijn",
+      "text": "Albert Heijn*",
       "transaction_count": 1
     },
     {
       "category_id": "id-19",
       "id": "id-33",
-      "text": "Jumbo",
+      "text": "Jumbo*",
       "transaction_count": 0
     },
     {
       "category_id": "id-19",
       "id": "id-34",
-      "text": "Lidl",
+      "text": "Lidl*",
       "transaction_count": 0
     },
     {
       "category_id": "id-19",
       "id": "id-35",
-      "text": "Aldi",
+      "text": "Aldi*",
       "transaction_count": 0
     },
     {
       "category_id": "id-19",
       "id": "id-36",
-      "text": "Dirk van den Broek",
+      "text": "Dirk van den Broek*",
       "transaction_count": 0
     },
     {
       "category_id": "id-25",
       "id": "id-37",
-      "text": "HEMA",
+      "text": "HEMA*",
       "transaction_count": 0
     },
     {
       "category_id": "id-25",
       "id": "id-38",
-      "text": "bol.com",
+      "text": "bol.com*",
       "transaction_count": 0
     },
     {
       "category_id": "id-25",
       "id": "id-39",
-      "text": "Coolblue",
+      "text": "Coolblue*",
       "transaction_count": 0
     },
     {
       "category_id": "id-26",
       "id": "id-40",
-      "text": "Kruidvat",
+      "text": "Kruidvat*",
       "transaction_count": 0
     },
     {
       "category_id": "id-23",
       "id": "id-41",
-      "text": "NS Reizigers",
+      "text": "NS Reizigers*",
       "transaction_count": 0
     },
     {
       "category_id": "id-23",
       "id": "id-42",
-      "text": "Shell",
+      "text": "Shell*",
       "transaction_count": 0
     },
     {
       "category_id": "id-24",
       "id": "id-43",
-      "text": "Thuisbezorgd",
+      "text": "Thuisbezorgd*",
       "transaction_count": 0
     },
     {
       "category_id": "id-28",
       "id": "id-44",
-      "text": "Netflix",
+      "text": "Netflix*",
       "transaction_count": 1
     },
     {
       "category_id": "id-28",
       "id": "id-45",
-      "text": "Spotify",
+      "text": "Spotify*",
       "transaction_count": 0
     },
     {
       "category_id": "id-22",
       "id": "id-46",
-      "text": "Zilveren Kruis",
+      "text": "Zilveren Kruis*",
       "transaction_count": 0
     }
   ],

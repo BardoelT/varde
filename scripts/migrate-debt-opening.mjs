@@ -41,21 +41,21 @@ const DEFAULT_CATEGORIES = [
 
 /** The default rules of a new project (CSD-032 REQ-9): text and category name. */
 const DEFAULT_RULES = [
-  ['Albert Heijn', 'Groceries'],
-  ['Jumbo', 'Groceries'],
-  ['Lidl', 'Groceries'],
-  ['Aldi', 'Groceries'],
-  ['Dirk van den Broek', 'Groceries'],
-  ['HEMA', 'Shopping'],
-  ['bol.com', 'Shopping'],
-  ['Coolblue', 'Shopping'],
-  ['Kruidvat', 'Health'],
-  ['NS Reizigers', 'Transport'],
-  ['Shell', 'Transport'],
-  ['Thuisbezorgd', 'Eating out'],
-  ['Netflix', 'Subscriptions'],
-  ['Spotify', 'Subscriptions'],
-  ['Zilveren Kruis', 'Insurance'],
+  ['Albert Heijn*', 'Groceries'],
+  ['Jumbo*', 'Groceries'],
+  ['Lidl*', 'Groceries'],
+  ['Aldi*', 'Groceries'],
+  ['Dirk van den Broek*', 'Groceries'],
+  ['HEMA*', 'Shopping'],
+  ['bol.com*', 'Shopping'],
+  ['Coolblue*', 'Shopping'],
+  ['Kruidvat*', 'Health'],
+  ['NS Reizigers*', 'Transport'],
+  ['Shell*', 'Transport'],
+  ['Thuisbezorgd*', 'Eating out'],
+  ['Netflix*', 'Subscriptions'],
+  ['Spotify*', 'Subscriptions'],
+  ['Zilveren Kruis*', 'Insurance'],
 ];
 
 /** The fixed ids the app gives the default categories and rules (counting up). */

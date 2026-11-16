@@ -575,7 +575,7 @@ fn with_rules(rules: &[(&str, &str)]) -> Transactions {
 
 #[test]
 fn test_csd032_ac_10_1_the_first_matching_rule_wins() {
-    let mut data = with_rules(&[("Example Market", "Groceries"), ("Example", "Shopping")]);
+    let mut data = with_rules(&[("Example Market*", "Groceries"), ("Example*", "Shopping")]);
     let line = simple(
         "30-10-2026",
         "Afschrijvingen",
@@ -593,7 +593,7 @@ fn test_csd032_ac_10_1_the_first_matching_rule_wins() {
 
 #[test]
 fn test_csd032_ac_10_2_the_description_is_matched_too() {
-    let mut data = with_rules(&[("Rent October", "Housing")]);
+    let mut data = with_rules(&[("Rent October*", "Housing")]);
     let line = row(
         "NL00EXAM0000000001",
         "30-10-2026",
@@ -689,7 +689,7 @@ fn reapply_fixture() -> Transactions {
     let shopping = category(&data, "Shopping");
     let id = find(&data, "Example Three").id;
     // Three is categorised by an old rule, not by hand.
-    let rule = data.add_rule("Three", shopping).unwrap();
+    let rule = data.add_rule("*Three", shopping).unwrap();
     data.reapply_rules(ReapplyScope::AllNonManual);
     data.delete_rule(rule.id).unwrap();
     assert_eq!(
@@ -701,7 +701,7 @@ fn reapply_fixture() -> Transactions {
         Some(shopping)
     );
     let leisure = category(&data, "Leisure");
-    data.add_rule("Example", leisure).unwrap();
+    data.add_rule("Example*", leisure).unwrap();
     data
 }
 
@@ -980,17 +980,69 @@ fn test_csd032_ac_10_4_a_star_in_a_rule_matches_any_text() {
     assert!(hit(&trailing, "ALBERT HEIJN 1157", "Pinbetaling"));
     assert!(hit(&trailing, "Albert Heijn", ""));
     assert!(!hit(&trailing, "Jumbo 1157", "Albert Hein"));
-    // A star inside: the parts must come in that order.
+    assert!(
+        !hit(&trailing, "Der Albert Heijn", ""),
+        "starts with, not contains"
+    );
+    // A star inside: the parts must come in that order, within one field.
     let inner = rules("Albert*1157");
     assert!(hit(&inner, "Albert Heijn 1157", ""));
-    assert!(hit(&inner, "Albert", "Heijn 1157"));
+    assert!(
+        !hit(&inner, "Albert", "Heijn 1157"),
+        "the fields are not joined"
+    );
     assert!(!hit(&inner, "1157 Albert Heijn", ""));
-    // Two stars, a leading star, and a text without a star is still "contains".
+    assert!(
+        !hit(&inner, "Albert Heijn 1157 Utrecht", ""),
+        "has to end with 1157"
+    );
+    // A star at the start, at both ends, and in the middle only.
+    assert!(hit(&rules("*heijn 1157"), "Albert Heijn 1157", ""));
+    assert!(!hit(&rules("*heijn 1157"), "Albert Heijn 1157 Utrecht", ""));
     assert!(hit(&rules("*heijn*1157*"), "Albert Heijn 1157 Utrecht", ""));
-    assert!(hit(&rules("Heijn"), "Albert Heijn 1157", ""));
     assert!(!hit(&rules("Albert*Jumbo"), "Albert Heijn 1157", ""));
     // A star alone matches everything.
     assert!(hit(&rules("*"), "Anything", ""));
+}
+
+#[test]
+fn test_csd032_ac_10_5_a_rule_without_a_star_is_the_exact_text() {
+    let rules = |text: &str| {
+        let mut data = Transactions::default();
+        let seeds: Vec<RuleId> = data.rules().iter().map(|rule| rule.id).collect();
+        for id in seeds {
+            data.delete_rule(id).unwrap();
+        }
+        let groceries = category(&data, "Groceries");
+        data.add_rule(text, groceries).unwrap();
+        data
+    };
+    let hit = |data: &Transactions, counterparty: &str, description: &str| {
+        categorise(data.rules(), counterparty, description).is_some()
+    };
+    let exact = rules("CA");
+    assert!(hit(&exact, "CA", ""));
+    assert!(hit(&exact, "ca", ""), "ignoring case");
+    assert!(hit(&exact, "  Ca ", ""), "ignoring surrounding spaces");
+    assert!(hit(&exact, "Other", "CA"), "or the description as a whole");
+    for other in [
+        "CAFE",
+        "ACA",
+        "CA 1157",
+        "Example CA",
+        "Example CA Town",
+        "C A",
+    ] {
+        assert!(!hit(&exact, other, ""), "{other} is not exactly CA");
+        assert!(!hit(&exact, "", other), "{other} is not exactly CA");
+    }
+    // Only with a star can it reach other texts.
+    assert!(hit(&rules("CA*"), "CAFE", ""));
+    assert!(!hit(&rules("CA*"), "ACA", ""));
+    assert!(hit(&rules("*CA"), "ACA", ""));
+    assert!(!hit(&rules("*CA"), "CAFE", ""));
+    assert!(hit(&rules("*CA*"), "Example CA Town", ""));
+    assert!(!hit(&rules("*CA*"), "C A", ""));
 }
 
 #[test]
@@ -1002,7 +1054,7 @@ fn test_csd032_ac_27_1_a_rule_counts_the_transactions_it_categorises() {
     }
     let groceries = category(&data, "Groceries");
     let leisure = category(&data, "Leisure");
-    data.add_rule("Example Market", groceries).unwrap();
+    data.add_rule("Example Market*", groceries).unwrap();
     data.add_rule("Example C*", leisure).unwrap();
     data.add_rule("Nothing Matches This", leisure).unwrap();
     let rows = [
@@ -1284,31 +1336,57 @@ fn test_csd032_ac_15_9_the_text_filters_look_in_counterparty_and_description() {
             "EUR",
             "Afschrijvingen",
             "7,00",
-            "Other Place",
+            "CA",
             "",
             "R3",
+        ),
+        row(
+            own,
+            "27-10-2026",
+            "EUR",
+            "Afschrijvingen",
+            "7,00",
+            "CAFE",
+            "",
+            "R4",
         ),
     ]);
     let count =
         |json: serde_json::Value| data.list_filtered(Some(&filter_of(json)), false, 10).count;
-    // Contains, anywhere in the text, ignoring case and surrounding spaces.
-    assert_eq!(count(serde_json::json!({ "counterparty": "EXAMPLE" })), 2);
-    assert_eq!(count(serde_json::json!({ "counterparty": " shop " })), 1);
-    assert_eq!(count(serde_json::json!({ "description": "SHOP" })), 1);
-    // Each field looks only in its own column; together they both have to match.
-    assert_eq!(count(serde_json::json!({ "counterparty": "coffee" })), 0);
+    // Without a star the whole text is meant, ignoring case and surrounding spaces.
+    assert_eq!(count(serde_json::json!({ "counterparty": "CA" })), 1);
+    assert_eq!(count(serde_json::json!({ "counterparty": " ca " })), 1);
+    assert_eq!(count(serde_json::json!({ "counterparty": "example" })), 0);
     assert_eq!(
-        count(serde_json::json!({ "counterparty": "example", "description": "groceries" })),
+        count(serde_json::json!({ "counterparty": "example shop" })),
         1
     );
-    // An empty field leaves the filter open; `*` is no wildcard here.
+    assert_eq!(
+        count(serde_json::json!({ "description": "weekly groceries" })),
+        1
+    );
+    assert_eq!(count(serde_json::json!({ "description": "groceries" })), 0);
+    // Stars reach other texts: starts with, ends with, contains.
+    assert_eq!(count(serde_json::json!({ "counterparty": "CA*" })), 2);
+    assert_eq!(count(serde_json::json!({ "counterparty": "Example*" })), 2);
+    assert_eq!(count(serde_json::json!({ "counterparty": "*Cafe" })), 2);
+    assert_eq!(count(serde_json::json!({ "counterparty": "*ca*" })), 3);
+    assert_eq!(count(serde_json::json!({ "description": "*SHOP" })), 1);
+    assert_eq!(count(serde_json::json!({ "description": "*shop*" })), 1);
+    assert_eq!(count(serde_json::json!({ "description": "*o*" })), 2);
+    // Each field looks only in its own column; together they both have to match.
+    assert_eq!(count(serde_json::json!({ "counterparty": "*coffee*" })), 0);
+    assert_eq!(
+        count(serde_json::json!({ "counterparty": "example*", "description": "*groceries" })),
+        1
+    );
+    // An empty field leaves the filter open.
     assert_eq!(
         count(serde_json::json!({ "counterparty": "  ", "description": "" })),
-        3
+        4
     );
-    assert_eq!(count(serde_json::json!({ "counterparty": "Example*" })), 0);
     // The ids, count and total of the same filter agree, and it combines with the others.
-    let narrow = filter_of(serde_json::json!({ "counterparty": "example", "from": "2026-10-30" }));
+    let narrow = filter_of(serde_json::json!({ "counterparty": "example*", "from": "2026-10-30" }));
     assert_eq!(data.matching_ids(Some(&narrow), false).len(), 1);
     assert_eq!(
         data.list_filtered(Some(&narrow), false, 10)
@@ -1406,18 +1484,18 @@ fn texts(found: &RuleSuggestions) -> Vec<(&str, usize)> {
 #[test]
 fn test_csd032_ac_29_2_store_numbers_and_legal_forms_are_dropped() {
     let data = many_of(&[
-        ("Albert Heijn 1157", 3),
-        ("Albert Heijn 2210", 2),
-        ("Albert Heijn B.V.", 1),
+        ("Example Market 1157", 3),
+        ("Example Market 2210", 2),
+        ("Example Market B.V.", 1),
         ("Example Cafe", 4),
     ]);
     assert_eq!(
         texts(&data.suggest_rules(5).unwrap()),
-        vec![("Albert Heijn*", 6)]
+        vec![("Example Market*", 6)]
     );
     assert_eq!(
         texts(&data.suggest_rules(4).unwrap()),
-        vec![("Albert Heijn*", 6), ("Example Cafe", 4)]
+        vec![("Example Market*", 6), ("Example Cafe", 4)]
     );
     assert_eq!(data.suggest_rules(7).unwrap().suggestions.len(), 0);
     // Case does not split a group, and the most frequent spelling is the text.
@@ -1462,10 +1540,17 @@ fn test_csd032_ac_29_3_the_count_is_what_the_rule_matches() {
     let shopping = category(&data, "Shopping");
     let manual = find(&data, "Example Cafe Amsterdam").id;
     data.set_category(manual, Some(shopping)).unwrap();
-    // The group "Example Cafe" has one member, the rule "Example Cafe" matches all four, manual included.
+    // The group "Example Cafe Amsterdam" has two members and the rule matches exactly those two, manual included.
     let found = data.suggest_rules(1).unwrap();
-    assert_eq!(texts(&found).first(), Some(&("Example Cafe", 4)));
-    assert_eq!(data.count_rule_matches("example cafe").unwrap(), 4);
+    assert_eq!(texts(&found).first(), Some(&("Example Cafe Amsterdam", 2)));
+    // A text without a star is the whole counterparty (or description): only "Example Cafe".
+    assert_eq!(data.count_rule_matches("example cafe").unwrap(), 1);
+    assert_eq!(data.count_rule_matches("Example Cafe*").unwrap(), 3);
+    assert_eq!(
+        data.count_rule_matches("*Example Cafe*").unwrap(),
+        4,
+        "the description counts too"
+    );
     assert_eq!(data.count_rule_matches("Example Cafe A*").unwrap(), 2);
     assert_eq!(
         data.count_rule_matches("  ").unwrap_err().code(),

@@ -525,14 +525,14 @@ test('test_csd032_ac_15_9_the_text_filters_send_the_typed_text', async () => {
   await app.click(app.document.querySelector('#transaction-counterparty-filter button'));
   const panel = app.document.querySelector('#transaction-counterparty-filter .filter-panel');
   const field = panel.querySelector('input');
-  assert.equal(app.text(field.closest('label')), 'Counterparty contains');
+  assert.equal(app.text(field.closest('label')), 'Counterparty (* is any text)');
   await app.type(field, ' Albert ');
   assert.equal(app.callsOf('list_transactions').at(-1).args.filter.counterparty, 'Albert', 'the text is sent without surrounding spaces');
   assert.equal(app.callsOf('list_transactions').at(-1).args.filter.description, null);
   assert.match(app.document.querySelector('#transaction-counterparty-filter button').getAttribute('aria-label'), /active/);
   await app.click(app.document.querySelector('#transaction-description-filter button'));
   const second = app.document.querySelector('#transaction-description-filter .filter-panel input');
-  assert.equal(app.text(second.closest('label')), 'Description contains');
+  assert.equal(app.text(second.closest('label')), 'Description (* is any text)');
   await app.type(second, 'rent');
   assert.deepEqual(
     [app.callsOf('list_transactions').at(-1).args.filter.counterparty, app.callsOf('list_transactions').at(-1).args.filter.description],

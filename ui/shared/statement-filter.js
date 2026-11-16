@@ -46,8 +46,8 @@ export function resetAllFilters() {
  * `dd/mm/yyyy` days and Rust gets `YYYY-MM-DD` (CSD-032 REQ-15).
  * `amountHost` is the id of the header element of an amount column; with it the filter also has an amount
  * range, typed in the number format of the app and read by Rust (for the Transactions list only, CSD-032 REQ-15).
- * `textHosts` (`{ counterparty, description }`, the ids of the header elements of those columns) adds a "contains"
- * filter on each, ignoring case; Rust reads the text (for the Transactions list only, CSD-032 REQ-15).
+ * `textHosts` (`{ counterparty, description }`, the ids of the header elements of those columns) adds a text
+ * filter on each: exact, or with `*` as a wildcard, ignoring case; Rust reads the text (for the Transactions list only, CSD-032 REQ-15).
  * `onChange()` reloads the table; it is called at once for every change (REQ-2).
  */
 export function createStatementFilter({ periodHost, entityHost, amountHost = null, textHosts = null, entityTitle, entities, onChange, period = 'month' }) {
@@ -263,7 +263,7 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
     return self;
   }
 
-  /** The "contains" filter of a text column; `title` is the English column title. */
+  /** The text filter of a text column; `title` is the English column title. */
   function textColumn(key, host, title) {
     const name = () => t(title).toLocaleLowerCase();
     return column({
@@ -272,7 +272,7 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
       activeLabel: () => t('Filter by {entity} (active)', { entity: name() }),
       active: () => textActive(key),
       clearPart: () => { texts[key] = ''; },
-      buildPanel: textPanel(key, () => t('{entity} contains', { entity: t(title) }), () => t('Filter by {entity}', { entity: name() })),
+      buildPanel: textPanel(key, () => t('{entity} (* is any text)', { entity: t(title) }), () => t('Filter by {entity}', { entity: name() })),
     });
   }
 

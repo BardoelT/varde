@@ -106,8 +106,8 @@ export default {
   'Add a rule from {name}': 'Regel toevoegen vanuit {name}',
   'Move {name} up': '{name} omhoog verplaatsen',
   'Move {name} down': '{name} omlaag verplaatsen',
-  'No rules yet. A rule gives a transaction a category when its counterparty or description contains the rule text. A * in the text stands for any characters.':
-    'Nog geen regels. Een regel geeft een transactie een categorie als de tegenpartij of de omschrijving de regeltekst bevat. Een * in de tekst staat voor willekeurige tekens.',
+  'No rules yet. A rule gives a transaction a category when its counterparty or description is exactly the rule text. A * in the text stands for any characters, so Example* matches a text that starts with Example, *Example one that ends with it and *Example* one that contains it.':
+    'Nog geen regels. Een regel geeft een transactie een categorie als de tegenpartij of de omschrijving precies de regeltekst is. Een * in de tekst staat voor willekeurige tekens: Voorbeeld* past op een tekst die met Voorbeeld begint, *Voorbeeld op een tekst die ermee eindigt en *Voorbeeld* op een tekst die het bevat.',
   'A transaction gets the category of the first rule, from the top, whose text is in its counterparty or description. Capitals do not matter. A * stands for any characters, so "Albert Heijn*" finds "Albert Heijn 1157".':
     'Een transactie krijgt de categorie van de eerste regel, van boven af, waarvan de tekst in de tegenpartij of omschrijving staat. Hoofdletters maken niet uit. Een * staat voor willekeurige tekens, dus "Albert Heijn*" vindt "Albert Heijn 1157".',
   'Transactions that already have a category keep it.': 'Transacties die al een categorie hebben, houden die.',

@@ -11,7 +11,7 @@ export default {
   'Filter by amount': 'Filteren op bedrag',
   'Filter by amount (active)': 'Filteren op bedrag (actief)',
   'From amount': 'Vanaf bedrag',
-  '{entity} contains': '{entity} bevat',
+  '{entity} (* is any text)': '{entity} (* is willekeurige tekst)',
   'To amount': 'Tot en met bedrag',
   'To date': 'Tot en met datum',
   'Filtered total': 'Gefilterd totaal',

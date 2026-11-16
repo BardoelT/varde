@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.27
+version: 0.28
 last_updated: 16/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -26,7 +26,7 @@ The app tracks what the user owns, owes and has spent on notable purchases, but 
 - NG-2: Charts and the Insights tab: they are CSD-033. The yearly totals of REQ-24 are a table, not Insights.
 - NG-3: A link to the bank accounts of CSD-009, to expenses (CSD-013), to net worth or to the dashboard. Importing never changes a balance or creates an expense. Detecting or netting transfers between own accounts.
 - NG-4: Adding a transaction by hand, and editing its date, amount, counterparty, description or any field other than the category.
-- NG-5: Regular expressions, amount or date conditions, and any learning in the rules. A rule is a "contains" text match.
+- NG-5: Regular expressions, amount or date conditions, and any learning in the rules. A rule is a text pattern with `*` as its only wildcard.
 - NG-6: Several categories per transaction, tags, sub-categories, splitting a transaction, and budgets.
 - NG-7: A currency per transaction, and conversion. All amounts are in the project currency (CSD-003).
 - NG-8: Importing from a folder, importing several files at once, a preview step before the import, and a partial import.
@@ -373,12 +373,12 @@ Scenario: A new project has seed rules
 ```
 
 **REQ-10: Categorise on import** *(event-driven)*
-When a transaction is added by an import, the app shall give it the category of the first rule, in order, whose text is contained, ignoring case, in the counterparty name followed by a space and the description, and "Uncategorized" if no rule matches. In a rule text a star (`*`) stands for any run of characters, none included, and the parts between the stars have to be found in that order; a text without a star is found as it is.
+When a transaction is added by an import, the app shall give it the category of the first rule, in order, whose text fits, ignoring case and the spaces around the field, the whole counterparty name or the whole description (each on its own), and "Uncategorized" if no rule matches. A text without a star is the exact text: `CA` matches only a field that is `CA`. A star (`*`) stands for any run of characters, none included: `CA*` matches a field that starts with `CA`, `*CA` one that ends with it and `*CA*` one that contains it; the parts between the stars have to be found in that order. The seed rules of a new project end with a star, so they match the start of a name.
 
 ```gherkin
 @AC-10.1
 Scenario: First matching rule wins
-  Given the rules "Example Market" → Groceries and "Example" → Shopping, in that order
+  Given the rules "Example Market*" → Groceries and "Example*" → Shopping, in that order
   When the user imports a row with counterparty "EXAMPLE MARKET Town"
   Then the transaction has category "Groceries"
 
@@ -387,11 +387,19 @@ Scenario: A star is a wildcard
   Given the rule "Albert Heijn*" → Groceries and the rule "Albert*1157" → Shopping
   Then "Albert Heijn B.V." and "Albert Heijn 1157" both match "Albert Heijn*"
   And "Albert Heijn 1157" matches "Albert*1157", but "1157 Albert Heijn" does not
-  And a rule without a star, such as "Heijn", still matches "Albert Heijn 1157"
+  And "Albert Heijn" matches "*Heijn" and "*Heijn*", but not "Albert*1157"
+  And a star never joins the counterparty and the description: "Albert*1157" does not match counterparty "Albert" with description "Heijn 1157"
+
+@AC-10.5
+Scenario: A rule without a star is the exact text
+  Given the rule "CA" → Groceries
+  Then the counterparties "CA", "ca" and " Ca " match, and so does a description that is exactly "CA"
+  And "CAFE", "ACA", "CA 1157" and "Example CA" do not
+  And "CA*" matches "CAFE" but not "ACA", "*CA" matches "ACA" but not "CAFE", and "*CA*" matches "Example CA Town"
 
 @AC-10.2
 Scenario: The description is matched too
-  Given the rule "Rent October" → Housing
+  Given the rule "Rent October*" → Housing
   When the user imports a row with an empty counterparty and the description "Rent October 2026"
   Then the transaction has category "Housing"
 
@@ -581,13 +589,14 @@ Scenario: The amount filter
 Scenario: The text filters on counterparty and description
   Given the transactions "Example Shop" / "Weekly groceries", "Example Cafe" / "Coffee at the shop" and "Other Place" / ""
   When the user opens the filter in the header of the column Counterparty
-  Then its field is "Counterparty contains"
-  When the user types "example"
-  Then the two transactions whose counterparty contains "example" are listed, ignoring case and surrounding spaces
-  And the same filter in the header of the column Description ("Description contains") looks only in the description
+  Then its field is "Counterparty (* is any text)"
+  When the user types "CA"
+  Then only the transactions whose counterparty is exactly "CA" are listed, ignoring case and surrounding spaces
+  When the user types "CA*", "*CA" or "*CA*"
+  Then the counterparties that start with, end with or contain "CA" are listed
+  And the same filter in the header of the column Description looks only in the description, with the same rules
   And when both are set, a transaction has to match both
   And an empty field leaves that column unfiltered
-  And "*" is no wildcard in these filters
   And the filtered total, the count and "select all in the filter" (REQ-28) follow the same text
 
 @AC-15.4
@@ -952,8 +961,8 @@ Scenario: Store numbers and legal forms are dropped
 @AC-29.3
 Scenario: The count is what the rule matches
   Given the suggestion "Example Cafe" and two more transactions with the counterparty "Example Cafe Amsterdam", one of them manual, in categories
-  Then the count of "Example Cafe" includes them
-  And a transaction whose counterparty is empty is not counted for a suggestion, but is counted when its description contains the text
+  Then the count of "Example Cafe" does not include them, and the count of "Example Cafe*" does
+  And a transaction whose counterparty is empty is not counted for a suggestion, but is counted by the rule "*Example Cafe*" when its description contains the text, while the rule "Example Cafe" counts only the exact counterparty (or description)
 
 @AC-29.4
 Scenario: Nothing to suggest
@@ -1127,6 +1136,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.28 (16/11/2026): Rules and the text filters match strictly: a text without `*` is the exact counterparty or description, `*` is the only wildcard (starts with, ends with, contains), and a rule no longer matches across the counterparty and the description joined (REQ-10, AC-10.1 to AC-10.5, AC-15.9, AC-29.3). The seed rules end with `*`. Existing rules keep their text and so match strictly from now on. Owner request. Back to `draft` until re-approved.
 - 0.27 (16/11/2026): The Rules tab shows the percentage of uncategorized transactions (REQ-31, AC-31.1, AC-31.2). Owner request. Back to `draft` until re-approved.
 - 0.26 (16/11/2026): Every category on the Categories tab shows the number of transactions in it (REQ-30, AC-30.1 to AC-30.3). Owner request. Back to `draft` until re-approved.
 - 0.25 (16/11/2026): The Transactions list has a text filter on the counterparty and one on the description, each a case-insensitive "contains" in its own column header (REQ-15, AC-15.9). Owner request; plain "contains" without `*` is my choice. Back to `draft` until re-approved.

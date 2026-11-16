@@ -539,77 +539,77 @@
   "transaction_rules": [
     {
       "id": "id-40",
-      "text": "Albert Heijn",
+      "text": "Albert Heijn*",
       "category_id": "id-20"
     },
     {
       "id": "id-41",
-      "text": "Jumbo",
+      "text": "Jumbo*",
       "category_id": "id-20"
     },
     {
       "id": "id-42",
-      "text": "Lidl",
+      "text": "Lidl*",
       "category_id": "id-20"
     },
     {
       "id": "id-43",
-      "text": "Aldi",
+      "text": "Aldi*",
       "category_id": "id-20"
     },
     {
       "id": "id-44",
-      "text": "Dirk van den Broek",
+      "text": "Dirk van den Broek*",
       "category_id": "id-20"
     },
     {
       "id": "id-45",
-      "text": "HEMA",
+      "text": "HEMA*",
       "category_id": "id-35"
     },
     {
       "id": "id-46",
-      "text": "bol.com",
+      "text": "bol.com*",
       "category_id": "id-35"
     },
     {
       "id": "id-47",
-      "text": "Coolblue",
+      "text": "Coolblue*",
       "category_id": "id-35"
     },
     {
       "id": "id-48",
-      "text": "Kruidvat",
+      "text": "Kruidvat*",
       "category_id": "id-36"
     },
     {
       "id": "id-49",
-      "text": "NS Reizigers",
+      "text": "NS Reizigers*",
       "category_id": "id-33"
     },
     {
       "id": "id-50",
-      "text": "Shell",
+      "text": "Shell*",
       "category_id": "id-33"
     },
     {
       "id": "id-51",
-      "text": "Thuisbezorgd",
+      "text": "Thuisbezorgd*",
       "category_id": "id-34"
     },
     {
       "id": "id-52",
-      "text": "Netflix",
+      "text": "Netflix*",
       "category_id": "id-23"
     },
     {
       "id": "id-53",
-      "text": "Spotify",
+      "text": "Spotify*",
       "category_id": "id-23"
     },
     {
       "id": "id-54",
-      "text": "Zilveren Kruis",
+      "text": "Zilveren Kruis*",
       "category_id": "id-32"
     }
   ]

@@ -7,7 +7,7 @@ use serde::Serialize;
 
 use crate::domain::error::DomainError;
 
-use super::category::{contains_pattern, haystack_of, valid_rule_text, CategoryId};
+use super::category::{fields_match, fields_of, valid_rule_text, CategoryId};
 use super::Transactions;
 
 /// The most suggestions one answer lists (REQ-29).
@@ -87,14 +87,14 @@ impl Group {
 }
 
 impl Transactions {
-    /// The lower-case text of every transaction a rule is matched against, with
-    /// its category.
-    fn haystacks(&self) -> Vec<(String, Option<CategoryId>)> {
+    /// The lower-case counterparty and description of every transaction, the
+    /// texts a rule is matched against, with its category.
+    fn haystacks(&self) -> Vec<((String, String), Option<CategoryId>)> {
         self.transactions()
             .iter()
             .map(|transaction| {
                 (
-                    haystack_of(&transaction.counterparty_name, &transaction.description),
+                    fields_of(&transaction.counterparty_name, &transaction.description),
                     transaction.category_id,
                 )
             })
@@ -105,14 +105,14 @@ impl Transactions {
     /// the categorised ones have (a tie goes to the category listed first).
     fn match_summary(
         &self,
-        haystacks: &[(String, Option<CategoryId>)],
+        haystacks: &[((String, String), Option<CategoryId>)],
         text: &str,
     ) -> (usize, Option<CategoryId>) {
-        let pattern = text.to_lowercase();
+        let pattern = text.trim().to_lowercase();
         let mut count = 0;
         let mut per_category: HashMap<CategoryId, usize> = HashMap::new();
         for (haystack, category) in haystacks {
-            if contains_pattern(haystack, &pattern) {
+            if fields_match(haystack, &pattern) {
                 count += 1;
                 if let Some(category) = category {
                     *per_category.entry(*category).or_insert(0) += 1;

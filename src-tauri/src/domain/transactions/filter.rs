@@ -8,6 +8,7 @@ use serde::Deserialize;
 use crate::domain::money::Money;
 use crate::domain::NumberFormat;
 
+use super::category::pattern_matches;
 use super::transaction::TransactionDate;
 use super::Transaction;
 
@@ -76,21 +77,24 @@ pub struct TransactionFilter {
     min_amount: Option<Money>,
     /// The highest amount to show, itself included.
     max_amount: Option<Money>,
-    /// Text the counterparty name must contain, lower-cased; any when `None`.
+    /// The pattern the whole counterparty name must fit, lower-cased; any when
+    /// `None`. `*` stands for any characters, so without one it is exact.
     counterparty: Option<String>,
-    /// Text the description must contain, lower-cased; any when `None`.
+    /// The pattern the whole description must fit, lower-cased; any when `None`.
     description: Option<String>,
 }
 
 impl TransactionFilter {
     /// Whether `transaction`, in the category `entity`, passes. The text
-    /// filters look for the typed text anywhere, ignoring case.
+    /// filters match the whole counterparty or description, ignoring case:
+    /// `ca` is exactly "ca", `ca*` starts with it, `*ca` ends with it and
+    /// `*ca*` contains it.
     #[must_use]
     pub fn matches(&self, transaction: &Transaction, entity: &str) -> bool {
         let contains = |wanted: &Option<String>, text: &str| {
             wanted
                 .as_ref()
-                .is_none_or(|wanted| text.to_lowercase().contains(wanted.as_str()))
+                .is_none_or(|pattern| pattern_matches(text.trim().to_lowercase().as_str(), pattern))
         };
         self.from.is_none_or(|from| from <= transaction.date)
             && self.to.is_none_or(|to| transaction.date <= to)
