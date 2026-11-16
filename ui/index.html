@@ -624,6 +624,9 @@
         </div>
 
         <div id="transactions-rules" role="tabpanel" aria-labelledby="transactions-tab-rules" hidden>
+          <div class="panel" id="transaction-categorisation-panel" hidden>
+            <p class="summary-note" id="transaction-categorisation"></p>
+          </div>
           <div class="panel">
             <div class="panel-header">
               <span class="panel-title">Rules</span>
@@ -634,7 +637,6 @@
                 <button type="button" class="btn primary" id="transaction-rule-add">Add rule</button>
               </div>
             </div>
-            <p class="summary-note" id="transaction-categorisation" hidden></p>
             <p class="empty-note" id="transaction-rules-empty" hidden>No rules yet. A rule gives a transaction a category when its counterparty or description is exactly the rule text. A * in the text stands for any characters, so Example* matches a text that starts with Example, *Example one that ends with it and *Example* one that contains it.</p>
             <ol class="job-list" id="transaction-rules"></ol>
           </div>

@@ -252,7 +252,7 @@
 .icon-btn.danger { color: var(--negative); }
 /* The icon's own edge, not its padding, lines up with the right edge of the row's content. */
 .job-actions .icon-btn:last-child, .row-actions .icon-btn:last-child { margin-right: -4px; }
-.summary-note { padding: 14px 20px 0; font-size: 13px; color: var(--muted); }
+.summary-note { padding: 14px 20px; font-size: 13px; color: var(--muted); }
 .empty-note { padding: 18px 20px; font-size: 13px; color: var(--muted); }
 .visually-hidden {
   position: absolute; width: 1px; height: 1px; overflow: hidden;

@@ -323,12 +323,13 @@ test('test_csd032_ac_31_2_the_rules_tab_shows_the_uncategorized_share', async ()
   reads.get_categorisation_summary = { total: 40, uncategorized: 5, percent_label: '12.50%' };
   const app = await transactionsPage(reads);
   assert.equal(app.textOf('transaction-categorisation'), '12.50% of the transactions are uncategorized (5 of 40)');
-  assert.ok(!app.$('transaction-categorisation').hidden);
+  assert.ok(!app.$('transaction-categorisation-panel').hidden);
+  assert.ok(app.$('transaction-categorisation-panel').nextElementSibling.querySelector('#transaction-rules'), 'its own area right above the rules');
   app.close();
   const empty = readsWith({ rows: [], count: 0 });
   empty.get_categorisation_summary = { total: 0, uncategorized: 0, percent_label: null };
   const none = await transactionsPage(empty);
-  assert.ok(none.$('transaction-categorisation').hidden, 'no line without transactions');
+  assert.ok(none.$('transaction-categorisation-panel').hidden, 'no area without transactions');
   none.close();
 });
 

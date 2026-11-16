@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.28
+version: 0.29
 last_updated: 16/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -1061,7 +1061,7 @@ Scenario: The count comes with the category list
   Then every category carries its transaction count
 
 **REQ-31: Uncategorized share** *(ubiquitous)*
-The Rules tab shall show, above the list of rules, a line with the percentage of the transactions that are uncategorized and the numbers behind it, as "12.50% of the transactions are uncategorized (5 of 40)". Rust counts and computes the percentage (two decimals, half-up, CSD-000 CON-8), and the line follows every change of the transactions, the rules and the categories. While there are no transactions the line is not shown.
+The Rules tab shall show, in an area of its own above the Rules panel, a line with the percentage of the transactions that are uncategorized and the numbers behind it, as "12.50% of the transactions are uncategorized (5 of 40)". Rust counts and computes the percentage (two decimals, half-up, CSD-000 CON-8), and the line follows every change of the transactions, the rules and the categories. While there are no transactions the line is not shown.
 
 ```gherkin
 @AC-31.1
@@ -1136,6 +1136,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.29 (16/11/2026): The uncategorized share is shown in an area of its own above the Rules panel, not inside it (REQ-31). Owner request. Back to `draft` until re-approved.
 - 0.28 (16/11/2026): Rules and the text filters match strictly: a text without `*` is the exact counterparty or description, `*` is the only wildcard (starts with, ends with, contains), and a rule no longer matches across the counterparty and the description joined (REQ-10, AC-10.1 to AC-10.5, AC-15.9, AC-29.3). The seed rules end with `*`. Existing rules keep their text and so match strictly from now on. Owner request. Back to `draft` until re-approved.
 - 0.27 (16/11/2026): The Rules tab shows the percentage of uncategorized transactions (REQ-31, AC-31.1, AC-31.2). Owner request. Back to `draft` until re-approved.
 - 0.26 (16/11/2026): Every category on the Categories tab shows the number of transactions in it (REQ-30, AC-30.1 to AC-30.3). Owner request. Back to `draft` until re-approved.
