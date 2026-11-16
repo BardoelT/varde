@@ -6,6 +6,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { openApp } from './harness.js';
 import { exampleReads } from './fixtures.js';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const GROCERIES = 'cat-groceries';
 const SHOPPING = 'cat-shopping';
@@ -654,6 +656,20 @@ test('test_csd032_ac_15_9_the_text_filters_send_the_typed_text', async () => {
   assert.equal(app.callsOf('list_transactions').at(-1).args.filter.description, null, 'reset clears only that column');
   assert.equal(app.callsOf('list_transactions').at(-1).args.filter.counterparty, 'Albert');
   app.close();
+});
+
+test('test_csd032_ac_28_8_the_bulk_select_button_looks_pressed_while_bulk_select_is_on', async () => {
+  const app = await transactionsPage(readsWith({ rows: bulkRows(), count: 3 }), bulkHandlers());
+  const button = app.$('transaction-bulk-toggle');
+  assert.equal(button.getAttribute('aria-pressed'), 'false');
+  await app.click(button);
+  assert.equal(button.getAttribute('aria-pressed'), 'true', 'pressed while on');
+  await app.click(button);
+  assert.equal(button.getAttribute('aria-pressed'), 'false', 'released when switched off');
+  app.close();
+  // jsdom has no layout: the pressed look is guarded as a rule of the stylesheet.
+  const css = readFileSync(fileURLToPath(new URL('../styles/components.css', import.meta.url)), 'utf8');
+  assert.match(css, /\.btn\[aria-pressed="true"\]\s*\{[^}]*background:\s*var\(--accent\)/);
 });
 
 // ---- REQ-29: suggest rules ----

@@ -165,6 +165,8 @@
 .btn:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .btn.primary:hover { filter: brightness(1.08); }
+.btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn[aria-pressed="true"]:hover { filter: brightness(1.08); }
 .btn.danger { color: var(--negative); }
 .btn.danger:hover { border-color: var(--negative); }
 .btn:focus-visible {
