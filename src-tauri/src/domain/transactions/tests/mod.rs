@@ -6,6 +6,7 @@ use crate::domain::common::YearMonth;
 use crate::domain::money::Money;
 use crate::domain::NumberFormat;
 
+mod abn;
 mod categories;
 mod data;
 mod import;

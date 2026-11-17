@@ -28,8 +28,8 @@ const PAGE_ROWS: usize = 200;
 /// Largest export the app reads, a bound on untrusted input.
 const MAX_EXPORT_BYTES: u64 = 50 * 1024 * 1024;
 
-const FILTER_NAME: &str = "Bank export (CSV)";
-const FILTER_EXTENSIONS: &[&str] = &["csv"];
+const FILTER_NAME: &str = "Bank export (CSV, TAB)";
+const FILTER_EXTENSIONS: &[&str] = &["csv", "tab", "txt"];
 
 /// The filter of a list command as the frontend sent it, with the typed
 /// amounts read in the number format of the app.
@@ -90,7 +90,8 @@ pub(crate) fn import_flow(
     Ok(Some(transactions.import(&text, currency)?))
 }
 
-/// Imports a Knab CSV chosen in a native dialog (CSD-032 REQ-1 to REQ-6).
+/// Imports a Knab CSV or an ABN AMRO TAB file chosen in a native dialog
+/// (CSD-032 REQ-1 to REQ-6, REQ-34).
 #[tauri::command(async)]
 pub fn import_transactions<R: Runtime>(
     app: AppHandle<R>,

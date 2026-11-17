@@ -734,3 +734,27 @@ fn test_csd032_ac_33_1_the_overview_is_the_four_reads_in_one_answer() {
     );
     assert!(overview["summary"]["total"].as_u64().unwrap() > 0);
 }
+
+#[test]
+fn test_csd032_ac_34_7_an_abn_amro_fixture_imports_over_ipc_and_again_adds_nothing() {
+    let app = harness();
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures")
+        .join("example-abn-october.tab");
+    let (added, skipped) = import(&app, path.clone()).unwrap().unwrap();
+    assert_eq!((added, skipped), (6, 0));
+    let all = rows(&app);
+    let shop = row_of(&all, "Albert Heijn 1234 Example Town");
+    assert_eq!(
+        shop["category_id"],
+        category_id(&app, "Groceries"),
+        "the seed rules apply"
+    );
+    assert_eq!(shop["payment_method"], "SEPA OVERBOEKING");
+    assert_eq!(shop["counterparty_iban"], "NL00EXAM0000000002");
+    // The same file again adds nothing, and the stored file holds no mandate or creditor id.
+    let (added, skipped) = import(&app, path).unwrap().unwrap();
+    assert_eq!((added, skipped), (0, 6));
+    let json = serde_json::to_string(&all).unwrap();
+    assert!(!json.contains("MANDATE-0001") && !json.contains("NL00ZZZ000000000000"));
+}

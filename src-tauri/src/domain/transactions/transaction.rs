@@ -39,6 +39,14 @@ impl TransactionDate {
             .map(Self)
     }
 
+    /// Parses the `yyyymmdd` of an ABN AMRO export.
+    #[must_use]
+    pub fn parse_compact(text: &str) -> Option<Self> {
+        Date::parse(text.trim(), format_description!("[year][month][day]"))
+            .ok()
+            .map(Self)
+    }
+
     /// Parses the `dd/mm/yyyy` the user types.
     #[must_use]
     pub fn parse_typed(text: &str) -> Option<Self> {

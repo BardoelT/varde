@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.39
+version: 0.40
 last_updated: 16/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -15,14 +15,14 @@ The app tracks what the user owns, owes and has spent on notable purchases, but 
 
 ## 2. Scope
 ### 2.1 In scope
-- Importing the transactions of a Knab CSV export into the open project, with duplicate skipping and all-or-nothing error handling.
+- Importing the transactions of a Knab CSV export or an ABN AMRO TAB export (REQ-34) into the open project, with duplicate skipping and all-or-nothing error handling.
 - A list of user-defined categories (seeded with defaults) and an ordered list of text rules that assign a category on import.
 - Changing the category of a transaction by hand, re-applying the rules, and deleting a transaction.
 - A Transactions page with an Overview tab (yearly totals, the paged list, the table filters of CSD-028 and a filtered total) a tab for the management of categories and rules, and the Insights tab of CSD-033.
 - Storage of transactions, categories and rules as sections of the project file (CSD-002), and the consequences for undo (CSD-027), the currency confirmation (CSD-003), Discrete mode (CSD-030) and the example project.
 
 ### 2.2 Non-goals
-- NG-1: Banks and formats other than the Knab CSV, and PDF statements. A parser per format is a follow-up.
+- NG-1: Banks and formats other than the Knab CSV and the ABN AMRO TAB file, and PDF statements and the ABN AMRO Excel (`.xls`) export, which holds the same lines in a binary format that needs a spreadsheet reader. A parser per format is a follow-up.
 - NG-2: Charts and the Insights tab: they are CSD-033. The yearly totals of REQ-24 are a table, not Insights.
 - NG-3: A link to the bank accounts of CSD-009, to expenses (CSD-013), to net worth or to the dashboard. Importing never changes a balance or creates an expense. Detecting or netting transfers between own accounts.
 - NG-4: Adding a transaction by hand, and editing its date, amount, counterparty, description or any field other than the category.
@@ -53,7 +53,7 @@ The app tracks what the user owns, owes and has spent on notable purchases, but 
 
 **Contents of this section**
 
-- REQ-1: Import a Knab CSV
+- REQ-1: Import a bank export
 - REQ-2: The Knab CSV format
 - REQ-3: All-or-nothing on malformed input
 - REQ-4: The currency must match
@@ -86,6 +86,7 @@ The app tracks what the user owns, owes and has spent on notable purchases, but 
 - REQ-31: Categorized share
 - REQ-32: Rules for a period
 - REQ-33: The page loads from one state
+- REQ-34: Import an ABN AMRO TAB file
 
 ### 4.0 Overview flow
 ```mermaid
@@ -121,8 +122,8 @@ sequenceDiagram
 
 ### 4.1 Importing
 
-**REQ-1: Import a Knab CSV** *(event-driven)*
-When the user chooses Import on the Transactions page and picks a file, the app shall add every transaction of the file that is not a duplicate to the project, categorise each by REQ-10, and show how many were added and how many were skipped as duplicates.
+**REQ-1: Import a bank export** *(event-driven)*
+When the user chooses Import on the Transactions page and picks a file (a Knab CSV, REQ-2, or an ABN AMRO TAB file, REQ-34), the app shall add every transaction of the file that is not a duplicate to the project, categorise each by REQ-10, and show how many were added and how many were skipped as duplicates.
 
 ```gherkin
 @AC-1.1
@@ -1240,6 +1241,71 @@ Scenario: One answer for the four
   Then the answer holds "categories", "rules", "summary" and "totals", each exactly as the command of its own returns it
   And the page is drawn from that one answer after every change
 
+**REQ-34: Import an ABN AMRO TAB file** *(ubiquitous)*
+The app shall read a file whose first line holds a tab and no semicolon as an ABN AMRO "TXT" export (the `.TAB` file); every other file is read as a Knab CSV (REQ-2). The file has no header. Every non-empty line has eight tab-separated fields: the own account, the currency, the booking day (`yyyymmdd`), the balance before, the balance after, the value day, the signed amount (digits, an optional minus, one decimal comma and at most two decimals, for example `-23,97`) and the description. The app shall take from a line the date (the booking day), the amount, the currency and the own account, and from the description the counterparty name, the counterparty IBAN, the payment method and the description, as the bank writes it in one of four ways:
+- `/TRTP/<method>/IBAN/<iban>/BIC/<bic>/NAME/<name>/REMI/<text>/EREF/<reference>`, where the method is the payment method, the name and the IBAN are the counterparty, and the remittance text is the description. The creditor id (`CSID`), the mandate (`MARF`), the end-to-end reference (`EREF`) and the other tags are not stored (REQ-7).
+- `<method>  IBAN: <iban>  BIC: <bic>  Naam: <name>  Omschrijving: <text>  Kenmerk: <reference>`, with the same meaning; the `Kenmerk` and the `BIC` are not stored.
+- A card payment `BEA …` or a cash withdrawal `GEA …`: the payment method is "Betaalautomaat" or "Geldautomaat", the counterparty name is the text between the day and time and `,PAS`, and the description is the line with its runs of spaces made into one.
+- A line of the bank itself starting with "ABN AMRO Bank": the counterparty is "ABN AMRO Bank N.V." and the description is the line with its spaces made into one.
+Any other description is kept as the description, with an empty counterparty. The bank gives no reference, so the app makes one from the booking day, the amount and the balance after the booking, which are the same for the same booking in every export; a second booking in the same file with the same three values gets a number, so a payment and its refund in a row are both kept. The file is read with the checks of REQ-3 that apply: a line without eight fields, a field longer than 1,000 characters, a booking day that is not a real `yyyymmdd` date, an amount that is empty, not a number, 0,00, has more than two decimals or a thousands separator, or a currency other than the project's (REQ-4) imports nothing and names the line, counted from 1 as there is no header. Duplicates are skipped by REQ-5, and the rest of REQ-1 to REQ-7 applies as it does to a Knab file. The file dialog lists `.csv`, `.tab` and `.txt` files.
+```gherkin
+@AC-34.1
+Scenario: The four ways of writing a description
+  Given a file with a `/TRTP/` line, a `Label:` line, a `BEA` line, a `GEA` line, a line of the bank and a collection
+  When the user imports the file
+  Then 6 transactions are added with the counterparty, IBAN, payment method and description of REQ-34
+  And the creditor id, the mandate and the references are not in the project file
+
+@AC-34.2
+Scenario: Amounts and days
+  Given lines with the amounts "-23,97" and "1250,00" and the day "20261031"
+  When the user imports the file
+  Then the amounts are -23.97 and 1,250.00 and the date is 31/10/2026
+
+@AC-34.3
+Scenario Outline: One bad line imports nothing
+  Given a file of 4 lines where line 3 has <fault>
+  When the user imports the file
+  Then it is rejected with error code "<code>" naming line 3 and nothing is added
+
+  Examples:
+    | fault                      | code                         |
+    | the day 20261331           | TRANSACTION_IMPORT_DATE      |
+    | the day 30-10-2026         | TRANSACTION_IMPORT_DATE      |
+    | the amount "abc"           | TRANSACTION_IMPORT_AMOUNT    |
+    | the amount "0,00"          | TRANSACTION_IMPORT_AMOUNT    |
+    | the amount "1,234"         | TRANSACTION_IMPORT_AMOUNT    |
+    | the amount "1.000,00"      | TRANSACTION_IMPORT_AMOUNT    |
+    | 7 fields instead of 8      | TRANSACTION_IMPORT_COLUMNS   |
+    | a field of 1001 characters | TRANSACTION_IMPORT_FIELD     |
+    | the currency "USD"         | TRANSACTION_IMPORT_CURRENCY  |
+
+@AC-34.4
+Scenario: Overlapping exports and a repeated booking
+  Given the project holds the 2 bookings of an export
+  When the user imports an export of those 2 and 1 new booking
+  Then 1 is added and 2 are skipped as duplicates
+  And a file with a payment, its refund and the same payment again, all on one day with the same balance after the first and the third, adds 3, and the same file again adds 0
+
+@AC-34.5
+Scenario: The format follows the file
+  Given a project that holds a Knab transaction
+  When the user imports an ABN AMRO file
+  Then the project holds both
+  And a file with neither semicolons nor tabs is rejected with "TRANSACTION_IMPORT_FORMAT"
+
+@AC-34.6
+Scenario: The rules apply
+  Given the rules "Example Shop*" → Groceries and "*Salary*" → Salary
+  When the user imports a file with the counterparty "Example Shop 1234 Town" and the description "Salary October"
+  Then the first is in Groceries and the second in Salary
+
+@AC-34.7
+Scenario: The fixture over the commands
+  When the frontend imports "example-abn-october.tab" twice
+  Then 6 are added and then 0 are added and 6 skipped, the seed rules categorise "Albert Heijn 1234 Example Town" and the mandate and creditor id are not stored
+```
+
 ## 5. Interfaces and contracts
 ```mermaid
 erDiagram
@@ -1283,7 +1349,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 ## 7. Verification
 | ACs | Proven by |
 |---|---|
-| AC-1 to AC-7, AC-10 to AC-14, AC-17, AC-19 | `cargo test test_csd032_` (Rust, `domain/` and `storage/` tests on synthetic fixtures in a temporary directory) |
+| AC-1 to AC-7, AC-10 to AC-14, AC-17, AC-19, AC-34 | `cargo test test_csd032_` (Rust, `domain/` and `storage/` tests on synthetic fixtures in a temporary directory) |
 | AC-8, AC-9 | `cargo test test_csd032_ac_8_`, `test_csd032_ac_9_` |
 | AC-15, AC-16, AC-18, AC-20, AC-21 | `npm test` (DOM tests in `ui/tests/`, fake Tauri bridge fed with golden files); AC-18.1 also in Rust |
 | AC-17.3 | `node --test scripts/tests/` |
@@ -1298,6 +1364,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.40 (17/11/2026): Import of an ABN AMRO TAB (`.TAB`) export next to the Knab CSV (new REQ-34, AC-34.1 to AC-34.7; REQ-1, NG-1). The `.xls` export is a non-goal: the TAB file has the same lines and needs no spreadsheet reader or new crate. My choices: the bank's lack of a reference is solved with the day, amount and balance after; `.gitignore` now also covers `.tab`, `.xls` and `.xlsx` exports. Back to `draft` until re-approved.
 - 0.39 (17/11/2026): The page loads the categories, rules, share and totals with one call, read from one state (new REQ-33, AC-33.1). The rules are compiled once per pass and the filter reads its category choices as ids, with no change of behaviour. REQ-29 is set out in parts (minimal count, how the list is built, the rows, adding, the size) and section 4 starts with a contents list; nothing in them changed. Refactoring review of the branch. Back to `draft` until re-approved.
 - 0.38 (17/11/2026): The duplicate AC-10.4 became AC-10.6 and the scenarios are in order of their id; CON-7 describes the pattern matching, new CON-9 bounds the command inputs; typed filter fields ask for the list after a short pause (REQ-15, AC-15.10). Refactoring review of the branch. Back to `draft` until re-approved.
 - 0.37 (17/11/2026): In "Suggest rules" the minimal count is a number field with up and down buttons, and it is remembered until the app is closed (REQ-29, AC-29.16; replaces "not remembered"). Owner request. Back to `draft` until re-approved.

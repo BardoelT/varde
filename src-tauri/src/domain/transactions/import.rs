@@ -1,4 +1,5 @@
-//! Reading a Knab CSV export (CSD-032 REQ-2 to REQ-4).
+//! Reading a Knab CSV export (CSD-032 REQ-2 to REQ-4). The ABN AMRO TAB export
+//! is read by `abn.rs`; `parse` chooses between the two by the first line.
 //!
 //! The whole file is checked before anything is returned, so a bad row
 //! imports nothing (REQ-3).
@@ -10,6 +11,7 @@ use rust_decimal::Decimal;
 use crate::domain::error::DomainError;
 use crate::domain::money::{Currency, Money};
 
+use super::abn;
 use super::transaction::{TransactionDate, MAX_FIELD_CHARS};
 
 /// The header row of a Knab export.
@@ -132,13 +134,18 @@ fn parse_row(line: usize, text: &str, currency: Currency) -> Result<Row, DomainE
     })
 }
 
-/// Parses a whole export in the project currency.
+/// Parses a whole export in the project currency, a Knab CSV or an ABN AMRO
+/// TAB file.
 ///
 /// # Errors
-/// `TransactionImportFormat` when the header is not the Knab header, and the
-/// error of the first offending line otherwise.
+/// `TransactionImportFormat` when the file is neither, and the error of the
+/// first offending line otherwise.
 pub(super) fn parse(text: &str, currency: Currency) -> Result<Vec<Row>, DomainError> {
     let text = text.strip_prefix('\u{feff}').unwrap_or(text);
+    let first = text.split('\n').next().unwrap_or_default();
+    if !first.contains(';') && abn::looks_like(first) {
+        return abn::parse(text, currency);
+    }
     let mut lines = text
         .split('\n')
         .map(|line| line.strip_suffix('\r').unwrap_or(line))

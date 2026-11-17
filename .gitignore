@@ -27,6 +27,12 @@ node_modules/
 
 # Bank exports hold real financial data — never commit (CSD-032 CON-8)
 *.csv
+*.tab
+*.TAB
+*.xls
+*.XLS
+*.xlsx
 Rekeningafschrift*.pdf
 # ...except the synthetic test fixtures
 !src-tauri/fixtures/**/*.csv
+!src-tauri/fixtures/**/*.tab

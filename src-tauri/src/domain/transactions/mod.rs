@@ -5,6 +5,7 @@
 //! transactions sits behind an `Arc`, so the undo history shares it between
 //! steps and a step pays only for a list it changes (CSD-032 CON-4).
 
+mod abn;
 mod bulk;
 mod categories;
 mod category;

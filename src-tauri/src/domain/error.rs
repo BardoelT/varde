@@ -407,14 +407,14 @@ pub enum DomainError {
     /// Reported as: "The expense data is not consistent."
     #[error("The expense data is not consistent.")]
     ExpenseDataInvalid,
-    /// Reported as: "The file could not be read as a Knab export."
-    #[error("The file could not be read as a Knab export.")]
+    /// Reported as: "The file could not be read as a bank export."
+    #[error("The file could not be read as a bank export.")]
     TransactionImportUnreadable,
-    /// Reported as: "This is not a Knab transaction export."
-    #[error("This is not a Knab transaction export.")]
+    /// Reported as: "This is not a Knab or ABN AMRO transaction export."
+    #[error("This is not a Knab or ABN AMRO transaction export.")]
     TransactionImportFormat,
-    /// Reported as: "Line {line}: the row does not have the columns of a Knab export."
-    #[error("Line {line}: the row does not have the columns of a Knab export.")]
+    /// Reported as: "Line {line}: the row does not have the columns of the export."
+    #[error("Line {line}: the row does not have the columns of the export.")]
     TransactionImportColumns {
         /// The line of the file.
         line: usize,
@@ -425,8 +425,10 @@ pub enum DomainError {
         /// The line of the file.
         line: usize,
     },
-    /// Reported as: "Line {line}: the date is not a real date as dd-mm-yyyy."
-    #[error("Line {line}: the date is not a real date as dd-mm-yyyy.")]
+    /// Reported as: "Line {line}: the date is not a real date as dd-mm-yyyy (Knab) or yyyymmdd (ABN AMRO)."
+    #[error(
+        "Line {line}: the date is not a real date as dd-mm-yyyy (Knab) or yyyymmdd (ABN AMRO)."
+    )]
     TransactionImportDate {
         /// The line of the file.
         line: usize,
