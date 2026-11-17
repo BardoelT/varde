@@ -711,6 +711,39 @@ test('test_csd032_ac_29_1_the_dialog_opens_with_5_and_follows_the_field', async 
   app.close();
 });
 
+test('test_csd032_ac_29_16_the_minimal_count_is_a_number_field_with_up_and_down_buttons', async () => {
+  const app = await openSuggest();
+  const field = app.$('transaction-suggest-form').elements.min_count;
+  assert.equal(field.type, 'number', 'the browser adds the up and down buttons');
+  assert.equal(field.min, '1');
+  assert.equal(field.step, '1');
+  // A click on the buttons changes the value and fires `input`, as typing does.
+  field.value = '4';
+  field.dispatchEvent(new app.window.InputEvent('input', { bubbles: true }));
+  await app.settle();
+  assert.deepEqual(app.callsOf('suggest_transaction_rules').at(-1).args, { minCount: 4 });
+  app.close();
+});
+
+test('test_csd032_ac_29_16_the_minimal_count_is_remembered_until_the_app_is_closed', async () => {
+  const app = await openSuggest();
+  const field = () => app.$('transaction-suggest-form').elements.min_count;
+  field().value = '';
+  await app.type(field(), '3');
+  // An invalid value is not remembered.
+  field().value = '0';
+  field().dispatchEvent(new app.window.InputEvent('input', { bubbles: true }));
+  await app.escape(app.$('transaction-suggest-dialog'));
+  assert.equal(app.$('transaction-suggest-dialog').open, false);
+  await app.click(app.$('transaction-suggest'));
+  assert.equal(field().value, '3', 'the dialog opens with the last valid count');
+  assert.deepEqual(app.callsOf('suggest_transaction_rules').at(-1).args, { minCount: 3 });
+  app.close();
+  const fresh = await openSuggest();
+  assert.equal(fresh.$('transaction-suggest-form').elements.min_count.value, '5', 'a new start of the app begins with 5 again');
+  fresh.close();
+});
+
 test('test_csd032_ac_29_7_a_minimal_count_that_is_not_a_whole_number_changes_nothing', async () => {
   const app = await openSuggest();
   const field = app.$('transaction-suggest-form').elements.min_count;

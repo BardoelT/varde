@@ -9,6 +9,8 @@ import { t, tn } from '../shared/i18n.js';
 const RECOUNT_DELAY_MS = 250;
 /** The minimal count the dialog opens with (CSD-032 REQ-29). */
 const DEFAULT_MIN_COUNT = '5';
+/** The last valid minimal count the user chose; the dialog opens with it again until the app is closed (REQ-29). */
+let rememberedMinCount = DEFAULT_MIN_COUNT;
 
 let getCategories = () => [];
 let onChanged = async () => {};
@@ -146,7 +148,7 @@ async function loadSuggestions() {
 
 function openSuggestDialog() {
   rows = [];
-  minCountField().value = DEFAULT_MIN_COUNT;
+  minCountField().value = rememberedMinCount;
   $('transaction-suggest-error').hidden = true;
   $('transaction-suggest-min-error').hidden = true;
   $('transaction-suggest-dialog').showModal();
@@ -189,6 +191,9 @@ export function initTransactionSuggest({ categories, changed }) {
   getCategories = categories;
   onChanged = changed;
   $('transaction-suggest').addEventListener('click', openSuggestDialog);
-  minCountField().addEventListener('input', loadSuggestions);
+  minCountField().addEventListener('input', () => {
+    if (minCount() !== null) rememberedMinCount = String(minCount());
+    loadSuggestions();
+  });
   submitOnce($('transaction-suggest-form'), addChosen);
 }

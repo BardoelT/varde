@@ -156,7 +156,7 @@ export async function openApp({ reads = exampleReads(), handlers = {} } = {}) {
       input.focus();
       for (const char of text) {
         input.value += char;
-        input.setSelectionRange(input.value.length, input.value.length);
+        if (input.type !== 'number') input.setSelectionRange(input.value.length, input.value.length); // a number field has no caret
         input.dispatchEvent(new window.InputEvent('input', { inputType: 'insertText', data: char, bubbles: true }));
       }
       await settle();
@@ -164,7 +164,7 @@ export async function openApp({ reads = exampleReads(), handlers = {} } = {}) {
     /** Deletes the last character, as backspace does. */
     async backspace(input) {
       input.value = input.value.slice(0, -1);
-      input.setSelectionRange(input.value.length, input.value.length);
+      if (input.type !== 'number') input.setSelectionRange(input.value.length, input.value.length);
       input.dispatchEvent(new window.InputEvent('input', { inputType: 'deleteContentBackward', bubbles: true }));
       await settle();
     },

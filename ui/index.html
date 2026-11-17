@@ -1303,7 +1303,7 @@
     <form method="dialog" id="transaction-suggest-form" novalidate>
       <h2 id="transaction-suggest-title">Suggest rules</h2>
       <label class="field">Minimal count
-        <input type="text" name="min_count" inputmode="numeric" autocomplete="off" value="5">
+        <input type="number" name="min_count" min="1" step="1" inputmode="numeric" autocomplete="off" value="5">
       </label>
       <p class="form-error" id="transaction-suggest-min-error" role="alert" hidden>Enter a whole number of 1 or more.</p>
       <p class="field-hint">The counterparties of your uncategorized transactions, with the number of transactions a rule with that text would match. Tick the suggestions to add as rules; nothing is added until you do.</p>

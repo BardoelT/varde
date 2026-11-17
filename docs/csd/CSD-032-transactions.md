@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.36
+version: 0.37
 last_updated: 16/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -941,7 +941,7 @@ Scenario: The button looks pressed while bulk select is on
 ```
 
 **REQ-29: Suggest rules from the transactions** *(event-driven)*
-The Rules tab shall have a button "Suggest rules" next to "Add rule". It opens one dialog with a field "Minimal count" (a whole number of 1 or more, 5 when the dialog opens, not remembered) and, below it, a list of suggested rules that follows the field as the user types.
+The Rules tab shall have a button "Suggest rules" next to "Add rule". It opens one dialog with a field "Minimal count" (a whole number of 1 or more, a number field with up and down buttons, 5 the first time the dialog opens; the last valid count the user chose is remembered until the app is closed, and every opening of the dialog starts with it) and, below it, a list of suggested rules that follows the field as the user types.
 
 Rust shall build the list of suggestions from the uncategorized transactions only (a transaction that has a category, by a rule or by hand, proposes nothing), skipping those without a counterparty, and shall then count each suggestion over every transaction:
 1. The counterparty name is normalised: trailing words that contain a digit and a trailing legal form (B.V., BV, N.V., NV, V.O.F., VOF, ignoring case) are dropped, repeatedly, then trailing `.`, `,` and `-` are trimmed. A name that is empty afterwards is skipped.
@@ -1056,6 +1056,14 @@ Scenario: Nothing ticked
   Given rows with a suggested category and no row ticked
   Then the dialog shows "0 rules chosen" and "Add 0 rules" is disabled
   And a row without a category cannot be ticked, and clearing the category of a ticked row unticks it
+
+@AC-29.16
+Scenario: The minimal count is a number field and is remembered
+  Then "Minimal count" is a number field with up and down buttons that change it by 1, not below 1
+  When the user sets it to 3 and closes the dialog
+  And the user chooses "Suggest rules" again
+  Then the dialog shows 3 and the suggestions with a count of at least 3
+  And a value that is not valid is not remembered, and after the app is closed and started again the dialog opens with 5
 
 @AC-29.15
 Scenario: Choosing a category ticks the row
@@ -1229,6 +1237,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.37 (17/11/2026): In "Suggest rules" the minimal count is a number field with up and down buttons, and it is remembered until the app is closed (REQ-29, AC-29.16; replaces "not remembered"). Owner request. Back to `draft` until re-approved.
 - 0.36 (17/11/2026): In the "Suggest rules" dialog, choosing or changing the category of a row ticks its checkbox (REQ-29, AC-29.15). Owner request. Back to `draft` until re-approved.
 - 0.35 (17/11/2026): "Suggest rules" builds its list from the uncategorized transactions only and then counts each suggestion over all transactions (REQ-29, AC-29.14). Owner request. Back to `draft` until re-approved.
 - 0.34 (16/11/2026): "Manual only" is a button that looks pressed while on, like "Bulk select", instead of a checkbox (REQ-26). Owner request. Back to `draft` until re-approved.
