@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.34
+version: 0.35
 last_updated: 16/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -943,10 +943,10 @@ Scenario: The button looks pressed while bulk select is on
 **REQ-29: Suggest rules from the transactions** *(event-driven)*
 The Rules tab shall have a button "Suggest rules" next to "Add rule". It opens one dialog with a field "Minimal count" (a whole number of 1 or more, 5 when the dialog opens, not remembered) and, below it, a list of suggested rules that follows the field as the user types.
 
-Rust shall build the suggestions from every transaction, manual and already categorised ones included, skipping those without a counterparty:
+Rust shall build the list of suggestions from the uncategorized transactions only (a transaction that has a category, by a rule or by hand, proposes nothing), skipping those without a counterparty, and shall then count each suggestion over every transaction:
 1. The counterparty name is normalised: trailing words that contain a digit and a trailing legal form (B.V., BV, N.V., NV, V.O.F., VOF, ignoring case) are dropped, repeatedly, then trailing `.`, `,` and `-` are trimmed. A name that is empty afterwards is skipped.
 2. Transactions with the same normalised name, ignoring case, form one suggestion. Its text is the most frequent spelling of the normalised name, followed by `*` when a name of the group had something dropped.
-3. The count of a suggestion is the number of transactions the rule with that text would match, by the matching of REQ-10 on the counterparty and the description, whatever their category or manual mark. A suggestion is listed when its count is at least the minimal count.
+3. The count of a suggestion, taken once the list is prepared, is the number of transactions the rule with that text would match, by the matching of REQ-10 on the counterparty and the description, whatever their category or manual mark. A suggestion is listed when its count is at least the minimal count.
 4. A suggestion whose text equals the text of an existing rule, ignoring case, is not listed.
 5. The suggestions are sorted by count, highest first, then by text, and at most 100 are shown, with the note "N more not shown: raise the minimal count" when there are more.
 6. The suggested category is the one most used among the categorised transactions the rule would match (a tie goes to the category listed first), and none when none of them has a category.
@@ -1016,6 +1016,15 @@ Scenario: Ticked rows stay
   Given the user ticked the suggestion "Example Cafe" with a count of 4
   When the user changes the minimal count to 5
   Then "Example Cafe" is still listed, ticked, with its category
+
+@AC-29.14
+Scenario: Only uncategorized transactions propose a rule, the count covers all
+  Given "Example Done" with 5 transactions that all have a category, "Example Part" with 6 of which 1 is uncategorized and "Example Few" with 2 uncategorized
+  When the minimal count is 5
+  Then the list shows "Example Part" with count 6 and not "Example Done"
+  When the minimal count is 1
+  Then the list shows "Example Part" (6) and "Example Few" (2), and still not "Example Done"
+  And the minimal count is compared with the count over all transactions
 
 @AC-29.13
 Scenario: The dialog is tall and the list scrolls
@@ -1212,6 +1221,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.35 (17/11/2026): "Suggest rules" builds its list from the uncategorized transactions only and then counts each suggestion over all transactions (REQ-29, AC-29.14). Owner request. Back to `draft` until re-approved.
 - 0.34 (16/11/2026): "Manual only" is a button that looks pressed while on, like "Bulk select", instead of a checkbox (REQ-26). Owner request. Back to `draft` until re-approved.
 - 0.33 (16/11/2026): The "Bulk select" button looks selected while bulk select is on (REQ-28, AC-28.8). Owner request. Back to `draft` until re-approved.
 - 0.32 (16/11/2026): A rule may be limited to a period, with an optional from and to date, and without a text it categorises every transaction in the period, for example a holiday (new REQ-32, AC-32.1 to AC-32.10; REQ-9, REQ-10, REQ-17). Owner request. My choices: the period rules share the one ordered list and its first-match-wins order, instead of being a separate kind; both ends are included and either may be open; the project file gets the optional `from` and `to` on a rule (format version stays 3, older files load as they are). Back to `draft` until re-approved.

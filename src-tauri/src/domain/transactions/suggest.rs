@@ -143,7 +143,13 @@ impl Transactions {
             return Err(DomainError::TransactionSuggestMinCount);
         }
         let mut groups: BTreeMap<String, Group> = BTreeMap::new();
-        for transaction in self.transactions() {
+        // Only the uncategorized transactions propose a rule; the counts below are then
+        // taken over every transaction (REQ-29).
+        for transaction in self
+            .transactions()
+            .iter()
+            .filter(|transaction| transaction.category_id.is_none())
+        {
             if let Some((name, dropped)) = normalise(&transaction.counterparty_name) {
                 let group = groups.entry(name.to_lowercase()).or_default();
                 *group.spellings.entry(name).or_insert(0) += 1;

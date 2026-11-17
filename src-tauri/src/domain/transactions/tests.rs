@@ -1674,7 +1674,7 @@ fn test_csd032_ac_29_6_the_most_used_category_is_suggested() {
     assert_eq!(bakery.category_id, None);
     // A tie goes to the category listed first.
     let tied = {
-        let mut tied = many_of(&[("Example Tie", 2)]);
+        let mut tied = many_of(&[("Example Tie", 3)]);
         let ids: Vec<TransactionId> = tied.transactions().iter().map(|t| t.id).collect();
         let (first, second) = (category(&tied, "Leisure"), category(&tied, "Shopping"));
         tied.set_category(*ids.first().unwrap(), Some(second))
@@ -2349,4 +2349,37 @@ fn test_csd032_ac_32_7_a_period_survives_the_project_file_and_is_checked_on_load
     let mut inverted = rules;
     inverted[0].from = Some(day("20-07-2026"));
     assert!(Transactions::from_parts(list, categories, inverted).is_err());
+}
+
+#[test]
+fn test_csd032_ac_29_14_only_uncategorized_transactions_propose_a_rule_and_the_count_covers_all() {
+    let mut data = many_of(&[("Example Done", 5), ("Example Part", 6), ("Example Few", 2)]);
+    let leisure = category(&data, "Leisure");
+    let ids_of = |data: &Transactions, name: &str| -> Vec<TransactionId> {
+        data.transactions()
+            .iter()
+            .filter(|t| t.counterparty_name == name)
+            .map(|t| t.id)
+            .collect()
+    };
+    // "Example Done" is categorised completely, "Example Part" has one row left.
+    for id in ids_of(&data, "Example Done") {
+        data.set_category(id, Some(leisure)).unwrap();
+    }
+    for id in ids_of(&data, "Example Part").into_iter().skip(1) {
+        data.set_category(id, Some(leisure)).unwrap();
+    }
+    let found = data.suggest_rules(5).unwrap();
+    // Not "Example Done" (nothing uncategorized), and "Example Part" with the count of all 6.
+    assert_eq!(texts(&found), vec![("Example Part", 6)]);
+    assert_eq!(
+        found.suggestions.first().unwrap().category_id,
+        Some(leisure)
+    );
+    // The minimal count applies to that count over everything: 2 is not enough, 6 is.
+    assert_eq!(texts(&data.suggest_rules(7).unwrap()), vec![]);
+    assert_eq!(
+        texts(&data.suggest_rules(1).unwrap()),
+        vec![("Example Part", 6), ("Example Few", 2)]
+    );
 }

@@ -73,7 +73,7 @@ export default {
   'Suggest rules': 'Regels voorstellen',
   'Minimal count': 'Minimaal aantal',
   'Enter a whole number of 1 or more.': 'Vul een geheel getal van 1 of meer in.',
-  'The counterparties of your transactions, with the number of transactions a rule with that text would match. Tick the suggestions to add as rules; nothing is added until you do.': 'De tegenpartijen van je transacties, met het aantal transacties dat een regel met die tekst zou vinden. Vink de suggesties aan die je als regel wilt toevoegen; er wordt niets toegevoegd tot je dat doet.',
+  'The counterparties of your uncategorized transactions, with the number of transactions a rule with that text would match. Tick the suggestions to add as rules; nothing is added until you do.': 'De tegenpartijen van je transacties zonder categorie, met het aantal transacties dat een regel met die tekst zou vinden. Vink de suggesties aan die je als regel wilt toevoegen; er wordt niets toegevoegd tot je dat doet.',
   'No suggestions. Try a lower minimal count.': 'Geen suggesties. Probeer een lager minimaal aantal.',
   'Rule text': 'Regeltekst',
   'Add the rule {name}': 'De regel {name} toevoegen',
