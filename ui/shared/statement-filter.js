@@ -55,43 +55,16 @@ export function resetAllFilters() {
  * nothing (REQ-2).
  */
 export function createStatementFilter({ periodHost, entityHost, amountHost = null, textHosts = null, entityTitle, entities, onChange, period = 'month' }) {
-  let from = '';
-  let to = '';
-  let minAmount = '';
-  let maxAmount = '';
-  const texts = { counterparty: '', description: '' };
-  const ids = new Set();
-
   const days = period === 'day';
   /** The value Rust gets for a typed bound, or null while the text is not a valid month (or day). */
   const bound = (text) => (days ? isoDay(text) : MONTH.test(text) ? text : null);
-  const periodActive = () => bound(from) !== null || bound(to) !== null;
-  const entityActive = () => ids.size > 0;
   const amountText = (text) => (/\d/.test(text) ? text.trim() : null);
-  const amountActive = () => amountHost !== null && (amountText(minAmount) !== null || amountText(maxAmount) !== null);
-  const textActive = (key) => textHosts !== null && texts[key].trim() !== '';
   const entityName = () => t(entityTitle).toLocaleLowerCase();
 
-  /** What Rust gets, or null when no part of the filter is active. */
-  function payload() {
-    if (!periodActive() && !entityActive() && !amountActive() && !textActive('counterparty') && !textActive('description')) return null;
-    const range = { from: bound(from), to: bound(to), ids: [...ids] };
-    const withAmount = amountHost === null ? range : { ...range, min_amount: amountText(minAmount), max_amount: amountText(maxAmount) };
-    if (textHosts === null) return withAmount;
-    return { ...withAmount, counterparty: textActive('counterparty') ? texts.counterparty.trim() : null, description: textActive('description') ? texts.description.trim() : null };
-  }
-
-  /** Drops the choices of entities that no longer exist, without a message (REQ-12). */
-  function prune() {
-    const known = new Set(entities().map((entity) => entity.id));
-    for (const id of [...ids]) if (!known.has(id)) ids.delete(id);
-  }
-
-  function monthField(label, value, onValue) {
-    const input = h('input', days
-      ? { type: 'text', 'data-mask': 'date', inputmode: 'numeric', placeholder: 'dd/mm/yyyy', maxlength: '10', autocomplete: 'off', value }
-      : { type: 'text', 'data-mask': 'month', inputmode: 'numeric', placeholder: 'yyyy-mm', maxlength: '7', autocomplete: 'off', value });
-    maskInput(input);
+  /** One text field of a panel; typing asks the table again after a pause (see `changed`). */
+  function typedField(label, attributes, value, onValue) {
+    const input = h('input', { type: 'text', autocomplete: 'off', ...attributes, value });
+    if (attributes['data-mask']) maskInput(input);
     input.addEventListener('input', () => {
       onValue(input.value);
       changed({ typing: true });
@@ -99,64 +72,121 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
     return h('label', { class: 'filter-field' }, h('span', {}, label), input);
   }
 
-  function periodPanel() {
-    return h(
-      'div',
-      { class: 'filter-panel', role: 'group', 'aria-label': t('Filter by period') },
-      monthField(days ? t('From date') : t('From month'), from, (value) => { from = value; }),
-      monthField(days ? t('To date') : t('To month'), to, (value) => { to = value; }),
-    );
-  }
+  const panelOf = (label, ...content) => h('div', { class: 'filter-panel', role: 'group', 'aria-label': label }, ...content);
 
-  function amountField(label, value, onValue) {
-    const input = h('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', value });
-    input.addEventListener('input', () => {
-      onValue(input.value);
-      changed({ typing: true });
-    });
-    return h('label', { class: 'filter-field' }, h('span', {}, label), input);
-  }
+  // The parts of the filter, one per column header. Each has the state of its own and says what it is
+  // (`host`, the labels), whether it filters (`active`), what it adds to the payload (`fields`), how it is
+  // cleared (`clear`) and how its panel is drawn (`panel`). A part an entity needs no longer can drop it (`prune`).
 
-  function amountPanel() {
-    return h(
-      'div',
-      { class: 'filter-panel', role: 'group', 'aria-label': t('Filter by amount') },
-      amountField(t('From amount'), minAmount, (value) => { minAmount = value; }),
-      amountField(t('To amount'), maxAmount, (value) => { maxAmount = value; }),
-    );
-  }
-
-  function textPanel(key, label, groupLabel) {
-    return () => {
-      const input = h('input', { type: 'text', maxlength: '100', autocomplete: 'off', value: texts[key] });
-      input.addEventListener('input', () => {
-        texts[key] = input.value;
-        changed({ typing: true });
-      });
-      return h('div', { class: 'filter-panel', role: 'group', 'aria-label': groupLabel() }, h('label', { class: 'filter-field' }, h('span', {}, label()), input));
+  function periodPart() {
+    let from = '';
+    let to = '';
+    const mask = days
+      ? { 'data-mask': 'date', inputmode: 'numeric', placeholder: 'dd/mm/yyyy', maxlength: '10' }
+      : { 'data-mask': 'month', inputmode: 'numeric', placeholder: 'yyyy-mm', maxlength: '7' };
+    return {
+      host: periodHost,
+      filterLabel: () => t('Filter by period'),
+      activeLabel: () => t('Filter by period (active)'),
+      active: () => bound(from) !== null || bound(to) !== null,
+      fields: () => ({ from: bound(from), to: bound(to) }),
+      clear: () => { from = ''; to = ''; },
+      panel: () =>
+        panelOf(
+          t('Filter by period'),
+          typedField(days ? t('From date') : t('From month'), mask, from, (value) => { from = value; }),
+          typedField(days ? t('To date') : t('To month'), mask, to, (value) => { to = value; }),
+        ),
     };
   }
 
-  function entityPanel() {
-    const checks = entities().map((entity) => {
-      const box = h('input', { type: 'checkbox', value: entity.id });
-      box.checked = ids.has(entity.id);
-      box.addEventListener('change', () => {
-        if (box.checked) ids.add(entity.id);
-        else ids.delete(entity.id);
-        changed();
-      });
-      return h('label', { class: 'filter-check' }, box, h('span', { class: 'wrap' }, entity.label));
-    });
-    return h(
-      'div',
-      { class: 'filter-panel', role: 'group', 'aria-label': t('Filter by {entity}', { entity: entityName() }) },
-      h('div', { class: 'filter-checks' }, checks),
-    );
+  function entityPart() {
+    const ids = new Set();
+    return {
+      host: entityHost,
+      filterLabel: () => t('Filter by {entity}', { entity: entityName() }),
+      activeLabel: () => t('Filter by {entity} (active)', { entity: entityName() }),
+      active: () => ids.size > 0,
+      fields: () => ({ ids: [...ids] }),
+      clear: () => ids.clear(),
+      /** Drops the choices of entities that no longer exist, without a message (REQ-12). */
+      prune() {
+        const known = new Set(entities().map((entity) => entity.id));
+        for (const id of [...ids]) if (!known.has(id)) ids.delete(id);
+      },
+      panel() {
+        const checks = entities().map((entity) => {
+          const box = h('input', { type: 'checkbox', value: entity.id });
+          box.checked = ids.has(entity.id);
+          box.addEventListener('change', () => {
+            if (box.checked) ids.add(entity.id);
+            else ids.delete(entity.id);
+            changed();
+          });
+          return h('label', { class: 'filter-check' }, box, h('span', { class: 'wrap' }, entity.label));
+        });
+        return panelOf(t('Filter by {entity}', { entity: entityName() }), h('div', { class: 'filter-checks' }, checks));
+      },
+    };
   }
 
+  /** The range of an amount column, typed in the number format of the app and read by Rust. */
+  function amountPart() {
+    let min = '';
+    let max = '';
+    const attributes = { inputmode: 'decimal' };
+    return {
+      host: amountHost,
+      filterLabel: () => t('Filter by amount'),
+      activeLabel: () => t('Filter by amount (active)'),
+      active: () => amountText(min) !== null || amountText(max) !== null,
+      fields: () => ({ min_amount: amountText(min), max_amount: amountText(max) }),
+      clear: () => { min = ''; max = ''; },
+      panel: () =>
+        panelOf(
+          t('Filter by amount'),
+          typedField(t('From amount'), attributes, min, (value) => { min = value; }),
+          typedField(t('To amount'), attributes, max, (value) => { max = value; }),
+        ),
+    };
+  }
+
+  /** The text filter of a text column: `key` is its field in the payload, `title` the English column title. */
+  function textPart(key, host, title) {
+    let text = '';
+    const name = () => t(title).toLocaleLowerCase();
+    const trimmed = () => text.trim();
+    return {
+      host,
+      filterLabel: () => t('Filter by {entity}', { entity: name() }),
+      activeLabel: () => t('Filter by {entity} (active)', { entity: name() }),
+      active: () => trimmed() !== '',
+      fields: () => ({ [key]: trimmed() === '' ? null : trimmed() }),
+      clear: () => { text = ''; },
+      panel: () =>
+        panelOf(
+          t('Filter by {entity}', { entity: name() }),
+          typedField(t('{entity} (* is any text)', { entity: t(title) }), { maxlength: '100' }, text, (value) => { text = value; }),
+        ),
+    };
+  }
+
+  const parts = [
+    periodPart(),
+    entityPart(),
+    ...(amountHost === null ? [] : [amountPart()]),
+    ...(textHosts === null ? [] : [textPart('counterparty', textHosts.counterparty, 'Counterparty'), textPart('description', textHosts.description, 'Description')]),
+  ];
+
+  /** What Rust gets, or null when no part of the filter is active. */
+  function payload() {
+    return parts.some((part) => part.active()) ? Object.assign({}, ...parts.map((part) => part.fields())) : null;
+  }
+
+  const prune = () => parts.forEach((part) => part.prune?.());
+
   /** One column header's buttons and panel. */
-  function column({ host, filterLabel, activeLabel, active, clearPart, buildPanel }) {
+  function column({ host, filterLabel, activeLabel, active, clear: clearPart, panel: buildPanel }) {
     let panel = null;
     let resetButton = null;
     let button = null;
@@ -267,55 +297,7 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
     return self;
   }
 
-  /** The text filter of a text column; `title` is the English column title. */
-  function textColumn(key, host, title) {
-    const name = () => t(title).toLocaleLowerCase();
-    return column({
-      host,
-      filterLabel: () => t('Filter by {entity}', { entity: name() }),
-      activeLabel: () => t('Filter by {entity} (active)', { entity: name() }),
-      active: () => textActive(key),
-      clearPart: () => { texts[key] = ''; },
-      buildPanel: textPanel(key, () => t('{entity} (* is any text)', { entity: t(title) }), () => t('Filter by {entity}', { entity: name() })),
-    });
-  }
-
-  const columns = [
-    column({
-      host: periodHost,
-      filterLabel: () => t('Filter by period'),
-      activeLabel: () => t('Filter by period (active)'),
-      active: periodActive,
-      clearPart: () => { from = ''; to = ''; },
-      buildPanel: periodPanel,
-    }),
-    column({
-      host: entityHost,
-      filterLabel: () => t('Filter by {entity}', { entity: entityName() }),
-      activeLabel: () => t('Filter by {entity} (active)', { entity: entityName() }),
-      active: entityActive,
-      clearPart: () => ids.clear(),
-      buildPanel: entityPanel,
-    }),
-    ...(amountHost === null
-      ? []
-      : [
-          column({
-            host: amountHost,
-            filterLabel: () => t('Filter by amount'),
-            activeLabel: () => t('Filter by amount (active)'),
-            active: amountActive,
-            clearPart: () => { minAmount = ''; maxAmount = ''; },
-            buildPanel: amountPanel,
-          }),
-        ]),
-    ...(textHosts === null
-      ? []
-      : [
-          textColumn('counterparty', textHosts.counterparty, 'Counterparty'),
-          textColumn('description', textHosts.description, 'Description'),
-        ]),
-  ];
+  const columns = parts.map(column);
 
   /** The payload the table was last asked for, as text; the same payload asks nothing again. */
   let asked = JSON.stringify(null);
@@ -337,17 +319,11 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
   const filter = {
     payload,
 
-    /** Clears both parts without reloading. */
+    /** Clears every part without reloading. */
     clear() {
       clearTimeout(typingTimer);
       asked = JSON.stringify(null);
-      from = '';
-      to = '';
-      ids.clear();
-      minAmount = '';
-      maxAmount = '';
-      texts.counterparty = '';
-      texts.description = '';
+      for (const part of parts) part.clear();
       for (const each of columns) each.closePanel();
       if ($(periodHost)?.querySelector('.filter-controls')) for (const each of columns) each.render();
     },

@@ -5,11 +5,14 @@
 //! transactions sits behind an `Arc`, so the undo history shares it between
 //! steps and a step pays only for a list it changes (CSD-032 CON-4).
 
+mod bulk;
+mod categories;
 mod category;
 mod filter;
 mod import;
 mod insights;
 mod list;
+mod rules;
 mod suggest;
 mod summary;
 mod totals;
@@ -30,12 +33,13 @@ pub use category::{Category, CategoryId, Rule, RuleId, RulePeriod, UNCATEGORIZED
 pub use filter::{TransactionFilter, TransactionFilterInput};
 pub use insights::{Granularity, TransactionInsights};
 pub use list::TransactionList;
+pub use rules::RuleDraft;
 pub use suggest::RuleSuggestions;
 pub use summary::CategorisationSummary;
 pub use totals::TransactionYearlyTotal;
 pub use transaction::{Transaction, TransactionDate, TransactionId};
 
-use category::{categorise, defaults, matching_rule, rule_text, valid_name};
+use category::{categorise, defaults, rule_text, valid_name};
 
 /// What an import did (CSD-032 REQ-1).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
@@ -254,73 +258,6 @@ impl Transactions {
         Ok(())
     }
 
-    /// The positions in the list of the transactions named by `ids`, which
-    /// all have to exist.
-    fn positions_of(&self, ids: &[TransactionId]) -> Result<HashSet<usize>, DomainError> {
-        let wanted: HashSet<TransactionId> = ids.iter().copied().collect();
-        let positions: HashSet<usize> = self
-            .list
-            .iter()
-            .enumerate()
-            .filter(|(_, transaction)| wanted.contains(&transaction.id))
-            .map(|(position, _)| position)
-            .collect();
-        if positions.len() == wanted.len() {
-            Ok(positions)
-        } else {
-            Err(DomainError::TransactionNotFound)
-        }
-    }
-
-    /// Sets the category of every transaction in `ids` by hand, like
-    /// [`Transactions::set_category`], as one change: when one id is unknown or
-    /// the category does not exist, nothing changes. Returns how many were
-    /// set (REQ-28).
-    ///
-    /// # Errors
-    /// Returns `TransactionNotFound` or `TransactionCategoryNotFound`.
-    pub fn set_category_of_many(
-        &mut self,
-        ids: &[TransactionId],
-        category: Option<CategoryId>,
-    ) -> Result<usize, DomainError> {
-        if category.is_some_and(|category| !self.has_category(category)) {
-            return Err(DomainError::TransactionCategoryNotFound);
-        }
-        let positions = self.positions_of(ids)?;
-        if positions.is_empty() {
-            return Ok(0);
-        }
-        let list = Arc::make_mut(&mut self.list);
-        for position in &positions {
-            if let Some(transaction) = list.get_mut(*position) {
-                transaction.category_id = category;
-                transaction.manual = true;
-            }
-        }
-        Ok(positions.len())
-    }
-
-    /// Removes every transaction in `ids` and nothing else, as one change:
-    /// when one id is unknown, nothing is removed. Returns how many were
-    /// removed (REQ-28).
-    ///
-    /// # Errors
-    /// Returns `TransactionNotFound`.
-    pub fn delete_many(&mut self, ids: &[TransactionId]) -> Result<usize, DomainError> {
-        let positions = self.positions_of(ids)?;
-        if positions.is_empty() {
-            return Ok(0);
-        }
-        let mut position = 0;
-        Arc::make_mut(&mut self.list).retain(|_| {
-            let keep = !positions.contains(&position);
-            position += 1;
-            keep
-        });
-        Ok(positions.len())
-    }
-
     /// Takes the manual mark off a transaction and leaves its category as it
     /// is, so a later re-apply may change it (REQ-11).
     ///
@@ -354,307 +291,6 @@ impl Transactions {
     pub fn delete_all_transactions(&mut self) -> usize {
         let count = self.list.len();
         self.list = Arc::new(Vec::new());
-        count
-    }
-
-    fn has_category(&self, id: CategoryId) -> bool {
-        self.categories.iter().any(|category| category.id == id)
-    }
-
-    /// Adds a category (REQ-8).
-    ///
-    /// # Errors
-    /// Returns the violated name rule.
-    pub fn add_category(&mut self, name: &str) -> Result<Category, DomainError> {
-        let name = valid_name(&self.categories, None, name)?;
-        let category = Category {
-            id: CategoryId::new(),
-            name,
-        };
-        self.categories.push(category.clone());
-        Ok(category)
-    }
-
-    /// Renames a category (REQ-8).
-    ///
-    /// # Errors
-    /// Returns `TransactionCategoryNotFound` or the violated name rule.
-    pub fn rename_category(&mut self, id: CategoryId, name: &str) -> Result<Category, DomainError> {
-        if !self.has_category(id) {
-            return Err(DomainError::TransactionCategoryNotFound);
-        }
-        let name = valid_name(&self.categories, Some(id), name)?;
-        let category = self
-            .categories
-            .iter_mut()
-            .find(|category| category.id == id)
-            .ok_or(DomainError::TransactionCategoryNotFound)?;
-        category.name = name;
-        Ok(category.clone())
-    }
-
-    /// Deletes a category: its transactions become Uncategorized, keeping
-    /// their manual flag, and the rules that name it are deleted (REQ-13).
-    ///
-    /// # Errors
-    /// Returns `TransactionCategoryNotFound`.
-    pub fn delete_category(&mut self, id: CategoryId) -> Result<(), DomainError> {
-        if !self.has_category(id) {
-            return Err(DomainError::TransactionCategoryNotFound);
-        }
-        self.categories.retain(|category| category.id != id);
-        self.rules.retain(|rule| rule.category_id != id);
-        if self
-            .list
-            .iter()
-            .any(|transaction| transaction.category_id == Some(id))
-        {
-            for transaction in Arc::make_mut(&mut self.list).iter_mut() {
-                if transaction.category_id == Some(id) {
-                    transaction.category_id = None;
-                }
-            }
-        }
-        Ok(())
-    }
-
-    fn rule_category(&self, id: CategoryId) -> Result<CategoryId, DomainError> {
-        if self.has_category(id) {
-            Ok(id)
-        } else {
-            Err(DomainError::TransactionRuleCategoryInvalid)
-        }
-    }
-
-    /// Checks the text and the period typed for a rule and returns the text
-    /// trimmed. Without a period the text is required; a rule that has the same
-    /// text, ignoring case, and the same period as another one is the same
-    /// rule, because matching ignores case (REQ-9, REQ-32). `own` is the rule
-    /// being edited.
-    fn free_rule_text(
-        &self,
-        typed: &str,
-        period: RulePeriod,
-        own: Option<RuleId>,
-    ) -> Result<String, DomainError> {
-        let text = rule_text(typed, period.is_set())?;
-        if period
-            .from
-            .zip(period.to)
-            .is_some_and(|(from, to)| from > to)
-        {
-            return Err(DomainError::TransactionRulePeriodInvalid);
-        }
-        let lower = text.to_lowercase();
-        let taken = self.rules.iter().any(|rule| {
-            Some(rule.id) != own && rule.text.to_lowercase() == lower && rule.period() == period
-        });
-        if taken {
-            return Err(DomainError::TransactionRuleTextTaken);
-        }
-        Ok(text)
-    }
-
-    /// Adds a rule at the end of the list (REQ-9).
-    ///
-    /// # Errors
-    /// Returns the violated text or category rule, or `TransactionRuleTextTaken`.
-    pub fn add_rule(&mut self, text: &str, category: CategoryId) -> Result<Rule, DomainError> {
-        self.add_rule_in(text, RulePeriod::default(), category)
-    }
-
-    /// Adds a rule limited to `period` at the end of the list (REQ-32).
-    ///
-    /// # Errors
-    /// Returns the violated text, period or category rule, or
-    /// `TransactionRuleTextTaken`.
-    pub fn add_rule_in(
-        &mut self,
-        text: &str,
-        period: RulePeriod,
-        category: CategoryId,
-    ) -> Result<Rule, DomainError> {
-        let text = self.free_rule_text(text, period, None)?;
-        let category_id = self.rule_category(category)?;
-        let rule = Rule {
-            id: RuleId::new(),
-            text,
-            category_id,
-            from: period.from,
-            to: period.to,
-        };
-        self.rules.push(rule.clone());
-        Ok(rule)
-    }
-
-    /// Adds `rules`, each a text and a category, at the end of the list in
-    /// their order, as one change: when one is invalid, none is added and the
-    /// position of the first invalid one comes with the error (REQ-29).
-    ///
-    /// # Errors
-    /// Returns the position and the violated rule of the first invalid rule,
-    /// a text another rule or an earlier one of `rules` has included.
-    pub fn add_rules(
-        &mut self,
-        rules: &[(String, CategoryId)],
-    ) -> Result<Vec<Rule>, (usize, DomainError)> {
-        let mut working = self.clone();
-        let mut added = Vec::with_capacity(rules.len());
-        for (position, (text, category)) in rules.iter().enumerate() {
-            let rule = working
-                .add_rule(text, *category)
-                .map_err(|error| (position, error))?;
-            added.push(rule);
-        }
-        *self = working;
-        Ok(added)
-    }
-
-    /// Adds a rule at the end of the list together with a new category it
-    /// names, as one change: when the text or the name is invalid, neither is
-    /// added (REQ-9).
-    ///
-    /// # Errors
-    /// Returns the violated text rule, or the violated name rule.
-    pub fn add_rule_with_new_category(
-        &mut self,
-        text: &str,
-        period: RulePeriod,
-        name: &str,
-    ) -> Result<(Category, Rule), DomainError> {
-        let text = self.free_rule_text(text, period, None)?;
-        let category = self.add_category(name)?;
-        let rule = Rule {
-            id: RuleId::new(),
-            text,
-            category_id: category.id,
-            from: period.from,
-            to: period.to,
-        };
-        self.rules.push(rule.clone());
-        Ok((category, rule))
-    }
-
-    /// Changes the text, period and category of a rule (REQ-9, REQ-32).
-    ///
-    /// # Errors
-    /// Returns `TransactionRuleNotFound`, `TransactionRuleTextTaken` or the violated text or category rule.
-    pub fn edit_rule(
-        &mut self,
-        id: RuleId,
-        text: &str,
-        period: RulePeriod,
-        category: CategoryId,
-    ) -> Result<Rule, DomainError> {
-        let text = self.free_rule_text(text, period, Some(id))?;
-        let category_id = self.rule_category(category)?;
-        let rule = self
-            .rules
-            .iter_mut()
-            .find(|rule| rule.id == id)
-            .ok_or(DomainError::TransactionRuleNotFound)?;
-        rule.text = text;
-        rule.category_id = category_id;
-        rule.from = period.from;
-        rule.to = period.to;
-        Ok(rule.clone())
-    }
-
-    /// Moves a rule to `position`, counted from 0 at the top; a position past
-    /// the end puts it last (REQ-9).
-    ///
-    /// # Errors
-    /// Returns `TransactionRuleNotFound`.
-    pub fn move_rule(&mut self, id: RuleId, position: usize) -> Result<(), DomainError> {
-        let from = self
-            .rules
-            .iter()
-            .position(|rule| rule.id == id)
-            .ok_or(DomainError::TransactionRuleNotFound)?;
-        let rule = self.rules.remove(from);
-        let to = position.min(self.rules.len());
-        self.rules.insert(to, rule);
-        Ok(())
-    }
-
-    /// Deletes a rule (REQ-9).
-    ///
-    /// # Errors
-    /// Returns `TransactionRuleNotFound`.
-    pub fn delete_rule(&mut self, id: RuleId) -> Result<(), DomainError> {
-        let before = self.rules.len();
-        self.rules.retain(|rule| rule.id != id);
-        if self.rules.len() == before {
-            return Err(DomainError::TransactionRuleNotFound);
-        }
-        Ok(())
-    }
-
-    /// For each rule, in order, how many transactions it would categorise: the
-    /// transactions that are not manual and whose first matching rule it is
-    /// (REQ-27).
-    #[must_use]
-    pub fn rule_counts(&self) -> Vec<usize> {
-        let mut counts = vec![0; self.rules.len()];
-        for transaction in self.list.iter().filter(|transaction| !transaction.manual) {
-            let found = matching_rule(
-                &self.rules,
-                transaction.date,
-                &transaction.counterparty_name,
-                &transaction.description,
-            );
-            if let Some(count) = found.and_then(|index| counts.get_mut(index)) {
-                *count += 1;
-            }
-        }
-        counts
-    }
-
-    /// For every category, in the order of [`Transactions::categories`], how
-    /// many transactions are in it, whoever set the category (REQ-30).
-    #[must_use]
-    pub fn category_counts(&self) -> Vec<usize> {
-        self.categories
-            .iter()
-            .map(|category| {
-                self.list
-                    .iter()
-                    .filter(|transaction| transaction.category_id == Some(category.id))
-                    .count()
-            })
-            .collect()
-    }
-
-    /// Runs the rules again on the transactions of `scope` and returns how many
-    /// changed category. Manual transactions are only touched by
-    /// [`ReapplyScope::All`] (REQ-12).
-    pub fn reapply_rules(&mut self, scope: ReapplyScope) -> usize {
-        let changes: Vec<(usize, Option<CategoryId>)> = self
-            .list
-            .iter()
-            .enumerate()
-            .filter(|(_, transaction)| scope == ReapplyScope::All || !transaction.manual)
-            .filter_map(|(index, transaction)| {
-                let found = categorise(
-                    &self.rules,
-                    transaction.date,
-                    &transaction.counterparty_name,
-                    &transaction.description,
-                );
-                (found != transaction.category_id).then_some((index, found))
-            })
-            .collect();
-        if changes.is_empty() {
-            return 0;
-        }
-        let list = Arc::make_mut(&mut self.list);
-        let count = changes.len();
-        for (index, category) in changes {
-            if let Some(transaction) = list.get_mut(index) {
-                transaction.category_id = category;
-                transaction.manual = false;
-            }
-        }
         count
     }
 }

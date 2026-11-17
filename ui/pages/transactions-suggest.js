@@ -16,9 +16,12 @@ let getCategories = () => [];
 let onChanged = async () => {};
 /**
  * The rows of the list: `{ text, count, categoryId, checked }`, `categoryId` empty for none, `checked` false until
- * the user ticks the row or chooses a category for it; `error` after a refused add.
+ * the user ticks the row or chooses a category for it; `error` after a refused add. A row is data only: what is
+ * drawn for it (its fields and its pause before a recount) is kept in `views`.
  */
 let rows = [];
+/** The elements and the timer of each row: `{ input, message, box, select, timer }`. */
+const views = new WeakMap();
 let requestNumber = 0;
 
 const minCountField = () => $('transaction-suggest-form').elements.min_count;
@@ -59,21 +62,23 @@ function categorySelect(row) {
     syncRow(row);
     syncChosen();
   });
-  row.select = select;
+  views.get(row).select = select;
   return select;
 }
 
 /** The tick of a row is only possible while it has a category. */
 function syncRow(row) {
-  row.box.disabled = row.categoryId === '';
-  row.box.checked = row.checked;
+  const { box } = views.get(row);
+  box.disabled = row.categoryId === '';
+  box.checked = row.checked;
 }
 
 /** Recounts an edited text after a pause; the row stays whatever the new count is. */
 function scheduleRecount(row, countCell) {
-  clearTimeout(row.timer);
+  const view = views.get(row);
+  clearTimeout(view.timer);
   countCell.textContent = '\u2026';
-  row.timer = setTimeout(async () => {
+  view.timer = setTimeout(async () => {
     const asked = row.text;
     try {
       const count = await invoke('count_transaction_rule_matches', { text: asked });
@@ -92,8 +97,8 @@ function renderRow(row) {
   const countCell = h('td', { class: 'num' }, String(row.count));
   const input = h('input', { type: 'text', maxlength: '100', autocomplete: 'off', value: row.text, 'aria-label': t('Rule text') });
   const message = h('span', { class: 'row-error', role: 'alert', hidden: row.error ? null : true }, row.error ?? '');
-  row.input = input;
-  row.message = message;
+  const view = { input, message, box: null, select: null, timer: null };
+  views.set(row, view);
   input.addEventListener('input', () => {
     row.text = input.value;
     row.error = null;
@@ -102,7 +107,7 @@ function renderRow(row) {
     scheduleRecount(row, countCell);
   });
   const box = h('input', { type: 'checkbox', 'aria-label': t('Add the rule {name}', { name: row.text }) });
-  row.box = box;
+  view.box = box;
   box.addEventListener('change', () => {
     row.checked = box.checked;
     syncChosen();
@@ -167,11 +172,12 @@ async function addChosen() {
     if (result.rejected) {
       const row = chosen[result.rejected.index];
       const message = errorText({ code: result.rejected.code, message: result.rejected.message });
+      const view = views.get(row);
       row.error = message;
-      row.message.textContent = message;
-      row.message.hidden = false;
-      row.input.setAttribute('aria-invalid', 'true');
-      row.input.focus();
+      view.message.textContent = message;
+      view.message.hidden = false;
+      view.input.setAttribute('aria-invalid', 'true');
+      view.input.focus();
       return;
     }
     $('transaction-suggest-dialog').close();

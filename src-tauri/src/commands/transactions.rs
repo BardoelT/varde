@@ -14,8 +14,9 @@ use tauri_plugin_dialog::DialogExt;
 use super::AppState;
 use crate::domain::transactions::{
     CategorisationSummary, Category, CategoryId, Granularity, ImportSummary, ReapplyScope, Rule,
-    RuleId, RulePeriod, RuleSuggestions, TransactionDate, TransactionFilterInput, TransactionId,
-    TransactionInsights, TransactionList, TransactionYearlyTotal, UNCATEGORIZED_ENTITY,
+    RuleDraft, RuleId, RulePeriod, RuleSuggestions, TransactionDate, TransactionFilter,
+    TransactionFilterInput, TransactionId, TransactionInsights, TransactionList,
+    TransactionYearlyTotal, UNCATEGORIZED_ENTITY,
 };
 use crate::domain::DomainError;
 use crate::error::AppError;
@@ -29,6 +30,23 @@ const MAX_EXPORT_BYTES: u64 = 50 * 1024 * 1024;
 
 const FILTER_NAME: &str = "Bank export (CSV)";
 const FILTER_EXTENSIONS: &[&str] = &["csv"];
+
+/// The filter of a list command as the frontend sent it, with the typed
+/// amounts read in the number format of the app.
+fn resolved_filter(
+    filter: Option<TransactionFilterInput>,
+    preferences: &Preferences,
+) -> Option<TransactionFilter> {
+    filter.map(|input| input.resolve(preferences.load_number_format()))
+}
+
+/// A category id as the frontend sends it for a transaction: empty or missing
+/// means Uncategorized (CSD-032 REQ-11).
+fn optional_category(text: Option<&str>) -> Result<Option<CategoryId>, DomainError> {
+    text.filter(|text| !text.is_empty())
+        .map(CategoryId::parse)
+        .transpose()
+}
 
 /// Shows the native "open" dialog for a CSV file. Returns `None` when cancelled.
 fn pick_export<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
@@ -91,7 +109,7 @@ pub fn list_transactions(
     limit: Option<usize>,
     preferences: State<'_, Preferences>,
 ) -> Result<TransactionList, AppError> {
-    let filter = filter.map(|input| input.resolve(preferences.load_number_format()));
+    let filter = resolved_filter(filter, &preferences);
     let project = state.project()?;
     Ok(project.transactions().list_filtered(
         filter.as_ref(),
@@ -132,11 +150,7 @@ pub fn set_transaction_category(
     category_id: Option<String>,
 ) -> Result<(), AppError> {
     let id = TransactionId::parse(&transaction_id)?;
-    let category = category_id
-        .as_deref()
-        .filter(|text| !text.is_empty())
-        .map(CategoryId::parse)
-        .transpose()?;
+    let category = optional_category(category_id.as_deref())?;
     let mut project = state.edit(StepLabel::edit(Record::Transaction))?;
     project.transactions_mut().set_category(id, category)?;
     Ok(())
@@ -187,7 +201,7 @@ pub fn list_transaction_ids(
     manual_only: Option<bool>,
     preferences: State<'_, Preferences>,
 ) -> Result<Vec<TransactionId>, AppError> {
-    let filter = filter.map(|input| input.resolve(preferences.load_number_format()));
+    let filter = resolved_filter(filter, &preferences);
     let project = state.project()?;
     Ok(project
         .transactions()
@@ -203,11 +217,7 @@ pub fn set_transactions_category(
     category_id: Option<String>,
 ) -> Result<usize, AppError> {
     let ids = parse_ids(&transaction_ids)?;
-    let category = category_id
-        .as_deref()
-        .filter(|text| !text.is_empty())
-        .map(CategoryId::parse)
-        .transpose()?;
+    let category = optional_category(category_id.as_deref())?;
     let mut project = state.edit(StepLabel::edit(Record::Transactions))?;
     Ok(project
         .transactions_mut()
@@ -250,11 +260,10 @@ pub fn list_transaction_categories(
     state: State<'_, AppState>,
 ) -> Result<Vec<CategoryRow>, AppError> {
     let project = state.project()?;
-    let transactions = project.transactions();
-    Ok(transactions
-        .categories()
-        .iter()
-        .zip(transactions.category_counts())
+    Ok(project
+        .transactions()
+        .category_rows()
+        .into_iter()
         .map(|(category, transaction_count)| CategoryRow {
             category: category.clone(),
             transaction_count,
@@ -308,11 +317,10 @@ pub struct RuleRow {
 #[tauri::command]
 pub fn list_transaction_rules(state: State<'_, AppState>) -> Result<Vec<RuleRow>, AppError> {
     let project = state.project()?;
-    let transactions = project.transactions();
-    Ok(transactions
-        .rules()
-        .iter()
-        .zip(transactions.rule_counts())
+    Ok(project
+        .transactions()
+        .rule_rows()
+        .into_iter()
         .map(|(rule, transaction_count)| RuleRow {
             rule: rule.clone(),
             transaction_count,
@@ -450,12 +458,20 @@ fn typed_day(typed: Option<&str>) -> Result<Option<TransactionDate>, DomainError
     }
 }
 
-/// The period of a rule from the two typed days (REQ-32).
-fn typed_period(from: Option<&str>, to: Option<&str>) -> Result<RulePeriod, DomainError> {
-    Ok(RulePeriod {
-        from: typed_day(from)?,
-        to: typed_day(to)?,
-    })
+/// The draft of a rule from what the form sent: the text and the two typed
+/// days (REQ-9, REQ-32).
+fn typed_draft(
+    text: String,
+    from: Option<&str>,
+    to: Option<&str>,
+) -> Result<RuleDraft, DomainError> {
+    Ok(RuleDraft::new(
+        text,
+        RulePeriod {
+            from: typed_day(from)?,
+            to: typed_day(to)?,
+        },
+    ))
 }
 
 /// Adds a rule, optionally limited to the days `from` to `to` (REQ-32). With
@@ -470,19 +486,17 @@ pub fn add_transaction_rule(
     from: Option<String>,
     to: Option<String>,
 ) -> Result<Rule, AppError> {
-    let period = typed_period(from.as_deref(), to.as_deref())?;
+    let draft = typed_draft(text, from.as_deref(), to.as_deref())?;
     if let Some(name) = new_category {
         let mut project = state.edit(StepLabel::add(Record::TransactionRule))?;
         let (_, rule) = project
             .transactions_mut()
-            .add_rule_with_new_category(&text, period, &name)?;
+            .add_rule_with_new_category(&draft, &name)?;
         return Ok(rule);
     }
     let category = rule_category(category_id.as_deref().unwrap_or_default())?;
     let mut project = state.edit(StepLabel::add(Record::TransactionRule))?;
-    Ok(project
-        .transactions_mut()
-        .add_rule_in(&text, period, category)?)
+    Ok(project.transactions_mut().add_rule_with(&draft, category)?)
 }
 
 #[tauri::command]
@@ -496,11 +510,9 @@ pub fn edit_transaction_rule(
 ) -> Result<Rule, AppError> {
     let id = RuleId::parse(&rule_id)?;
     let category = rule_category(&category_id)?;
-    let period = typed_period(from.as_deref(), to.as_deref())?;
+    let draft = typed_draft(text, from.as_deref(), to.as_deref())?;
     let mut project = state.edit(StepLabel::edit(Record::TransactionRule))?;
-    Ok(project
-        .transactions_mut()
-        .edit_rule(id, &text, period, category)?)
+    Ok(project.transactions_mut().edit_rule(id, &draft, category)?)
 }
 
 /// Moves a rule to a position, counted from 0 at the top (REQ-9).

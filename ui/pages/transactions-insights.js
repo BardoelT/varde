@@ -2,7 +2,7 @@
 // year or per month (CSD-033). Its frame (axis, bars, tooltip, loading) is shared with the other charts in
 // shared/yearly-chart.js; this file supplies what is specific to it: the segments, the legend of the
 // categories, the labels of a year or a month, and the choice between Yearly and Monthly.
-import { $, h } from '../shared/dom.js';
+import { $, h, showToast } from '../shared/dom.js';
 import { formatAmount } from '../shared/format.js';
 import { swatch, noSwatch, legendLabel, tooltipRow, topToBottom } from '../shared/chart.js';
 import { createYearlyChart, yearLabel } from '../shared/yearly-chart.js';
@@ -10,7 +10,6 @@ import { fillLegend, markerDecorator } from '../shared/insights-page.js';
 import { initTabs } from '../shared/tabs.js';
 import { t, tn } from '../shared/i18n.js';
 import { errorText } from '../shared/ipc.js';
-import { showToast } from '../shared/dom.js';
 
 /** `yearly` or `monthly`; the page opens on the years and does not remember the choice. */
 let granularity = 'yearly';
