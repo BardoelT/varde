@@ -22,11 +22,16 @@ let rules = [];
 let limit = PAGE_ROWS;
 
 /** Whether the list shows only the transactions whose category was set by hand (CSD-032 REQ-26). */
-const manualOnly = () => $('transaction-manual-only').checked;
+const manualOnly = () => $('transaction-manual-only').getAttribute('aria-pressed') === 'true';
+
+/** Switches "Manual only" on or off; the button looks pressed while it is on. */
+function setManualOnly(on) {
+  $('transaction-manual-only').setAttribute('aria-pressed', String(on));
+}
 
 /** Back to the whole list, when another project is opened. */
 export function resetTransactionsManualFilter() {
-  $('transaction-manual-only').checked = false;
+  setManualOnly(false);
   endBulk();
 }
 
@@ -596,7 +601,8 @@ export function initTransactionsOverview({ onChanged: callback }) {
   $('transaction-bulk-toggle').addEventListener('click', () => toggleBulk(!bulk));
   $('transactions-bulk-set').addEventListener('click', setSelectedCategory);
   $('transactions-bulk-delete').addEventListener('click', deleteSelected);
-  $('transaction-manual-only').addEventListener('change', () => {
+  $('transaction-manual-only').addEventListener('click', () => {
+    setManualOnly(!manualOnly());
     limit = PAGE_ROWS;
     selected.clear();
     loadList().catch((error) => showToast(errorText(error)));

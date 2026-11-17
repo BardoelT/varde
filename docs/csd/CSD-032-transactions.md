@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.33
+version: 0.34
 last_updated: 16/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -828,7 +828,7 @@ Scenario: Cancelled
 ```
 
 **REQ-26: Manual only** *(event-driven)*
-The Overview tab shall have a checkbox "Manual only" above the list. While it is on, the list, its count and its filtered total shall cover only the transactions whose category was set by hand (the ones with the badge "Manual"), together with the filters of CSD-028. The choice shall not be remembered when another project is opened. Rust applies it; the checkbox only sends it. When no transaction is manual, the list shall show "No transactions match the filters." and the checkbox stays reachable.
+The Overview tab shall have a button "Manual only" above the list that switches the filter on and off and, like "Bulk select" (REQ-28), looks selected (pressed) while it is on. While it is on, the list, its count and its filtered total shall cover only the transactions whose category was set by hand (the ones with the badge "Manual"), together with the filters of CSD-028. The choice shall not be remembered when another project is opened. Rust applies it; the button only sends it. When no transaction is manual, the list shall show "No transactions match the filters." and the button stays reachable.
 
 ```gherkin
 @AC-26.1
@@ -1212,6 +1212,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.34 (16/11/2026): "Manual only" is a button that looks pressed while on, like "Bulk select", instead of a checkbox (REQ-26). Owner request. Back to `draft` until re-approved.
 - 0.33 (16/11/2026): The "Bulk select" button looks selected while bulk select is on (REQ-28, AC-28.8). Owner request. Back to `draft` until re-approved.
 - 0.32 (16/11/2026): A rule may be limited to a period, with an optional from and to date, and without a text it categorises every transaction in the period, for example a holiday (new REQ-32, AC-32.1 to AC-32.10; REQ-9, REQ-10, REQ-17). Owner request. My choices: the period rules share the one ordered list and its first-match-wins order, instead of being a separate kind; both ends are included and either may be open; the project file gets the optional `from` and `to` on a rule (format version stays 3, older files load as they are). Back to `draft` until re-approved.
 - 0.31 (16/11/2026): Rules are ordered by dragging a handle of three horizontal lines at the left of the row, instead of the arrow buttons; the arrow keys work on the handle (REQ-9, AC-9.2). The categorized share moves from the Rules tab to the header of the Yearly totals panel on the Overview tab, right-aligned (REQ-31, AC-31.2). Owner requests. Back to `draft` until re-approved.

@@ -571,14 +571,16 @@ test('test_csd032_ac_26_2_manual_only_asks_rust_for_the_hand_set_transactions', 
   const app = await transactionsPage(readsWith({ rows: [manual, transaction('t2', '2026-10-29', '-2.00', 'Example Cafe')], count: 2 }), {
     list_transactions: (args) => (args?.manualOnly ? { rows: [manual], count: 1, total: '-1.00' } : { rows: [manual, transaction('t2', '2026-10-29', '-2.00', 'Example Cafe')], count: 2, total: '-3.00' }),
   });
-  assert.equal(app.$('transaction-manual-only').checked, false);
+  assert.equal(app.$('transaction-manual-only').getAttribute('aria-pressed'), 'false');
   assert.equal(tableRows(app).length, 2);
   await app.click(app.$('transaction-manual-only'));
   assert.equal(app.callsOf('list_transactions').at(-1).args.manualOnly, true);
+  assert.equal(app.$('transaction-manual-only').getAttribute('aria-pressed'), 'true', 'the button looks pressed while it is on');
   assert.equal(tableRows(app).length, 1);
   assert.equal(app.textOf('transactions-total-label'), 'Filtered total');
   await app.click(app.$('transaction-manual-only'));
   assert.equal(app.callsOf('list_transactions').at(-1).args?.manualOnly, undefined);
+  assert.equal(app.$('transaction-manual-only').getAttribute('aria-pressed'), 'false');
   assert.equal(tableRows(app).length, 2);
   app.close();
 });
@@ -591,7 +593,7 @@ test('test_csd032_ac_26_3_no_manual_transactions_is_no_matches_not_no_data', asy
   await app.click(app.$('transaction-manual-only'));
   assert.equal(app.isShown(app.$('transactions-nomatch')), true);
   assert.equal(app.isShown(app.$('transactions-empty')), false);
-  assert.equal(app.isShown(app.$('transactions-table')), true, 'the header stays, so the checkbox can be unticked');
+  assert.equal(app.isShown(app.$('transactions-table')), true, 'the header stays, so the button stays reachable');
   app.close();
 });
 
