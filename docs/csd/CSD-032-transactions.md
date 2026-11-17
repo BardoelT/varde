@@ -51,6 +51,42 @@ The app tracks what the user owns, owes and has spent on notable purchases, but 
 
 ## 4. Requirements
 
+**Contents of this section**
+
+- REQ-1: Import a Knab CSV
+- REQ-2: The Knab CSV format
+- REQ-3: All-or-nothing on malformed input
+- REQ-4: The currency must match
+- REQ-5: Skip duplicates
+- REQ-6: One import is one undo step
+- REQ-7: What is stored
+- REQ-8: Categories
+- REQ-9: Rules
+- REQ-10: Categorise on import
+- REQ-11: Change a category by hand
+- REQ-12: Apply the rules
+- REQ-13: Deleting a category
+- REQ-14: Delete a transaction
+- REQ-15: The list
+- REQ-16: The page in the navigation
+- REQ-17: The project file
+- REQ-18: Currency confirmation
+- REQ-19: Undo memory
+- REQ-20: Discrete mode
+- REQ-21: Language
+- REQ-22: Example project and fixtures
+- REQ-23: Add a rule from a transaction
+- REQ-24: Yearly totals
+- REQ-25: Delete all transactions
+- REQ-26: Manual only
+- REQ-27: Transactions per rule
+- REQ-28: Bulk select
+- REQ-29: Suggest rules from the transactions
+- REQ-30: Transactions per category
+- REQ-31: Categorized share
+- REQ-32: Rules for a period
+- REQ-33: The page loads from one state
+
 ### 4.0 Overview flow
 ```mermaid
 flowchart TD
@@ -947,9 +983,11 @@ Scenario: The button looks pressed while bulk select is on
 ```
 
 **REQ-29: Suggest rules from the transactions** *(event-driven)*
-The Rules tab shall have a button "Suggest rules" next to "Add rule". It opens one dialog with a field "Minimal count" (a whole number of 1 or more, a number field with up and down buttons, 5 the first time the dialog opens; the last valid count the user chose is remembered until the app is closed, and every opening of the dialog starts with it) and, below it, a list of suggested rules that follows the field as the user types.
+The Rules tab shall have a button "Suggest rules" next to "Add rule". It opens one dialog with a field "Minimal count" and, below it, a list of suggested rules that follows the field as the user types.
 
-Rust shall build the list of suggestions from the uncategorized transactions only (a transaction that has a category, by a rule or by hand, proposes nothing), skipping those without a counterparty, and shall then count each suggestion over every transaction:
+*The minimal count.* A whole number of 1 or more, in a number field with up and down buttons. It is 5 the first time the dialog opens; after that every opening starts with the last valid count the user chose, until the app is closed.
+
+*How Rust builds the list.* Only the uncategorized transactions propose a rule (a transaction that has a category, by a rule or by hand, proposes nothing), and those without a counterparty are skipped. The count of each suggestion is then taken over every transaction:
 1. The counterparty name is normalised: trailing words that contain a digit and a trailing legal form (B.V., BV, N.V., NV, V.O.F., VOF, ignoring case) are dropped, repeatedly, then trailing `.`, `,` and `-` are trimmed. A name that is empty afterwards is skipped.
 2. Transactions with the same normalised name, ignoring case, form one suggestion. Its text is the most frequent spelling of the normalised name, followed by `*` when a name of the group had something dropped.
 3. The count of a suggestion, taken once the list is prepared, is the number of transactions the rule with that text would match, by the matching of REQ-10 on the counterparty and the description, whatever their category or manual mark. A suggestion is listed when its count is at least the minimal count.
@@ -957,7 +995,15 @@ Rust shall build the list of suggestions from the uncategorized transactions onl
 5. The suggestions are sorted by count, highest first, then by text, and at most 100 are shown, with the note "N more not shown: raise the minimal count" when there are more.
 6. The suggested category is the one most used among the categorised transactions the rule would match (a tie goes to the category listed first), and none when none of them has a category.
 
-Every row shall start with a checkbox that is not ticked when the dialog opens and can be ticked only while the row has a category; choosing or changing the category of a row ticks it, as the user means to add it, and clearing the category unticks it, and shall show the text (an editable field), the count and a choice of category ("—" for none, then the categories). When the user edits the text, the count of that row shall be recounted by Rust after a short pause; an edited row stays in the list whatever its new count is. When the minimal count changes, the ticked rows shall stay, with the text the user typed, even when they are no longer suggested. The dialog shall show "N rules chosen" for the ticked rows and the button "Add N rules", disabled while N is 0; a suggested category alone never adds anything. The dialog shall be tall by default, 1,000 pixels high at most and 96 pixels lower than the window when the window is lower than that, so it scales with the window, and the list of suggestions shall fill it and scroll inside it, with its header row in view, so that every row can be reached however small the window is. When the user chooses it, the app shall add the rules of the ticked rows at the end of the rule list, in the order of the list, and apply the rules to the transactions that are not manual (REQ-12), as one undo step, and show the notification "N rules added, M transactions categorised". When a row is invalid (REQ-9: empty text, too long, a text another rule has, or a text two chosen rows have), nothing shall be added or applied, the dialog shall stay open and the text field of the first invalid row shall be marked with the error message.
+*The rows.*
+- Every row starts with a checkbox that is not ticked when the dialog opens. It can be ticked only while the row has a category. Choosing or changing the category of a row ticks it, as the user means to add it; clearing the category unticks it. A suggested category alone ticks nothing.
+- A row shows the text (an editable field), the count and a choice of category ("—" for none, then the categories).
+- When the user edits the text, Rust recounts that row after a short pause. An edited row stays in the list whatever its new count is.
+- When the minimal count changes, the ticked rows stay, with the text the user typed, even when they are no longer suggested.
+
+*Choosing and adding.* The dialog shows "N rules chosen" for the ticked rows and the button "Add N rules", disabled while N is 0; a suggested category alone never adds anything. When the user chooses the button, the app adds the rules of the ticked rows at the end of the rule list, in the order of the list, and applies the rules to the transactions that are not manual (REQ-12), as one undo step, and shows the notification "N rules added, M transactions categorised". When a row is invalid (REQ-9: empty text, too long, a text another rule has, or a text two chosen rows have), nothing is added or applied, the dialog stays open and the text field of the first invalid row is marked with the error message.
+
+*The size.* The dialog is tall by default: 1,000 pixels high at most and 96 pixels lower than the window when the window is lower than that, so it scales with the window. The list of suggestions fills it and scrolls inside it, with its header row in view, so that every row can be reached however small the window is.
 
 ```gherkin
 @AC-29.1
@@ -1252,7 +1298,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
-- 0.39 (17/11/2026): The page loads the categories, rules, share and totals with one call, read from one state (new REQ-33, AC-33.1). The rules are compiled once per pass and the filter reads its category choices as ids, with no change of behaviour. Refactoring review of the branch. Back to `draft` until re-approved.
+- 0.39 (17/11/2026): The page loads the categories, rules, share and totals with one call, read from one state (new REQ-33, AC-33.1). The rules are compiled once per pass and the filter reads its category choices as ids, with no change of behaviour. REQ-29 is set out in parts (minimal count, how the list is built, the rows, adding, the size) and section 4 starts with a contents list; nothing in them changed. Refactoring review of the branch. Back to `draft` until re-approved.
 - 0.38 (17/11/2026): The duplicate AC-10.4 became AC-10.6 and the scenarios are in order of their id; CON-7 describes the pattern matching, new CON-9 bounds the command inputs; typed filter fields ask for the list after a short pause (REQ-15, AC-15.10). Refactoring review of the branch. Back to `draft` until re-approved.
 - 0.37 (17/11/2026): In "Suggest rules" the minimal count is a number field with up and down buttons, and it is remembered until the app is closed (REQ-29, AC-29.16; replaces "not remembered"). Owner request. Back to `draft` until re-approved.
 - 0.36 (17/11/2026): In the "Suggest rules" dialog, choosing or changing the category of a row ticks its checkbox (REQ-29, AC-29.15). Owner request. Back to `draft` until re-approved.
