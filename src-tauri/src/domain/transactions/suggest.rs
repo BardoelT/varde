@@ -7,7 +7,7 @@ use serde::Serialize;
 
 use crate::domain::error::DomainError;
 
-use super::category::{fields_match, fields_of, valid_rule_text, CategoryId};
+use super::category::{fields_match, fields_of, valid_rule_text, CategoryId, Pattern};
 use super::Transactions;
 
 /// The most suggestions one answer lists (REQ-29).
@@ -108,7 +108,7 @@ impl Transactions {
         haystacks: &[((String, String), Option<CategoryId>)],
         text: &str,
     ) -> (usize, Option<CategoryId>) {
-        let pattern = text.trim().to_lowercase();
+        let pattern = Pattern::new(text);
         let mut count = 0;
         let mut per_category: HashMap<CategoryId, usize> = HashMap::new();
         for (haystack, category) in haystacks {

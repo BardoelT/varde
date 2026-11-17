@@ -154,6 +154,7 @@ fn configure_with<R: Runtime>(
             transactions::delete_transaction_category,
             transactions::list_transaction_rules,
             transactions::get_categorisation_summary,
+            transactions::get_transactions_overview,
             transactions::add_transaction_rule,
             transactions::edit_transaction_rule,
             transactions::move_transaction_rule,

@@ -710,3 +710,27 @@ fn test_csd032_con_9_commands_refuse_more_items_than_the_bounds_allow() {
     // Nothing was added or removed.
     assert_eq!(rows(&app).len(), before);
 }
+
+#[test]
+fn test_csd032_ac_33_1_the_overview_is_the_four_reads_in_one_answer() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let overview = app.ok("get_transactions_overview", json!({}));
+    assert_eq!(
+        overview["categories"],
+        app.ok("list_transaction_categories", json!({}))
+    );
+    assert_eq!(
+        overview["rules"],
+        app.ok("list_transaction_rules", json!({}))
+    );
+    assert_eq!(
+        overview["summary"],
+        app.ok("get_categorisation_summary", json!({}))
+    );
+    assert_eq!(
+        overview["totals"],
+        app.ok("yearly_transaction_totals", json!({}))
+    );
+    assert!(overview["summary"]["total"].as_u64().unwrap() > 0);
+}

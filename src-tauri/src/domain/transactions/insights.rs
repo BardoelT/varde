@@ -2,7 +2,7 @@
 //! stacked per category, with what came in as a marker, per calendar year or
 //! per month.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use serde::{Deserialize, Serialize};
 
@@ -10,7 +10,7 @@ use crate::domain::charts::{stack_from_zero, Axis, ChartYear, Marker, Piece};
 use crate::domain::common::{series_years, ColourSlot, YearMonth};
 use crate::domain::money::Money;
 
-use super::category::UNCATEGORIZED_ENTITY;
+use super::category::{CategoryId, UNCATEGORIZED_ENTITY};
 use super::Transactions;
 
 /// The most month slots the monthly series holds, counted back from its last
@@ -141,7 +141,17 @@ impl Transactions {
     #[must_use]
     pub fn insights(&self, granularity: Granularity, today: YearMonth) -> TransactionInsights {
         let categories = self.insights_categories();
-        let slot_of = |id: &str| categories.iter().position(|category| category.id == id);
+        // The slot of a category is its place in the legend, which follows the category list;
+        // Uncategorized is the last entry.
+        let category_slots: HashMap<CategoryId, usize> = self
+            .categories()
+            .iter()
+            .enumerate()
+            .map(|(slot, category)| (category.id, slot))
+            .collect();
+        let uncategorized_slot = categories
+            .iter()
+            .position(|category| category.id == UNCATEGORIZED_ENTITY);
         let key_of = |month: YearMonth| match granularity {
             Granularity::Yearly => month.year(),
             Granularity::Monthly => month_number(month),
@@ -157,10 +167,11 @@ impl Transactions {
                 entry.1 += 1;
                 continue;
             }
-            let id = transaction
-                .category_id
-                .map_or_else(|| UNCATEGORIZED_ENTITY.to_owned(), |id| id.to_string());
-            let Some(slot) = slot_of(&id) else { continue };
+            let slot = match transaction.category_id {
+                Some(id) => category_slots.get(&id).copied(),
+                None => uncategorized_slot,
+            };
+            let Some(slot) = slot else { continue };
             let key = key_of(transaction.date.year_month());
             let entry = sums.entry((key, slot)).or_insert((Money::ZERO, 0));
             entry.0 = entry.0.saturating_add(transaction.amount.abs());

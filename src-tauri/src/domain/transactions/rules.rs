@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use crate::domain::error::DomainError;
 
-use super::category::{categorise, matching_rule, rule_text};
+use super::category::{fields_of, rule_text, CompiledRules};
 use super::{Category, CategoryId, ReapplyScope, Rule, RuleId, RulePeriod, Transactions};
 
 /// What the user typed for a rule: its text and the days it is limited to. The
@@ -214,13 +214,12 @@ impl Transactions {
     /// (REQ-27).
     #[must_use]
     pub fn rule_counts(&self) -> Vec<usize> {
+        let compiled = CompiledRules::new(&self.rules);
         let mut counts = vec![0; self.rules.len()];
         for transaction in self.list.iter().filter(|transaction| !transaction.manual) {
-            let found = matching_rule(
-                &self.rules,
+            let found = compiled.first_match(
                 transaction.date,
-                &transaction.counterparty_name,
-                &transaction.description,
+                &fields_of(&transaction.counterparty_name, &transaction.description),
             );
             if let Some(count) = found.and_then(|index| counts.get_mut(index)) {
                 *count += 1;
@@ -233,17 +232,16 @@ impl Transactions {
     /// changed category. Manual transactions are only touched by
     /// [`ReapplyScope::All`] (REQ-12).
     pub fn reapply_rules(&mut self, scope: ReapplyScope) -> usize {
+        let compiled = CompiledRules::new(&self.rules);
         let changes: Vec<(usize, Option<CategoryId>)> = self
             .list
             .iter()
             .enumerate()
             .filter(|(_, transaction)| scope == ReapplyScope::All || !transaction.manual)
             .filter_map(|(index, transaction)| {
-                let found = categorise(
-                    &self.rules,
+                let found = compiled.category_of(
                     transaction.date,
-                    &transaction.counterparty_name,
-                    &transaction.description,
+                    &fields_of(&transaction.counterparty_name, &transaction.description),
                 );
                 (found != transaction.category_id).then_some((index, found))
             })

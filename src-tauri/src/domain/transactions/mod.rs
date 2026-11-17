@@ -39,7 +39,7 @@ pub use summary::CategorisationSummary;
 pub use totals::TransactionYearlyTotal;
 pub use transaction::{Transaction, TransactionDate, TransactionId};
 
-use category::{categorise, defaults, rule_text, valid_name};
+use category::{defaults, fields_of, rule_text, valid_name, CompiledRules};
 
 /// What an import did (CSD-032 REQ-1).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
@@ -199,6 +199,7 @@ impl Transactions {
                 )
             })
             .collect();
+        let compiled = CompiledRules::new(&self.rules);
         let mut added = Vec::new();
         let mut skipped = 0;
         for row in rows {
@@ -210,11 +211,9 @@ impl Transactions {
                 id: TransactionId::new(),
                 date: row.date,
                 amount: row.amount,
-                category_id: categorise(
-                    &self.rules,
+                category_id: compiled.category_of(
                     row.date,
-                    &row.counterparty_name,
-                    &row.description,
+                    &fields_of(&row.counterparty_name, &row.description),
                 ),
                 counterparty_name: row.counterparty_name,
                 counterparty_iban: row.counterparty_iban,

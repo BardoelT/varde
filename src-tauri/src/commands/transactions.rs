@@ -16,7 +16,7 @@ use crate::domain::transactions::{
     CategorisationSummary, Category, CategoryId, Granularity, ImportSummary, ReapplyScope, Rule,
     RuleDraft, RuleId, RulePeriod, RuleSuggestions, TransactionDate, TransactionFilter,
     TransactionFilterInput, TransactionId, TransactionInsights, TransactionList,
-    TransactionYearlyTotal, UNCATEGORIZED_ENTITY,
+    TransactionYearlyTotal, Transactions, UNCATEGORIZED_ENTITY,
 };
 use crate::domain::DomainError;
 use crate::error::AppError;
@@ -253,6 +253,17 @@ pub struct CategoryRow {
     transaction_count: usize,
 }
 
+fn category_rows(transactions: &Transactions) -> Vec<CategoryRow> {
+    transactions
+        .category_rows()
+        .into_iter()
+        .map(|(category, transaction_count)| CategoryRow {
+            category: category.clone(),
+            transaction_count,
+        })
+        .collect()
+}
+
 /// The categories, in the order they were added, each with its number of
 /// transactions; "Uncategorized" is built in and not listed (REQ-8, REQ-30).
 #[tauri::command]
@@ -260,15 +271,7 @@ pub fn list_transaction_categories(
     state: State<'_, AppState>,
 ) -> Result<Vec<CategoryRow>, AppError> {
     let project = state.project()?;
-    Ok(project
-        .transactions()
-        .category_rows()
-        .into_iter()
-        .map(|(category, transaction_count)| CategoryRow {
-            category: category.clone(),
-            transaction_count,
-        })
-        .collect())
+    Ok(category_rows(project.transactions()))
 }
 
 #[tauri::command]
@@ -312,20 +315,50 @@ pub struct RuleRow {
     transaction_count: usize,
 }
 
-/// The rules, in the order they are applied, each with the number of
-/// non-manual transactions it is the first match of (REQ-9, REQ-27).
-#[tauri::command]
-pub fn list_transaction_rules(state: State<'_, AppState>) -> Result<Vec<RuleRow>, AppError> {
-    let project = state.project()?;
-    Ok(project
-        .transactions()
+fn rule_rows(transactions: &Transactions) -> Vec<RuleRow> {
+    transactions
         .rule_rows()
         .into_iter()
         .map(|(rule, transaction_count)| RuleRow {
             rule: rule.clone(),
             transaction_count,
         })
-        .collect())
+        .collect()
+}
+
+/// The rules, in the order they are applied, each with the number of
+/// non-manual transactions it is the first match of (REQ-9, REQ-27).
+#[tauri::command]
+pub fn list_transaction_rules(state: State<'_, AppState>) -> Result<Vec<RuleRow>, AppError> {
+    let project = state.project()?;
+    Ok(rule_rows(project.transactions()))
+}
+
+/// Everything the Transactions page shows besides the list, read from one
+/// state of the project (CSD-032 REQ-33).
+#[derive(Serialize)]
+pub struct TransactionsOverview {
+    categories: Vec<CategoryRow>,
+    rules: Vec<RuleRow>,
+    summary: CategorisationSummary,
+    totals: Vec<TransactionYearlyTotal>,
+}
+
+/// The categories and rules with their counts, the share of categorized
+/// transactions and the yearly totals, in one answer, so the page is drawn
+/// from one state and loads with one call (REQ-33).
+#[tauri::command]
+pub fn get_transactions_overview(
+    state: State<'_, AppState>,
+) -> Result<TransactionsOverview, AppError> {
+    let project = state.project()?;
+    let transactions = project.transactions();
+    Ok(TransactionsOverview {
+        categories: category_rows(transactions),
+        rules: rule_rows(transactions),
+        summary: transactions.categorisation_summary(),
+        totals: transactions.yearly_totals(),
+    })
 }
 
 /// How many transactions are categorized and what share that is (REQ-31).

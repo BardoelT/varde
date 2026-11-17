@@ -187,7 +187,7 @@ test('test_csd032_ac_3_1_a_rejected_import_shows_its_error_in_the_toast', async 
 
 test('test_csd032_ac_31_2_the_overview_shows_the_categorized_share_in_the_yearly_totals', async () => {
   const reads = readsWith({ rows: [], count: 0 });
-  reads.get_categorisation_summary = { total: 40, categorized: 35, percent_label: '87.50%' };
+  reads.get_transactions_overview.summary = { total: 40, categorized: 35, percent_label: '87.50%' };
   const app = await transactionsPage(reads);
   const note = app.$('transaction-categorisation');
   assert.equal(app.text(note), '87.50% of the transactions are categorized (35 of 40)');
@@ -197,7 +197,7 @@ test('test_csd032_ac_31_2_the_overview_shows_the_categorized_share_in_the_yearly
   assert.equal(app.$('transactions-rules').contains(note), false, 'not on the Rules tab');
   app.close();
   const empty = readsWith({ rows: [], count: 0 });
-  empty.get_categorisation_summary = { total: 0, categorized: 0, percent_label: null };
+  empty.get_transactions_overview.summary = { total: 0, categorized: 0, percent_label: null };
   const none = await transactionsPage(empty);
   assert.ok(none.$('transaction-categorisation').hidden, 'no line without transactions');
   none.close();
@@ -408,7 +408,7 @@ test('test_csd032_ac_11_4_manual_transactions_carry_a_badge', async () => {
 
 test('test_csd032_ac_24_1_the_yearly_totals_are_shown_as_rust_returned_them_above_the_list', async () => {
   const reads = readsWith({ rows: [transaction('t1', '2026-10-30', '-23.97', 'Example Shop')] });
-  reads.yearly_transaction_totals = [
+  reads.get_transactions_overview.totals = [
     { year: 2026, income: '2500.00', spent: '23.97', net: '2476.03', transaction_count: 2 },
     { year: 2025, income: '0.00', spent: '150.00', net: '-150.00', transaction_count: 2 },
   ];
@@ -426,7 +426,7 @@ test('test_csd032_ac_24_1_the_yearly_totals_are_shown_as_rust_returned_them_abov
 
 test('test_csd032_ac_24_2_no_transactions_no_totals', async () => {
   const reads = readsWith({ rows: [], count: 0 });
-  reads.yearly_transaction_totals = [];
+  reads.get_transactions_overview.totals = [];
   const app = await transactionsPage(reads);
   assert.equal(app.isShown(app.$('transaction-totals-table')), false);
   assert.equal(app.textOf('transaction-totals-empty'), 'No totals yet. Totals appear once there is a transaction.');
@@ -437,30 +437,30 @@ test('test_csd032_ac_24_2_no_transactions_no_totals', async () => {
 test('test_csd032_ac_24_3_a_filter_does_not_ask_for_other_totals', async () => {
   const rows = [transaction('t1', '2026-10-30', '-1.00', 'Example Shop', GROCERIES)];
   const app = await transactionsPage(readsWith({ rows }));
-  const before = app.callsOf('yearly_transaction_totals').length;
+  const before = app.callsOf('get_transactions_overview').length;
   await app.click(app.$('transaction-entity-filter').querySelector('button'));
   const box = [...app.document.querySelectorAll('.filter-check input')].find((input) => input.value === GROCERIES);
   box.checked = true;
   box.dispatchEvent(new app.window.Event('change', { bubbles: true }));
   await app.settle();
-  assert.equal(app.callsOf('yearly_transaction_totals').length, before, 'the totals are not asked for again');
-  assert.ok(app.callsOf('yearly_transaction_totals').every((call) => call.args === undefined || !call.args.filter));
+  assert.equal(app.callsOf('get_transactions_overview').length, before, 'the totals are not asked for again');
+  assert.ok(app.callsOf('get_transactions_overview').every((call) => call.args === undefined || !call.args.filter));
   app.close();
 });
 
 test('test_csd032_ac_24_4_a_change_reloads_the_totals', async () => {
   const rows = [transaction('t1', '2026-10-30', '-1.00', 'Example Shop')];
   const app = await transactionsPage(readsWith({ rows }), { delete_transaction: null });
-  const before = app.callsOf('yearly_transaction_totals').length;
+  const before = app.callsOf('get_transactions_overview').length;
   await app.click(app.document.querySelector('[aria-label="Delete Example Shop"]'));
   await app.click(app.$('confirm-ok'));
-  assert.ok(app.callsOf('yearly_transaction_totals').length > before);
+  assert.ok(app.callsOf('get_transactions_overview').length > before);
   app.close();
 });
 
 test('test_csd032_ac_24_5_discrete_mode_hides_the_yearly_amounts', async () => {
   const reads = readsWith({ rows: [] });
-  reads.yearly_transaction_totals = [{ year: 2026, income: '2500.00', spent: '23.97', net: '2476.03', transaction_count: 2 }];
+  reads.get_transactions_overview.totals = [{ year: 2026, income: '2500.00', spent: '23.97', net: '2476.03', transaction_count: 2 }];
   reads.get_preferences = { theme: 'system', language: 'en', number_format: 'point_comma', discrete_mode: true };
   const app = await transactionsPage(reads);
   assert.deepEqual(totalsRows(app), [['2026', '•••••', '•••••', '•••••']]);

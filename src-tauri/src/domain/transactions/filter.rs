@@ -3,12 +3,14 @@
 //! description. The other statement tables filter on months (CSD-028); only
 //! this one goes down to the day and filters on the amount and the text.
 
+use std::collections::HashSet;
+
 use serde::Deserialize;
 
 use crate::domain::money::Money;
 use crate::domain::NumberFormat;
 
-use super::category::pattern_matches;
+use super::category::{CategoryId, Pattern, UNCATEGORIZED_ENTITY};
 use super::transaction::TransactionDate;
 use super::Transaction;
 
@@ -38,17 +40,37 @@ const MAX_FILTER_TEXT_CHARS: usize = super::category::MAX_RULE_CHARS;
 /// The most category ids of a filter that count; more are left out.
 const MAX_FILTER_IDS: usize = 1000;
 
-/// The text to look for, lower-cased and cut to [`MAX_FILTER_TEXT_CHARS`];
+/// The pattern to look for, cut to [`MAX_FILTER_TEXT_CHARS`] characters;
 /// `None` for an empty (or blank) field.
-fn typed_text(text: Option<&str>) -> Option<String> {
+fn typed_text(text: Option<&str>) -> Option<Pattern> {
     let trimmed = text?.trim();
     (!trimmed.is_empty()).then(|| {
-        trimmed
-            .chars()
-            .take(MAX_FILTER_TEXT_CHARS)
-            .collect::<String>()
-            .to_lowercase()
+        Pattern::new(
+            &trimmed
+                .chars()
+                .take(MAX_FILTER_TEXT_CHARS)
+                .collect::<String>(),
+        )
     })
+}
+
+/// What a category choice of the filter names: the built-in Uncategorized or
+/// one category.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum Entity {
+    Uncategorized,
+    Category(CategoryId),
+}
+
+impl Entity {
+    /// Reads the text the frontend sends; `None` for one that names nothing.
+    fn parse(text: &str) -> Option<Self> {
+        if text == UNCATEGORIZED_ENTITY {
+            Some(Self::Uncategorized)
+        } else {
+            CategoryId::parse(text).ok().map(Self::Category)
+        }
+    }
 }
 
 /// An amount typed in `format`, rounded as every typed amount is (CSD-000
@@ -66,7 +88,14 @@ impl TransactionFilterInput {
         TransactionFilter {
             from: self.from,
             to: self.to,
-            ids: self.ids.into_iter().take(MAX_FILTER_IDS).collect(),
+            // An empty list keeps every category; a list that names nothing known keeps none.
+            entities: (!self.ids.is_empty()).then(|| {
+                self.ids
+                    .iter()
+                    .take(MAX_FILTER_IDS)
+                    .filter_map(|id| Entity::parse(id))
+                    .collect()
+            }),
             min_amount: typed_bound(format, self.min_amount.as_deref()),
             max_amount: typed_bound(format, self.max_amount.as_deref()),
             counterparty: typed_text(self.counterparty.as_deref()),
@@ -83,35 +112,40 @@ pub struct TransactionFilter {
     from: Option<TransactionDate>,
     /// Last day to show, itself included; no upper bound when `None`.
     to: Option<TransactionDate>,
-    /// The categories to keep, as the text of their id or `uncategorized`.
-    /// Empty means every category (CSD-028 REQ-4).
-    ids: Vec<String>,
+    /// The categories to keep; `None` means every category (CSD-028 REQ-4).
+    entities: Option<HashSet<Entity>>,
     /// The lowest amount to show, itself included; a debit is negative.
     min_amount: Option<Money>,
     /// The highest amount to show, itself included.
     max_amount: Option<Money>,
-    /// The pattern the whole counterparty name must fit, lower-cased; any when
-    /// `None`. `*` stands for any characters, so without one it is exact.
-    counterparty: Option<String>,
-    /// The pattern the whole description must fit, lower-cased; any when `None`.
-    description: Option<String>,
+    /// The pattern the whole counterparty name must fit; any when `None`. `*`
+    /// stands for any characters, so without one it is exact.
+    counterparty: Option<Pattern>,
+    /// The pattern the whole description must fit; any when `None`.
+    description: Option<Pattern>,
 }
 
 impl TransactionFilter {
-    /// Whether `transaction`, in the category `entity`, passes. The text
+    /// Whether `transaction` passes. The text
     /// filters match the whole counterparty or description, ignoring case:
     /// `ca` is exactly "ca", `ca*` starts with it, `*ca` ends with it and
     /// `*ca*` contains it.
     #[must_use]
-    pub fn matches(&self, transaction: &Transaction, entity: &str) -> bool {
-        let contains = |wanted: &Option<String>, text: &str| {
+    pub fn matches(&self, transaction: &Transaction) -> bool {
+        let contains = |wanted: &Option<Pattern>, text: &str| {
             wanted
                 .as_ref()
-                .is_none_or(|pattern| pattern_matches(text.trim().to_lowercase().as_str(), pattern))
+                .is_none_or(|pattern| pattern.matches(text.trim().to_lowercase().as_str()))
         };
+        let entity = transaction
+            .category_id
+            .map_or(Entity::Uncategorized, Entity::Category);
         self.from.is_none_or(|from| from <= transaction.date)
             && self.to.is_none_or(|to| transaction.date <= to)
-            && (self.ids.is_empty() || self.ids.iter().any(|id| id == entity))
+            && self
+                .entities
+                .as_ref()
+                .is_none_or(|kept| kept.contains(&entity))
             && self.min_amount.is_none_or(|min| min <= transaction.amount)
             && self.max_amount.is_none_or(|max| transaction.amount <= max)
             && contains(&self.counterparty, &transaction.counterparty_name)

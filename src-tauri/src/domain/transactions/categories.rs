@@ -1,5 +1,6 @@
 //! The categories of the transactions (CSD-032 REQ-8, REQ-13, REQ-30).
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::domain::error::DomainError;
@@ -80,14 +81,17 @@ impl Transactions {
     /// many transactions are in it, whoever set the category (REQ-30).
     #[must_use]
     pub fn category_counts(&self) -> Vec<usize> {
+        let mut counts: HashMap<CategoryId, usize> = HashMap::new();
+        for id in self
+            .list
+            .iter()
+            .filter_map(|transaction| transaction.category_id)
+        {
+            *counts.entry(id).or_insert(0) += 1;
+        }
         self.categories
             .iter()
-            .map(|category| {
-                self.list
-                    .iter()
-                    .filter(|transaction| transaction.category_id == Some(category.id))
-                    .count()
-            })
+            .map(|category| counts.get(&category.id).copied().unwrap_or(0))
             .collect()
     }
 }

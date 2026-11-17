@@ -379,3 +379,49 @@ fn test_csd032_con_9_a_long_filter_text_is_cut_and_the_ids_are_bounded() {
     with_uncategorized.push("uncategorized".to_owned());
     assert_eq!(count(serde_json::json!({ "ids": with_uncategorized })), 1);
 }
+
+#[test]
+fn test_csd028_ac_4_1_a_category_choice_names_categories_by_id_and_unknown_ones_keep_nothing() {
+    let mut data = imported(&[
+        simple("30-10-2026", "Afschrijvingen", "9,00", "Example One", "R1"),
+        simple("29-10-2026", "Afschrijvingen", "9,00", "Example Two", "R2"),
+    ]);
+    let leisure = category(&data, "Leisure");
+    let id = find(&data, "Example One").id;
+    data.set_category(id, Some(leisure)).unwrap();
+    let count =
+        |json: serde_json::Value| data.list_filtered(Some(&filter_of(json)), false, 10).count;
+    assert_eq!(
+        count(serde_json::json!({ "ids": [leisure.to_string()] })),
+        1
+    );
+    assert_eq!(count(serde_json::json!({ "ids": ["uncategorized"] })), 1);
+    assert_eq!(
+        count(serde_json::json!({ "ids": [leisure.to_string(), "uncategorized"] })),
+        2
+    );
+    // A choice that names nothing known keeps nothing, and no choice keeps everything.
+    assert_eq!(count(serde_json::json!({ "ids": ["not-an-id"] })), 0);
+    assert_eq!(count(serde_json::json!({ "ids": [] })), 2);
+}
+
+#[test]
+fn test_csd032_ac_10_7_a_compiled_pattern_matches_like_the_text_says() {
+    use super::super::category::Pattern;
+    let hit = |pattern: &str, text: &str| Pattern::new(pattern).matches(text);
+    assert!(hit("ca", "ca") && !hit("ca", "cafe") && !hit("ca", "aca"));
+    assert!(hit("ca*", "cafe") && !hit("ca*", "aca"));
+    assert!(hit("*ca", "aca") && !hit("*ca", "cafe"));
+    assert!(hit("*ca*", "x ca y") && !hit("*ca*", "c a"));
+    assert!(hit("a*b*c", "a1b2c") && !hit("a*b*c", "a1c2b"));
+    assert!(hit("*", "") && hit("*", "anything"));
+    assert!(
+        hit("a**b", "ab") && hit("a**b", "axxb"),
+        "two stars are one"
+    );
+    // The overlap of the start and the end is not counted twice.
+    assert!(!hit("ab*ba", "aba"));
+    assert!(hit("ab*ba", "abba"));
+    // The pattern is trimmed and lower-cased when compiled.
+    assert!(hit("  CA* ", "cafe"));
+}

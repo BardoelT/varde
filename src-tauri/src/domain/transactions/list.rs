@@ -4,7 +4,6 @@ use serde::Serialize;
 
 use crate::domain::money::Money;
 
-use super::category::UNCATEGORIZED_ENTITY;
 use super::{Transaction, TransactionFilter, TransactionId, Transactions};
 
 /// The most rows one answer holds, a bound on what the frontend can ask for.
@@ -30,13 +29,7 @@ fn passes(
     filter: Option<&TransactionFilter>,
     manual_only: bool,
 ) -> bool {
-    (!manual_only || transaction.manual)
-        && filter.is_none_or(|filter| {
-            let entity = transaction
-                .category_id
-                .map_or_else(|| UNCATEGORIZED_ENTITY.to_owned(), |id| id.to_string());
-            filter.matches(transaction, &entity)
-        })
+    (!manual_only || transaction.manual) && filter.is_none_or(|filter| filter.matches(transaction))
 }
 
 impl Transactions {

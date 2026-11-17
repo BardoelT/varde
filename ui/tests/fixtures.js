@@ -28,7 +28,15 @@ const startup = {
 
 /** A copy of what Rust returned for every read command of the example project (a project with data). */
 export function exampleReads() {
-  return { ...structuredClone(golden), ...startup, get_preferences: { ...startup.get_preferences } };
+  const reads = { ...structuredClone(golden), ...startup, get_preferences: { ...startup.get_preferences } };
+  // The page loads these four reads in one answer; the golden file holds each of them (CSD-032 REQ-34).
+  reads.get_transactions_overview = {
+    categories: reads.list_transaction_categories,
+    rules: reads.list_transaction_rules,
+    summary: reads.get_categorisation_summary,
+    totals: reads.yearly_transaction_totals,
+  };
+  return reads;
 }
 
 const emptyList = { total: '0.00' };
@@ -78,6 +86,7 @@ export function emptyReads() {
     list_expenses: { expenses: [], ...emptyList },
     list_transactions: { rows: [], count: 0, total: '0.00' },
     yearly_transaction_totals: [],
+    get_transactions_overview: { ...reads.get_transactions_overview, summary: { total: 0, categorized: 0, percent_label: null }, totals: [] },
     yearly_expense_totals: [],
     get_expense_insights: { categories: golden.get_expense_insights.categories, years: [] },
     get_net_worth_insights: { years: [] },

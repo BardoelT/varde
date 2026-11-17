@@ -96,18 +96,6 @@ impl Rule {
             to: self.to,
         }
     }
-
-    /// Whether the rule applies to a transaction on `date` with these lower-case
-    /// fields: the date is in the period and the text, when there is one, fits
-    /// the counterparty or the description. A rule without a text applies to
-    /// every transaction in its period (REQ-10, REQ-32).
-    fn fits(&self, date: TransactionDate, fields: &(String, String)) -> bool {
-        let pattern = self.text.trim().to_lowercase();
-        let has_text = !pattern.is_empty();
-        (has_text || self.period().is_set())
-            && self.period().contains(date)
-            && (!has_text || fields_match(fields, &pattern))
-    }
 }
 
 /// The categories a new project holds (CSD-032 REQ-8).
@@ -226,34 +214,54 @@ pub(super) fn valid_rule_text(typed: &str) -> Result<String, DomainError> {
     Ok(text.to_owned())
 }
 
-/// Whether the whole of `text` fits `pattern`, where each `*` in the pattern
-/// stands for any run of characters, none included; both are already lower
-/// case. A pattern without a star is the exact text, `ca*` is a text that
-/// starts with `ca`, `*ca` one that ends with it and `*ca*` one that contains
-/// it; parts between stars have to be found in that order (CSD-032 REQ-10).
-pub(super) fn pattern_matches(text: &str, pattern: &str) -> bool {
-    let mut parts = pattern.split('*');
-    let Some(first) = parts.next() else {
-        return false;
-    };
-    let rest: Vec<&str> = parts.collect();
-    let Some((last, middle)) = rest.split_last() else {
-        return text == first;
-    };
-    let Some(mut remaining) = text.strip_prefix(first) else {
-        return false;
-    };
-    let Some(trimmed) = remaining.strip_suffix(last) else {
-        return false;
-    };
-    remaining = trimmed;
-    for part in middle.iter().filter(|part| !part.is_empty()) {
-        match remaining.find(part) {
-            Some(at) => remaining = remaining.get(at + part.len()..).unwrap_or_default(),
-            None => return false,
+/// A rule or filter text compiled once, so a list of transactions is matched
+/// without splitting and lower-casing the text again for every transaction.
+/// Both the pattern and the text it is matched with are lower case and
+/// trimmed. Each `*` stands for any run of characters, none included: a
+/// pattern without a star is the exact text, `ca*` a text that starts with
+/// `ca`, `*ca` one that ends with it and `*ca*` one that contains it; the
+/// parts between the stars have to be found in that order (CSD-032 REQ-10).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct Pattern {
+    /// The text between the stars, so one part for a text without a star.
+    parts: Vec<String>,
+}
+
+impl Pattern {
+    /// Compiles `text`, trimming it and ignoring case.
+    pub(super) fn new(text: &str) -> Self {
+        Self {
+            parts: text
+                .trim()
+                .to_lowercase()
+                .split('*')
+                .map(str::to_owned)
+                .collect(),
         }
     }
-    true
+
+    /// Whether the whole of `text` fits.
+    pub(super) fn matches(&self, text: &str) -> bool {
+        let Some((first, rest)) = self.parts.split_first() else {
+            return false;
+        };
+        let Some((last, middle)) = rest.split_last() else {
+            return text == first;
+        };
+        let Some(after_first) = text.strip_prefix(first.as_str()) else {
+            return false;
+        };
+        let Some(mut remaining) = after_first.strip_suffix(last.as_str()) else {
+            return false;
+        };
+        for part in middle.iter().filter(|part| !part.is_empty()) {
+            match remaining.find(part.as_str()) {
+                Some(at) => remaining = remaining.get(at + part.len()..).unwrap_or_default(),
+                None => return false,
+            }
+        }
+        true
+    }
 }
 
 /// The lower-case, trimmed counterparty name and description of a
@@ -266,34 +274,84 @@ pub(super) fn fields_of(counterparty: &str, description: &str) -> (String, Strin
     )
 }
 
-/// Whether the lower-case `pattern` fits the counterparty or the description
-/// (from [`fields_of`]) as a whole (CSD-032 REQ-10).
-pub(super) fn fields_match(fields: &(String, String), pattern: &str) -> bool {
-    pattern_matches(&fields.0, pattern) || pattern_matches(&fields.1, pattern)
+/// Whether `pattern` fits the counterparty or the description (from
+/// [`fields_of`]) as a whole (CSD-032 REQ-10).
+pub(super) fn fields_match(fields: &(String, String), pattern: &Pattern) -> bool {
+    pattern.matches(&fields.0) || pattern.matches(&fields.1)
 }
 
-/// The position of the first rule, in order, that applies on `date`: its text
-/// fits, ignoring case, the whole counterparty name or the whole description,
-/// with `*` as a wildcard, and the date is in its period (CSD-032 REQ-10,
-/// REQ-32).
-pub(super) fn matching_rule(
-    rules: &[Rule],
-    date: TransactionDate,
-    counterparty: &str,
-    description: &str,
-) -> Option<usize> {
-    let fields = fields_of(counterparty, description);
-    rules.iter().position(|rule| rule.fits(date, &fields))
+/// One rule ready for matching.
+struct CompiledRule {
+    category_id: CategoryId,
+    period: RulePeriod,
+    /// `None` for a rule without a text, which applies to its whole period.
+    pattern: Option<Pattern>,
 }
 
-/// The category of the first matching rule (CSD-032 REQ-10).
+impl CompiledRule {
+    /// Whether the rule applies to a transaction on `date` with these fields:
+    /// the date is in the period and the text, when there is one, fits the
+    /// counterparty or the description. A rule with neither a text nor a period
+    /// applies to nothing (REQ-10, REQ-32).
+    fn fits(&self, date: TransactionDate, fields: &(String, String)) -> bool {
+        (self.pattern.is_some() || self.period.is_set())
+            && self.period.contains(date)
+            && self
+                .pattern
+                .as_ref()
+                .is_none_or(|pattern| fields_match(fields, pattern))
+    }
+}
+
+/// The rules, in order, compiled once for a pass over many transactions.
+pub(super) struct CompiledRules {
+    rules: Vec<CompiledRule>,
+}
+
+impl CompiledRules {
+    pub(super) fn new(rules: &[Rule]) -> Self {
+        Self {
+            rules: rules
+                .iter()
+                .map(|rule| CompiledRule {
+                    category_id: rule.category_id,
+                    period: rule.period(),
+                    pattern: (!rule.text.trim().is_empty()).then(|| Pattern::new(&rule.text)),
+                })
+                .collect(),
+        }
+    }
+
+    /// The position of the first rule, in order, that applies on `date`
+    /// (CSD-032 REQ-10, REQ-32).
+    pub(super) fn first_match(
+        &self,
+        date: TransactionDate,
+        fields: &(String, String),
+    ) -> Option<usize> {
+        self.rules.iter().position(|rule| rule.fits(date, fields))
+    }
+
+    /// The category of the first rule that applies (CSD-032 REQ-10).
+    pub(super) fn category_of(
+        &self,
+        date: TransactionDate,
+        fields: &(String, String),
+    ) -> Option<CategoryId> {
+        self.first_match(date, fields)
+            .and_then(|index| self.rules.get(index))
+            .map(|rule| rule.category_id)
+    }
+}
+
+/// The category of the first rule that applies to one transaction; a pass over
+/// many transactions compiles the rules once instead ([`CompiledRules`]).
+#[cfg(test)]
 pub(super) fn categorise(
     rules: &[Rule],
     date: TransactionDate,
     counterparty: &str,
     description: &str,
 ) -> Option<CategoryId> {
-    matching_rule(rules, date, counterparty, description)
-        .and_then(|index| rules.get(index))
-        .map(|rule| rule.category_id)
+    CompiledRules::new(rules).category_of(date, &fields_of(counterparty, description))
 }

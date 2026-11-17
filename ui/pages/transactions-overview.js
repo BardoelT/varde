@@ -225,14 +225,15 @@ function importTransactions() {
 
 /** Reloads everything from Rust. */
 export async function reloadTransactionsOverview() {
-  state.categories = await invoke('list_transaction_categories');
-  state.rules = await invoke('list_transaction_rules');
+  const overview = await invoke('get_transactions_overview');
+  state.categories = overview.categories;
+  state.rules = overview.rules;
   renderCategories();
   renderBulkCategories();
   renderRules();
-  renderCategorisation(await invoke('get_categorisation_summary'));
+  renderCategorisation(overview.summary);
   await loadList();
-  renderTotals(await invoke('yearly_transaction_totals'));
+  renderTotals(overview.totals);
 }
 
 export function initTransactionsOverview({ onChanged }) {

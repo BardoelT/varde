@@ -1,5 +1,6 @@
 //! Tests of CSD-032 and CSD-033 on synthetic exports ("Example" names, round amounts). The helpers are here;
 //! the tests are in a file per area.
+use super::category::categorise;
 use super::*;
 use crate::domain::common::YearMonth;
 use crate::domain::money::Money;

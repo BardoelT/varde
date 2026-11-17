@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.38
+version: 0.39
 last_updated: 16/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -1184,8 +1184,17 @@ Scenario: The rule form
   And editing a rule with a period fills them, and an error of Rust is shown in the dialog, in Dutch when the language is Dutch
 ```
 
-## 5. Interfaces and contracts
+**REQ-33: The page loads from one state** *(ubiquitous)*
+The categories with their transaction counts (REQ-30), the rules with theirs (REQ-27), the share of categorized transactions (REQ-31) and the yearly totals (REQ-24) shall come from Rust in one answer that is read from one state of the project, so that what the Transactions page shows besides the list always belongs together and loads with one call. The list (REQ-15) is a call of its own, as it follows the filters.
 
+```gherkin
+@AC-33.1
+Scenario: One answer for the four
+  When the frontend asks for the overview of the page
+  Then the answer holds "categories", "rules", "summary" and "totals", each exactly as the command of its own returns it
+  And the page is drawn from that one answer after every change
+
+## 5. Interfaces and contracts
 ```mermaid
 erDiagram
     TRANSACTION {
@@ -1210,7 +1219,7 @@ erDiagram
 Project file: three sections (REQ-17). `transactions` is an array, `transaction_categories` an array of `{ id, name }` (the built-in "Uncategorized" is not stored), `transaction_rules` an ordered array. Dates are ISO 8601, amounts decimal strings with at most two decimals (CSD-000 CON-8, CSD-002 REQ-19), ids are UUIDs.
 
 Commands (names and payloads are indicative; the final signatures belong to the implementation):
-`import_transactions()` → `{ added, skipped }`; `list_transactions(filters, limit)` → `{ rows, total, count }`; `yearly_transaction_totals()` → `[{ year, income, spent, net, transaction_count }]`; `set_transaction_category(id, category_id)`; `unset_transaction_manual(id)`; `delete_transaction(id)`; `list_transaction_categories()`; `add_`/`rename_`/`delete_transaction_category`; `list_transaction_rules()` (each rule with `text`, `category_id`, optional `from` and `to`, and its `transaction_count`); `add_`/`edit_`/`move_`/`delete_transaction_rule` (add and edit also take the typed days `from` and `to`); `reapply_transaction_rules(scope)` → `{ changed }`.
+`import_transactions()` → `{ added, skipped }`; `list_transactions(filters, limit)` → `{ rows, total, count }`; `get_transactions_overview()` → `{ categories, rules, summary, totals }` (the answers of `list_transaction_categories`, `list_transaction_rules`, `get_categorisation_summary` and `yearly_transaction_totals` in one); `yearly_transaction_totals()` → `[{ year, income, spent, net, transaction_count }]`; `set_transaction_category(id, category_id)`; `unset_transaction_manual(id)`; `delete_transaction(id)`; `list_transaction_categories()`; `add_`/`rename_`/`delete_transaction_category`; `list_transaction_rules()` (each rule with `text`, `category_id`, optional `from` and `to`, and its `transaction_count`); `add_`/`edit_`/`move_`/`delete_transaction_rule` (add and edit also take the typed days `from` and `to`); `reapply_transaction_rules(scope)` → `{ changed }`.
 
 Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 text, or is larger than 50 MB), `TRANSACTION_IMPORT_FORMAT`, `_COLUMNS`, `_FIELD`, `_DATE`, `_DIRECTION`, `_AMOUNT`, `_REFERENCE`, `_CURRENCY`, `TRANSACTION_CATEGORY_NAME_REQUIRED`, `_NAME_TOO_LONG`, `_NAME_TAKEN`, `TRANSACTION_CATEGORY_PROTECTED`, `TRANSACTION_CATEGORY_NOT_FOUND`, `TRANSACTION_RULE_TEXT_REQUIRED`, `_TEXT_TOO_LONG`, `_TEXT_TAKEN`, `_CATEGORY_INVALID`, `TRANSACTION_RULE_NOT_FOUND`, `TRANSACTION_NOT_FOUND`, `TRANSACTION_DATA_INVALID`, `TRANSACTION_SUGGEST_MIN_COUNT` (the minimal count is 0). The built-in Uncategorized has no id: a transaction without a category holds `null`, and a filter, a rename and a delete name it `uncategorized`. The default categories and rules have fixed ids, so two new projects are equal.
 
@@ -1219,7 +1228,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - CON-2: The file is read in Rust after a native dialog opened from Rust, so no filesystem permission is added to the webview. Rationale: least privilege (`CLAUDE.md`).
 - CON-3: No transaction data (names, amounts, descriptions, IBANs, file paths) is logged at `info` or above, and an error shown to the user names a line number but never a path. Rationale: `CLAUDE.md` privacy rules.
 - CON-4: The transaction list is held behind shared references so the undo history shares it between steps and a step pays only for what it changes. Rationale: CSD-027 CON-1 sized the history for a 40 KB project; 100 full copies of 20,000 transactions would take hundreds of MB.
-- CON-5: Target size is 20,000 transactions with the project file saved as one file, as today. Rationale: a few years of one account. Measured on 20,000 rows in a release build (17/11/2026): the first edit after an undo step copies the list in about 2 ms, a list page with filters takes about 3 ms, and applying the rules about 30 ms, so the shared list is kept as it is.
+- CON-5: Target size is 20,000 transactions with the project file saved as one file, as today. Rationale: a few years of one account. Measured on 20,000 rows in a release build (17/11/2026): the first edit after an undo step copies the list in about 2 ms, so the shared list is kept as it is; a list page with filters takes about 2 ms; counting the transactions of every rule or applying the rules took about 30 ms and takes about 4 ms now that the rules are compiled once per pass.
 - CON-6: Amounts are `Money` (CSD-000 CON-8) and a file amount with more than two decimals is rejected, not rounded. Rationale: an export is data, not typed text (CSD-002 REQ-19).
 - CON-7: Matching in REQ-10 is a case-insensitive test of the whole text against a pattern whose only wildcard is `*` (no regular expression, no locale tricks), done without backtracking over more than the parts between the stars. Rationale: predictable rules, no ReDoS.
 - CON-9: Every command bounds what it takes (CLAUDE.md, Tauri security): at most 200,000 ids in a bulk change and 1,000 rules in "Add rules", each answered with TRANSACTION_INPUT_TOO_LARGE; a filter text counts only its first 100 characters and a filter at most 1,000 category ids; a page of the list holds at most 20,000 rows. Rationale: untrusted input.
@@ -1243,6 +1252,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.39 (17/11/2026): The page loads the categories, rules, share and totals with one call, read from one state (new REQ-33, AC-33.1). The rules are compiled once per pass and the filter reads its category choices as ids, with no change of behaviour. Refactoring review of the branch. Back to `draft` until re-approved.
 - 0.38 (17/11/2026): The duplicate AC-10.4 became AC-10.6 and the scenarios are in order of their id; CON-7 describes the pattern matching, new CON-9 bounds the command inputs; typed filter fields ask for the list after a short pause (REQ-15, AC-15.10). Refactoring review of the branch. Back to `draft` until re-approved.
 - 0.37 (17/11/2026): In "Suggest rules" the minimal count is a number field with up and down buttons, and it is remembered until the app is closed (REQ-29, AC-29.16; replaces "not remembered"). Owner request. Back to `draft` until re-approved.
 - 0.36 (17/11/2026): In the "Suggest rules" dialog, choosing or changing the category of a row ticks its checkbox (REQ-29, AC-29.15). Owner request. Back to `draft` until re-approved.

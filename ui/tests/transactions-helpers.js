@@ -38,8 +38,7 @@ export const transaction = (id, date, amount, name, category = null) => ({
 export function readsWith({ rows, count = rows.length, total = '0.00', categories = CATEGORIES, rules = RULES }) {
   const reads = exampleReads();
   reads.list_transactions = { rows, count, total };
-  reads.list_transaction_categories = categories;
-  reads.list_transaction_rules = rules;
+  reads.get_transactions_overview = { ...reads.get_transactions_overview, categories, rules };
   return reads;
 }
 
