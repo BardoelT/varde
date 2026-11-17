@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.35
+version: 0.36
 last_updated: 16/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -951,7 +951,7 @@ Rust shall build the list of suggestions from the uncategorized transactions onl
 5. The suggestions are sorted by count, highest first, then by text, and at most 100 are shown, with the note "N more not shown: raise the minimal count" when there are more.
 6. The suggested category is the one most used among the categorised transactions the rule would match (a tie goes to the category listed first), and none when none of them has a category.
 
-Every row shall start with a checkbox that is not ticked when the dialog opens and can be ticked only while the row has a category (clearing the category unticks it), and shall show the text (an editable field), the count and a choice of category ("—" for none, then the categories). When the user edits the text, the count of that row shall be recounted by Rust after a short pause; an edited row stays in the list whatever its new count is. When the minimal count changes, the ticked rows shall stay, with the text the user typed, even when they are no longer suggested. The dialog shall show "N rules chosen" for the ticked rows and the button "Add N rules", disabled while N is 0; a suggested category alone never adds anything. The dialog shall be tall by default, 1,000 pixels high at most and 96 pixels lower than the window when the window is lower than that, so it scales with the window, and the list of suggestions shall fill it and scroll inside it, with its header row in view, so that every row can be reached however small the window is. When the user chooses it, the app shall add the rules of the ticked rows at the end of the rule list, in the order of the list, and apply the rules to the transactions that are not manual (REQ-12), as one undo step, and show the notification "N rules added, M transactions categorised". When a row is invalid (REQ-9: empty text, too long, a text another rule has, or a text two chosen rows have), nothing shall be added or applied, the dialog shall stay open and the text field of the first invalid row shall be marked with the error message.
+Every row shall start with a checkbox that is not ticked when the dialog opens and can be ticked only while the row has a category; choosing or changing the category of a row ticks it, as the user means to add it, and clearing the category unticks it, and shall show the text (an editable field), the count and a choice of category ("—" for none, then the categories). When the user edits the text, the count of that row shall be recounted by Rust after a short pause; an edited row stays in the list whatever its new count is. When the minimal count changes, the ticked rows shall stay, with the text the user typed, even when they are no longer suggested. The dialog shall show "N rules chosen" for the ticked rows and the button "Add N rules", disabled while N is 0; a suggested category alone never adds anything. The dialog shall be tall by default, 1,000 pixels high at most and 96 pixels lower than the window when the window is lower than that, so it scales with the window, and the list of suggestions shall fill it and scroll inside it, with its header row in view, so that every row can be reached however small the window is. When the user chooses it, the app shall add the rules of the ticked rows at the end of the rule list, in the order of the list, and apply the rules to the transactions that are not manual (REQ-12), as one undo step, and show the notification "N rules added, M transactions categorised". When a row is invalid (REQ-9: empty text, too long, a text another rule has, or a text two chosen rows have), nothing shall be added or applied, the dialog shall stay open and the text field of the first invalid row shall be marked with the error message.
 
 ```gherkin
 @AC-29.1
@@ -1056,6 +1056,14 @@ Scenario: Nothing ticked
   Given rows with a suggested category and no row ticked
   Then the dialog shows "0 rules chosen" and "Add 0 rules" is disabled
   And a row without a category cannot be ticked, and clearing the category of a ticked row unticks it
+
+@AC-29.15
+Scenario: Choosing a category ticks the row
+  Given a row that is not ticked
+  When the user chooses a category for it, or changes its category
+  Then the row is ticked and "N rules chosen" counts it
+  And the user can untick it again, and choosing a category again ticks it again
+  And a category that was only suggested does not tick the row
 ```
 
 **REQ-30: Transactions per category** *(ubiquitous)*
@@ -1221,6 +1229,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.36 (17/11/2026): In the "Suggest rules" dialog, choosing or changing the category of a row ticks its checkbox (REQ-29, AC-29.15). Owner request. Back to `draft` until re-approved.
 - 0.35 (17/11/2026): "Suggest rules" builds its list from the uncategorized transactions only and then counts each suggestion over all transactions (REQ-29, AC-29.14). Owner request. Back to `draft` until re-approved.
 - 0.34 (16/11/2026): "Manual only" is a button that looks pressed while on, like "Bulk select", instead of a checkbox (REQ-26). Owner request. Back to `draft` until re-approved.
 - 0.33 (16/11/2026): The "Bulk select" button looks selected while bulk select is on (REQ-28, AC-28.8). Owner request. Back to `draft` until re-approved.

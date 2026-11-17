@@ -755,8 +755,17 @@ test('test_csd032_ac_29_11_only_ticked_rows_count_and_nothing_is_ticked_by_defau
   assert.equal(app.textOf('transaction-suggest-add'), 'Add 1 rule');
   assert.equal(app.$('transaction-suggest-add').disabled, false);
   await app.choose(suggestRows(app)[1].querySelector('select'), SHOPPING);
-  assert.equal(box(1).disabled, false, 'a category makes the row tickable, but does not tick it');
-  assert.equal(box(1).checked, false);
+  assert.equal(box(1).disabled, false, 'a category makes the row tickable');
+  assert.equal(box(1).checked, true, 'and choosing it ticks the row');
+  assert.equal(app.textOf('transaction-suggest-chosen'), '2 rules chosen');
+  await app.choose(suggestRows(app)[1].querySelector('select'), GROCERIES);
+  assert.equal(box(1).checked, true, 'changing the category ticks it too');
+  await app.click(box(1));
+  assert.equal(box(1).checked, false, 'the tick can be removed again');
+  await app.choose(suggestRows(app)[1].querySelector('select'), SHOPPING);
+  assert.equal(box(1).checked, true, 'and a new choice ticks it again');
+  await app.click(box(1));
+  assert.equal(app.textOf('transaction-suggest-chosen'), '1 rule chosen');
   await app.choose(suggestRows(app)[0].querySelector('select'), '');
   assert.equal(box(0).checked, false, 'without a category the tick goes');
   assert.equal(app.textOf('transaction-suggest-chosen'), '0 rules chosen');
@@ -782,7 +791,7 @@ test('test_csd032_ac_29_12_chosen_rows_stay_when_the_minimal_count_changes', asy
   field.value = '';
   await app.type(field, '4');
   await app.choose(suggestRows(app)[1].querySelector('select'), SHOPPING);
-  await app.click(suggestRows(app)[1].querySelector('input[type="checkbox"]'));
+  assert.equal(suggestRows(app)[1].querySelector('input[type="checkbox"]').checked, true, 'choosing the category ticked it');
   field.value = '';
   await app.type(field, '5');
   assert.deepEqual(suggestRows(app).map((row) => row.querySelector('input[type="text"]').value), ['Albert Heijn*', 'Example Cafe'], 'the ticked "Example Cafe" stays');

@@ -14,7 +14,7 @@ let getCategories = () => [];
 let onChanged = async () => {};
 /**
  * The rows of the list: `{ text, count, categoryId, checked }`, `categoryId` empty for none, `checked` false until
- * the user ticks the row; `error` after a refused add.
+ * the user ticks the row or chooses a category for it; `error` after a refused add.
  */
 let rows = [];
 let requestNumber = 0;
@@ -51,8 +51,9 @@ function categorySelect(row) {
   select.value = row.categoryId;
   select.addEventListener('change', () => {
     row.categoryId = select.value;
-    // A rule needs a category: without one the row cannot stay ticked.
-    if (row.categoryId === '') row.checked = false;
+    // Choosing or changing a category ticks the row, as the user means to add it; a rule needs a category,
+    // so clearing it unticks the row.
+    row.checked = row.categoryId !== '';
     syncRow(row);
     syncChosen();
   });
