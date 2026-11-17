@@ -3,7 +3,7 @@ id: CSD-028
 title: Filters in the statement tables
 status: draft
 owner: Thijs Bardoel
-version: 0.8
+version: 0.9
 last_updated: 16/11/2026
 related: [CSD-001, CSD-005, CSD-009, CSD-011, CSD-013, CSD-015, CSD-022, CSD-024, CSD-027]
 ---
@@ -82,7 +82,7 @@ Scenario: A table without data has no filter buttons
 ```
 
 **REQ-2: Filter panels, one per column** *(event-driven)*
-When the user chooses the filter button of the period column, the app shall open a panel with a from month and a to month. When the user chooses the filter button of the entity column, the app shall open a panel with one checkbox per entity of that table that has rows in it, open or closed. The app shall apply every change to the table at once, without an Apply button, keep the panel inside the window, and let the two filters work independently.
+When the user chooses the filter button of the period column, the app shall open a panel with a from month and a to month. When the user chooses the filter button of the entity column, the app shall open a panel with one checkbox per entity of that table that has rows in it, open or closed. The app shall apply every change to the table at once, without an Apply button (text typed in a field, such as a month, a day, an amount or a text, is applied after a short pause in the typing, 200 milliseconds, and only when what the table is asked for changed), keep the panel inside the window, and let the two filters work independently.
 
 ```gherkin
 @AC-2.1
@@ -462,6 +462,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-3 (resolved in v0.1): Live or explicit apply? Answer: live, with no Apply button (REQ-2).
 
 ## 9. Changelog
+- 0.9 (17/11/2026): Typed filter fields are applied after a short pause in the typing and only when the request changed (REQ-2); nothing else changes. Back to `draft` until re-approved.
 - 0.8 (16/11/2026): the Transactions list also filters on the text of the counterparty and the description (NG-2, CSD-032 REQ-15). Owner request. Back to `draft` until re-approved.
 - 0.7 (16/11/2026): the Transactions list also filters on the amount (NG-2, CSD-032 REQ-15). Owner request. Back to `draft` until re-approved.
 - 0.6 (12/11/2026): the Transactions list filters its period by day instead of month; REQ-3 is unchanged for the other tables (NG-0, CSD-032 REQ-15). Owner request. Back to `draft` until re-approved.

@@ -32,10 +32,23 @@ pub struct TransactionFilterInput {
     description: Option<String>,
 }
 
-/// The text to look for, lower-cased; `None` for an empty (or blank) field.
+/// The most characters of a filter text that count, as long as a rule text;
+/// more is cut, a bound on untrusted input (CSD-032 CON-9).
+const MAX_FILTER_TEXT_CHARS: usize = super::category::MAX_RULE_CHARS;
+/// The most category ids of a filter that count; more are left out.
+const MAX_FILTER_IDS: usize = 1000;
+
+/// The text to look for, lower-cased and cut to [`MAX_FILTER_TEXT_CHARS`];
+/// `None` for an empty (or blank) field.
 fn typed_text(text: Option<&str>) -> Option<String> {
     let trimmed = text?.trim();
-    (!trimmed.is_empty()).then(|| trimmed.to_lowercase())
+    (!trimmed.is_empty()).then(|| {
+        trimmed
+            .chars()
+            .take(MAX_FILTER_TEXT_CHARS)
+            .collect::<String>()
+            .to_lowercase()
+    })
 }
 
 /// An amount typed in `format`, rounded as every typed amount is (CSD-000
@@ -53,7 +66,7 @@ impl TransactionFilterInput {
         TransactionFilter {
             from: self.from,
             to: self.to,
-            ids: self.ids,
+            ids: self.ids.into_iter().take(MAX_FILTER_IDS).collect(),
             min_amount: typed_bound(format, self.min_amount.as_deref()),
             max_amount: typed_bound(format, self.max_amount.as_deref()),
             counterparty: typed_text(self.counterparty.as_deref()),

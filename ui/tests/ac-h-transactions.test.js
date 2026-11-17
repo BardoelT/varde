@@ -614,10 +614,10 @@ test('test_csd032_ac_15_7_the_period_filter_of_the_list_asks_for_days', async ()
   const fields = [...app.document.querySelectorAll('#transaction-period-filter input[data-mask]')];
   assert.deepEqual(fields.map((input) => app.text(input.closest('label'))), ['From date', 'To date']);
   assert.deepEqual(fields.map((input) => input.getAttribute('placeholder')), ['dd/mm/yyyy', 'dd/mm/yyyy']);
-  await app.type(fields[0], '29102026');
+  await app.typeFilter(fields[0], '29102026');
   assert.equal(fields[0].value, '29/10/2026', 'typed digits are laid out as a day');
   assert.deepEqual(app.callsOf('list_transactions').at(-1).args.filter, { from: '2026-10-29', to: null, ids: [], min_amount: null, max_amount: null, counterparty: null, description: null }, 'Rust gets the ISO day');
-  await app.type(fields[1], '31022026');
+  await app.typeFilter(fields[1], '31022026');
   assert.deepEqual(app.callsOf('list_transactions').at(-1).args.filter.to, null, 'a day that is not on the calendar is not sent');
   app.close();
 });
@@ -628,11 +628,43 @@ test('test_csd032_ac_15_8_the_amount_filter_sends_the_typed_range', async () => 
   const panel = app.document.querySelector('#transaction-amount-filter .filter-panel');
   const fields = [...panel.querySelectorAll('input')];
   assert.deepEqual(fields.map((input) => app.text(input.closest('label'))), ['From amount', 'To amount']);
-  await app.type(fields[0], '-50,5');
+  await app.typeFilter(fields[0], '-50,5');
   assert.deepEqual(app.callsOf('list_transactions').at(-1).args.filter, { from: null, to: null, ids: [], min_amount: '-50,5', max_amount: null, counterparty: null, description: null }, 'the typed text goes to Rust');
-  await app.type(fields[1], 'abc');
+  await app.typeFilter(fields[1], 'abc');
   assert.equal(app.callsOf('list_transactions').at(-1).args.filter.max_amount, null, 'text without a digit is not sent');
   assert.match(app.document.querySelector('#transaction-amount-filter button').getAttribute('aria-label'), /active/);
+  app.close();
+});
+
+test('test_csd032_ac_15_10_typing_in_a_filter_asks_once_after_a_pause_and_a_late_answer_is_dropped', async () => {
+  let release = null;
+  const slow = new Promise((resolve) => { release = resolve; });
+  const fresh = { rows: [transaction('t1', '2026-10-30', '-1.00', 'Albert Heijn')], count: 1, total: '-1.00' };
+  const stale = { rows: [transaction('t2', '2026-10-29', '-2.00', 'Example Cafe')], count: 1, total: '-2.00' };
+  const app = await transactionsPage(readsWith({ rows: bulkRows(), count: 3 }), {
+    ...bulkHandlers(),
+    list_transactions: async (args) => {
+      if (args?.filter?.counterparty === 'Al') {
+        await slow;
+        return stale;
+      }
+      return args?.filter?.counterparty === 'Alb' ? fresh : { rows: bulkRows(), count: 3, total: '0.00' };
+    },
+  });
+  await app.click(app.document.querySelector('#transaction-counterparty-filter button'));
+  const field = app.document.querySelector('#transaction-counterparty-filter .filter-panel input');
+  const before = app.callsOf('list_transactions').length;
+  await app.type(field, 'Al'); // quick typing: nothing is asked yet
+  assert.equal(app.callsOf('list_transactions').length, before, 'no request while typing');
+  await new Promise((resolve) => setTimeout(resolve, 260));
+  assert.equal(app.callsOf('list_transactions').length, before + 1, 'one request after the pause');
+  // A newer request while the first is still out (`type` would wait for it, so the input event is sent by hand).
+  field.value += 'b';
+  field.dispatchEvent(new app.window.InputEvent('input', { inputType: 'insertText', data: 'b', bubbles: true }));
+  await new Promise((resolve) => setTimeout(resolve, 260));
+  release();
+  await app.settle();
+  assert.deepEqual(tableRows(app).map((row) => app.text(row.querySelector('td.wrap'))), ['Albert Heijn'], 'the late answer of the first request is dropped');
   app.close();
 });
 
@@ -642,14 +674,14 @@ test('test_csd032_ac_15_9_the_text_filters_send_the_typed_text', async () => {
   const panel = app.document.querySelector('#transaction-counterparty-filter .filter-panel');
   const field = panel.querySelector('input');
   assert.equal(app.text(field.closest('label')), 'Counterparty (* is any text)');
-  await app.type(field, ' Albert ');
+  await app.typeFilter(field, ' Albert ');
   assert.equal(app.callsOf('list_transactions').at(-1).args.filter.counterparty, 'Albert', 'the text is sent without surrounding spaces');
   assert.equal(app.callsOf('list_transactions').at(-1).args.filter.description, null);
   assert.match(app.document.querySelector('#transaction-counterparty-filter button').getAttribute('aria-label'), /active/);
   await app.click(app.document.querySelector('#transaction-description-filter button'));
   const second = app.document.querySelector('#transaction-description-filter .filter-panel input');
   assert.equal(app.text(second.closest('label')), 'Description (* is any text)');
-  await app.type(second, 'rent');
+  await app.typeFilter(second, 'rent');
   assert.deepEqual(
     [app.callsOf('list_transactions').at(-1).args.filter.counterparty, app.callsOf('list_transactions').at(-1).args.filter.description],
     ['Albert', 'rent'],

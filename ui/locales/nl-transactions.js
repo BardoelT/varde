@@ -137,6 +137,7 @@ export default {
   'code:TRANSACTION_RULE_TEXT_TAKEN': 'Er bestaat al een regel met deze tekst.',
   'code:TRANSACTION_RULE_CATEGORY_INVALID': 'Kies een bestaande categorie, niet Zonder categorie.',
   'code:TRANSACTION_RULE_NOT_FOUND': 'Deze regel bestaat niet.',
+  'code:TRANSACTION_INPUT_TOO_LARGE': 'Te veel items in één verzoek.',
   'code:TRANSACTION_NOT_FOUND': 'Deze transactie bestaat niet.',
   'code:TRANSACTION_DATA_INVALID': 'De transactiegegevens zijn niet consistent.',
 };

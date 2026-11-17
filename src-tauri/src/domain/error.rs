@@ -494,6 +494,9 @@ pub enum DomainError {
     /// Reported as: "This rule does not exist."
     #[error("This rule does not exist.")]
     TransactionRuleNotFound,
+    /// Reported as: "Too many items in one request."
+    #[error("Too many items in one request.")]
+    TransactionInputTooLarge,
     /// Reported as: "This transaction does not exist."
     #[error("This transaction does not exist.")]
     TransactionNotFound,
@@ -665,6 +668,7 @@ impl DomainError {
             Self::TransactionRuleDateInvalid => "TRANSACTION_RULE_DATE_INVALID",
             Self::TransactionRuleCategoryInvalid => "TRANSACTION_RULE_CATEGORY_INVALID",
             Self::TransactionRuleNotFound => "TRANSACTION_RULE_NOT_FOUND",
+            Self::TransactionInputTooLarge => "TRANSACTION_INPUT_TOO_LARGE",
             Self::TransactionNotFound => "TRANSACTION_NOT_FOUND",
             Self::TransactionDataInvalid => "TRANSACTION_DATA_INVALID",
         }

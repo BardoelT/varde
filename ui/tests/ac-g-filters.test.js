@@ -159,7 +159,7 @@ test('test_csd028_ac_2_5_the_two_filters_combine', async () => {
   const app = await openBank();
   await filterAccounts(app, 'id-1');
   await app.click(periodButton(app));
-  await app.type(monthInputs(app)[0], '202601');
+  await app.typeFilter(monthInputs(app)[0], '202601');
   assert.deepEqual(lastFilterSent(app), { from: '2026-01', to: null, ids: ['id-1'] });
   assert.deepEqual(entryPeriods(app), ['2026-08', '2025-12'].filter((p) => p >= '2026-01'));
   app.close();
@@ -169,11 +169,11 @@ test('test_csd028_ac_3_1_an_incomplete_month_is_not_sent', async () => {
   const app = await openBank();
   await app.click(periodButton(app));
   const calls = app.callsOf('list_bank_entries').length;
-  await app.type(monthInputs(app)[0], '20260');
+  await app.typeFilter(monthInputs(app)[0], '20260');
   assert.equal(monthInputs(app)[0].value, '2026-0', 'the dash is typed for the user');
   assert.equal(lastFilterSent(app), undefined, 'a month that is not complete filters nothing');
   assert.equal(labelOf(periodButton(app)), 'Filter by period', 'so the filter icon stays');
-  await app.type(monthInputs(app)[0], '8');
+  await app.typeFilter(monthInputs(app)[0], '8');
   assert.deepEqual(lastFilterSent(app), { from: '2026-08', to: null, ids: [] });
   assert.ok(app.callsOf('list_bank_entries').length > calls);
   app.close();
@@ -260,7 +260,7 @@ test('test_csd028_ac_8_1_a_filter_matching_nothing_keeps_the_header_and_has_its_
   const app = await openBank();
   await filterAccounts(app, 'id-1');
   await app.click(periodButton(app));
-  await app.type(monthInputs(app)[0], '203001');
+  await app.typeFilter(monthInputs(app)[0], '203001');
   assert.ok(app.isShown(app.$('bank-entries-nomatch')));
   assert.equal(app.text(app.$('bank-entries-nomatch')), 'No entries match the filters.');
   assert.equal(app.isShown(app.$('bank-entries-empty')), false, 'not the note of an empty table');

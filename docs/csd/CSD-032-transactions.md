@@ -3,7 +3,7 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.37
+version: 0.38
 last_updated: 16/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
@@ -339,13 +339,10 @@ Scenario Outline: Invalid rules rejected
     | Example         | Uncategorized | TRANSACTION_RULE_CATEGORY_INVALID |
     | Example         | Nonexistent   | TRANSACTION_RULE_CATEGORY_INVALID |
 
-@AC-9.10
-Scenario: Duplicate rule text rejected
-  Given the rule "Example Market" → Groceries
-  When the user adds the rule " example market " with category "Leisure"
-  Then it is rejected with error code "TRANSACTION_RULE_TEXT_TAKEN" and no rule or category is added
-  And editing the rule "Example Cafe" to the text "EXAMPLE MARKET" is rejected the same way
-  And saving the rule "Example Market" with its own text is accepted
+@AC-9.4
+Scenario: A new project has seed rules
+  When the user starts a new project
+  Then the rule list holds seed rules that each name an existing category
 
 @AC-9.6
 Scenario: A rule creates its category
@@ -370,10 +367,13 @@ Scenario: The name field only shows for a new category
   When the user opens the dialog to edit a rule
   Then there is no option "New category…"
 
-@AC-9.4
-Scenario: A new project has seed rules
-  When the user starts a new project
-  Then the rule list holds seed rules that each name an existing category
+@AC-9.10
+Scenario: Duplicate rule text rejected
+  Given the rule "Example Market" → Groceries
+  When the user adds the rule " example market " with category "Leisure"
+  Then it is rejected with error code "TRANSACTION_RULE_TEXT_TAKEN" and no rule or category is added
+  And editing the rule "Example Cafe" to the text "EXAMPLE MARKET" is rejected the same way
+  And saving the rule "Example Market" with its own text is accepted
 ```
 
 **REQ-10: Categorise on import** *(event-driven)*
@@ -385,6 +385,18 @@ Scenario: First matching rule wins
   Given the rules "Example Market*" → Groceries and "Example*" → Shopping, in that order
   When the user imports a row with counterparty "EXAMPLE MARKET Town"
   Then the transaction has category "Groceries"
+
+@AC-10.2
+Scenario: The description is matched too
+  Given the rule "Rent October*" → Housing
+  When the user imports a row with an empty counterparty and the description "Rent October 2026"
+  Then the transaction has category "Housing"
+
+@AC-10.3
+Scenario: No rule matches
+  Given no rule matches a row
+  When the user imports the file
+  Then the transaction has category "Uncategorized"
 
 @AC-10.4
 Scenario: A star is a wildcard
@@ -401,19 +413,7 @@ Scenario: A rule without a star is the exact text
   And "CAFE", "ACA", "CA 1157" and "Example CA" do not
   And "CA*" matches "CAFE" but not "ACA", "*CA" matches "ACA" but not "CAFE", and "*CA*" matches "Example CA Town"
 
-@AC-10.2
-Scenario: The description is matched too
-  Given the rule "Rent October*" → Housing
-  When the user imports a row with an empty counterparty and the description "Rent October 2026"
-  Then the transaction has category "Housing"
-
-@AC-10.3
-Scenario: No rule matches
-  Given no rule matches a row
-  When the user imports the file
-  Then the transaction has category "Uncategorized"
-
-@AC-10.4
+@AC-10.6
 Scenario: Matching ignores case but not the text itself
   Given the rule "example market" → Groceries
   When the user imports a row with counterparty "Example Mkt"
@@ -430,6 +430,18 @@ Scenario: A manual choice sticks
   When the user sets its category to "Shopping"
   And adds the rule "Example Shop" → Leisure and applies the rules
   Then the transaction has category "Shopping"
+
+@AC-11.2
+Scenario: Back to Uncategorized by hand
+  Given a manual transaction in "Shopping"
+  When the user sets its category to "Uncategorized"
+  Then it has category "Uncategorized" and is still manual
+
+@AC-11.3
+Scenario: A stale screen
+  Given the user opened a transaction and it was deleted in the meantime
+  When the user sets its category
+  Then it is rejected with error code "TRANSACTION_NOT_FOUND"
 
 @AC-11.4
 Scenario: Manual transactions carry a badge
@@ -460,18 +472,6 @@ Scenario: Cancelling changes nothing
 Scenario: A stale screen
   Given the user chose the badge of a transaction that was deleted in the meantime
   When the user confirms
-  Then it is rejected with error code "TRANSACTION_NOT_FOUND"
-
-@AC-11.2
-Scenario: Back to Uncategorized by hand
-  Given a manual transaction in "Shopping"
-  When the user sets its category to "Uncategorized"
-  Then it has category "Uncategorized" and is still manual
-
-@AC-11.3
-Scenario: A stale screen
-  Given the user opened a transaction and it was deleted in the meantime
-  When the user sets its category
   Then it is rejected with error code "TRANSACTION_NOT_FOUND"
 ```
 
@@ -565,6 +565,12 @@ Scenario: Empty state
   Given no transactions
   Then the page shows "No transactions yet" and the Import button
 
+@AC-15.4
+Scenario: Editing keeps the filter
+  Given the filter category "Groceries" is active
+  When the user changes a transaction's category to "Shopping"
+  Then the filter is still active and the row is no longer listed
+
 @AC-15.7
 Scenario: The period filter goes down to the day
   Given transactions on 01/10/2026, 15/10/2026, 31/10/2026 and 30/09/2026
@@ -603,11 +609,12 @@ Scenario: The text filters on counterparty and description
   And an empty field leaves that column unfiltered
   And the filtered total, the count and "select all in the filter" (REQ-28) follow the same text
 
-@AC-15.4
-Scenario: Editing keeps the filter
-  Given the filter category "Groceries" is active
-  When the user changes a transaction's category to "Shopping"
-  Then the filter is still active and the row is no longer listed
+@AC-15.10
+Scenario: Typing in a filter asks once, after a pause
+  When the user types "Al" quickly in the counterparty filter
+  Then the list is asked for once, after a pause in the typing of 200 milliseconds, and not for every key
+  And a filter value that Rust has already answered is not asked again, such as half of a date
+  And when two answers cross, only the answer to the newest question is shown
 ```
 
 **REQ-16: The page in the navigation** *(ubiquitous)*
@@ -620,6 +627,11 @@ Scenario: Transactions is in the left pane
   Then the left pane lists "Transactions" after "Income" and "Expenses" in the group "Finance"
   And choosing it shows the Overview tab
   And the tabs are, left to right, "Categories", "Rules", "Overview" and "Insights"
+
+@AC-16.2
+Scenario: The import result is a notification
+  When an import adds 3 transactions and skips 2
+  Then the yellow notification "3 added, 2 skipped as duplicates" is shown at the bottom right
 
 @AC-16.3
 Scenario: Categories and rules are on their own tabs
@@ -634,11 +646,6 @@ Scenario: Categories and rules are on their own tabs
 Scenario: A re-apply message is a notification
   Given the user chose "Apply rules" on the tab "Rules"
   Then the yellow notification "2 changed" is shown at the bottom right
-
-@AC-16.2
-Scenario: The import result is a notification
-  When an import adds 3 transactions and skips 2
-  Then the yellow notification "3 added, 2 skipped as duplicates" is shown at the bottom right
 ```
 
 ### 4.4 Project file and neighbouring capabilities
@@ -806,7 +813,6 @@ Scenario: Discrete mode hides the amounts
 
 **REQ-25: Delete all transactions** *(event-driven)*
 The Overview tab shall have a button "Delete all transactions". When the user confirms, the app shall remove every transaction, whatever the filters of the list are, and no other data: the categories and the rules shall stay. The deletion shall be one undo step "Delete Transactions" (CSD-027).
-
 ```gherkin
 @AC-25.1
 Scenario: Everything goes, categories and rules stay
@@ -1011,29 +1017,6 @@ Scenario: Editing a text recounts it
   Then after a short pause the count of that row is the number of transactions "Albert*" matches
   And the row stays even when the new count is below the minimal count
 
-@AC-29.12
-Scenario: Ticked rows stay
-  Given the user ticked the suggestion "Example Cafe" with a count of 4
-  When the user changes the minimal count to 5
-  Then "Example Cafe" is still listed, ticked, with its category
-
-@AC-29.14
-Scenario: Only uncategorized transactions propose a rule, the count covers all
-  Given "Example Done" with 5 transactions that all have a category, "Example Part" with 6 of which 1 is uncategorized and "Example Few" with 2 uncategorized
-  When the minimal count is 5
-  Then the list shows "Example Part" with count 6 and not "Example Done"
-  When the minimal count is 1
-  Then the list shows "Example Part" (6) and "Example Few" (2), and still not "Example Done"
-  And the minimal count is compared with the count over all transactions
-
-@AC-29.13
-Scenario: The dialog is tall and the list scrolls
-  Given the window is 900 pixels high
-  Then the dialog is about 800 pixels high and the list takes the room left in it
-  When the window is made lower or higher
-  Then the dialog follows, up to 1,000 pixels, and stays inside the window
-  And with more suggestions than fit, the list scrolls inside the dialog and its header row stays in view
-
 @AC-29.9
 Scenario: Adding the chosen rules
   Given 3 rows ticked and 2 rows not ticked
@@ -1057,13 +1040,28 @@ Scenario: Nothing ticked
   Then the dialog shows "0 rules chosen" and "Add 0 rules" is disabled
   And a row without a category cannot be ticked, and clearing the category of a ticked row unticks it
 
-@AC-29.16
-Scenario: The minimal count is a number field and is remembered
-  Then "Minimal count" is a number field with up and down buttons that change it by 1, not below 1
-  When the user sets it to 3 and closes the dialog
-  And the user chooses "Suggest rules" again
-  Then the dialog shows 3 and the suggestions with a count of at least 3
-  And a value that is not valid is not remembered, and after the app is closed and started again the dialog opens with 5
+@AC-29.12
+Scenario: Ticked rows stay
+  Given the user ticked the suggestion "Example Cafe" with a count of 4
+  When the user changes the minimal count to 5
+  Then "Example Cafe" is still listed, ticked, with its category
+
+@AC-29.13
+Scenario: The dialog is tall and the list scrolls
+  Given the window is 900 pixels high
+  Then the dialog is about 800 pixels high and the list takes the room left in it
+  When the window is made lower or higher
+  Then the dialog follows, up to 1,000 pixels, and stays inside the window
+  And with more suggestions than fit, the list scrolls inside the dialog and its header row stays in view
+
+@AC-29.14
+Scenario: Only uncategorized transactions propose a rule, the count covers all
+  Given "Example Done" with 5 transactions that all have a category, "Example Part" with 6 of which 1 is uncategorized and "Example Few" with 2 uncategorized
+  When the minimal count is 5
+  Then the list shows "Example Part" with count 6 and not "Example Done"
+  When the minimal count is 1
+  Then the list shows "Example Part" (6) and "Example Few" (2), and still not "Example Done"
+  And the minimal count is compared with the count over all transactions
 
 @AC-29.15
 Scenario: Choosing a category ticks the row
@@ -1072,6 +1070,14 @@ Scenario: Choosing a category ticks the row
   Then the row is ticked and "N rules chosen" counts it
   And the user can untick it again, and choosing a category again ticks it again
   And a category that was only suggested does not tick the row
+
+@AC-29.16
+Scenario: The minimal count is a number field and is remembered
+  Then "Minimal count" is a number field with up and down buttons that change it by 1, not below 1
+  When the user sets it to 3 and closes the dialog
+  And the user chooses "Suggest rules" again
+  Then the dialog shows 3 and the suggestions with a count of at least 3
+  And a value that is not valid is not remembered, and after the app is closed and started again the dialog opens with 5
 ```
 
 **REQ-30: Transactions per category** *(ubiquitous)*
@@ -1098,7 +1104,6 @@ Scenario: The count comes with the category list
 
 **REQ-31: Categorized share** *(ubiquitous)*
 The Overview tab shall show, right-aligned in the header of the Yearly totals panel, a line with the percentage of the transactions that have a category, so 100% is the best and the numbers behind it, as "87.50% of the transactions are categorized (35 of 40)". Rust counts and computes the percentage (two decimals, half-up, CSD-000 CON-8), and the line follows every change of the transactions, the rules and the categories. While there are no transactions the line is not shown.
-
 ```gherkin
 @AC-31.1
 Scenario: The share of categorized transactions
@@ -1214,9 +1219,10 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - CON-2: The file is read in Rust after a native dialog opened from Rust, so no filesystem permission is added to the webview. Rationale: least privilege (`CLAUDE.md`).
 - CON-3: No transaction data (names, amounts, descriptions, IBANs, file paths) is logged at `info` or above, and an error shown to the user names a line number but never a path. Rationale: `CLAUDE.md` privacy rules.
 - CON-4: The transaction list is held behind shared references so the undo history shares it between steps and a step pays only for what it changes. Rationale: CSD-027 CON-1 sized the history for a 40 KB project; 100 full copies of 20,000 transactions would take hundreds of MB.
-- CON-5: Target size is 20,000 transactions with the project file saved as one file, as today. Rationale: a few years of one account.
+- CON-5: Target size is 20,000 transactions with the project file saved as one file, as today. Rationale: a few years of one account. Measured on 20,000 rows in a release build (17/11/2026): the first edit after an undo step copies the list in about 2 ms, a list page with filters takes about 3 ms, and applying the rules about 30 ms, so the shared list is kept as it is.
 - CON-6: Amounts are `Money` (CSD-000 CON-8) and a file amount with more than two decimals is rejected, not rounded. Rationale: an export is data, not typed text (CSD-002 REQ-19).
-- CON-7: Matching in REQ-10 is a plain case-insensitive substring test (no regular expression, no locale tricks). Rationale: predictable rules, no ReDoS.
+- CON-7: Matching in REQ-10 is a case-insensitive test of the whole text against a pattern whose only wildcard is `*` (no regular expression, no locale tricks), done without backtracking over more than the parts between the stars. Rationale: predictable rules, no ReDoS.
+- CON-9: Every command bounds what it takes (CLAUDE.md, Tauri security): at most 200,000 ids in a bulk change and 1,000 rules in "Add rules", each answered with TRANSACTION_INPUT_TOO_LARGE; a filter text counts only its first 100 characters and a filter at most 1,000 category ids; a page of the list holds at most 20,000 rows. Rationale: untrusted input.
 - CON-8: Real bank exports never enter the repository: `.gitignore` covers them, and fixtures live in `src-tauri/fixtures/`. Rationale: the repo is public.
 
 ## 7. Verification
@@ -1237,6 +1243,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.38 (17/11/2026): The duplicate AC-10.4 became AC-10.6 and the scenarios are in order of their id; CON-7 describes the pattern matching, new CON-9 bounds the command inputs; typed filter fields ask for the list after a short pause (REQ-15, AC-15.10). Refactoring review of the branch. Back to `draft` until re-approved.
 - 0.37 (17/11/2026): In "Suggest rules" the minimal count is a number field with up and down buttons, and it is remembered until the app is closed (REQ-29, AC-29.16; replaces "not remembered"). Owner request. Back to `draft` until re-approved.
 - 0.36 (17/11/2026): In the "Suggest rules" dialog, choosing or changing the category of a row ticks its checkbox (REQ-29, AC-29.15). Owner request. Back to `draft` until re-approved.
 - 0.35 (17/11/2026): "Suggest rules" builds its list from the uncategorized transactions only and then counts each suggestion over all transactions (REQ-29, AC-29.14). Owner request. Back to `draft` until re-approved.

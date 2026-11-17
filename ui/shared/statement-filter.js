@@ -20,6 +20,8 @@ function isoDay(text) {
   const real = date.getUTCFullYear() === Number(year) && date.getUTCMonth() === Number(month) - 1 && date.getUTCDate() === Number(day);
   return real ? `${year}-${month}-${day}` : null;
 }
+/** How long typing in a filter field has to pause before the table is asked again. */
+const TYPING_DELAY_MS = 200;
 const PANEL_WIDTH = 280;
 /** Space kept between the panel and the icon, and between the panel and the window edge. */
 const GAP = 4;
@@ -48,7 +50,9 @@ export function resetAllFilters() {
  * range, typed in the number format of the app and read by Rust (for the Transactions list only, CSD-032 REQ-15).
  * `textHosts` (`{ counterparty, description }`, the ids of the header elements of those columns) adds a text
  * filter on each: exact, or with `*` as a wildcard, ignoring case; Rust reads the text (for the Transactions list only, CSD-032 REQ-15).
- * `onChange()` reloads the table; it is called at once for every change (REQ-2).
+ * `onChange()` reloads the table. It is called at once for a click and, for typed text, after a short pause in
+ * the typing (`TYPING_DELAY_MS`); a change that leaves what Rust is asked the same, such as half a date, calls
+ * nothing (REQ-2).
  */
 export function createStatementFilter({ periodHost, entityHost, amountHost = null, textHosts = null, entityTitle, entities, onChange, period = 'month' }) {
   let from = '';
@@ -90,7 +94,7 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
     maskInput(input);
     input.addEventListener('input', () => {
       onValue(input.value);
-      changed();
+      changed({ typing: true });
     });
     return h('label', { class: 'filter-field' }, h('span', {}, label), input);
   }
@@ -108,7 +112,7 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
     const input = h('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', value });
     input.addEventListener('input', () => {
       onValue(input.value);
-      changed();
+      changed({ typing: true });
     });
     return h('label', { class: 'filter-field' }, h('span', {}, label), input);
   }
@@ -124,10 +128,10 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
 
   function textPanel(key, label, groupLabel) {
     return () => {
-      const input = h('input', { type: 'text', autocomplete: 'off', value: texts[key] });
+      const input = h('input', { type: 'text', maxlength: '100', autocomplete: 'off', value: texts[key] });
       input.addEventListener('input', () => {
         texts[key] = input.value;
-        changed();
+        changed({ typing: true });
       });
       return h('div', { class: 'filter-panel', role: 'group', 'aria-label': groupLabel() }, h('label', { class: 'filter-field' }, h('span', {}, label()), input));
     };
@@ -313,9 +317,21 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
         ]),
   ];
 
-  function changed() {
+  /** The payload the table was last asked for, as text; the same payload asks nothing again. */
+  let asked = JSON.stringify(null);
+  let typingTimer = null;
+
+  function changed({ typing = false } = {}) {
     for (const each of columns) each.render();
-    onChange();
+    clearTimeout(typingTimer);
+    const ask = () => {
+      const now = JSON.stringify(payload());
+      if (now === asked) return;
+      asked = now;
+      onChange();
+    };
+    if (typing) typingTimer = setTimeout(ask, TYPING_DELAY_MS);
+    else ask();
   }
 
   const filter = {
@@ -323,6 +339,8 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
 
     /** Clears both parts without reloading. */
     clear() {
+      clearTimeout(typingTimer);
+      asked = JSON.stringify(null);
       from = '';
       to = '';
       ids.clear();
@@ -345,6 +363,7 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
     async load(command, count, extra = {}, narrowing = {}) {
       prune();
       const current = payload();
+      asked = JSON.stringify(current);
       const args = (more) => (Object.keys(more).length > 0 ? more : undefined);
       const narrowed = Object.keys(narrowing).length > 0;
       const result = await invoke(command, args({ ...extra, ...narrowing, ...(current ? { filter: current } : {}) }));

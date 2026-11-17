@@ -692,3 +692,21 @@ fn test_csd033_ac_5_1_insights_over_ipc_default_to_years_and_take_a_granularity(
     );
     assert!(error.is_string() || error.is_object());
 }
+
+#[test]
+fn test_csd032_con_9_commands_refuse_more_items_than_the_bounds_allow() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let before = rows(&app).len();
+    let leisure = category_id(&app, "Leisure");
+    let rules: Vec<Value> = (0..1001)
+        .map(|n| json!({ "text": format!("Example {n}"), "category_id": leisure }))
+        .collect();
+    let error = app.err("add_transaction_rules", json!({ "rules": rules }));
+    assert_eq!(error["code"], "TRANSACTION_INPUT_TOO_LARGE");
+    let ids: Vec<String> = (0..200_001).map(|n| format!("id-{n}")).collect();
+    let error = app.err("delete_transactions", json!({ "transactionIds": ids }));
+    assert_eq!(error["code"], "TRANSACTION_INPUT_TOO_LARGE");
+    // Nothing was added or removed.
+    assert_eq!(rows(&app).len(), before);
+}

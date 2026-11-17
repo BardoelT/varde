@@ -197,14 +197,21 @@ function renderTotals(totals) {
 
 // ---- The list ----
 
+/** The number of the latest request for the list; an older answer that arrives later is dropped. */
+let listRequest = 0;
+
 /** Loads the transactions through the filter and shows them. */
 async function loadList() {
+  listRequest += 1;
+  const mine = listRequest;
   if (bulk && selected.size > 0) {
     // A change may have moved a selected transaction out of the filters, or deleted it.
     const shown = new Set(await invoke('list_transaction_ids', filterArgs()));
+    if (mine !== listRequest) return;
     for (const id of [...selected]) if (!shown.has(id)) selected.delete(id);
   }
   const { result, hasData } = await transactionsFilter.load('list_transactions', (list) => list.count, { limit }, manualOnly() ? { manualOnly: true } : {});
+  if (mine !== listRequest) return;
   transactionsFilter.show(hasData);
   renderList(result, hasData);
 }

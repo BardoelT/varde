@@ -170,7 +170,7 @@ const MAX_BULK_IDS: usize = 200_000;
 
 fn parse_ids(texts: &[String]) -> Result<Vec<TransactionId>, AppError> {
     if texts.len() > MAX_BULK_IDS {
-        return Err(DomainError::TransactionNotFound.into());
+        return Err(DomainError::TransactionInputTooLarge.into());
     }
     texts
         .iter()
@@ -374,6 +374,10 @@ pub struct AddRulesResult {
     rejected: Option<RejectedRule>,
 }
 
+/// The most rules one "Add rules" takes, a bound on what the frontend can send
+/// (the dialog lists at most 100 suggestions).
+const MAX_NEW_RULES: usize = 1000;
+
 /// Adds the rules at the end of the list and applies the rules to the
 /// transactions that are not manual, as one change; when one rule is invalid,
 /// nothing changes and the answer names it (REQ-29).
@@ -382,6 +386,9 @@ pub fn add_transaction_rules(
     state: State<'_, AppState>,
     rules: Vec<NewRule>,
 ) -> Result<AddRulesResult, AppError> {
+    if rules.len() > MAX_NEW_RULES {
+        return Err(DomainError::TransactionInputTooLarge.into());
+    }
     let mut parsed = Vec::with_capacity(rules.len());
     for (index, rule) in rules.into_iter().enumerate() {
         match CategoryId::parse(&rule.category_id) {

@@ -638,7 +638,7 @@ fn test_csd032_ac_10_3_no_match_is_uncategorized() {
 }
 
 #[test]
-fn test_csd032_ac_10_4_matching_ignores_case_but_not_the_text() {
+fn test_csd032_ac_10_6_matching_ignores_case_but_not_the_text() {
     let mut data = with_rules(&[("example market", "Groceries")]);
     let line = simple("30-10-2026", "Afschrijvingen", "9,00", "Example Mkt", "R1");
     data.import(&export(&[line]), Currency::Eur).unwrap();
@@ -2382,4 +2382,29 @@ fn test_csd032_ac_29_14_only_uncategorized_transactions_propose_a_rule_and_the_c
         texts(&data.suggest_rules(1).unwrap()),
         vec![("Example Part", 6), ("Example Few", 2)]
     );
+}
+
+#[test]
+fn test_csd032_con_9_a_long_filter_text_is_cut_and_the_ids_are_bounded() {
+    let data = imported(&[simple(
+        "30-10-2026",
+        "Afschrijvingen",
+        "9,00",
+        "Example Shop",
+        "R1",
+    )]);
+    let count =
+        |json: serde_json::Value| data.list_filtered(Some(&filter_of(json)), false, 10).count;
+    // A text longer than 100 characters is cut to 100, so a long exact text can never match a short name.
+    let long = "x".repeat(5000);
+    assert_eq!(count(serde_json::json!({ "counterparty": long })), 0);
+    // The cut is on characters, not bytes: 100 accented characters are kept whole.
+    let accented = "é".repeat(150);
+    assert_eq!(count(serde_json::json!({ "counterparty": accented })), 0);
+    // A very long list of ids is cut, and does not stop the filter from working.
+    let ids: Vec<String> = (0..5000).map(|n| format!("id-{n}")).collect();
+    assert_eq!(count(serde_json::json!({ "ids": ids })), 0);
+    let mut with_uncategorized: Vec<String> = (0..999).map(|n| format!("id-{n}")).collect();
+    with_uncategorized.push("uncategorized".to_owned());
+    assert_eq!(count(serde_json::json!({ "ids": with_uncategorized })), 1);
 }
