@@ -36,7 +36,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "REPLACE_WITH_THE_UPDATER_PUBLIC_KEY",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM1MjExMUNERTQ3MUQzM0IKUldRNzAzSGt6UkVoTlVMWElpWU1MOVRXRUNhVUk1dERCRmZOWUZYUGo4MlZPUG8xaWJya0lWclcK",
       "endpoints": ["https://github.com/BardoelT/varde/releases/latest/download/latest.json"],
       "requireSignedVersion": true
     }
