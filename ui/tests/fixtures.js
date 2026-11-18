@@ -9,6 +9,7 @@ const golden = JSON.parse(readFileSync(fileURLToPath(new URL('../../src-tauri/go
 const startup = {
   get_preferences: { theme: 'system', language: 'en', number_format: 'point_comma', discrete_mode: false, autosave: true },
   take_startup_notice: null,
+  app_version: '0.1.0',
   // The transactions chart is not part of the golden files: its category ids would renumber the ids of the others.
   get_transaction_insights: {
     granularity: 'yearly',

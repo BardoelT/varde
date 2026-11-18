@@ -921,6 +921,26 @@
             <input type="checkbox" role="switch" class="switch" id="setting-discrete-mode" aria-describedby="setting-discrete-mode-help">
           </div>
         </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Updates</span></div>
+          <div class="setting-row">
+            <div class="setting-text">
+              <span class="setting-name">Current version</span>
+              <p class="setting-help">Varde only looks for updates when you ask. Checking contacts GitHub; nothing about you or your project is sent.</p>
+            </div>
+            <span class="setting-value" id="update-current"></span>
+          </div>
+          <div class="setting-row">
+            <div class="setting-text">
+              <p class="update-status" id="update-status" role="status" aria-live="polite"></p>
+              <progress class="update-progress" id="update-progress" max="100" hidden></progress>
+            </div>
+            <div class="setting-actions">
+              <button type="button" class="btn" id="update-check">Check for updates</button>
+              <button type="button" class="btn primary" id="update-install" hidden>Install</button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- Net worth -->

@@ -137,5 +137,9 @@ export default {
   'code:PROJECT_FILE_NEWER': 'Dit bestand is gemaakt met een nieuwere versie van de app.',
   'code:PROJECT_NO_PATH': 'Het project heeft nog geen bestand.',
   'code:PREFERENCES_SAVE_FAILED': 'Het thema kon niet worden opgeslagen.',
+  'code:UPDATE_CHECK_FAILED': 'Zoeken naar updates is mislukt. Controleer je verbinding en probeer het opnieuw.',
+  'code:UPDATE_DOWNLOAD_FAILED': 'Het downloaden van de update is mislukt. Controleer je verbinding en probeer het opnieuw.',
+  'code:UPDATE_SIGNATURE_INVALID': 'De update kon niet worden gecontroleerd en is daarom niet geïnstalleerd.',
+  'code:UPDATE_INSTALL_FAILED': 'Het installeren van de update is mislukt. Probeer het opnieuw.',
   'code:INTERNAL': 'Er ging iets mis. Probeer het opnieuw.',
 };
