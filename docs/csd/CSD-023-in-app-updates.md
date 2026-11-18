@@ -1,7 +1,7 @@
 ---
 id: CSD-023
 title: In-app updates
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 0.3
 last_updated: 18/11/2026
