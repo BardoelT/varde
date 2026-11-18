@@ -57,6 +57,7 @@ test('test_csd027_ac_13_1_a_message_names_the_undone_step', async () => {
   assert.equal(toast(app).hidden, false);
   assert.equal(app.text(toast(app)), 'Undid: Delete Bank Account');
   assert.equal(toast(app).querySelector('button'), null, 'a message, not a button');
+  assert.ok(toast(app).classList.contains('toast-notice'), 'yellow, not the red of an error');
   app.close();
 });
 

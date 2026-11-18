@@ -1,4 +1,4 @@
-// Entry point: wires the project controls, the income, investments, bank accounts, houses, debts and expenses views (each with an insights chart), the net worth chart, the ratios table, the settings and the dashboard.
+// Entry point: wires the project controls, the income, investments, bank accounts, houses, debts, expenses and transactions views (each with an insights chart), the net worth chart, the ratios table, the settings and the dashboard.
 import { errorText, listen } from './shared/ipc.js';
 import { showToast } from './shared/dom.js';
 import { collectStaticTexts, onLanguageChange } from './shared/i18n.js';
@@ -20,6 +20,8 @@ import { initDebtsInsights, reloadDebtsInsightsIfOpen } from './pages/debts-insi
 import { initDebtsOverview, reloadDebtsOverview } from './pages/debts-overview.js';
 import { initExpensesInsights, reloadExpensesInsightsIfOpen } from './pages/expenses-insights.js';
 import { initExpensesOverview, reloadExpensesOverview } from './pages/expenses-overview.js';
+import { initTransactionsOverview, reloadTransactionsOverview, resetTransactionsManualFilter } from './pages/transactions-overview.js';
+import { initTransactionsInsights, reloadTransactionsInsightsIfOpen } from './pages/transactions-insights.js';
 import { initSettings, loadPreferences, reloadSettings, toggleDiscreteMode } from './pages/settings.js';
 import { reloadDashboard } from './pages/dashboard.js';
 import { initNetWorth, reloadNetWorthIfOpen } from './pages/net-worth.js';
@@ -105,6 +107,11 @@ async function start() {
   initExpensesOverview({
     onChanged: refreshStatusAndSettings,
   });
+  // Transactions count for the currency confirmation of the settings page (CSD-032 REQ-18).
+  initTransactionsOverview({
+    onChanged: refreshStatusAndSettings,
+  });
+  initTransactionsInsights();
   initNetWorth();
   initRatios();
   initSettings({
@@ -129,12 +136,18 @@ async function start() {
         reloadHousesInsightsIfOpen,
         reloadExpensesOverview,
         reloadExpensesInsightsIfOpen,
+        reloadTransactionsOverview,
+        reloadTransactionsInsightsIfOpen,
         reloadNetWorthIfOpen,
         reloadRatiosIfOpen,
         reloadDashboard,
       ]),
     );
-  await initProject({ onReplaced: reloadEverything, onSwitched: resetAllFilters });
+  await initProject({ onReplaced: reloadEverything, onSwitched: () => {
+      resetAllFilters();
+      resetTransactionsManualFilter();
+    },
+  });
   const redraw = async () => {
     await refreshProjectStatus();
     await reloadEverything();
@@ -168,6 +181,7 @@ async function start() {
       reloadDebtsOverview,
       reloadHousesOverview,
       reloadExpensesOverview,
+      reloadTransactionsOverview,
       reloadDashboard,
     ]),
   );

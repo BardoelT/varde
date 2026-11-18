@@ -1,10 +1,10 @@
 ---
 id: CSD-028
 title: Filters in the statement tables
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.5
-last_updated: 07/11/2026
+version: 0.9
+last_updated: 16/11/2026
 related: [CSD-001, CSD-005, CSD-009, CSD-011, CSD-013, CSD-015, CSD-022, CSD-024, CSD-027]
 ---
 
@@ -21,8 +21,9 @@ Every area keeps a growing table of records: paychecks, investment statements, b
 - How the filter relates to editing, deleting, closing the project and undo.
 
 ### 2.2 Non-goals
+- NG-0: The period of the Transactions list is not a month range: it goes down to the day, "From date" and "To date" (CSD-032 REQ-15, AC-15.7). Everything else of this CSD applies to it, and REQ-3 stays as it is for the other tables.
 - NG-1: Filtering or searching the yearly totals tables, the ratios table, the charts and the insights tabs.
-- NG-2: Filtering on amount, note or free text, and sorting by column.
+- NG-2: Filtering on note or free text, and sorting by column. The Transactions list is the one table that filters on the amount and on the text of the counterparty and the description too (CSD-032 REQ-15, AC-15.8, AC-15.9).
 - NG-3: Saving filters in the project file or in the application preferences, or remembering them after the app closes.
 - NG-4: Named or saved filters.
 - NG-5: Putting filter changes in the undo history (CSD-027): a filter is view state, not project data.
@@ -81,7 +82,7 @@ Scenario: A table without data has no filter buttons
 ```
 
 **REQ-2: Filter panels, one per column** *(event-driven)*
-When the user chooses the filter button of the period column, the app shall open a panel with a from month and a to month. When the user chooses the filter button of the entity column, the app shall open a panel with one checkbox per entity of that table that has rows in it, open or closed. The app shall apply every change to the table at once, without an Apply button, keep the panel inside the window, and let the two filters work independently.
+When the user chooses the filter button of the period column, the app shall open a panel with a from month and a to month. When the user chooses the filter button of the entity column, the app shall open a panel with one checkbox per entity of that table that has rows in it, open or closed. The app shall apply every change to the table at once, without an Apply button (text typed in a field, such as a month, a day, an amount or a text, is applied after a short pause in the typing, 200 milliseconds, and only when what the table is asked for changed), keep the panel inside the window, and let the two filters work independently.
 
 ```gherkin
 @AC-2.1
@@ -461,6 +462,10 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-3 (resolved in v0.1): Live or explicit apply? Answer: live, with no Apply button (REQ-2).
 
 ## 9. Changelog
+- 0.9 (17/11/2026): Typed filter fields are applied after a short pause in the typing and only when the request changed (REQ-2); nothing else changes. Back to `draft` until re-approved.
+- 0.8 (16/11/2026): the Transactions list also filters on the text of the counterparty and the description (NG-2, CSD-032 REQ-15). Owner request. Back to `draft` until re-approved.
+- 0.7 (16/11/2026): the Transactions list also filters on the amount (NG-2, CSD-032 REQ-15). Owner request. Back to `draft` until re-approved.
+- 0.6 (12/11/2026): the Transactions list filters its period by day instead of month; REQ-3 is unchanged for the other tables (NG-0, CSD-032 REQ-15). Owner request. Back to `draft` until re-approved.
 - 0.5 (07/11/2026): the panel stays inside the window: below the icon when it fits, else above it, else scrolling inside (REQ-2, AC-2.10). Owner request.
 - 0.4 (07/11/2026): a filtered column keeps its filter icon, shown filled, so the filter can be adjusted; the clear icon is replaced by a text button "Reset filter" in each panel (REQ-2, REQ-6, REQ-7, REQ-8). The panel texts use the case of the items, and clicking the text of an item works like its checkbox (AC-2.6 to AC-2.9). Owner request. Back to `draft` until re-approved.
 - 0.3 (07/11/2026): the filter is split over the column headers: one icon next to the period title and one next to the entity title, each with its own panel; an active filter replaces its filter icon by the clear icon, and the dot, the count and the single reset button are gone (REQ-1, REQ-2, REQ-5 to REQ-8). The header row stays visible while nothing matches. Owner request. Back to `draft` until re-approved.

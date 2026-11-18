@@ -32,6 +32,14 @@ impl<T> Id<T> {
         Self::from_uuid(Uuid::new_v4())
     }
 
+    /// A fixed id built from a number. The default categories and rules of a
+    /// new project use these, so two empty projects are equal and a new
+    /// project has no unsaved changes (CSD-032 REQ-8).
+    #[must_use]
+    pub(crate) fn from_number(number: u128) -> Self {
+        Self::from_uuid(Uuid::from_u128(number))
+    }
+
     fn from_uuid(uuid: Uuid) -> Self {
         Self {
             uuid,

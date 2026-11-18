@@ -4,7 +4,7 @@
 //! history lives in memory only and is never written to disk or logged
 //! (CSD-027 CON-4).
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::fmt;
 
 use serde::{Serialize, Serializer};
@@ -14,12 +14,18 @@ use crate::domain::ProjectData;
 /// The most undo steps kept per open project (CSD-027 REQ-6).
 pub const MAX_STEPS: usize = 100;
 
+/// The most memory the steps may hold in transaction lists, about 200 MB
+/// (CSD-032 REQ-19). A list that many steps share counts once.
+pub const MEMORY_BUDGET: usize = 200 * 1024 * 1024;
+
 /// What a step did.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Action {
     Add,
     Edit,
     Delete,
+    Import,
+    Reapply,
 }
 
 /// The kind of record a step changed (CSD-027 section 5).
@@ -37,6 +43,11 @@ pub enum Record {
     House,
     HouseValuation,
     Expense,
+    Transactions,
+    Transaction,
+    TransactionAccount,
+    TransactionCategory,
+    TransactionRule,
 }
 
 /// The English name of a step, such as "Delete Bank Account". It labels the
@@ -66,6 +77,18 @@ impl StepLabel {
         Self::new(Action::Edit, record)
     }
 
+    /// A step that imports records.
+    #[must_use]
+    pub const fn import(record: Record) -> Self {
+        Self::new(Action::Import, record)
+    }
+
+    /// A step that runs the rules again.
+    #[must_use]
+    pub const fn reapply(record: Record) -> Self {
+        Self::new(Action::Reapply, record)
+    }
+
     /// A step that deletes a record.
     #[must_use]
     pub const fn delete(record: Record) -> Self {
@@ -79,6 +102,8 @@ impl fmt::Display for StepLabel {
             Action::Add => "Add",
             Action::Edit => "Edit",
             Action::Delete => "Delete",
+            Action::Import => "Import",
+            Action::Reapply => "Re-apply",
         };
         let record = match self.record {
             Record::Job => "Job",
@@ -93,6 +118,11 @@ impl fmt::Display for StepLabel {
             Record::House => "House",
             Record::HouseValuation => "House Valuation",
             Record::Expense => "Expense",
+            Record::Transactions => "Transactions",
+            Record::Transaction => "Transaction",
+            Record::TransactionAccount => "Transaction Account",
+            Record::TransactionCategory => "Transaction Category",
+            Record::TransactionRule => "Transaction Rule",
         };
         write!(f, "{action} {record}")
     }
@@ -130,6 +160,27 @@ impl History {
         if self.undo.len() > MAX_STEPS {
             self.undo.pop_front();
         }
+        self.enforce_budget(MEMORY_BUDGET);
+    }
+
+    /// Drops the oldest undo steps while the transaction lists the steps hold
+    /// exceed `budget`, but always keeps the newest step (CSD-032 REQ-19).
+    fn enforce_budget(&mut self, budget: usize) {
+        while self.undo.len() > 1 && self.list_bytes() > budget {
+            self.undo.pop_front();
+        }
+    }
+
+    /// The size of the distinct transaction lists the steps hold.
+    fn list_bytes(&self) -> usize {
+        let mut lists: HashMap<usize, usize> = HashMap::new();
+        for entry in self.undo.iter().chain(self.redo.iter()) {
+            let (identity, bytes) = entry.data.transactions.shared_weight();
+            lists.insert(identity, bytes);
+        }
+        lists
+            .values()
+            .fold(0, |sum, bytes| sum.saturating_add(*bytes))
     }
 
     pub fn pop_undo(&mut self) -> Option<Entry> {
@@ -163,5 +214,22 @@ impl History {
     pub fn clear(&mut self) {
         self.undo.clear();
         self.redo.clear();
+    }
+}
+
+#[cfg(test)]
+impl History {
+    /// Applies a small budget so a test needs no huge project.
+    pub fn push_with_budget(&mut self, label: StepLabel, before: ProjectData, budget: usize) {
+        self.redo.clear();
+        self.undo.push_back(Entry {
+            label,
+            data: before,
+        });
+        self.enforce_budget(budget);
+    }
+
+    pub fn undo_len(&self) -> usize {
+        self.undo.len()
     }
 }

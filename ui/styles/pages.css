@@ -86,3 +86,20 @@
 .tile-change.neutral { color: var(--muted); }
 .tile-arrow { font-size: 11px; }
 .tile-empty { margin-top: auto; font-size: 14px; color: var(--muted); }
+
+/* Transactions (CSD-032) */
+.list-more { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; font-size: 13px; color: var(--muted); }
+.table-select { max-width: 14em; font: inherit; }
+
+/* The choice between Yearly and Monthly of the transactions chart (CSD-033). */
+.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.segment { padding: 4px 12px; font: inherit; font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; }
+.segment + .segment { border-left: 1px solid var(--border); }
+.segment[aria-pressed="true"] { color: #fff; background: var(--accent); }
+.segment:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* The header of the transactions chart: the title and the choice keep their room, the legend wraps onto its own row. */
+.insights-header { flex-wrap: wrap; justify-content: flex-start; gap: 10px 16px; }
+.insights-header .panel-title { flex: none; white-space: nowrap; }
+.insights-header .segmented { flex: none; }
+.insights-header .legend { flex: 1 1 100%; }

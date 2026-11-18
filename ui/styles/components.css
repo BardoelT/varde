@@ -165,6 +165,8 @@
 .btn:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .btn.primary:hover { filter: brightness(1.08); }
+.btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn[aria-pressed="true"]:hover { filter: brightness(1.08); }
 .btn.danger { color: var(--negative); }
 .btn.danger:hover { border-color: var(--negative); }
 .btn:focus-visible {
@@ -190,6 +192,10 @@
 .settle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--border); }
 .settle-choices { display: flex; gap: 14px; }
 .job-meta { flex: 1; font-size: 12px; color: var(--muted); min-width: 0; }
+.job-meta.rule-count { flex: 0 0 auto; margin-left: auto; margin-right: 12px; white-space: nowrap; }
+.job-row .drag-handle { cursor: grab; margin-left: -6px; touch-action: none; }
+.job-list.sorting, .job-list.sorting .drag-handle { cursor: grabbing; user-select: none; }
+.job-row.dragging { background: var(--bg); box-shadow: var(--card-shadow); position: relative; z-index: 1; }
 .job-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .field textarea { resize: vertical; min-height: 72px; }
 .account-amount { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -251,6 +257,7 @@
 .icon-btn.danger { color: var(--negative); }
 /* The icon's own edge, not its padding, lines up with the right edge of the row's content. */
 .job-actions .icon-btn:last-child, .row-actions .icon-btn:last-child { margin-right: -4px; }
+.summary-note { margin-left: auto; text-align: right; font-size: 13px; color: var(--muted); }
 .empty-note { padding: 18px 20px; font-size: 13px; color: var(--muted); }
 .visually-hidden {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
@@ -306,6 +313,8 @@ dialog p { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
   background: var(--tag-expense-bg);
   border-radius: 8px;
 }
+.dialog-note { margin: 6px 0; font-size: 12px; color: var(--muted); }
+.dialog-row-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 
 .toast {
@@ -321,6 +330,37 @@ dialog p { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
   box-shadow: 0 6px 24px rgba(0,0,0,.3);
   z-index: 1000;
 }
-.note-cell .badge { margin-left: 8px; }
+/* Yellow, so dark text: white on #ffbb00 is unreadable. */
+.toast-notice { background: #ffbb00; color: #1a1d2e; }
+.note-cell .badge, .manual-badge { margin-left: 8px; }
+button.manual-badge { background: none; font-family: inherit; cursor: pointer; }
+button.manual-badge:hover { color: var(--text); border-color: var(--muted); }
 /* A hint that follows its field's label (not inside it, so it stays out of the field's name). */
 .field-hint-attached { margin: -7px 0 12px; }
+
+/* ── Bulk select on the Transactions list (CSD-032 REQ-28) ── */
+
+.bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.bulk-bar [id="transactions-bulk-count"] { color: var(--muted); margin-right: auto; }
+.select-col { width: 1%; }
+
+/* ── Suggest rules dialog (CSD-032 REQ-29) ── */
+
+/* The list of a wide dialog scrolls inside it, so every row can be reached on a small window. The header row
+   stays in view. `.table-wrap.in-dialog` hides overflow, so this rule is as specific as that one. */
+dialog.wide { width: min(720px, calc(100vw - 32px)); }
+dialog.wide[open] { display: flex; flex-direction: column; height: min(1000px, calc(100vh - 96px)); max-height: calc(100vh - 32px); }
+dialog.wide form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.table-wrap.in-dialog.suggest-wrap { flex: 1 1 0; min-height: 120px; overflow: auto; }
+.suggest-wrap thead th { position: sticky; top: 0; z-index: 1; background: var(--card-bg); }
+.suggest-wrap input[type="text"] { width: 100%; font: inherit; }
+.row-error { display: block; margin-top: 3px; font-size: 12px; color: var(--negative); }
+.dialog-note { margin-right: auto; align-self: center; font-size: 13px; color: var(--muted); }

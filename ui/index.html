@@ -63,6 +63,16 @@
           Expenses
         </button>
 
+        <button class="nav-item" data-section="transactions">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 7h13"/>
+            <path d="M16 3l4 4-4 4"/>
+            <path d="M17 17H4"/>
+            <path d="M8 13l-4 4 4 4"/>
+          </svg>
+          Transactions
+        </button>
+
         <div class="nav-section-label">Wealth</div>
 
         <button class="nav-item" data-section="bank">
@@ -583,6 +593,148 @@
               <div class="chart-scroll" id="debts-insights-scroll" hidden>
                 <div class="chart-inner" id="debts-insights-chart"></div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Transactions -->
+      <section class="section" id="transactions" aria-labelledby="transactions-title">
+        <div class="section-header">
+          <h1 class="section-title" id="transactions-title">Transactions</h1>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Transaction views">
+          <button type="button" class="tab" role="tab" id="transactions-tab-accounts" aria-controls="transactions-accounts" aria-selected="false" tabindex="-1">Accounts</button>
+          <button type="button" class="tab" role="tab" id="transactions-tab-categories" aria-controls="transactions-categories" aria-selected="false" tabindex="-1">Categories</button>
+          <button type="button" class="tab" role="tab" id="transactions-tab-rules" aria-controls="transactions-rules" aria-selected="false" tabindex="-1">Rules</button>
+          <button type="button" class="tab" role="tab" id="transactions-tab-overview" aria-controls="transactions-overview" aria-selected="true">Overview</button>
+          <button type="button" class="tab" role="tab" id="transactions-tab-insights" aria-controls="transactions-insights" aria-selected="false" tabindex="-1">Insights</button>
+        </div>
+
+        <div id="transactions-accounts" role="tabpanel" aria-labelledby="transactions-tab-accounts" hidden>
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Accounts</span>
+              <div class="panel-actions">
+                <button type="button" class="btn primary" id="transaction-account-add">Add account</button>
+              </div>
+            </div>
+            <p class="empty-note" id="transaction-accounts-empty" hidden>No accounts yet. Add an account, then import the transactions of a bank into it.</p>
+            <ul class="job-list" id="transaction-accounts"></ul>
+          </div>
+        </div>
+
+        <div id="transactions-categories" role="tabpanel" aria-labelledby="transactions-tab-categories" hidden>
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Categories</span>
+              <div class="panel-actions">
+                <button type="button" class="btn primary" id="transaction-category-add">Add category</button>
+              </div>
+            </div>
+            <ul class="job-list" id="transaction-categories"></ul>
+          </div>
+        </div>
+
+        <div id="transactions-rules" role="tabpanel" aria-labelledby="transactions-tab-rules" hidden>
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Rules</span>
+              <div class="panel-actions">
+                <button type="button" class="btn" id="transaction-apply-rules">Apply rules</button>
+                <button type="button" class="btn" id="transaction-apply-rules-all">Apply rules including manually set</button>
+                <button type="button" class="btn" id="transaction-suggest">Suggest rules</button>
+                <button type="button" class="btn primary" id="transaction-rule-add">Add rule</button>
+              </div>
+            </div>
+            <p class="empty-note" id="transaction-rules-empty" hidden>No rules yet. A rule gives a transaction a category when its counterparty or description is exactly the rule text. A * in the text stands for any characters, so Example* matches a text that starts with Example, *Example one that ends with it and *Example* one that contains it.</p>
+            <ol class="job-list" id="transaction-rules"></ol>
+          </div>
+        </div>
+
+        <div id="transactions-overview" role="tabpanel" aria-labelledby="transactions-tab-overview">
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Yearly totals</span>
+              <span class="summary-note" id="transaction-categorisation" hidden></span>
+            </div>
+            <p class="empty-note" id="transaction-totals-empty" hidden>No totals yet. Totals appear once there is a transaction.</p>
+            <div class="table-wrap">
+              <table class="data-table" id="transaction-totals-table" hidden>
+                <thead>
+                  <tr>
+                    <th scope="col">Year</th>
+                    <th scope="col" class="num">Income</th>
+                    <th scope="col" class="num">Spent</th>
+                    <th scope="col" class="num">Net</th>
+                  </tr>
+                </thead>
+                <tbody id="transaction-totals-rows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Transactions</span>
+              <div class="panel-actions">
+                <button type="button" class="btn" id="transaction-bulk-toggle" aria-pressed="false">Bulk select</button>
+                <button type="button" class="btn" id="transaction-manual-only" aria-pressed="false">Manual only</button>
+              </div>
+            </div>
+            <div class="bulk-bar" id="transactions-bulk" hidden>
+              <span id="transactions-bulk-count"></span>
+              <label class="visually-hidden" for="transactions-bulk-category">Category for the selected transactions</label>
+              <select class="table-select" id="transactions-bulk-category"></select>
+              <button type="button" class="btn" id="transactions-bulk-set">Set category</button>
+              <button type="button" class="btn danger" id="transactions-bulk-delete">Delete selected</button>
+            </div>
+            <p class="empty-note" id="transactions-empty" hidden></p>
+            <p class="empty-note" id="transactions-nomatch" hidden>No transactions match the filters.</p>
+            <div class="table-wrap">
+              <table class="data-table" id="transactions-table" hidden>
+                <thead>
+                  <tr>
+                    <th scope="col">Date<span class="col-filter" id="transaction-period-filter"></span></th>
+                    <th scope="col">Account<span class="col-filter" id="transaction-account-filter"></span></th>
+                    <th scope="col">Counterparty<span class="col-filter" id="transaction-counterparty-filter"></span></th>
+                    <th scope="col">Description<span class="col-filter" id="transaction-description-filter"></span></th>
+                    <th scope="col">Category<span class="col-filter" id="transaction-entity-filter"></span></th>
+                    <th scope="col" class="num">Amount<span class="col-filter" id="transaction-amount-filter"></span></th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody id="transactions-rows"></tbody>
+                <tfoot>
+                  <tr>
+                    <th scope="row" colspan="5" id="transactions-total-label">Total</th>
+                    <td class="num" id="transactions-total"></td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <div class="list-more" id="transactions-more" hidden>
+              <span id="transactions-shown"></span>
+              <button type="button" class="btn" id="transactions-load-more">Load more</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="transactions-insights" role="tabpanel" aria-labelledby="transactions-tab-insights" hidden>
+          <div class="panel">
+            <div class="panel-header insights-header">
+              <span class="panel-title" id="transactions-insights-title">Spending and income per year</span>
+              <div class="segmented" role="group" aria-label="Chart period">
+                <button type="button" class="segment" id="transactions-insights-yearly" aria-pressed="true">Yearly</button>
+                <button type="button" class="segment" id="transactions-insights-monthly" aria-pressed="false">Monthly</button>
+              </div>
+              <ul class="legend" id="transactions-insights-legend" aria-label="Legend"></ul>
+            </div>
+            <p class="empty-note" id="transactions-insights-empty" hidden>No transactions yet. The chart appears once there is a transaction.</p>
+            <div class="chart-scroll" id="transactions-insights-scroll" hidden>
+              <div class="chart-inner" id="transactions-insights-chart"></div>
             </div>
           </div>
         </div>
@@ -1112,6 +1264,104 @@
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
         <button type="submit" class="btn primary">Save statement</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="transaction-category-dialog" aria-labelledby="transaction-category-dialog-title">
+    <form method="dialog" id="transaction-category-form" novalidate>
+      <h2 id="transaction-category-dialog-title">Add category</h2>
+      <label class="field">Name
+        <input type="text" name="name" maxlength="50" autocomplete="off" required>
+      </label>
+      <p class="field-hint">A category name can be up to 50 characters and must differ from the other categories and from Uncategorized.</p>
+      <p class="form-error" id="transaction-category-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn" data-cancel>Cancel</button>
+        <button type="submit" class="btn primary">Save category</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="transaction-account-dialog" aria-labelledby="transaction-account-dialog-title">
+    <form method="dialog" id="transaction-account-form" novalidate>
+      <h2 id="transaction-account-dialog-title">Add account</h2>
+      <label class="field">Name
+        <input type="text" name="name" maxlength="50" autocomplete="off" required>
+      </label>
+      <p class="field-hint">An account name can be up to 50 characters and must differ from the other accounts.</p>
+      <div id="transaction-account-transactions" hidden>
+        <p class="dialog-note" id="transaction-account-count"></p>
+        <div class="dialog-row-actions">
+          <button type="button" class="btn" id="transaction-account-import">Import transactions</button>
+          <button type="button" class="btn danger" id="transaction-account-delete-transactions">Delete transactions</button>
+        </div>
+      </div>
+      <p class="form-error" id="transaction-account-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn" data-cancel>Cancel</button>
+        <button type="submit" class="btn primary">Save account</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="transaction-rule-dialog" aria-labelledby="transaction-rule-dialog-title">
+    <form method="dialog" id="transaction-rule-form" novalidate>
+      <h2 id="transaction-rule-dialog-title">Add rule</h2>
+      <label class="field">Text
+        <input type="text" name="text" maxlength="100" autocomplete="off">
+      </label>
+      <label class="field">Category
+        <select name="category"></select>
+      </label>
+      <label class="field" id="transaction-rule-new-category" hidden>New category name
+        <input type="text" name="name" maxlength="50" autocomplete="off">
+      </label>
+      <div class="field-row">
+        <label class="field">From date (optional)
+          <input data-mask="date" type="text" name="from" inputmode="numeric" placeholder="dd/mm/yyyy" maxlength="10" autocomplete="off">
+        </label>
+        <label class="field">To date (optional)
+          <input data-mask="date" type="text" name="to" inputmode="numeric" placeholder="dd/mm/yyyy" maxlength="10" autocomplete="off">
+        </label>
+      </div>
+      <p class="field-hint">A transaction gets the category of the first rule, from the top, whose text is exactly its counterparty or description. Capitals do not matter. A * stands for any characters, so "Albert Heijn*" finds "Albert Heijn 1157". With a from date, a to date or both, the rule only applies to transactions in that period, both days included. Leave the text empty to categorise every transaction in the period, for example a holiday. Drag the rule above the others to let it win.</p>
+      <p class="form-error" id="transaction-rule-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn" data-cancel>Cancel</button>
+        <button type="submit" class="btn primary">Save rule</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="transaction-suggest-dialog" class="wide" aria-labelledby="transaction-suggest-title">
+    <form method="dialog" id="transaction-suggest-form" novalidate>
+      <h2 id="transaction-suggest-title">Suggest rules</h2>
+      <label class="field">Minimal count
+        <input type="number" name="min_count" min="1" step="1" inputmode="numeric" autocomplete="off" value="5">
+      </label>
+      <p class="form-error" id="transaction-suggest-min-error" role="alert" hidden>Enter a whole number of 1 or more.</p>
+      <p class="field-hint">The counterparties of your uncategorized transactions, with the number of transactions a rule with that text would match. Tick the suggestions to add as rules; nothing is added until you do.</p>
+      <p class="empty-note" id="transaction-suggest-empty" hidden>No suggestions. Try a lower minimal count.</p>
+      <div class="table-wrap in-dialog suggest-wrap" id="transaction-suggest-wrap" hidden>
+        <table class="data-table compact">
+          <thead>
+            <tr>
+              <th scope="col" class="select-col"><span class="visually-hidden">Add</span></th>
+              <th scope="col">Rule text</th>
+              <th scope="col" class="num">Matches</th>
+              <th scope="col">Category</th>
+            </tr>
+          </thead>
+          <tbody id="transaction-suggest-rows"></tbody>
+        </table>
+      </div>
+      <p class="empty-note" id="transaction-suggest-more" hidden></p>
+      <p class="form-error" id="transaction-suggest-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <span class="dialog-note" id="transaction-suggest-chosen"></span>
+        <button type="button" class="btn" data-cancel>Cancel</button>
+        <button type="submit" class="btn primary" id="transaction-suggest-add" disabled>Add 0 rules</button>
       </div>
     </form>
   </dialog>

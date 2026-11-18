@@ -3,9 +3,9 @@ id: CSD-002
 title: Project file (save, open, new)
 status: approved
 owner: Thijs Bardoel
-version: 2.2
-last_updated: 09/11/2026
-related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-024, CSD-026, CSD-027]
+version: 3.1
+last_updated: 12/11/2026
+related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-024, CSD-026, CSD-027, CSD-032]
 ---
 
 # CSD-002: Project file (save, open, new)
@@ -316,7 +316,7 @@ Scenario Outline: The file cannot be opened
     | on a drive that is not mounted                       | PROJECT_OPEN_FAILED  |
     | in a folder that no longer exists                    | PROJECT_OPEN_FAILED  |
     | not a valid project file                             | PROJECT_INVALID_FILE |
-    | from a newer version of the app (format_version 3)   | PROJECT_FILE_NEWER   |
+    | from a newer version of the app (format_version 5)   | PROJECT_FILE_NEWER   |
 
 # @AC-11.2 (removed in v1.0): the notice is not repeated once the path is forgotten, see AC-12.2.
 ```
@@ -370,7 +370,7 @@ Scenario Outline: A file that exists but cannot be used keeps its path
   Examples:
     | problem                                            | code                 |
     | not a valid project file                           | PROJECT_INVALID_FILE |
-    | from a newer version of the app (format_version 3) | PROJECT_FILE_NEWER   |
+    | from a newer version of the app (format_version 5) | PROJECT_FILE_NEWER   |
 
 @AC-13.4
 Scenario Outline: A parent folder that is missing or unreadable keeps the path
@@ -435,15 +435,15 @@ Scenario: A name that exists only after appending asks first
 ```
 
 **REQ-16: Sections of the project file** *(ubiquitous)*
-The project file shall hold a `format_version` and the sections `income`, `investments`, `bank_accounts`, `debts`, `expenses`, `houses` and `settings`, and every section shall be present in every file the app writes.
+The project file shall hold a `format_version` and the sections `income`, `investments`, `bank_accounts`, `debts`, `expenses`, `houses`, `settings`, `transactions`, `transaction_accounts`, `transaction_categories` and `transaction_rules`, and every section shall be present in every file the app writes.
 
 ```gherkin
 @AC-16.1
 Scenario: A saved empty project has every section
   Given a new project
   When the user saves it to "example-a.varde"
-  Then the file has "format_version" 2
-  And the file has the sections "income", "investments", "bank_accounts", "debts", "expenses", "houses" and "settings"
+  Then the file has "format_version" 4
+  And the file has the sections "income", "investments", "bank_accounts", "debts", "expenses", "houses", "settings", "transactions", "transaction_accounts", "transaction_categories" and "transaction_rules"
 ```
 
 **REQ-17: Strict schema** *(unwanted behaviour)*
@@ -474,7 +474,7 @@ If the `format_version` of a project file is higher than the version the app und
 ```gherkin
 @AC-18.1
 Scenario: File from a newer app version is rejected with its own message
-  Given a project file with "format_version" 3 and the app understands version 2
+  Given a project file with "format_version" 5 and the app understands version 4
   And the app holds 1 job in memory
   When the user opens it
   Then an error with code "PROJECT_FILE_NEWER" is shown
@@ -528,7 +528,7 @@ Scenario: Trailing zeros in a file amount are accepted
 Only text typed in a form is rounded (CSD-000 CON-8), because the app itself only ever writes amounts with two decimals.
 
 **REQ-20: A one-off script upgrades a file with debts to the current format** *(event-driven)*
-When the owner runs the script `scripts/migrate-debt-opening.mjs` on a project file with a `format_version` below 2, or in which a debt has no `opening_date` and `opening_amount`, the script shall first write a copy of the file next to it with the extension `.bak` added, and then write, for each debt without an opening, the opening date as the first day of the period of its first statement (`2025-03` gives `2025-03-01`, `2025` gives `2025-01-01`) and the opening amount as the balance of that statement, and for a debt without statements the day the script runs and `0.00`, and shall list the names of the debts without statements. The script shall also give every settlement the `origin` `Sale` when its debt has a house link and `Manual` when it has none, and set `format_version` to 2. The script shall not run when the file has `format_version` 2 and every debt has an opening and every settlement an origin, and shall leave the original file unchanged when anything fails.
+When the owner runs the script `scripts/migrate-debt-opening.mjs` on a project file with a `format_version` below 2, or in which a debt has no `opening_date` and `opening_amount`, the script shall first write a copy of the file next to it with the extension `.bak` added, and then write, for each debt without an opening, the opening date as the first day of the period of its first statement (`2025-03` gives `2025-03-01`, `2025` gives `2025-01-01`) and the opening amount as the balance of that statement, and for a debt without statements the day the script runs and `0.00`, and shall list the names of the debts without statements. The script shall also give every settlement the `origin` `Sale` when its debt has a house link and `Manual` when it has none, and set `format_version` to 2. The script shall also add the `transactions`, `transaction_categories` and `transaction_rules` sections (no transactions, the default categories and rules of CSD-032 REQ-8 and REQ-9) when they are missing, and set `format_version` to 3 (CSD-032 REQ-17); the `.bak` rule is unchanged. The script shall not run when the file has `format_version` 3 and every debt has an opening and every settlement an origin, and shall leave the original file unchanged when anything fails.
 
 ```gherkin
 @AC-20.1
@@ -630,7 +630,7 @@ Menu: Rust builds the File menu items `project-new`, `project-open`, `project-sa
 
 Commands: `take_startup_notice()` (returns the REQ-11 notice once, then nothing), `new_project()`, `open_project()`, `save_project()`, `save_project_as()`, `project_status()` (returns whether there are unsaved changes and whether a path is set) and `quit_app()` (quits without asking: the frontend has already confirmed, REQ-4). The save and open commands show the native dialog themselves and take no path from the frontend.
 
-Project file: JSON with the extension `.varde`, a top-level integer `format_version` (currently 2) and amounts as decimal strings with at most two decimals (CSD-000 CON-8, REQ-19). Each capability owns one section, and all sections are required (REQ-16):
+Project file: JSON with the extension `.varde`, a top-level integer `format_version` (currently 3) and amounts as decimal strings with at most two decimals (CSD-000 CON-8, REQ-19). Each capability owns one section, and all sections are required (REQ-16):
 
 | Section | Capability |
 |---|---|
@@ -641,14 +641,19 @@ Project file: JSON with the extension `.varde`, a top-level integer `format_vers
 | `expenses` | Expenses (CSD-013) |
 | `houses` | Houses (CSD-015, CSD-019) |
 | `settings` | Project settings (CSD-003) |
+| `transactions` | Bank transactions (CSD-032) |
+| `transaction_categories` | Categories of transactions (CSD-032) |
+| `transaction_rules` | Categorisation rules (CSD-032) |
 
 Every period field in a section is called `period` (the pay period of a job, which was `pay_period` and now holds the same Monthly or Yearly value under the name `period`, and the period of an investment account, bank account, debt or house), so the names `pay_period`, `entry_period`, `statement_period` and `valuation_period` do not exist. The preferences of the person (theme, language) are not in the file (CSD-008, CSD-022). A house keeps its purchase as `purchase_date` and `purchase_amount` and its optional sale as `sell_date` and `sell_amount` (CSD-015, CSD-019).
+
+Since `format_version` 3 the file also holds the sections of CSD-032 (`transactions`, `transaction_categories`, `transaction_rules`). A version 2 file is invalid in this app until the script of REQ-20 has upgraded it, and an older app that opens a version 3 file shows `PROJECT_FILE_NEWER`. Transactions can make the file several MB, and it is still saved as one file (CSD-032 CON-5).
 
 A debt keeps its opening as `opening_date` and `opening_amount`, both required (CSD-011 REQ-30); its closing is the existing `settlement` (CSD-026), which since `format_version` 2 also holds a required `origin`, `Sale` or `Manual`.
 
 Versioning policy: the version is 1 at the first release. The first change of the schema after 1.0 would normally raise `format_version`, so that an older app shows the `PROJECT_FILE_NEWER` error (REQ-18) instead of a generic parse error. Owner decision of 04/11/2026: the opening of a debt (CSD-011 v3.0) does not raise it, and `format_version` stays 1. An older app that opens a file with the new keys therefore shows `PROJECT_INVALID_FILE` (REQ-17), and a version 1 file without openings is invalid in this app until the one-off script of REQ-20 has upgraded it. The next schema change shall raise the version, and the `origin` of a settlement (CSD-026 v3.0) is that change: `format_version` is 2 from v2.0 of this CSD, a version 1 file is invalid in this app until the script of REQ-20 has upgraded it (AC-18.3), and an older app that opens a version 2 file shows `PROJECT_FILE_NEWER`. There is no migration in the app (NG-7) and no backup copy made by the app (NG-2).
 
-The script `scripts/migrate-debt-opening.mjs` has no dependency (Node only), takes the path of the file as its argument, upgrades a file to `format_version` 2 (openings of debts and the `origin` of settlements, REQ-20), prints the names of debts without statements and no amounts, and is tested with a synthetic file ("Example Mortgage", round amounts) by `node:test` in `npm test`.
+The script `scripts/migrate-debt-opening.mjs` has no dependency (Node only), takes the path of the file as its argument, upgrades a file to `format_version` 3 (openings of debts, the `origin` of settlements and the empty transaction sections with their default categories and rules, REQ-20 and CSD-032 REQ-17), prints the names of debts without statements and no amounts, and is tested with a synthetic file ("Example Mortgage", round amounts) by `node:test` in `npm test`.
 
 Error codes (code plus safe message): `PROJECT_SAVE_FAILED`, `PROJECT_INVALID_FILE`, `PROJECT_OPEN_FAILED`, `PROJECT_FILE_NEWER`.
 
@@ -686,6 +691,8 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-6: Should the app give a version 1 file its own message that names the upgrade script (a new error code), instead of the generic `PROJECT_INVALID_FILE` (AC-18.3)? The draft keeps the generic code, with no new code and no change to the notice texts. Owner: Thijs. Blocks: REQ-18, AC-18.3.
 
 ## 9. Changelog
+- 3.1 (17/11/2026): The project file holds the section `transaction_accounts` and has `format_version` 4 (CSD-034 REQ-7); the example of a newer file is version 5.
+- 3.0 (12/11/2026): Bank transactions (CSD-032, GitHub issue 70): three new required sections `transactions`, `transaction_categories` and `transaction_rules` (REQ-16, section 5), `format_version` is 3, a version 2 file is invalid until the script of REQ-20 has upgraded it, and the script also adds the new sections. The "newer version" examples now use version 4. Back to `draft` until re-approved.
 - 2.2 (09/11/2026): The unsaved indicator is the dot after the file name in the window title (CSD-024 v0.5 REQ-9, GitHub issue 20); the status text in the left pane is gone. REQ-3 and AC-9.3 reworded, new definition "Unsaved indicator", Verification says AC-3.1 and AC-3.2 are proven in Rust. Behaviour of saving, opening and the confirmations is unchanged. Back to `draft` until re-approved.
 - 2.1 (07/11/2026): Undo and redo of project data (CSD-027, GitHub issue 43): NG-2 says the in-memory undo history is not a backup, CON-6 says the Edit menu's Undo and Redo become the project items, new AC-3.2 (the indicator follows undo and redo). Saving is unchanged and does not clear the history. Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A settlement holds a required `origin`, `Sale` or `Manual` (CSD-026 v3.0, CSD-020 REQ-33), so the schema changes and `format_version` becomes 2, as the versioning policy requires for the next schema change: new AC-18.3 (a version 1 file is invalid until the script upgraded it), the newer-version examples now use version 3, AC-16.1 expects version 2. The one-off script of REQ-20 also adds the origin (`Sale` for a settlement on a linked debt, `Manual` otherwise) and sets the version (new AC-20.6, AC-20.4 reworded), and `examples/example.varde` is regenerated (REQ-21, REQ-22). Owner decisions from the grill-me interview of 04/11/2026. Still `draft`.

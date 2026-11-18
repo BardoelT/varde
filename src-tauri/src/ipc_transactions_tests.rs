@@ -1,0 +1,906 @@
+//! Acceptance tests of CSD-032 (transactions) through the real commands: the
+//! names, the argument names and the shapes the frontend relies on. The native
+//! file dialog is replaced by a path. Synthetic data only.
+
+use std::fs;
+use std::path::PathBuf;
+
+use serde_json::{json, Value};
+use tauri::Manager;
+use tempfile::TempDir;
+
+use crate::commands::transactions::import_flow;
+use crate::commands::AppState;
+use crate::ipc_tests::{harness, Harness};
+
+fn fixture() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures")
+        .join("example-bank-october.csv")
+}
+
+/// The id of the first account; "Example Bank" is added when there is none.
+fn first_account(app: &Harness) -> String {
+    let accounts = app.ok("list_transaction_accounts", json!({}));
+    if let Some(first) = accounts.as_array().and_then(|list| list.first()) {
+        return first["id"].as_str().unwrap().to_owned();
+    }
+    app.ok("add_transaction_account", json!({ "name": "Example Bank" }))["id"]
+        .as_str()
+        .unwrap()
+        .to_owned()
+}
+
+fn import(app: &Harness, path: PathBuf) -> Result<Option<(usize, usize)>, Value> {
+    let account = first_account(app);
+    let state = app.window.state::<AppState>();
+    import_flow(&state, &account, || Some(path))
+        .map(|summary| summary.map(|found| (found.added, found.skipped)))
+        .map_err(|error| serde_json::to_value(&error).unwrap())
+}
+
+fn rows(app: &Harness) -> Vec<Value> {
+    app.ok("list_transactions", json!({}))["rows"]
+        .as_array()
+        .unwrap()
+        .clone()
+}
+
+fn category_id(app: &Harness, name: &str) -> String {
+    app.ok("list_transaction_categories", json!({}))
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|category| category["name"] == name)
+        .unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_owned()
+}
+
+fn row_of<'a>(rows: &'a [Value], name: &str) -> &'a Value {
+    rows.iter()
+        .find(|row| row["counterparty_name"] == name)
+        .unwrap()
+}
+
+#[test]
+fn test_csd032_ac_1_1_importing_adds_the_transactions_and_marks_the_project_unsaved() {
+    let app = harness();
+    assert_eq!(
+        app.ok("project_status", json!({}))["unsaved_changes"],
+        false
+    );
+    assert_eq!(import(&app, fixture()).unwrap(), Some((8, 0)));
+    assert_eq!(rows(&app).len(), 8);
+    assert_eq!(app.ok("project_status", json!({}))["unsaved_changes"], true);
+}
+
+#[test]
+fn test_csd032_ac_1_2_cancelling_the_dialog_changes_nothing() {
+    let app = harness();
+    let state = app.window.state::<AppState>();
+    let account = first_account(&app);
+    let unsaved = app.ok("project_status", json!({}))["unsaved_changes"].clone();
+    assert!(import_flow(&state, &account, || None).unwrap().is_none());
+    assert_eq!(
+        app.ok("project_status", json!({}))["unsaved_changes"],
+        unsaved
+    );
+    assert_eq!(rows(&app).len(), 0);
+}
+
+#[test]
+fn test_csd032_ac_1_3_an_import_changes_nothing_outside_transactions() {
+    let app = harness();
+    app.ok(
+        "add_expense",
+        json!({ "input": { "name": "Example Bike", "amount": "900.00", "date": "10/09/2026", "category": "Hobby", "note": null } }),
+    );
+    let before = app.ok("list_expenses", json!({}));
+    import(&app, fixture()).unwrap();
+    assert_eq!(app.ok("list_expenses", json!({})), before);
+}
+
+#[test]
+fn test_csd032_ac_3_3_an_unreadable_file_is_reported_without_its_path() {
+    let app = harness();
+    let dir = TempDir::new().unwrap();
+    let missing = dir.path().join("missing.csv");
+    let error = import(&app, missing).unwrap_err();
+    assert_eq!(error["code"], "TRANSACTION_IMPORT_UNREADABLE");
+    assert!(!error["message"].as_str().unwrap().contains('/'));
+    let binary = dir.path().join("binary.csv");
+    fs::write(&binary, [0xff, 0xfe, 0x00, 0x80]).unwrap();
+    assert_eq!(
+        import(&app, binary).unwrap_err()["code"],
+        "TRANSACTION_IMPORT_UNREADABLE"
+    );
+}
+
+#[test]
+fn test_csd032_ac_4_1_another_currency_imports_nothing() {
+    let app = harness();
+    app.ok("set_currency", json!({ "currency": "USD" }));
+    let error = import(&app, fixture()).unwrap_err();
+    assert_eq!(error["code"], "TRANSACTION_IMPORT_CURRENCY");
+    assert_eq!(rows(&app).len(), 0);
+}
+
+#[test]
+fn test_csd032_ac_5_1_importing_the_same_file_again_skips_everything() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    assert_eq!(import(&app, fixture()).unwrap(), Some((0, 8)));
+    assert_eq!(rows(&app).len(), 8);
+}
+
+#[test]
+fn test_csd032_ac_6_1_an_import_is_one_undo_step() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let status = app.ok("project_status", json!({}));
+    assert_eq!(status["undo_label"], "Import Transactions");
+    let undone = app.ok("undo", json!({}));
+    assert_eq!(undone["step"], "Import Transactions");
+    assert_eq!(rows(&app).len(), 0);
+    assert_eq!(
+        app.ok("project_status", json!({}))["redo_label"],
+        "Import Transactions"
+    );
+    app.ok("redo", json!({}));
+    assert_eq!(rows(&app).len(), 8);
+}
+
+#[test]
+fn test_csd032_ac_6_2_a_rejected_import_records_no_step() {
+    let app = harness();
+    let dir = TempDir::new().unwrap();
+    let bad = dir.path().join("bad.csv");
+    fs::write(&bad, "Datum;Bedrag\r\n").unwrap();
+    assert_eq!(
+        import(&app, bad).unwrap_err()["code"],
+        "TRANSACTION_IMPORT_FORMAT"
+    );
+    // The account the helper added is the only step: the rejected import adds none.
+    assert_eq!(
+        app.ok("project_status", json!({}))["undo_label"],
+        "Add Transaction Account"
+    );
+}
+
+#[test]
+fn test_csd032_ac_7_1_the_unused_columns_are_not_stored() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("example.varde");
+    app.with_project(|project| project.save_as(path.clone()).unwrap());
+    let text = fs::read_to_string(path).unwrap();
+    assert!(!text.contains("MANDATE-1") && !text.contains("CRED-1"));
+}
+
+#[test]
+fn test_csd032_ac_10_1_the_seed_rules_categorise_known_chains_on_import() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let all = rows(&app);
+    assert_eq!(
+        row_of(&all, "Albert Heijn Example")["category_id"],
+        category_id(&app, "Groceries")
+    );
+    assert_eq!(
+        row_of(&all, "Netflix Example")["category_id"],
+        category_id(&app, "Subscriptions")
+    );
+    assert_eq!(row_of(&all, "Example Landlord")["category_id"], Value::Null);
+}
+
+#[test]
+fn test_csd032_ac_11_1_a_manual_category_is_sticky_over_ipc() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let all = rows(&app);
+    let landlord = row_of(&all, "Example Landlord")["id"].clone();
+    let housing = category_id(&app, "Housing");
+    app.ok(
+        "set_transaction_category",
+        json!({ "transactionId": landlord, "categoryId": housing }),
+    );
+    let leisure = category_id(&app, "Leisure");
+    app.ok(
+        "add_transaction_rule",
+        json!({ "text": "Example Landlord", "categoryId": leisure }),
+    );
+    let result = app.ok(
+        "reapply_transaction_rules",
+        json!({ "scope": "all_non_manual" }),
+    );
+    assert_eq!(result["changed"], 0);
+    let after = rows(&app);
+    let landlord_row = row_of(&after, "Example Landlord");
+    assert_eq!(landlord_row["category_id"], housing);
+    assert_eq!(landlord_row["manual"], true);
+}
+
+#[test]
+fn test_csd032_ac_11_3_a_deleted_transaction_cannot_be_edited() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let id = rows(&app).first().unwrap()["id"].clone();
+    app.ok("delete_transaction", json!({ "transactionId": id }));
+    let error = app.err(
+        "set_transaction_category",
+        json!({ "transactionId": id, "categoryId": null }),
+    );
+    assert_eq!(error["code"], "TRANSACTION_NOT_FOUND");
+    assert_eq!(rows(&app).len(), 7);
+}
+
+#[test]
+fn test_csd032_ac_26_4_manual_only_filters_the_list_over_ipc() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let all = rows(&app);
+    let id = all.first().unwrap()["id"].clone();
+    app.ok(
+        "set_transaction_category",
+        json!({ "transactionId": id, "categoryId": null }),
+    );
+    let list = app.ok("list_transactions", json!({ "manualOnly": true }));
+    assert_eq!(list["count"], 1);
+    assert_eq!(list["rows"][0]["id"], id);
+    assert_eq!(rows(&app).len(), all.len());
+}
+
+#[test]
+fn test_csd032_ac_27_3_the_rule_list_carries_a_count_over_ipc() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let rules = app.ok("list_transaction_rules", json!({}));
+    let rules = rules.as_array().unwrap();
+    assert_ne!(rules.len(), 0);
+    assert!(rules
+        .iter()
+        .all(|rule| rule["transaction_count"].is_u64() && rule["text"].is_string()));
+    let counted: u64 = rules
+        .iter()
+        .map(|rule| rule["transaction_count"].as_u64().unwrap())
+        .sum();
+    assert!(
+        counted > 0 && counted <= 7,
+        "the seed rules categorise some of the 7 rows"
+    );
+}
+
+#[test]
+fn test_csd032_ac_30_3_the_category_list_carries_a_count_over_ipc() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let categories = app.ok("list_transaction_categories", json!({}));
+    let categories = categories.as_array().unwrap();
+    assert_ne!(categories.len(), 0);
+    assert!(categories
+        .iter()
+        .all(|category| category["transaction_count"].is_u64() && category["name"].is_string()));
+    let counted: u64 = categories
+        .iter()
+        .map(|category| category["transaction_count"].as_u64().unwrap())
+        .sum();
+    assert!(
+        counted <= 7,
+        "at most the 7 imported rows are in a category"
+    );
+}
+
+#[test]
+fn test_csd032_ac_28_7_bulk_commands_are_one_undo_step_each() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let total = rows(&app).len();
+    let ids = app.ok("list_transaction_ids", json!({}));
+    assert_eq!(ids.as_array().unwrap().len(), total);
+    let leisure = category_id(&app, "Leisure");
+    let first_two: Vec<Value> = ids.as_array().unwrap().iter().take(2).cloned().collect();
+    let changed = app.ok(
+        "set_transactions_category",
+        json!({ "transactionIds": first_two, "categoryId": leisure }),
+    );
+    assert_eq!(changed, 2);
+    assert_eq!(
+        app.ok("list_transactions", json!({ "manualOnly": true }))["count"],
+        2
+    );
+    app.ok("undo", json!({}));
+    assert_eq!(
+        app.ok("list_transactions", json!({ "manualOnly": true }))["count"],
+        0
+    );
+    let deleted = app.ok(
+        "delete_transactions",
+        json!({ "transactionIds": first_two }),
+    );
+    assert_eq!(deleted, 2);
+    assert_eq!(rows(&app).len(), total - 2);
+    app.ok("undo", json!({}));
+    assert_eq!(rows(&app).len(), total);
+    let error = app.err(
+        "delete_transactions",
+        json!({ "transactionIds": ["not-an-id"] }),
+    );
+    assert!(error["code"].is_string());
+    assert_eq!(rows(&app).len(), total);
+}
+
+#[test]
+fn test_csd032_ac_29_9_suggested_rules_are_added_and_applied_in_one_undo_step() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let suggested = app.ok("suggest_transaction_rules", json!({ "minCount": 1 }));
+    let list = suggested["suggestions"].as_array().unwrap();
+    assert_ne!(list.len(), 0);
+    assert!(list[0]["text"].is_string() && list[0]["count"].is_u64());
+    assert_eq!(suggested["not_shown"], 0);
+    let rules_before = app.ok("list_transaction_rules", json!({}));
+    let rules_before = rules_before.as_array().unwrap().len();
+    let uncategorized = |app: &Harness| {
+        app.ok(
+            "list_transactions",
+            json!({ "filter": { "ids": ["uncategorized"] } }),
+        )["count"]
+            .as_u64()
+            .unwrap()
+    };
+    let before = uncategorized(&app);
+    let leisure = category_id(&app, "Leisure");
+    let chosen: Vec<Value> = list
+        .iter()
+        .take(2)
+        .map(|suggestion| json!({ "text": suggestion["text"], "category_id": leisure }))
+        .collect();
+    let result = app.ok("add_transaction_rules", json!({ "rules": chosen }));
+    assert_eq!(result["added"], 2);
+    assert!(result["rejected"].is_null());
+    assert!(result["changed"].as_u64().unwrap() > 0);
+    let after_rules = app.ok("list_transaction_rules", json!({}));
+    assert_eq!(after_rules.as_array().unwrap().len(), rules_before + 2);
+    assert!(uncategorized(&app) < before);
+    app.ok("undo", json!({}));
+    let undone = app.ok("list_transaction_rules", json!({}));
+    assert_eq!(undone.as_array().unwrap().len(), rules_before);
+    assert_eq!(uncategorized(&app), before);
+}
+
+#[test]
+fn test_csd032_ac_29_10_an_invalid_row_adds_nothing_and_is_named() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let leisure = category_id(&app, "Leisure");
+    let rules_before = app.ok("list_transaction_rules", json!({}));
+    let rejected = app.ok(
+        "add_transaction_rules",
+        json!({ "rules": [
+            { "text": "Example Cafe", "category_id": leisure },
+            { "text": "example cafe", "category_id": leisure },
+        ] }),
+    );
+    assert_eq!(rejected["added"], 0);
+    assert_eq!(rejected["rejected"]["index"], 1);
+    assert_eq!(rejected["rejected"]["code"], "TRANSACTION_RULE_TEXT_TAKEN");
+    assert!(rejected["rejected"]["message"].is_string());
+    assert_eq!(app.ok("list_transaction_rules", json!({})), rules_before);
+    let zero = app.err("suggest_transaction_rules", json!({ "minCount": 0 }));
+    assert_eq!(zero["code"], "TRANSACTION_SUGGEST_MIN_COUNT");
+    let count = app.ok("count_transaction_rule_matches", json!({ "text": "*" }));
+    assert_eq!(count, 8, "a lone star matches every transaction");
+}
+
+#[test]
+fn test_csd034_ac_4_1_deleting_the_transactions_of_an_account_is_one_undo_step() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let before = rows(&app).len();
+    let texts = |app: &Harness| -> Vec<Value> {
+        let rules = app.ok("list_transaction_rules", json!({}));
+        rules
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|rule| rule["text"].clone())
+            .collect()
+    };
+    let rules = texts(&app);
+    let account = first_account(&app);
+    let deleted = app.ok(
+        "delete_account_transactions",
+        json!({ "accountId": account }),
+    );
+    assert_eq!(deleted, before);
+    assert_eq!(rows(&app), Vec::<Value>::new());
+    assert_eq!(
+        app.ok("list_transaction_accounts", json!({}))
+            .as_array()
+            .unwrap()
+            .len(),
+        1,
+        "the account stays"
+    );
+    assert_eq!(texts(&app), rules);
+    app.ok("undo", json!({}));
+    assert_eq!(rows(&app).len(), before);
+}
+
+#[test]
+fn test_csd032_ac_8_4_uncategorized_cannot_be_renamed_or_deleted() {
+    let app = harness();
+    for command in ["rename_transaction_category", "delete_transaction_category"] {
+        let error = app.err(
+            command,
+            json!({ "categoryId": "uncategorized", "name": "Other things" }),
+        );
+        assert_eq!(error["code"], "TRANSACTION_CATEGORY_PROTECTED", "{command}");
+    }
+}
+
+#[test]
+fn test_csd032_ac_8_2_categories_are_added_and_renamed_over_ipc() {
+    let app = harness();
+    let added = app.ok(
+        "add_transaction_category",
+        json!({ "name": "Example Pets" }),
+    );
+    let renamed = app.ok(
+        "rename_transaction_category",
+        json!({ "categoryId": added["id"], "name": "Pets" }),
+    );
+    assert_eq!(renamed["name"], "Pets");
+    let error = app.err("add_transaction_category", json!({ "name": "pets" }));
+    assert_eq!(error["code"], "TRANSACTION_CATEGORY_NAME_TAKEN");
+}
+
+#[test]
+fn test_csd032_ac_13_1_deleting_a_category_over_ipc_clears_its_rules_and_transactions() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let groceries = category_id(&app, "Groceries");
+    app.ok(
+        "delete_transaction_category",
+        json!({ "categoryId": groceries }),
+    );
+    let all = rows(&app);
+    assert_eq!(
+        row_of(&all, "Albert Heijn Example")["category_id"],
+        Value::Null
+    );
+    let rules = app.ok("list_transaction_rules", json!({}));
+    assert!(rules
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|rule| rule["category_id"] != groceries));
+    // One undo step brings the category, its rules and its transactions back.
+    app.ok("undo", json!({}));
+    assert_eq!(
+        row_of(&rows(&app), "Albert Heijn Example")["category_id"],
+        groceries
+    );
+}
+
+#[test]
+fn test_csd032_ac_9_1_rules_are_reordered_over_ipc() {
+    let app = harness();
+    let rules = app.ok("list_transaction_rules", json!({}));
+    let last = rules.as_array().unwrap().last().unwrap()["id"].clone();
+    app.ok(
+        "move_transaction_rule",
+        json!({ "ruleId": last, "position": 0 }),
+    );
+    let after = app.ok("list_transaction_rules", json!({}));
+    assert_eq!(after.as_array().unwrap().first().unwrap()["id"], last);
+    let error = app.err(
+        "add_transaction_rule",
+        json!({ "text": "Example", "categoryId": "not-an-id" }),
+    );
+    assert_eq!(error["code"], "TRANSACTION_RULE_CATEGORY_INVALID");
+}
+
+#[test]
+fn test_csd032_ac_32_8_a_rule_for_a_period_is_typed_as_days_and_listed_as_iso_over_ipc() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let leisure = category_id(&app, "Leisure");
+    let rule = app.ok(
+        "add_transaction_rule",
+        json!({ "text": "", "categoryId": leisure, "from": "01/10/2026", "to": " 31/10/2026 " }),
+    );
+    assert_eq!(rule["from"], "2026-10-01");
+    assert_eq!(rule["to"], "2026-10-31");
+    let listed = app.ok("list_transaction_rules", json!({}));
+    let last = listed.as_array().unwrap().last().unwrap().clone();
+    assert_eq!(last["id"], rule["id"]);
+    assert!(last["transaction_count"].is_u64());
+    let result = app.ok(
+        "reapply_transaction_rules",
+        json!({ "scope": "all_non_manual" }),
+    );
+    assert!(
+        result["changed"].as_u64().unwrap() > 0,
+        "the October rows are covered"
+    );
+    assert_eq!(
+        row_of(&rows(&app), "Example Landlord")["category_id"],
+        leisure
+    );
+    // Bad input is a coded error and changes nothing.
+    for (from, to, code) in [
+        ("31/02/2026", "", "TRANSACTION_RULE_DATE_INVALID"),
+        ("2026-10-01", "", "TRANSACTION_RULE_DATE_INVALID"),
+        (
+            "20/10/2026",
+            "01/10/2026",
+            "TRANSACTION_RULE_PERIOD_INVALID",
+        ),
+    ] {
+        let error = app.err(
+            "add_transaction_rule",
+            json!({ "text": "", "categoryId": leisure, "from": from, "to": to }),
+        );
+        assert_eq!(error["code"], code);
+    }
+    let error = app.err(
+        "add_transaction_rule",
+        json!({ "text": "", "categoryId": leisure }),
+    );
+    assert_eq!(error["code"], "TRANSACTION_RULE_TEXT_REQUIRED");
+    let edited = app.ok(
+        "edit_transaction_rule",
+        json!({ "ruleId": rule["id"], "text": "", "categoryId": leisure, "from": "", "to": "05/10/2026" }),
+    );
+    assert!(edited.get("from").is_none());
+    assert_eq!(edited["to"], "2026-10-05");
+}
+
+#[test]
+fn test_csd032_ac_15_1_the_list_is_filtered_and_cut_by_rust() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let page = app.ok("list_transactions", json!({ "limit": 3 }));
+    assert_eq!(page["rows"].as_array().unwrap().len(), 3);
+    assert_eq!(page["count"], 8);
+    // 2500.00 + 15.50 in, 23.97 + 45.10 + 13.99 + 1000.00 + 200.00 + 60.00 out.
+    assert_eq!(page["total"], "1172.44");
+    let filtered = app.ok(
+        "list_transactions",
+        json!({ "filter": { "ids": ["uncategorized"] } }),
+    );
+    assert_eq!(filtered["count"], 6);
+    // The period goes down to the day (AC-15.7): all of October, then none after it.
+    let october = app.ok(
+        "list_transactions",
+        json!({ "filter": { "from": "2026-10-01", "to": "2026-10-31" } }),
+    );
+    assert_eq!(october["count"], 8);
+    let november = app.ok(
+        "list_transactions",
+        json!({ "filter": { "from": "2026-11-01", "to": "2026-12-31" } }),
+    );
+    assert_eq!(november["count"], 0);
+    assert_eq!(november["total"], "0.00");
+}
+
+#[test]
+fn test_csd032_ac_18_1_transactions_count_as_entries_for_the_currency_confirmation() {
+    let app = harness();
+    assert_eq!(app.ok("get_settings", json!({}))["entry_count"], 0);
+    import(&app, fixture()).unwrap();
+    assert_eq!(app.ok("get_settings", json!({}))["entry_count"], 8);
+}
+
+#[test]
+fn test_csd032_ac_9_6_a_rule_creates_its_category_in_one_undo_step() {
+    let app = harness();
+    let categories = app.ok("list_transaction_categories", json!({}));
+    let count = categories.as_array().unwrap().len();
+    let rule = app.ok(
+        "add_transaction_rule",
+        json!({ "text": "Example Gym", "newCategory": "Example Sport" }),
+    );
+    let after = app.ok("list_transaction_categories", json!({}));
+    assert_eq!(after.as_array().unwrap().len(), count + 1);
+    assert_eq!(
+        rule["category_id"],
+        after.as_array().unwrap().last().unwrap()["id"]
+    );
+    app.ok("undo", json!({}));
+    assert_eq!(
+        app.ok("list_transaction_categories", json!({}))
+            .as_array()
+            .unwrap()
+            .len(),
+        count
+    );
+    let rules = app.ok("list_transaction_rules", json!({}));
+    assert!(rules
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|r| r["text"] != "Example Gym"));
+}
+
+#[test]
+fn test_csd032_ac_9_7_a_rejected_name_over_ipc_changes_nothing() {
+    let app = harness();
+    let error = app.err(
+        "add_transaction_rule",
+        json!({ "text": "Example Gym", "newCategory": "groceries" }),
+    );
+    assert_eq!(error["code"], "TRANSACTION_CATEGORY_NAME_TAKEN");
+    assert_eq!(
+        app.ok("project_status", json!({}))["undo_label"],
+        Value::Null
+    );
+}
+
+#[test]
+fn test_csd032_ac_24_1_yearly_totals_over_ipc() {
+    let app = harness();
+    assert_eq!(app.ok("yearly_transaction_totals", json!({})), json!([]));
+    import(&app, fixture()).unwrap();
+    let totals = app.ok("yearly_transaction_totals", json!({}));
+    assert_eq!(
+        totals,
+        json!([{
+            "year": 2026,
+            "income": "2515.50",
+            "spent": "1343.06",
+            "net": "1172.44",
+            "transaction_count": 8
+        }])
+    );
+}
+
+#[test]
+fn test_csd032_ac_11_5_unset_manual_over_ipc_is_one_undo_step() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let id = rows(&app).first().unwrap()["id"].clone();
+    let groceries = category_id(&app, "Groceries");
+    app.ok(
+        "set_transaction_category",
+        json!({ "transactionId": id, "categoryId": groceries }),
+    );
+    app.ok("unset_transaction_manual", json!({ "transactionId": id }));
+    let after = rows(&app);
+    let row = after.iter().find(|row| row["id"] == id).unwrap();
+    assert_eq!(row["manual"], false);
+    assert_eq!(row["category_id"], groceries);
+    assert_eq!(
+        app.ok("project_status", json!({}))["undo_label"],
+        "Edit Transaction"
+    );
+    app.ok("undo", json!({}));
+    let undone = rows(&app);
+    assert_eq!(
+        undone.iter().find(|row| row["id"] == id).unwrap()["manual"],
+        true
+    );
+    let error = app.err(
+        "unset_transaction_manual",
+        json!({ "transactionId": "nope" }),
+    );
+    assert_eq!(error["code"], "TRANSACTION_NOT_FOUND");
+}
+
+#[test]
+fn test_csd033_ac_5_1_insights_over_ipc_default_to_years_and_take_a_granularity() {
+    let app = harness();
+    let today = time::Date::from_calendar_date(2026, time::Month::October, 15).unwrap();
+    app.window.state::<AppState>().fix_today(today);
+    let empty = app.ok("get_transaction_insights", json!({}));
+    assert_eq!(empty["years"], json!([]));
+    assert_eq!(empty["granularity"], "yearly");
+    import(&app, fixture()).unwrap();
+    let yearly = app.ok("get_transaction_insights", json!({}));
+    assert_eq!(yearly["years"].as_array().unwrap().len(), 1);
+    assert_eq!(yearly["years"][0]["total"], "1343.06");
+    assert_eq!(yearly["years"][0]["income"], "2515.50");
+    assert_eq!(yearly["years"][0]["marker"]["value"], "2515.50");
+    assert_eq!(yearly["years"][0]["month"], Value::Null);
+    let monthly = app.ok(
+        "get_transaction_insights",
+        json!({ "granularity": "monthly" }),
+    );
+    assert_eq!(monthly["granularity"], "monthly");
+    let last = monthly["years"].as_array().unwrap().last().unwrap().clone();
+    assert_eq!(last["total"], "1343.06");
+    assert_eq!(last["month"], 10);
+    assert!(monthly["axis"]["ticks"].as_array().unwrap().len() >= 2);
+    let error = app.err(
+        "get_transaction_insights",
+        json!({ "granularity": "weekly" }),
+    );
+    assert!(error.is_string() || error.is_object());
+}
+
+#[test]
+fn test_csd032_con_9_commands_refuse_more_items_than_the_bounds_allow() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let before = rows(&app).len();
+    let leisure = category_id(&app, "Leisure");
+    let rules: Vec<Value> = (0..1001)
+        .map(|n| json!({ "text": format!("Example {n}"), "category_id": leisure }))
+        .collect();
+    let error = app.err("add_transaction_rules", json!({ "rules": rules }));
+    assert_eq!(error["code"], "TRANSACTION_INPUT_TOO_LARGE");
+    let ids: Vec<String> = (0..200_001).map(|n| format!("id-{n}")).collect();
+    let error = app.err("delete_transactions", json!({ "transactionIds": ids }));
+    assert_eq!(error["code"], "TRANSACTION_INPUT_TOO_LARGE");
+    // Nothing was added or removed.
+    assert_eq!(rows(&app).len(), before);
+}
+
+#[test]
+fn test_csd032_ac_33_1_the_overview_is_the_four_reads_in_one_answer() {
+    let app = harness();
+    import(&app, fixture()).unwrap();
+    let overview = app.ok("get_transactions_overview", json!({}));
+    assert_eq!(
+        overview["categories"],
+        app.ok("list_transaction_categories", json!({}))
+    );
+    assert_eq!(
+        overview["rules"],
+        app.ok("list_transaction_rules", json!({}))
+    );
+    assert_eq!(
+        overview["summary"],
+        app.ok("get_categorisation_summary", json!({}))
+    );
+    assert_eq!(
+        overview["totals"],
+        app.ok("yearly_transaction_totals", json!({}))
+    );
+    assert!(overview["summary"]["total"].as_u64().unwrap() > 0);
+}
+
+#[test]
+fn test_csd032_ac_34_7_an_abn_amro_fixture_imports_over_ipc_and_again_adds_nothing() {
+    let app = harness();
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures")
+        .join("example-abn-october.tab");
+    let (added, skipped) = import(&app, path.clone()).unwrap().unwrap();
+    assert_eq!((added, skipped), (6, 0));
+    let all = rows(&app);
+    let shop = row_of(&all, "Albert Heijn 1234 Example Town");
+    assert_eq!(
+        shop["category_id"],
+        category_id(&app, "Groceries"),
+        "the seed rules apply"
+    );
+    assert_eq!(shop["payment_method"], "SEPA OVERBOEKING");
+    assert_eq!(shop["counterparty_iban"], "NL00EXAM0000000002");
+    // The same file again adds nothing, and the stored file holds no mandate or creditor id.
+    let (added, skipped) = import(&app, path).unwrap().unwrap();
+    assert_eq!((added, skipped), (0, 6));
+    let json = serde_json::to_string(&all).unwrap();
+    assert!(!json.contains("MANDATE-0001") && !json.contains("NL00ZZZ000000000000"));
+}
+
+fn account_rows_of(app: &Harness) -> Vec<Value> {
+    app.ok("list_transaction_accounts", json!({}))
+        .as_array()
+        .unwrap()
+        .clone()
+}
+
+#[test]
+fn test_csd034_ac_1_1_the_accounts_come_with_their_counts_over_ipc() {
+    let app = harness();
+    let bank = first_account(&app);
+    let savings = app.ok(
+        "add_transaction_account",
+        json!({ "name": "Example Savings" }),
+    );
+    assert!(savings["id"].is_string());
+    assert_eq!(import(&app, fixture()).unwrap(), Some((8, 0)));
+    let accounts = account_rows_of(&app);
+    assert_eq!(accounts.len(), 2);
+    assert_eq!(accounts[0]["id"], bank);
+    assert_eq!(accounts[0]["name"], "Example Bank");
+    assert_eq!(accounts[0]["transaction_count"], 8);
+    assert_eq!(accounts[1]["name"], "Example Savings");
+    assert_eq!(accounts[1]["transaction_count"], 0);
+}
+
+#[test]
+fn test_csd034_ac_2_over_ipc_accounts_are_added_renamed_and_deleted_with_their_transactions() {
+    let app = harness();
+    let bank = first_account(&app);
+    assert_eq!(
+        app.ok("project_status", json!({}))["undo_label"],
+        "Add Transaction Account"
+    );
+    app.ok(
+        "rename_transaction_account",
+        json!({ "accountId": bank, "name": "Example Current" }),
+    );
+    assert_eq!(
+        app.ok("project_status", json!({}))["undo_label"],
+        "Edit Transaction Account"
+    );
+    for (name, code) in [
+        ("", "TRANSACTION_ACCOUNT_NAME_REQUIRED"),
+        ("example current", "TRANSACTION_ACCOUNT_NAME_TAKEN"),
+    ] {
+        let error = app.err("add_transaction_account", json!({ "name": name }));
+        assert_eq!(error["code"], code);
+    }
+    let error = app.err(
+        "rename_transaction_account",
+        json!({ "accountId": "not-an-id", "name": "Example" }),
+    );
+    assert!(error["code"].is_string());
+    import(&app, fixture()).unwrap();
+    let deleted = app.ok("delete_transaction_account", json!({ "accountId": bank }));
+    assert_eq!(deleted, 8);
+    assert_eq!(account_rows_of(&app).len(), 0);
+    assert_eq!(rows(&app).len(), 0);
+    assert_eq!(
+        app.ok("project_status", json!({}))["undo_label"],
+        "Delete Transaction Account"
+    );
+    // One step brings the account and its transactions back.
+    app.ok("undo", json!({}));
+    assert_eq!(account_rows_of(&app).len(), 1);
+    assert_eq!(rows(&app).len(), 8);
+}
+
+#[test]
+fn test_csd034_ac_3_over_ipc_an_import_needs_an_existing_account_and_a_rejected_one_changes_nothing(
+) {
+    let app = harness();
+    let state = app.window.state::<AppState>();
+    let error = import_flow(&state, "not-an-id", || Some(fixture())).unwrap_err();
+    assert!(serde_json::to_value(&error).unwrap()["code"].is_string());
+    let account = first_account(&app);
+    app.ok(
+        "delete_transaction_account",
+        json!({ "accountId": account }),
+    );
+    let error = import_flow(&state, &account, || Some(fixture())).unwrap_err();
+    assert_eq!(
+        serde_json::to_value(&error).unwrap()["code"],
+        "TRANSACTION_ACCOUNT_NOT_FOUND"
+    );
+    assert_eq!(rows(&app).len(), 0);
+}
+
+#[test]
+fn test_csd034_ac_6_over_ipc_the_rows_carry_their_account_and_the_filter_takes_account_ids() {
+    let app = harness();
+    let bank = first_account(&app);
+    let savings = app.ok(
+        "add_transaction_account",
+        json!({ "name": "Example Savings" }),
+    );
+    import(&app, fixture()).unwrap();
+    let all = rows(&app);
+    assert!(all.iter().all(|row| row["account_id"] == bank));
+    let only_savings = app.ok(
+        "list_transactions",
+        json!({ "filter": { "account_ids": [savings["id"]] } }),
+    );
+    assert_eq!(only_savings["count"], 0);
+    let only_bank = app.ok(
+        "list_transactions",
+        json!({ "filter": { "account_ids": [bank] } }),
+    );
+    assert_eq!(only_bank["count"], 8);
+    let ids = app.ok(
+        "list_transaction_ids",
+        json!({ "filter": { "account_ids": [bank] } }),
+    );
+    assert_eq!(ids.as_array().unwrap().len(), 8);
+}

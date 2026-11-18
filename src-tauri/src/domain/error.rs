@@ -407,6 +407,116 @@ pub enum DomainError {
     /// Reported as: "The expense data is not consistent."
     #[error("The expense data is not consistent.")]
     ExpenseDataInvalid,
+    /// Reported as: "The file could not be read as a bank export."
+    #[error("The file could not be read as a bank export.")]
+    TransactionImportUnreadable,
+    /// Reported as: "This is not a Knab or ABN AMRO transaction export."
+    #[error("This is not a Knab or ABN AMRO transaction export.")]
+    TransactionImportFormat,
+    /// Reported as: "Line {line}: the row does not have the columns of the export."
+    #[error("Line {line}: the row does not have the columns of the export.")]
+    TransactionImportColumns {
+        /// The line of the file.
+        line: usize,
+    },
+    /// Reported as: "Line {line}: a field is too long."
+    #[error("Line {line}: a field is too long.")]
+    TransactionImportField {
+        /// The line of the file.
+        line: usize,
+    },
+    /// Reported as: "Line {line}: the date is not a real date as dd-mm-yyyy (Knab) or yyyymmdd (ABN AMRO)."
+    #[error(
+        "Line {line}: the date is not a real date as dd-mm-yyyy (Knab) or yyyymmdd (ABN AMRO)."
+    )]
+    TransactionImportDate {
+        /// The line of the file.
+        line: usize,
+    },
+    /// Reported as: "Line {line}: the direction is not Afschrijvingen or Bijschrijvingen."
+    #[error("Line {line}: the direction is not Afschrijvingen or Bijschrijvingen.")]
+    TransactionImportDirection {
+        /// The line of the file.
+        line: usize,
+    },
+    /// Reported as: "Line {line}: the amount is not a valid amount above 0,00."
+    #[error("Line {line}: the amount is not a valid amount above 0,00.")]
+    TransactionImportAmount {
+        /// The line of the file.
+        line: usize,
+    },
+    /// Reported as: "Line {line}: the bank reference is empty."
+    #[error("Line {line}: the bank reference is empty.")]
+    TransactionImportReference {
+        /// The line of the file.
+        line: usize,
+    },
+    /// Reported as: "Line {line}: the currency is not the currency of the project."
+    #[error("Line {line}: the currency is not the currency of the project.")]
+    TransactionImportCurrency {
+        /// The line of the file.
+        line: usize,
+    },
+    /// Reported as: "Enter a name for the category."
+    #[error("Enter a name for the category.")]
+    TransactionCategoryNameRequired,
+    /// Reported as: "The category name can be at most 50 characters."
+    #[error("The category name can be at most 50 characters.")]
+    TransactionCategoryNameTooLong,
+    /// Reported as: "A category with this name already exists."
+    #[error("A category with this name already exists.")]
+    TransactionCategoryNameTaken,
+    /// Reported as: "Uncategorized cannot be renamed or deleted."
+    #[error("Uncategorized cannot be renamed or deleted.")]
+    TransactionCategoryProtected,
+    /// Reported as: "This category does not exist."
+    #[error("This category does not exist.")]
+    TransactionCategoryNotFound,
+    /// Reported as: "Enter the text the rule looks for, or give it a period."
+    #[error("Enter the text the rule looks for, or give it a period.")]
+    TransactionRuleTextRequired,
+    /// Reported as: "The rule text can be at most 100 characters."
+    #[error("The rule text can be at most 100 characters.")]
+    TransactionRuleTextTooLong,
+    /// Reported as: "Enter a whole number of 1 or more."
+    #[error("Enter a whole number of 1 or more.")]
+    TransactionSuggestMinCount,
+    /// Reported as: "A rule with this text already exists."
+    #[error("A rule with this text already exists.")]
+    TransactionRuleTextTaken,
+    /// Reported as: "The first day cannot be after the last day."
+    #[error("The first day cannot be after the last day.")]
+    TransactionRulePeriodInvalid,
+    /// Reported as: "Enter a date as dd/mm/yyyy."
+    #[error("Enter a date as dd/mm/yyyy.")]
+    TransactionRuleDateInvalid,
+    /// Reported as: "Choose an existing category other than Uncategorized."
+    #[error("Choose an existing category other than Uncategorized.")]
+    TransactionRuleCategoryInvalid,
+    /// Reported as: "This rule does not exist."
+    #[error("This rule does not exist.")]
+    TransactionRuleNotFound,
+    /// Reported as: "Too many items in one request."
+    #[error("Too many items in one request.")]
+    TransactionInputTooLarge,
+    /// Reported as: "Enter a name for the account."
+    #[error("Enter a name for the account.")]
+    TransactionAccountNameRequired,
+    /// Reported as: "The account name can be at most 50 characters."
+    #[error("The account name can be at most 50 characters.")]
+    TransactionAccountNameTooLong,
+    /// Reported as: "An account with this name already exists."
+    #[error("An account with this name already exists.")]
+    TransactionAccountNameTaken,
+    /// Reported as: "This account does not exist."
+    #[error("This account does not exist.")]
+    TransactionAccountNotFound,
+    /// Reported as: "This transaction does not exist."
+    #[error("This transaction does not exist.")]
+    TransactionNotFound,
+    /// Reported as: "The transaction data is not consistent."
+    #[error("The transaction data is not consistent.")]
+    TransactionDataInvalid,
 }
 
 impl DomainError {
@@ -550,6 +660,35 @@ impl DomainError {
             Self::ExpenseNoteTooLong => "EXPENSE_NOTE_TOO_LONG",
             Self::ExpenseNotFound => "EXPENSE_NOT_FOUND",
             Self::ExpenseDataInvalid => "EXPENSE_DATA_INVALID",
+            Self::TransactionImportUnreadable => "TRANSACTION_IMPORT_UNREADABLE",
+            Self::TransactionImportFormat => "TRANSACTION_IMPORT_FORMAT",
+            Self::TransactionImportColumns { .. } => "TRANSACTION_IMPORT_COLUMNS",
+            Self::TransactionImportField { .. } => "TRANSACTION_IMPORT_FIELD",
+            Self::TransactionImportDate { .. } => "TRANSACTION_IMPORT_DATE",
+            Self::TransactionImportDirection { .. } => "TRANSACTION_IMPORT_DIRECTION",
+            Self::TransactionImportAmount { .. } => "TRANSACTION_IMPORT_AMOUNT",
+            Self::TransactionImportReference { .. } => "TRANSACTION_IMPORT_REFERENCE",
+            Self::TransactionImportCurrency { .. } => "TRANSACTION_IMPORT_CURRENCY",
+            Self::TransactionCategoryNameRequired => "TRANSACTION_CATEGORY_NAME_REQUIRED",
+            Self::TransactionCategoryNameTooLong => "TRANSACTION_CATEGORY_NAME_TOO_LONG",
+            Self::TransactionCategoryNameTaken => "TRANSACTION_CATEGORY_NAME_TAKEN",
+            Self::TransactionCategoryProtected => "TRANSACTION_CATEGORY_PROTECTED",
+            Self::TransactionCategoryNotFound => "TRANSACTION_CATEGORY_NOT_FOUND",
+            Self::TransactionRuleTextRequired => "TRANSACTION_RULE_TEXT_REQUIRED",
+            Self::TransactionRuleTextTooLong => "TRANSACTION_RULE_TEXT_TOO_LONG",
+            Self::TransactionSuggestMinCount => "TRANSACTION_SUGGEST_MIN_COUNT",
+            Self::TransactionRuleTextTaken => "TRANSACTION_RULE_TEXT_TAKEN",
+            Self::TransactionRulePeriodInvalid => "TRANSACTION_RULE_PERIOD_INVALID",
+            Self::TransactionRuleDateInvalid => "TRANSACTION_RULE_DATE_INVALID",
+            Self::TransactionRuleCategoryInvalid => "TRANSACTION_RULE_CATEGORY_INVALID",
+            Self::TransactionRuleNotFound => "TRANSACTION_RULE_NOT_FOUND",
+            Self::TransactionInputTooLarge => "TRANSACTION_INPUT_TOO_LARGE",
+            Self::TransactionAccountNameRequired => "TRANSACTION_ACCOUNT_NAME_REQUIRED",
+            Self::TransactionAccountNameTooLong => "TRANSACTION_ACCOUNT_NAME_TOO_LONG",
+            Self::TransactionAccountNameTaken => "TRANSACTION_ACCOUNT_NAME_TAKEN",
+            Self::TransactionAccountNotFound => "TRANSACTION_ACCOUNT_NOT_FOUND",
+            Self::TransactionNotFound => "TRANSACTION_NOT_FOUND",
+            Self::TransactionDataInvalid => "TRANSACTION_DATA_INVALID",
         }
     }
 }

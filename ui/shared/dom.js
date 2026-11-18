@@ -32,6 +32,9 @@ const ICON_PATHS = {
   info: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z', 'M12 16v-4', 'M12 8h.01'],
   filter: ['M3 4h18l-7 8v6l-4 2v-8Z'],
   'filter-active': ['M3 4h18l-7 8v6l-4 2v-8Z'],
+  'add-rule': ['M12 5v14', 'M5 12h14'],
+  grip: ['M4 7h16', 'M4 12h16', 'M4 17h16'],
+  import: ['M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4', 'M7 10l5 5 5-5', 'M12 15V3'],
   delete: ['M3 6h18', 'M8 6V4h8v2', 'M19 6l-1 14H6L5 6', 'M10 11v6', 'M14 11v6'],
 };
 
@@ -55,8 +58,10 @@ export function iconButton(kind, label, onClick) {
 
 let toastTimer = null;
 
-export function showToast(message) {
+/** Shows `message` bottom right for six seconds. `tone` `'notice'` makes it yellow, for a result that is no error. */
+export function showToast(message, tone = 'error') {
   const toast = document.getElementById('toast');
+  toast.classList.toggle('toast-notice', tone === 'notice');
   toast.textContent = message;
   toast.hidden = false;
   clearTimeout(toastTimer);

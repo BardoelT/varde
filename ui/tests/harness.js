@@ -156,15 +156,21 @@ export async function openApp({ reads = exampleReads(), handlers = {} } = {}) {
       input.focus();
       for (const char of text) {
         input.value += char;
-        input.setSelectionRange(input.value.length, input.value.length);
+        if (input.type !== 'number') input.setSelectionRange(input.value.length, input.value.length); // a number field has no caret
         input.dispatchEvent(new window.InputEvent('input', { inputType: 'insertText', data: char, bubbles: true }));
       }
+      await settle();
+    },
+    /** Types into a filter field and waits out the pause after which the table is asked (CSD-028 REQ-2). */
+    async typeFilter(input, text) {
+      await app.type(input, text);
+      await new Promise((resolve) => setTimeout(resolve, 260));
       await settle();
     },
     /** Deletes the last character, as backspace does. */
     async backspace(input) {
       input.value = input.value.slice(0, -1);
-      input.setSelectionRange(input.value.length, input.value.length);
+      if (input.type !== 'number') input.setSelectionRange(input.value.length, input.value.length);
       input.dispatchEvent(new window.InputEvent('input', { inputType: 'deleteContentBackward', bubbles: true }));
       await settle();
     },

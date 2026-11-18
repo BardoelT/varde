@@ -11,7 +11,7 @@ use time::UtcOffset;
 
 use commands::{
     bank_accounts, dashboard, debts, expenses, houses, income, investments, net_worth, preferences,
-    project, ratios, settings, AppState,
+    project, ratios, settings, transactions, AppState,
 };
 
 /// The label of the one window.
@@ -137,6 +137,36 @@ fn configure_with<R: Runtime>(
             expenses::copy_previous_expense,
             expenses::yearly_expense_totals,
             expenses::get_expense_insights,
+            transactions::import_transactions,
+            transactions::list_transactions,
+            transactions::yearly_transaction_totals,
+            transactions::get_transaction_insights,
+            transactions::set_transaction_category,
+            transactions::unset_transaction_manual,
+            transactions::delete_transaction,
+            transactions::list_transaction_ids,
+            transactions::set_transactions_category,
+            transactions::delete_transactions,
+            transactions::list_transaction_categories,
+            transactions::add_transaction_category,
+            transactions::rename_transaction_category,
+            transactions::delete_transaction_category,
+            transactions::list_transaction_rules,
+            transactions::get_categorisation_summary,
+            transactions::list_transaction_accounts,
+            transactions::add_transaction_account,
+            transactions::rename_transaction_account,
+            transactions::delete_transaction_account,
+            transactions::delete_account_transactions,
+            transactions::get_transactions_overview,
+            transactions::add_transaction_rule,
+            transactions::edit_transaction_rule,
+            transactions::move_transaction_rule,
+            transactions::delete_transaction_rule,
+            transactions::reapply_transaction_rules,
+            transactions::suggest_transaction_rules,
+            transactions::count_transaction_rule_matches,
+            transactions::add_transaction_rules,
             net_worth::get_net_worth_insights,
             ratios::get_ratios,
             dashboard::get_dashboard,
@@ -249,5 +279,7 @@ mod ipc_history_tests;
 mod ipc_number_format_tests;
 #[cfg(test)]
 mod ipc_tests;
+#[cfg(test)]
+mod ipc_transactions_tests;
 #[cfg(test)]
 mod ipc_window_title_tests;

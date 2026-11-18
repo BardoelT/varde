@@ -3,8 +3,8 @@ id: CSD-013
 title: Expenses
 status: approved
 owner: Thijs Bardoel
-version: 2.1
-last_updated: 04/11/2026
+version: 2.2
+last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-014]
 ---
 
@@ -31,7 +31,7 @@ The app tracks what the user owns and owes, but has no view of what the user spe
 - NG-6: More than one category per expense, tags, and sub-categories.
 - NG-7: A currency per expense. All amounts are in the project currency (CSD-003).
 - NG-8: Planned expenses and forecasts. (Dates are not bounded: a future date is allowed, REQ-4. Changed in v1.0.)
-- NG-9: Import of expenses (CSV, PDF, bank export), and data fetched from any service.
+- NG-9: Import of expenses (CSV, PDF, bank export), and data fetched from any service. (Importing bank transactions is the separate capability CSD-032; it never creates or changes an expense. Wording changed in v2.2.)
 - NG-10: Attachments such as receipts or photos, and rich text in notes.
 - NG-11: Changing several expenses at once, and filtering, searching or sorting by anything.
 - NG-12: Refunds and negative amounts.
@@ -695,6 +695,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 2.2 (12/11/2026): NG-9 points to CSD-032 for bank transactions, which never create or change an expense (GitHub issue 70). Back to `draft` until re-approved.
 - 2.1 (04/11/2026): Wording follows the UI; no behaviour change: the amount shown in a list row is grouped as in CSD-022 AC-10.1 (AC-13.3). Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A typed amount with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-18 (AC-18.1 to AC-18.3), REQ-5 applies to the rounded amount (an amount that rounds to 0.00 is not above zero), the AC-5.1 row for 100.999 and the code `EXPENSE_AMOUNT_PRECISION` are removed, CON-1 updated. Owner decision. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed REQ-17 coverage is removed (there are no `ac_17_` tests); NG-3 refers to CSD-017 NG-6 for net worth. Back to `draft` until re-approved.

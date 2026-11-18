@@ -35,15 +35,34 @@ function spaceBelow(inner) {
   );
 }
 
+/** The height of a horizontal scrollbar that takes room (0 where scrollbars float over the content), measured once. */
+let measuredScrollbar = null;
+function scrollbarHeight() {
+  if (measuredScrollbar === null) {
+    const probe = document.createElement('div');
+    probe.style.overflow = 'scroll';
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    probe.style.width = '100px';
+    probe.style.height = '100px';
+    document.body.append(probe);
+    measuredScrollbar = probe.offsetHeight - probe.clientHeight;
+    probe.remove();
+  }
+  return measuredScrollbar;
+}
+
 /**
  * The plot height that lets the chart end at the bottom of the window with the page
  * scrolled to the top, and never less than `CHART_SIZE.minPlotHeight` (CSD-010 REQ-13).
+ * `scrollbar` is the height of the horizontal scrollbar the chart box is going to show, which
+ * sits below the chart and must fit in the window too, or the page would get a scrollbar of its own.
  */
-function plotHeightFor(inner, margin) {
+function plotHeightFor(inner, margin, scrollbar) {
   const scroller = inner.closest('.content');
   const top = inner.getBoundingClientRect().top + (scroller ? scroller.scrollTop : 0);
   // One pixel less, so rounding never pushes the page into a scrollbar.
-  const room = window.innerHeight - top - margin.top - margin.bottom - spaceBelow(inner) - 1;
+  const room = window.innerHeight - top - margin.top - margin.bottom - spaceBelow(inner) - scrollbar - 1;
   return Math.max(CHART_SIZE.minPlotHeight, Math.floor(room));
 }
 
@@ -66,7 +85,7 @@ export function levelMarker(marker, { centre, barWidth, yOf }) {
  * Its parts are found as `${id}-legend`, `${id}-empty`, `${id}-scroll` and
  * `${id}-chart`. The strategy:
  *
- * - `command`, `ariaLabel`: the Rust command that returns `{ axis, years }`, and the chart's name
+ * - `command`, `args` (optional), `ariaLabel`: the Rust command that returns `{ axis, years }`, its arguments, and the chart's name
  * - the size is the same for every chart: slots as wide as `CHART_SIZE` says, and a plot as high as the window allows
  * - `pieceStyle(row, piece)`: what the page adds to a received piece `{ series, low, high, hangs, rounding }`:
  *   `{ cssClass, label? }`, the colour class and the accessible name. The pieces, their order and their
@@ -74,6 +93,7 @@ export function levelMarker(marker, { centre, barWidth, yOf }) {
  * - `describe(row)`, `tooltipContent(row)`: the screen-reader text and the tooltip rows
  * - `decorate(row, geometry)`: extra nodes for a bar (growth label, marker); `geometry.barTop` is the
  *   y position of the top of the bar
+ * - `fitTooltip(element, maxHeight)` (optional): shortens a tooltip that is taller than the chart
  * - `labelLines(row)`: the lines under the axis, `[{ text, className }]`
  * - `onLoaded(data)` (optional): runs with the whole response before drawing, for a legend built from it
  */
@@ -98,7 +118,8 @@ export function createYearlyChart(strategy) {
     const slot = plotWidth / count;
     const barWidth = Math.min(slot * 0.5, MAX_BAR_WIDTH);
     const width = margin.left + plotWidth + margin.right;
-    const plotHeight = plotHeightFor(inner, margin);
+    // The chart box scrolls sideways when the slots are wider than its room; its scrollbar then takes height.
+    const plotHeight = plotHeightFor(inner, margin, plotWidth > available ? scrollbarHeight() : 0);
     const height = margin.top + plotHeight + margin.bottom;
     const bottomEdge = margin.top + plotHeight;
 
@@ -163,9 +184,9 @@ export function createYearlyChart(strategy) {
         group.append(svg('text', { class: line.className, x: centre, y: bottomEdge + 18 + 16 * i }, line.text)),
       );
 
-      group.addEventListener('mouseenter', () => tooltip.show(strategy.tooltipContent(row), bar, hit));
+      group.addEventListener('mouseenter', () => tooltip.show(strategy.tooltipContent(row), bar, hit, strategy.fitTooltip));
       group.addEventListener('mouseleave', () => tooltip.hide());
-      group.addEventListener('focus', () => tooltip.show(strategy.tooltipContent(row), bar, hit));
+      group.addEventListener('focus', () => tooltip.show(strategy.tooltipContent(row), bar, hit, strategy.fitTooltip));
       group.addEventListener('blur', () => tooltip.hide());
       // A highlighted series is highlighted in every year, not only the hovered one.
       bindHighlight(group, [part('legend'), inner]);
@@ -177,7 +198,7 @@ export function createYearlyChart(strategy) {
 
   /** Loads the series from Rust and draws it, or shows the note when there is nothing yet. */
   async function reload() {
-    const data = await invoke(strategy.command);
+    const data = await invoke(strategy.command, strategy.args);
     const { years } = data;
     strategy.onLoaded?.(data);
     part('empty').hidden = years.length > 0;

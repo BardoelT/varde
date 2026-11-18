@@ -93,6 +93,9 @@
 .content {
   flex: 1;
   overflow-y: auto;
+  /* The room of the page scrollbar is always kept. The charts are as wide as this box, so a scrollbar that came and went
+     changed their width, redrew them, and could make the scrollbar of the chart itself come and go in turn. */
+  scrollbar-gutter: stable;
   padding: 30px 32px;
   min-width: 0;
 }

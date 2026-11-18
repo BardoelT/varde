@@ -3,8 +3,8 @@ id: CSD-009
 title: Bank accounts
 status: approved
 owner: Thijs Bardoel
-version: 2.1
-last_updated: 04/11/2026
+version: 2.2
+last_updated: 12/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-005, CSD-010, CSD-025]
 ---
 
@@ -24,7 +24,7 @@ The app tracks wealth, but has no view of the money the user keeps in bank accou
 - Bank account data is part of the project file (CSD-002). Entries count for the currency confirmation of CSD-003 (REQ-24).
 
 ### 2.2 Non-goals
-- NG-1: Individual transactions, categories, budgets and standing orders.
+- NG-1: Individual transactions in this capability, categories, budgets and standing orders. (Importing and categorising bank transactions is the separate capability CSD-032, which does not change any balance recorded here. Changed in v2.2.)
 - NG-2: Live or imported data: bank connections, PSD2, any data fetched from the network.
 - NG-3: Import of statements (CSV, PDF, bank export).
 - NG-4: Bank identifiers and other account details: IBAN, account number, institution name, account type, an overdraft limit, and a note on the account itself.
@@ -971,6 +971,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-2: Whether `docs/architecture.md` and the layout line of `CLAUDE.md` ("money, income, investments") get a bank accounts mention when this CSD is implemented. Owner: Thijs. Blocks: none.
 
 ## 9. Changelog
+- 2.2 (12/11/2026): NG-1 points to CSD-032 for bank transactions, which stand apart from the balances recorded here (GitHub issue 70). Back to `draft` until re-approved.
 - 2.1 (04/11/2026): Wording follows the UI; no behaviour change: period field label and placeholder (AC-16.1, AC-16.2), amounts grouped as in CSD-022 AC-10.1 and the dash written as "—" (AC-20.2, AC-21.2). Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A typed balance with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-25 (AC-25.1 to AC-25.3), REQ-10 applies to the rounded balance, the AC-10.1 rows for 1000.999 and -1000.999 and the code `BANK_ENTRY_BALANCE_PRECISION` are removed, AC-10.3 and AC-13.4 use "abc" (`BANK_ENTRY_BALANCE_INVALID`), CON-11 updated. Owner decision. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claimed `test_csd009_ac_20_` coverage is removed (no such tests exist). NG-7 and the intro point to CSD-017 for net worth. Back to `draft` until re-approved.
