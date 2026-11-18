@@ -72,7 +72,7 @@ fn test_csd032_ac_15_6_uncategorized_can_be_filtered() {
         simple("30-10-2026", "Afschrijvingen", "9,00", "Example Shop", "R1"),
         simple("30-10-2026", "Afschrijvingen", "9,00", "Example Cafe", "R2"),
     ];
-    data.import(&export(&rows), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&rows), Currency::Eur).unwrap();
     let filter = filter_of(serde_json::json!({ "ids": ["uncategorized"] }));
     let page = data.list_filtered(Some(&filter), false, 10);
     assert_eq!(page.count, 1);

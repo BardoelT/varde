@@ -26,6 +26,8 @@ function project(debts, statements, version = 1) {
     file.transaction_categories = [];
     file.transaction_rules = [];
   }
+  // From format 4 on it also has the accounts the transactions belong to (CSD-034 REQ-7).
+  if (version >= 4) file.transaction_accounts = [];
   return file;
 }
 
@@ -93,7 +95,7 @@ test('test_csd002_ac_20_3_debt_without_statements', () => {
 test('test_csd002_ac_20_4_nothing_to_do', () => {
   const dir = tempDir();
   const done = { ...mortgage, opening_date: '2025-03-01', opening_amount: '190000.00' };
-  const file = write(dir, project([done], [], 3));
+  const file = write(dir, project([done], [], 4));
   const old = new Date('2020-01-01T00:00:00Z');
   fs.utimesSync(file, old, old);
   const before = fs.readFileSync(file);
@@ -188,7 +190,7 @@ test('test_csd002_ac_20_6_settlements_get_an_origin_and_the_version_is_raised', 
   const result = run(file);
   assert.equal(result.status, 0, result.stderr);
   const upgraded = JSON.parse(fs.readFileSync(file, 'utf8'));
-  assert.equal(upgraded.format_version, 3);
+  assert.equal(upgraded.format_version, 4);
   assert.equal(upgraded.debts.debts[0].settlement.origin, 'Sale');
   assert.equal(upgraded.debts.debts[1].settlement.origin, 'Manual');
   // Keys in the order the app writes them.
@@ -206,13 +208,13 @@ test('test_csd002_ac_20_6_a_version_1_file_with_openings_only_gets_the_new_versi
   const file = write(dir, project([done], []));
   const result = run(file);
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).format_version, 3);
+  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).format_version, 4);
   assert.ok(fs.existsSync(`${file}.bak`));
 });
 
 test('test_csd002_ac_20_5_a_file_from_a_newer_version_fails_and_changes_nothing', () => {
   const dir = tempDir();
-  const file = write(dir, project([], [], 4));
+  const file = write(dir, project([], [], 5));
   const before = fs.readFileSync(file);
   const result = run(file);
   assert.equal(result.status, 1);
@@ -228,7 +230,7 @@ test('test_csd032_ac_17_3_a_version_2_file_gets_the_transaction_sections', () =>
   const result = run(file);
   assert.equal(result.status, 0, result.stderr);
   const upgraded = JSON.parse(fs.readFileSync(file, 'utf8'));
-  assert.equal(upgraded.format_version, 3);
+  assert.equal(upgraded.format_version, 4);
   assert.deepEqual(upgraded.transactions, []);
   const names = upgraded.transaction_categories.map((category) => category.name);
   assert.equal(names.length, 14);
@@ -239,10 +241,38 @@ test('test_csd032_ac_17_3_a_version_2_file_gets_the_transaction_sections', () =>
   assert.ok(upgraded.transaction_rules.length >= 10);
   for (const rule of upgraded.transaction_rules) assert.ok(ids.has(rule.category_id));
   // The sections come after the settings, as the app writes them.
-  assert.deepEqual(Object.keys(upgraded).slice(-4), ['settings', 'transactions', 'transaction_categories', 'transaction_rules']);
+  assert.deepEqual(Object.keys(upgraded).slice(-5), ['settings', 'transactions', 'transaction_accounts', 'transaction_categories', 'transaction_rules']);
+  assert.deepEqual(upgraded.transaction_accounts, []);
   assert.deepEqual(fs.readFileSync(`${file}.bak`), before);
   assert.equal(fs.readFileSync(file, 'utf8'), JSON.stringify(upgraded, null, 2));
   assert.match(run(file).stdout, /Nothing to upgrade/);
+});
+
+test('test_csd034_ac_7_3_a_version_3_file_loses_its_transactions_and_gets_an_empty_accounts_section', () => {
+  const dir = tempDir();
+  const content = project([], [], 3);
+  content.transactions = [{ id: 't1' }, { id: 't2' }];
+  const file = write(dir, content);
+  const before = fs.readFileSync(file);
+  const result = run(file);
+  assert.equal(result.status, 0, result.stderr);
+  const upgraded = JSON.parse(fs.readFileSync(file, 'utf8'));
+  assert.equal(upgraded.format_version, 4);
+  assert.deepEqual(upgraded.transactions, []);
+  assert.deepEqual(upgraded.transaction_accounts, []);
+  assert.match(result.stdout, /2 transaction\(s\) removed/);
+  assert.deepEqual(fs.readFileSync(`${file}.bak`), before, 'the backup holds the transactions');
+  assert.match(run(file).stdout, /Nothing to upgrade/);
+});
+
+test('test_csd034_ac_7_3_a_file_with_accounts_but_an_older_version_fails', () => {
+  const dir = tempDir();
+  const content = project([], [], 3);
+  content.transaction_accounts = [];
+  const file = write(dir, content);
+  const before = fs.readFileSync(file);
+  assert.equal(run(file).status, 1);
+  assert.deepEqual(fs.readFileSync(file), before);
 });
 
 test('test_csd032_ac_17_3_a_file_with_only_some_transaction_sections_fails', () => {

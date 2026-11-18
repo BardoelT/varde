@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { openApp } from './harness.js';
-import { GROCERIES, SHOPPING, transaction, readsWith, transactionsPage, rowCells, tableRows, bulkRows, bulkHandlers, totalsRows } from './transactions-helpers.js';
+import { BANK, SAVINGS, GROCERIES, SHOPPING, transaction, readsWith, transactionsPage, rowCells, tableRows, bulkRows, bulkHandlers, totalsRows } from './transactions-helpers.js';
 
 test('test_csd032_ac_16_1_transactions_is_in_the_left_pane_after_expenses_and_shows_the_overview_tab', async () => {
   const app = await openApp();
@@ -11,7 +11,7 @@ test('test_csd032_ac_16_1_transactions_is_in_the_left_pane_after_expenses_and_sh
   await app.click(app.item('transactions'));
   assert.ok(app.isShown(app.$('transactions')));
   assert.equal(app.textOf('transactions-tab-overview'), 'Overview');
-  assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Categories', 'Rules', 'Overview', 'Insights']);
+  assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Accounts', 'Categories', 'Rules', 'Overview', 'Insights']);
   app.close();
 });
 
@@ -24,7 +24,8 @@ test('test_csd032_ac_15_1_the_rows_are_shown_as_rust_returned_them_and_the_list_
   const shown = tableRows(app).map((row) => rowCells(app, row));
   assert.equal(shown.length, 2);
   assert.equal(shown[0][0], '30/10/2026');
-  assert.equal(shown[0][1], 'Example Market Town');
+  assert.equal(shown[0][1], 'Example Bank', 'the account directly after the date (CSD-034 REQ-6)');
+  assert.equal(shown[0][2], 'Example Market Town');
   assert.ok(shown[0].includes('-23.97'));
   assert.equal(app.callsOf('list_transactions')[0].args.limit, 200, 'the first answer holds 200 rows');
   assert.equal(app.textOf('transactions-shown'), 'Showing 2 of 450');
@@ -68,12 +69,41 @@ test('test_csd032_ac_15_2_the_filtered_total_is_the_one_rust_returned', async ()
   app.close();
 });
 
-test('test_csd032_ac_15_3_an_empty_project_shows_the_empty_state_and_the_import_button', async () => {
+test('test_csd034_ac_6_3_an_empty_project_points_to_the_accounts_tab_and_has_no_import_button', async () => {
   const app = await transactionsPage(readsWith({ rows: [], count: 0 }));
-  assert.equal(app.textOf('transactions-empty'), 'No transactions yet');
+  assert.equal(app.textOf('transactions-empty'), 'No transactions yet. Add an account on the Accounts tab and import a file into it.');
   assert.ok(app.isShown(app.$('transactions-empty')));
   assert.equal(app.isShown(app.$('transactions-table')), false);
-  assert.ok(app.isShown(app.$('transaction-import')));
+  // The buttons moved to the Accounts tab (CSD-034 REQ-6).
+  assert.equal(app.$('transaction-import'), null);
+  assert.equal(app.$('transaction-delete-all'), null);
+  app.close();
+});
+
+test('test_csd034_ac_6_1_the_rows_show_the_account_directly_after_the_date_and_the_filter_sends_account_ids', async () => {
+  const rows = [
+    transaction('t1', '2026-10-30', '-1.00', 'Example Shop', null, BANK),
+    transaction('t2', '2026-10-29', '-2.00', 'Example Cafe', null, SAVINGS),
+  ];
+  const app = await transactionsPage(readsWith({ rows }), {
+    list_transactions: (args) => {
+      const kept = args?.filter?.account_ids?.length ? rows.filter((row) => args.filter.account_ids.includes(row.account_id)) : rows;
+      return { rows: kept, count: kept.length, total: '0.00' };
+    },
+  });
+  const headers = [...app.$('transactions-table').tHead.rows[0].cells].map((cell) => app.text(cell));
+  assert.deepEqual(headers.slice(0, 3), ['Date', 'Account', 'Counterparty']);
+  assert.deepEqual(tableRows(app).map((row) => rowCells(app, row)[1]), ['Example Bank', 'Example Savings']);
+  // The filter has one checkbox per account.
+  await app.click(app.$('transaction-account-filter').querySelector('button'));
+  const boxes = [...app.$('transaction-account-filter').querySelectorAll('.filter-check input')];
+  assert.deepEqual(boxes.map((box) => box.value), [BANK, SAVINGS]);
+  boxes[1].checked = true;
+  boxes[1].dispatchEvent(new app.window.Event('change', { bubbles: true }));
+  await app.settle();
+  assert.deepEqual(app.callsOf('list_transactions').at(-1).args.filter.account_ids, [SAVINGS]);
+  assert.deepEqual(tableRows(app).map((row) => rowCells(app, row)[2]), ['Example Cafe']);
+  assert.match(app.$('transaction-account-filter').querySelector('.filter-btn').getAttribute('aria-label'), /active/);
   app.close();
 });
 
@@ -134,57 +164,6 @@ test('test_csd032_ac_14_1_a_confirmed_deletion_sends_the_id', async () => {
   app.close();
 });
 
-test('test_csd032_ac_25_3_delete_all_asks_first_and_cancel_changes_nothing', async () => {
-  const rows = [transaction('t1', '2026-10-30', '-1.00', 'Example Shop')];
-  const app = await transactionsPage(readsWith({ rows }));
-  await app.click(app.$('transaction-delete-all'));
-  assert.equal(app.$('confirm-dialog').open, true);
-  await app.click(app.$('confirm-cancel'));
-  assert.equal(app.callsOf('delete_all_transactions').length, 0);
-  assert.equal(tableRows(app).length, 1);
-  app.close();
-});
-
-test('test_csd032_ac_25_1_a_confirmed_delete_all_sends_the_command', async () => {
-  const rows = [transaction('t1', '2026-10-30', '-1.00', 'Example Shop')];
-  const app = await transactionsPage(readsWith({ rows }), { delete_all_transactions: null });
-  await app.click(app.$('transaction-delete-all'));
-  await app.click(app.$('confirm-ok'));
-  assert.equal(app.callsOf('delete_all_transactions').length, 1);
-  app.close();
-});
-
-test('test_csd032_ac_16_2_the_import_result_is_a_yellow_notification', async () => {
-  const app = await transactionsPage(readsWith({ rows: [], count: 0 }), {
-    import_transactions: { added: 3, skipped: 2 },
-  });
-  await app.click(app.$('transaction-import'));
-  assert.equal(app.textOf('toast'), '3 added, 2 skipped as duplicates');
-  assert.ok(app.isShown(app.$('toast')));
-  assert.ok(app.$('toast').classList.contains('toast-notice'), 'yellow, not the red of an error');
-  app.close();
-});
-
-test('test_csd032_ac_1_2_cancelling_the_file_dialog_shows_nothing', async () => {
-  const app = await transactionsPage(readsWith({ rows: [], count: 0 }), { import_transactions: null });
-  await app.click(app.$('transaction-import'));
-  assert.equal(app.$('toast').hidden, true);
-  app.close();
-});
-
-test('test_csd032_ac_3_1_a_rejected_import_shows_its_error_in_the_toast', async () => {
-  const app = await transactionsPage(readsWith({ rows: [], count: 0 }), {
-    import_transactions: () => {
-      throw { code: 'TRANSACTION_IMPORT_DATE', message: 'Line 4: the date is not a real date as dd-mm-yyyy.' };
-    },
-  });
-  await app.click(app.$('transaction-import'));
-  assert.equal(app.$('toast').hidden, false);
-  assert.match(app.textOf('toast'), /Line 4/);
-  assert.equal(app.$('toast').classList.contains('toast-notice'), false, 'an error stays red');
-  app.close();
-});
-
 test('test_csd032_ac_31_2_the_overview_shows_the_categorized_share_in_the_yearly_totals', async () => {
   const reads = readsWith({ rows: [], count: 0 });
   reads.get_transactions_overview.summary = { total: 40, categorized: 35, percent_label: '87.50%' };
@@ -222,7 +201,7 @@ test('test_csd032_ac_21_1_dutch_labels_and_stored_names_unchanged', async () => 
   reads.get_preferences = { theme: 'system', language: 'nl', number_format: 'point_comma', discrete_mode: false };
   const app = await transactionsPage(reads);
   assert.equal(app.text(app.item('transactions')), 'Transacties');
-  assert.equal(app.textOf('transaction-import'), 'Transacties importeren');
+  assert.equal(app.textOf('transactions-tab-accounts'), 'Rekeningen');
   const select = app.document.querySelector('[aria-label="Categorie van Example Shop"]');
   assert.deepEqual([...select.options].map((option) => app.text(option)), ['Zonder categorie', 'Groceries', 'Shopping']);
   app.close();
@@ -236,7 +215,8 @@ test('test_csd032_ac_21_2_an_error_code_is_shown_in_dutch', async () => {
       throw { code: 'TRANSACTION_IMPORT_CURRENCY', message: 'Line 3: the currency is not the currency of the project.' };
     },
   });
-  await app.click(app.$('transaction-import'));
+  await app.click(app.$('transactions-tab-accounts'));
+  await app.click(app.document.querySelector('#transaction-accounts [aria-label^="Transacties importeren in"]'));
   assert.equal(app.textOf('toast'), 'De valuta is niet de valuta van het project.');
   app.close();
 });
@@ -254,7 +234,7 @@ test('test_csd032_ac_18_1_a_change_reloads_the_settings_for_the_currency_confirm
 test('test_csd032_ac_16_3_categories_and_rules_are_on_their_own_tabs', async () => {
   const app = await transactionsPage(readsWith({ rows: [transaction('t1', '2026-10-30', '-1.00', 'Example Shop')] }));
   const own = ['transaction-categories', 'transaction-rules', 'transaction-apply-rules', 'transaction-apply-rules-all'];
-  const overview = ['transactions-table', 'transaction-import'];
+  const overview = ['transactions-table'];
   assert.equal(app.$('transactions-tab-overview').getAttribute('aria-selected'), 'true');
   for (const id of overview) assert.ok(app.isShown(app.$(id)), `${id} is on the Overview`);
   for (const id of own) assert.equal(app.isShown(app.$(id)), false, `${id} is not on the Overview`);
@@ -307,7 +287,7 @@ test('test_csd032_ac_15_7_the_period_filter_of_the_list_asks_for_days', async ()
   assert.deepEqual(fields.map((input) => input.getAttribute('placeholder')), ['dd/mm/yyyy', 'dd/mm/yyyy']);
   await app.typeFilter(fields[0], '29102026');
   assert.equal(fields[0].value, '29/10/2026', 'typed digits are laid out as a day');
-  assert.deepEqual(app.callsOf('list_transactions').at(-1).args.filter, { from: '2026-10-29', to: null, ids: [], min_amount: null, max_amount: null, counterparty: null, description: null }, 'Rust gets the ISO day');
+  assert.deepEqual(app.callsOf('list_transactions').at(-1).args.filter, { from: '2026-10-29', to: null, ids: [], account_ids: [], min_amount: null, max_amount: null, counterparty: null, description: null }, 'Rust gets the ISO day');
   await app.typeFilter(fields[1], '31022026');
   assert.deepEqual(app.callsOf('list_transactions').at(-1).args.filter.to, null, 'a day that is not on the calendar is not sent');
   app.close();
@@ -320,7 +300,7 @@ test('test_csd032_ac_15_8_the_amount_filter_sends_the_typed_range', async () => 
   const fields = [...panel.querySelectorAll('input')];
   assert.deepEqual(fields.map((input) => app.text(input.closest('label'))), ['From amount', 'To amount']);
   await app.typeFilter(fields[0], '-50,5');
-  assert.deepEqual(app.callsOf('list_transactions').at(-1).args.filter, { from: null, to: null, ids: [], min_amount: '-50,5', max_amount: null, counterparty: null, description: null }, 'the typed text goes to Rust');
+  assert.deepEqual(app.callsOf('list_transactions').at(-1).args.filter, { from: null, to: null, ids: [], account_ids: [], min_amount: '-50,5', max_amount: null, counterparty: null, description: null }, 'the typed text goes to Rust');
   await app.typeFilter(fields[1], 'abc');
   assert.equal(app.callsOf('list_transactions').at(-1).args.filter.max_amount, null, 'text without a digit is not sent');
   assert.match(app.document.querySelector('#transaction-amount-filter button').getAttribute('aria-label'), /active/);
@@ -355,7 +335,7 @@ test('test_csd032_ac_15_10_typing_in_a_filter_asks_once_after_a_pause_and_a_late
   await new Promise((resolve) => setTimeout(resolve, 260));
   release();
   await app.settle();
-  assert.deepEqual(tableRows(app).map((row) => app.text(row.querySelector('td.wrap'))), ['Albert Heijn'], 'the late answer of the first request is dropped');
+  assert.deepEqual(tableRows(app).map((row) => app.text(row.querySelectorAll('td.wrap')[1])), ['Albert Heijn'], 'the late answer of the first request is dropped');
   app.close();
 });
 

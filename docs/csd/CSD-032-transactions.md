@@ -3,9 +3,9 @@ id: CSD-032
 title: Transactions
 status: draft
 owner: Thijs Bardoel
-version: 0.40
+version: 0.42
 last_updated: 16/11/2026
-related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
+related: [CSD-000, CSD-034, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
 ---
 
 # CSD-032: Transactions
@@ -123,7 +123,7 @@ sequenceDiagram
 ### 4.1 Importing
 
 **REQ-1: Import a bank export** *(event-driven)*
-When the user chooses Import on the Transactions page and picks a file (a Knab CSV, REQ-2, or an ABN AMRO TAB file, REQ-34), the app shall add every transaction of the file that is not a duplicate to the project, categorise each by REQ-10, and show how many were added and how many were skipped as duplicates.
+When the user chooses Import transactions on an account of the Accounts page (CSD-034 REQ-3) and picks a file (a Knab CSV, REQ-2, or an ABN AMRO TAB file, REQ-34), the app shall add every transaction of the file that is not a duplicate to that account, categorise each by REQ-10, and show how many were added and how many were skipped as duplicates.
 
 ```gherkin
 @AC-1.1
@@ -242,7 +242,7 @@ Scenario: The project currency is compared, not a fixed EUR
 ```
 
 **REQ-5: Skip duplicates** *(event-driven)*
-When a row of an import has the same own account and bank reference as a stored transaction (or earlier row of the same file), the app shall skip it and count it as a duplicate.
+When a row of an import has the same own account and bank reference as a transaction stored in the same account (or earlier row of the same file), the app shall skip it and count it as a duplicate (CSD-034 REQ-5).
 
 ```gherkin
 @AC-5.1
@@ -580,7 +580,7 @@ Scenario: Cancelled deletion
 ### 4.3 The Transactions page
 
 **REQ-15: The list** *(ubiquitous)*
-The Transactions page shall show an Overview tab with the transactions newest first (equal dates in the order they were added, newest added first), 200 rows at a time with a "Load more" control, the filters of CSD-028 (the period of this list goes down to the day, AC-15.7, it has an amount filter, AC-15.8, and a text filter on the counterparty and on the description, AC-15.9) with Rust computing the filtered rows and the total of the amounts over all matching transactions, and the empty state "No transactions yet" with the Import button when there are none.
+The Transactions page shall show an Overview tab with the transactions newest first (equal dates in the order they were added, newest added first), 200 rows at a time with a "Load more" control, the filters of CSD-028 (the period of this list goes down to the day, AC-15.7, it has an amount filter, AC-15.8, and a text filter on the counterparty and on the description, AC-15.9) with Rust computing the filtered rows and the total of the amounts over all matching transactions, and the empty state "No transactions yet. Add an account on the Accounts tab and import a file into it." when there are none.
 
 ```gherkin
 @AC-15.1
@@ -600,7 +600,7 @@ Scenario: The total covers all matches, not the loaded rows
 @AC-15.3
 Scenario: Empty state
   Given no transactions
-  Then the page shows "No transactions yet" and the Import button
+  Then the page shows "No transactions yet. Add an account on the Accounts tab and import a file into it." (CSD-034 REQ-6) and no Import button
 
 @AC-15.4
 Scenario: Editing keeps the filter
@@ -655,7 +655,7 @@ Scenario: Typing in a filter asks once, after a pause
 ```
 
 **REQ-16: The page in the navigation** *(ubiquitous)*
-The left pane shall list Transactions as the last item of the group Finance (CSD-024 REQ-1), and the page shall have four tabs, left to right "Categories", "Rules", "Overview" and "Insights" (the last is CSD-033). The Overview tab, which is the one shown first, holds the list and the Import button. The Categories tab holds the management of categories and the Rules tab the management of rules and the two apply buttons of REQ-12. The message of an import or a re-apply is shown as a notification at the bottom right of the window, in the style of the notification after an undo but yellow, and goes away by itself like that one.
+The left pane shall list Transactions as the last item of the group Finance (CSD-024 REQ-1), and the page shall have five tabs, left to right "Accounts" (CSD-034), "Categories", "Rules", "Overview" and "Insights" (the last is CSD-033). The Overview tab, which is the one shown first, holds the list; the Import button is on the Accounts tab (CSD-034 REQ-3). The Categories tab holds the management of categories and the Rules tab the management of rules and the two apply buttons of REQ-12. The message of an import or a re-apply is shown as a notification at the bottom right of the window, in the style of the notification after an undo but yellow, and goes away by itself like that one.
 
 ```gherkin
 @AC-16.1
@@ -663,7 +663,7 @@ Scenario: Transactions is in the left pane
   When the user opens the app
   Then the left pane lists "Transactions" after "Income" and "Expenses" in the group "Finance"
   And choosing it shows the Overview tab
-  And the tabs are, left to right, "Categories", "Rules", "Overview" and "Insights"
+  And the tabs are, left to right, "Accounts", "Categories", "Rules", "Overview" and "Insights"
 
 @AC-16.2
 Scenario: The import result is a notification
@@ -688,7 +688,7 @@ Scenario: A re-apply message is a notification
 ### 4.4 Project file and neighbouring capabilities
 
 **REQ-17: The project file** *(ubiquitous)*
-The project file shall hold the required sections `transactions`, `transaction_categories` and `transaction_rules` in addition to the sections of CSD-002 REQ-16, with `format_version` 3, and the strict schema of CSD-002 REQ-17 shall apply to them. The script of CSD-002 REQ-20 shall upgrade a version 2 file by adding the three sections (the default categories and rules, and no transactions) and setting the version to 3, after writing its `.bak`.
+The project file shall hold the required sections `transactions`, `transaction_categories` and `transaction_rules` in addition to the sections of CSD-002 REQ-16, with `format_version` 3 (4 since CSD-034 REQ-7, which adds the section `transaction_accounts` and the `account_id` of every transaction), and the strict schema of CSD-002 REQ-17 shall apply to them. The script of CSD-002 REQ-20 shall upgrade a version 2 file by adding the three sections (the default categories and rules, and no transactions) and setting the version to 3, after writing its `.bak`.
 
 ```gherkin
 @AC-17.1
@@ -849,7 +849,7 @@ Scenario: Discrete mode hides the amounts
   Then the income, spent and net of every year are hidden and the years are shown
 
 **REQ-25: Delete all transactions** *(event-driven)*
-The Overview tab shall have a button "Delete all transactions". When the user confirms, the app shall remove every transaction, whatever the filters of the list are, and no other data: the categories and the rules shall stay. The deletion shall be one undo step "Delete Transactions" (CSD-027).
+(Superseded by CSD-034 REQ-4: the transactions of one account are deleted on the Accounts page, and the Overview tab has no such button.) The Overview tab had a button "Delete all transactions". When the user confirms, the app shall remove every transaction, whatever the filters of the list are, and no other data: the categories and the rules shall stay. The deletion shall be one undo step "Delete Transactions" (CSD-027).
 ```gherkin
 @AC-25.1
 Scenario: Everything goes, categories and rules stay
@@ -1364,6 +1364,8 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.42 (17/11/2026): The accounts of CSD-034 are a tab "Accounts" of the Transactions page, left of "Categories", not a page of the left pane. Owner request. Back to `draft` until re-approved.
+- 0.41 (17/11/2026): The transactions belong to accounts (CSD-034): the import goes into an account chosen on the Accounts page (REQ-1), duplicates are checked within the account (REQ-5), the project file holds `transaction_accounts` and `account_id` with format version 4 (REQ-17), "Delete all transactions" becomes the deletion of the transactions of an account (REQ-25), and the Transactions page has an Account column and filter and no import button (REQ-15, REQ-16). Owner request. Back to `draft` until re-approved.
 - 0.40 (17/11/2026): Import of an ABN AMRO TAB (`.TAB`) export next to the Knab CSV (new REQ-34, AC-34.1 to AC-34.7; REQ-1, NG-1). The `.xls` export is a non-goal: the TAB file has the same lines and needs no spreadsheet reader or new crate. My choices: the bank's lack of a reference is solved with the day, amount and balance after; `.gitignore` now also covers `.tab`, `.xls` and `.xlsx` exports. Back to `draft` until re-approved.
 - 0.39 (17/11/2026): The page loads the categories, rules, share and totals with one call, read from one state (new REQ-33, AC-33.1). The rules are compiled once per pass and the filter reads its category choices as ids, with no change of behaviour. REQ-29 is set out in parts (minimal count, how the list is built, the rows, adding, the size) and section 4 starts with a contents list; nothing in them changed. Refactoring review of the branch. Back to `draft` until re-approved.
 - 0.38 (17/11/2026): The duplicate AC-10.4 became AC-10.6 and the scenarios are in order of their id; CON-7 describes the pattern matching, new CON-9 bounds the command inputs; typed filter fields ask for the list after a short pause (REQ-15, AC-15.10). Refactoring review of the branch. Back to `draft` until re-approved.

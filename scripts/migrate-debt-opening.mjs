@@ -1,9 +1,12 @@
 #!/usr/bin/env node
-// One-off migration (CSD-002 REQ-20): upgrades a project file to format_version 3.
+// One-off migration (CSD-002 REQ-20): upgrades a project file to format_version 4.
 // Gives every debt an `opening_date` and `opening_amount`, every settlement an
 // `origin` (Sale for a debt with a house link, Manual otherwise), and the file the
 // sections of the transactions (CSD-032 REQ-17): no transactions, and the default
-// categories and rules of a new project. Outside the app, no dependencies.
+// categories and rules of a new project, and (version 4, CSD-034 REQ-7) the empty
+// section `transaction_accounts`: every transaction belongs to an account, so the
+// transactions of an older file are removed (the .bak keeps them) and are imported
+// again into an account. Outside the app, no dependencies.
 //
 // Usage: node scripts/migrate-debt-opening.mjs <file.varde>
 //
@@ -16,10 +19,12 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 /** The format_version this script upgrades to (CSD-002 REQ-20). */
-const TARGET_VERSION = 3;
+const TARGET_VERSION = 4;
 
 /** The sections CSD-032 adds, in the order the app writes them. */
 const TRANSACTION_SECTIONS = ['transactions', 'transaction_categories', 'transaction_rules'];
+/** The section of version 4: the accounts the transactions belong to (CSD-034 REQ-7). */
+const ACCOUNTS_SECTION = 'transaction_accounts';
 
 /** The default categories of a new project (CSD-032 REQ-8), as the app holds them. */
 const DEFAULT_CATEGORIES = [
@@ -176,7 +181,10 @@ function run(file) {
   if (missingSections.length !== 0 && missingSections.length !== TRANSACTION_SECTIONS.length) {
     fail('the file has only some of the transaction sections');
   }
-  if (todo.length === 0 && needOrigin.length === 0 && missingSections.length === 0 && version === TARGET_VERSION) {
+  const needAccounts = !Object.hasOwn(project, ACCOUNTS_SECTION);
+  if (!needAccounts && version < TARGET_VERSION) fail('the file has accounts but an older format_version');
+  if (needAccounts && !Array.isArray(project.transactions ?? [])) fail('the file has an unknown transactions section');
+  if (todo.length === 0 && needOrigin.length === 0 && missingSections.length === 0 && !needAccounts && version === TARGET_VERSION) {
     return console.log('Nothing to upgrade');
   }
 
@@ -210,9 +218,21 @@ function run(file) {
     project.transaction_categories = categories;
     project.transaction_rules = rules;
   }
+  // The transactions have no account: they are removed, and imported again into an account.
+  let removedTransactions = 0;
+  if (needAccounts) {
+    removedTransactions = project.transactions.length;
+    project.transactions = [];
+    project.transaction_accounts = [];
+  }
   project.format_version = TARGET_VERSION;
-  // Same layout as the app writes: 2-space indent, no trailing newline.
-  const text = JSON.stringify(project, null, 2);
+  // Same layout as the app writes: the sections of the transactions in the app's order, 2-space
+  // indent, no trailing newline.
+  const sections = ['transactions', ACCOUNTS_SECTION, 'transaction_categories', 'transaction_rules'];
+  const ordered = {};
+  for (const key of Object.keys(project)) if (!sections.includes(key)) ordered[key] = project[key];
+  for (const key of sections) ordered[key] = project[key];
+  const text = JSON.stringify(ordered, null, 2);
 
   try {
     fs.writeFileSync(`${file}.bak`, original, { flag: 'wx', mode: 0o600 });
@@ -221,7 +241,8 @@ function run(file) {
   }
   writeAtomic(file, text);
 
-  console.log(`Upgraded to format_version ${TARGET_VERSION}: ${todo.length} opening(s), ${needOrigin.length} settlement origin(s), ${missingSections.length === 0 ? 'no' : 'the'} transaction sections. Backup written next to the file with the extension .bak.`);
+  console.log(`Upgraded to format_version ${TARGET_VERSION}: ${todo.length} opening(s), ${needOrigin.length} settlement origin(s), ${missingSections.length === 0 ? 'no' : 'the'} transaction sections, ${removedTransactions} transaction(s) removed (they have no account). Backup written next to the file with the extension .bak.`);
+  if (removedTransactions > 0) console.log('Import the bank files again into an account on the Accounts page; the backup still holds the old transactions.');
   if (uncorrected.length > 0) {
     console.log('Debts without statements (opening date today, amount 0.00), correct these in the app:');
     for (const name of uncorrected) console.log(`- ${name}`);

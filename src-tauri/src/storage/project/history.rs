@@ -45,6 +45,7 @@ pub enum Record {
     Expense,
     Transactions,
     Transaction,
+    TransactionAccount,
     TransactionCategory,
     TransactionRule,
 }
@@ -119,6 +120,7 @@ impl fmt::Display for StepLabel {
             Record::Expense => "Expense",
             Record::Transactions => "Transactions",
             Record::Transaction => "Transaction",
+            Record::TransactionAccount => "Transaction Account",
             Record::TransactionCategory => "Transaction Category",
             Record::TransactionRule => "Transaction Rule",
         };

@@ -10,6 +10,15 @@ export const GROCERIES = 'cat-groceries';
 
 export const SHOPPING = 'cat-shopping';
 
+/** The account of the canned rows (CSD-034). */
+export const BANK = 'acc-bank';
+export const SAVINGS = 'acc-savings';
+
+export const ACCOUNTS = [
+  { id: BANK, name: 'Example Bank', transaction_count: 3 },
+  { id: SAVINGS, name: 'Example Savings', transaction_count: 1 },
+];
+
 export const CATEGORIES = [
   { id: GROCERIES, name: 'Groceries', transaction_count: 3 },
   { id: SHOPPING, name: 'Shopping', transaction_count: 1 },
@@ -20,8 +29,9 @@ export const RULES = [
   { id: 'rule-2', text: 'Example', category_id: SHOPPING, transaction_count: 1 },
 ];
 
-export const transaction = (id, date, amount, name, category = null) => ({
+export const transaction = (id, date, amount, name, category = null, account = BANK) => ({
   id,
+  account_id: account,
   date,
   amount,
   counterparty_name: name,
@@ -35,10 +45,10 @@ export const transaction = (id, date, amount, name, category = null) => ({
 });
 
 /** The golden example project with this list, the count and total Rust would return for it. */
-export function readsWith({ rows, count = rows.length, total = '0.00', categories = CATEGORIES, rules = RULES }) {
+export function readsWith({ rows, count = rows.length, total = '0.00', accounts = ACCOUNTS, categories = CATEGORIES, rules = RULES }) {
   const reads = exampleReads();
   reads.list_transactions = { rows, count, total };
-  reads.get_transactions_overview = { ...reads.get_transactions_overview, categories, rules };
+  reads.get_transactions_overview = { ...reads.get_transactions_overview, accounts, categories, rules };
   return reads;
 }
 

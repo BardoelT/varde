@@ -42,7 +42,7 @@ fn test_csd013_ac_16_1_expenses_survive_save_and_open_including_notes() {
     // The section sits next to the others; the version stays 1.
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
-    assert_eq!(value["format_version"], 3);
+    assert_eq!(value["format_version"], 4);
     assert_eq!(value["expenses"]["expenses"][0]["date"], "2026-09-15");
     assert_eq!(value["expenses"]["expenses"][0]["amount"], "4500.00");
 }

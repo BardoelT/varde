@@ -499,6 +499,18 @@ pub enum DomainError {
     /// Reported as: "Too many items in one request."
     #[error("Too many items in one request.")]
     TransactionInputTooLarge,
+    /// Reported as: "Enter a name for the account."
+    #[error("Enter a name for the account.")]
+    TransactionAccountNameRequired,
+    /// Reported as: "The account name can be at most 50 characters."
+    #[error("The account name can be at most 50 characters.")]
+    TransactionAccountNameTooLong,
+    /// Reported as: "An account with this name already exists."
+    #[error("An account with this name already exists.")]
+    TransactionAccountNameTaken,
+    /// Reported as: "This account does not exist."
+    #[error("This account does not exist.")]
+    TransactionAccountNotFound,
     /// Reported as: "This transaction does not exist."
     #[error("This transaction does not exist.")]
     TransactionNotFound,
@@ -671,6 +683,10 @@ impl DomainError {
             Self::TransactionRuleCategoryInvalid => "TRANSACTION_RULE_CATEGORY_INVALID",
             Self::TransactionRuleNotFound => "TRANSACTION_RULE_NOT_FOUND",
             Self::TransactionInputTooLarge => "TRANSACTION_INPUT_TOO_LARGE",
+            Self::TransactionAccountNameRequired => "TRANSACTION_ACCOUNT_NAME_REQUIRED",
+            Self::TransactionAccountNameTooLong => "TRANSACTION_ACCOUNT_NAME_TOO_LONG",
+            Self::TransactionAccountNameTaken => "TRANSACTION_ACCOUNT_NAME_TAKEN",
+            Self::TransactionAccountNotFound => "TRANSACTION_ACCOUNT_NOT_FOUND",
             Self::TransactionNotFound => "TRANSACTION_NOT_FOUND",
             Self::TransactionDataInvalid => "TRANSACTION_DATA_INVALID",
         }

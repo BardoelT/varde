@@ -566,6 +566,7 @@ fn test_csd002_ac_21_1_the_example_opens_and_every_area_has_records() {
         "list_house_valuations",
         "list_expenses",
         "list_transactions",
+        "list_transaction_accounts",
         "list_transaction_categories",
         "list_transaction_rules",
     ] {

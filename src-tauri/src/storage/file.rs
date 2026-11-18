@@ -6,13 +6,13 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::StorageError;
-use crate::domain::transactions::{Category, Rule, Transaction};
+use crate::domain::transactions::{Account, Category, Rule, Transaction};
 use crate::domain::{
     BankAccounts, Debts, Expenses, Houses, Income, Investments, ProjectData, Settings, Transactions,
 };
 
 /// Version of the project file format this app writes and understands.
-pub const FORMAT_VERSION: u32 = 3;
+pub const FORMAT_VERSION: u32 = 4;
 
 /// Largest project file the app will read, a bound on untrusted input.
 pub const MAX_FILE_BYTES: u64 = 50 * 1024 * 1024;
@@ -28,6 +28,7 @@ struct FileRef<'a> {
     houses: &'a Houses,
     settings: &'a Settings,
     transactions: &'a [Transaction],
+    transaction_accounts: &'a [Account],
     transaction_categories: &'a [Category],
     transaction_rules: &'a [Rule],
 }
@@ -48,6 +49,7 @@ struct FileOwned {
     houses: Houses,
     settings: Settings,
     transactions: Vec<Transaction>,
+    transaction_accounts: Vec<Account>,
     transaction_categories: Vec<Category>,
     transaction_rules: Vec<Rule>,
 }
@@ -64,6 +66,7 @@ pub(super) fn to_json(data: &ProjectData) -> Result<String, StorageError> {
         houses: &data.houses,
         settings: &data.settings,
         transactions: data.transactions.transactions(),
+        transaction_accounts: data.transactions.accounts(),
         transaction_categories: data.transactions.categories(),
         transaction_rules: data.transactions.rules(),
     })
@@ -111,6 +114,7 @@ pub(super) fn from_json(text: &str) -> Result<ProjectData, StorageError> {
         .map_err(|_| StorageError::InvalidFile)?;
     let transactions = Transactions::from_parts(
         file.transactions,
+        file.transaction_accounts,
         file.transaction_categories,
         file.transaction_rules,
     )

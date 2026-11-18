@@ -605,10 +605,24 @@
         </div>
 
         <div class="tabs" role="tablist" aria-label="Transaction views">
+          <button type="button" class="tab" role="tab" id="transactions-tab-accounts" aria-controls="transactions-accounts" aria-selected="false" tabindex="-1">Accounts</button>
           <button type="button" class="tab" role="tab" id="transactions-tab-categories" aria-controls="transactions-categories" aria-selected="false" tabindex="-1">Categories</button>
           <button type="button" class="tab" role="tab" id="transactions-tab-rules" aria-controls="transactions-rules" aria-selected="false" tabindex="-1">Rules</button>
           <button type="button" class="tab" role="tab" id="transactions-tab-overview" aria-controls="transactions-overview" aria-selected="true">Overview</button>
           <button type="button" class="tab" role="tab" id="transactions-tab-insights" aria-controls="transactions-insights" aria-selected="false" tabindex="-1">Insights</button>
+        </div>
+
+        <div id="transactions-accounts" role="tabpanel" aria-labelledby="transactions-tab-accounts" hidden>
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Accounts</span>
+              <div class="panel-actions">
+                <button type="button" class="btn primary" id="transaction-account-add">Add account</button>
+              </div>
+            </div>
+            <p class="empty-note" id="transaction-accounts-empty" hidden>No accounts yet. Add an account, then import the transactions of a bank into it.</p>
+            <ul class="job-list" id="transaction-accounts"></ul>
+          </div>
         </div>
 
         <div id="transactions-categories" role="tabpanel" aria-labelledby="transactions-tab-categories" hidden>
@@ -667,8 +681,6 @@
               <div class="panel-actions">
                 <button type="button" class="btn" id="transaction-bulk-toggle" aria-pressed="false">Bulk select</button>
                 <button type="button" class="btn" id="transaction-manual-only" aria-pressed="false">Manual only</button>
-                <button type="button" class="btn danger" id="transaction-delete-all">Delete all transactions</button>
-                <button type="button" class="btn primary" id="transaction-import">Import transactions</button>
               </div>
             </div>
             <div class="bulk-bar" id="transactions-bulk" hidden>
@@ -685,6 +697,7 @@
                 <thead>
                   <tr>
                     <th scope="col">Date<span class="col-filter" id="transaction-period-filter"></span></th>
+                    <th scope="col">Account<span class="col-filter" id="transaction-account-filter"></span></th>
                     <th scope="col">Counterparty<span class="col-filter" id="transaction-counterparty-filter"></span></th>
                     <th scope="col">Description<span class="col-filter" id="transaction-description-filter"></span></th>
                     <th scope="col">Category<span class="col-filter" id="transaction-entity-filter"></span></th>
@@ -695,7 +708,7 @@
                 <tbody id="transactions-rows"></tbody>
                 <tfoot>
                   <tr>
-                    <th scope="row" colspan="4" id="transactions-total-label">Total</th>
+                    <th scope="row" colspan="5" id="transactions-total-label">Total</th>
                     <td class="num" id="transactions-total"></td>
                     <td></td>
                   </tr>
@@ -1266,6 +1279,28 @@
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
         <button type="submit" class="btn primary">Save category</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="transaction-account-dialog" aria-labelledby="transaction-account-dialog-title">
+    <form method="dialog" id="transaction-account-form" novalidate>
+      <h2 id="transaction-account-dialog-title">Add account</h2>
+      <label class="field">Name
+        <input type="text" name="name" maxlength="50" autocomplete="off" required>
+      </label>
+      <p class="field-hint">An account name can be up to 50 characters and must differ from the other accounts.</p>
+      <div id="transaction-account-transactions" hidden>
+        <p class="dialog-note" id="transaction-account-count"></p>
+        <div class="dialog-row-actions">
+          <button type="button" class="btn" id="transaction-account-import">Import transactions</button>
+          <button type="button" class="btn danger" id="transaction-account-delete-transactions">Delete transactions</button>
+        </div>
+      </div>
+      <p class="form-error" id="transaction-account-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn" data-cancel>Cancel</button>
+        <button type="submit" class="btn primary">Save account</button>
       </div>
     </form>
   </dialog>

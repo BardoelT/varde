@@ -31,6 +31,7 @@ export function exampleReads() {
   const reads = { ...structuredClone(golden), ...startup, get_preferences: { ...startup.get_preferences } };
   // The page loads these four reads in one answer; the golden file holds each of them (CSD-032 REQ-34).
   reads.get_transactions_overview = {
+    accounts: reads.list_transaction_accounts,
     categories: reads.list_transaction_categories,
     rules: reads.list_transaction_rules,
     summary: reads.get_categorisation_summary,
@@ -86,7 +87,7 @@ export function emptyReads() {
     list_expenses: { expenses: [], ...emptyList },
     list_transactions: { rows: [], count: 0, total: '0.00' },
     yearly_transaction_totals: [],
-    get_transactions_overview: { ...reads.get_transactions_overview, summary: { total: 0, categorized: 0, percent_label: null }, totals: [] },
+    get_transactions_overview: { ...reads.get_transactions_overview, accounts: [], summary: { total: 0, categorized: 0, percent_label: null }, totals: [] },
     yearly_expense_totals: [],
     get_expense_insights: { categories: golden.get_expense_insights.categories, years: [] },
     get_net_worth_insights: { years: [] },

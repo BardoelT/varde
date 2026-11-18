@@ -1,5 +1,5 @@
 {
-  "format_version": 3,
+  "format_version": 4,
   "income": {
     "jobs": [
       {
@@ -375,6 +375,7 @@
   "transactions": [
     {
       "id": "id-18",
+      "account_id": "id-19",
       "date": "2026-10-30",
       "amount": "-23.97",
       "counterparty_name": "Example Market Town",
@@ -387,7 +388,8 @@
       "manual": false
     },
     {
-      "id": "id-19",
+      "id": "id-20",
+      "account_id": "id-19",
       "date": "2026-10-29",
       "amount": "-45.10",
       "counterparty_name": "Albert Heijn Example",
@@ -396,11 +398,12 @@
       "own_account": "NL00EXAM0000000001",
       "reference": "REF0000002",
       "payment_method": "Betaalautomaat",
-      "category_id": "id-20",
+      "category_id": "id-21",
       "manual": false
     },
     {
-      "id": "id-21",
+      "id": "id-22",
+      "account_id": "id-19",
       "date": "2026-10-28",
       "amount": "2500.00",
       "counterparty_name": "Example Employer",
@@ -413,7 +416,8 @@
       "manual": false
     },
     {
-      "id": "id-22",
+      "id": "id-23",
+      "account_id": "id-19",
       "date": "2026-10-27",
       "amount": "-13.99",
       "counterparty_name": "Netflix Example",
@@ -422,11 +426,12 @@
       "own_account": "NL00EXAM0000000001",
       "reference": "REF0000004",
       "payment_method": "Periodieke incasso",
-      "category_id": "id-23",
+      "category_id": "id-24",
       "manual": false
     },
     {
-      "id": "id-24",
+      "id": "id-25",
+      "account_id": "id-19",
       "date": "2026-10-26",
       "amount": "-1000.00",
       "counterparty_name": "Example Landlord",
@@ -439,7 +444,8 @@
       "manual": false
     },
     {
-      "id": "id-25",
+      "id": "id-26",
+      "account_id": "id-19",
       "date": "2026-10-26",
       "amount": "-200.00",
       "counterparty_name": "Example Savings",
@@ -452,7 +458,8 @@
       "manual": false
     },
     {
-      "id": "id-26",
+      "id": "id-27",
+      "account_id": "id-19",
       "date": "2026-10-25",
       "amount": "15.50",
       "counterparty_name": "Example Friend",
@@ -461,11 +468,12 @@
       "own_account": "NL00EXAM0000000001",
       "reference": "REF0000007",
       "payment_method": "Ontvangen iDEAL",
-      "category_id": "id-27",
+      "category_id": "id-28",
       "manual": true
     },
     {
-      "id": "id-28",
+      "id": "id-29",
+      "account_id": "id-19",
       "date": "2026-10-24",
       "amount": "-60.00",
       "counterparty_name": "",
@@ -478,139 +486,145 @@
       "manual": false
     }
   ],
+  "transaction_accounts": [
+    {
+      "id": "id-19",
+      "name": "Example Bank"
+    }
+  ],
   "transaction_categories": [
     {
-      "id": "id-29",
+      "id": "id-30",
       "name": "Salary"
     },
     {
-      "id": "id-20",
+      "id": "id-21",
       "name": "Groceries"
     },
     {
-      "id": "id-30",
+      "id": "id-31",
       "name": "Housing"
     },
     {
-      "id": "id-31",
+      "id": "id-32",
       "name": "Utilities"
     },
     {
-      "id": "id-32",
+      "id": "id-33",
       "name": "Insurance"
     },
     {
-      "id": "id-33",
+      "id": "id-34",
       "name": "Transport"
     },
     {
-      "id": "id-34",
+      "id": "id-35",
       "name": "Eating out"
     },
     {
-      "id": "id-35",
+      "id": "id-36",
       "name": "Shopping"
     },
     {
-      "id": "id-36",
+      "id": "id-37",
       "name": "Health"
     },
     {
-      "id": "id-37",
+      "id": "id-38",
       "name": "Leisure"
     },
     {
-      "id": "id-23",
+      "id": "id-24",
       "name": "Subscriptions"
     },
     {
-      "id": "id-38",
+      "id": "id-39",
       "name": "Savings & transfers"
     },
     {
-      "id": "id-39",
+      "id": "id-40",
       "name": "Taxes"
     },
     {
-      "id": "id-27",
+      "id": "id-28",
       "name": "Other"
     }
   ],
   "transaction_rules": [
     {
-      "id": "id-40",
-      "text": "Albert Heijn*",
-      "category_id": "id-20"
-    },
-    {
       "id": "id-41",
-      "text": "Jumbo*",
-      "category_id": "id-20"
+      "text": "Albert Heijn*",
+      "category_id": "id-21"
     },
     {
       "id": "id-42",
-      "text": "Lidl*",
-      "category_id": "id-20"
+      "text": "Jumbo*",
+      "category_id": "id-21"
     },
     {
       "id": "id-43",
-      "text": "Aldi*",
-      "category_id": "id-20"
+      "text": "Lidl*",
+      "category_id": "id-21"
     },
     {
       "id": "id-44",
-      "text": "Dirk van den Broek*",
-      "category_id": "id-20"
+      "text": "Aldi*",
+      "category_id": "id-21"
     },
     {
       "id": "id-45",
-      "text": "HEMA*",
-      "category_id": "id-35"
+      "text": "Dirk van den Broek*",
+      "category_id": "id-21"
     },
     {
       "id": "id-46",
-      "text": "bol.com*",
-      "category_id": "id-35"
+      "text": "HEMA*",
+      "category_id": "id-36"
     },
     {
       "id": "id-47",
-      "text": "Coolblue*",
-      "category_id": "id-35"
+      "text": "bol.com*",
+      "category_id": "id-36"
     },
     {
       "id": "id-48",
-      "text": "Kruidvat*",
+      "text": "Coolblue*",
       "category_id": "id-36"
     },
     {
       "id": "id-49",
-      "text": "NS Reizigers*",
-      "category_id": "id-33"
+      "text": "Kruidvat*",
+      "category_id": "id-37"
     },
     {
       "id": "id-50",
-      "text": "Shell*",
-      "category_id": "id-33"
+      "text": "NS Reizigers*",
+      "category_id": "id-34"
     },
     {
       "id": "id-51",
-      "text": "Thuisbezorgd*",
+      "text": "Shell*",
       "category_id": "id-34"
     },
     {
       "id": "id-52",
-      "text": "Netflix*",
-      "category_id": "id-23"
+      "text": "Thuisbezorgd*",
+      "category_id": "id-35"
     },
     {
       "id": "id-53",
-      "text": "Spotify*",
-      "category_id": "id-23"
+      "text": "Netflix*",
+      "category_id": "id-24"
     },
     {
       "id": "id-54",
+      "text": "Spotify*",
+      "category_id": "id-24"
+    },
+    {
+      "id": "id-55",
       "text": "Zilveren Kruis*",
-      "category_id": "id-32"
+      "category_id": "id-33"
     }
   ]
 }

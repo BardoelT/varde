@@ -74,7 +74,7 @@ fn test_csd032_ac_10_1_the_first_matching_rule_wins() {
         "EXAMPLE MARKET Town",
         "R1",
     );
-    data.import(&export(&[line]), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&[line]), Currency::Eur).unwrap();
     let groceries = category(&data, "Groceries");
     assert_eq!(
         data.transactions().first().unwrap().category_id,
@@ -95,7 +95,7 @@ fn test_csd032_ac_10_2_the_description_is_matched_too() {
         "Rent October 2026",
         "R1",
     );
-    data.import(&export(&[line]), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&[line]), Currency::Eur).unwrap();
     let housing = category(&data, "Housing");
     assert_eq!(
         data.transactions().first().unwrap().category_id,
@@ -107,7 +107,7 @@ fn test_csd032_ac_10_2_the_description_is_matched_too() {
 fn test_csd032_ac_10_3_no_match_is_uncategorized() {
     let mut data = with_rules(&[]);
     let line = simple("30-10-2026", "Afschrijvingen", "9,00", "Example Shop", "R1");
-    data.import(&export(&[line]), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&[line]), Currency::Eur).unwrap();
     let only = data.transactions().first().unwrap();
     assert_eq!(only.category_id, None);
     assert!(!only.manual);
@@ -117,7 +117,7 @@ fn test_csd032_ac_10_3_no_match_is_uncategorized() {
 fn test_csd032_ac_10_6_matching_ignores_case_but_not_the_text() {
     let mut data = with_rules(&[("example market", "Groceries")]);
     let line = simple("30-10-2026", "Afschrijvingen", "9,00", "Example Mkt", "R1");
-    data.import(&export(&[line]), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&[line]), Currency::Eur).unwrap();
     assert_eq!(data.transactions().first().unwrap().category_id, None);
 }
 
@@ -288,7 +288,7 @@ fn test_csd032_ac_27_1_a_rule_counts_the_transactions_it_categorises() {
         ),
         simple("26-10-2026", "Afschrijvingen", "9,00", "Other Place", "R5"),
     ];
-    data.import(&export(&rows), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&rows), Currency::Eur).unwrap();
     // The first match counts: "Example Market One" and "Two" belong to the first rule.
     assert_eq!(data.rule_counts(), vec![2, 1, 0]);
     // A hand-set transaction is not counted.
@@ -389,7 +389,8 @@ fn test_csd032_ac_32_1_a_rule_without_text_categorises_every_transaction_in_its_
     // Rust counts what the rule categorises.
     assert_eq!(data.rule_counts(), vec![2]);
     // Imports follow the rule too.
-    data.import(
+    import_to_first(
+        &mut data,
         &export(&[simple(
             "10-07-2026",
             "Afschrijvingen",
@@ -581,12 +582,26 @@ fn test_csd032_ac_32_7_a_period_survives_the_project_file_and_is_checked_on_load
     let rules: Vec<Rule> = serde_json::from_value(json).unwrap();
     let list = data.transactions().to_vec();
     let categories = data.categories().to_vec();
-    assert!(Transactions::from_parts(list.clone(), categories.clone(), rules.clone()).is_ok());
+    assert!(Transactions::from_parts(
+        list.clone(),
+        data.accounts().to_vec(),
+        categories.clone(),
+        rules.clone()
+    )
+    .is_ok());
     // An empty text needs a period, and the first day cannot be after the last.
     let mut no_text = rules.clone();
     no_text[1].text = String::new();
-    assert!(Transactions::from_parts(list.clone(), categories.clone(), no_text).is_err());
+    assert!(Transactions::from_parts(
+        list.clone(),
+        data.accounts().to_vec(),
+        categories.clone(),
+        no_text
+    )
+    .is_err());
     let mut inverted = rules;
     inverted[0].from = Some(day("20-07-2026"));
-    assert!(Transactions::from_parts(list, categories, inverted).is_err());
+    assert!(
+        Transactions::from_parts(list, data.accounts().to_vec(), categories, inverted).is_err()
+    );
 }

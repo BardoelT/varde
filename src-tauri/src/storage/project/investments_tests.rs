@@ -46,7 +46,7 @@ fn test_csd005_ac_19_1_investments_survive_save_and_open_including_notes() {
     // The section sits next to income and settings; the version stays 1.
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
-    assert_eq!(value["format_version"], 3);
+    assert_eq!(value["format_version"], 4);
     assert_eq!(
         value["investments"]["accounts"][0]["name"],
         "Example Pension"

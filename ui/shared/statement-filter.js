@@ -50,16 +50,18 @@ export function resetAllFilters() {
  * range, typed in the number format of the app and read by Rust (for the Transactions list only, CSD-032 REQ-15).
  * `textHosts` (`{ counterparty, description }`, the ids of the header elements of those columns) adds a text
  * filter on each: exact, or with `*` as a wildcard, ignoring case; Rust reads the text (for the Transactions list only, CSD-032 REQ-15).
+ * `choices` adds more columns with a choice of their own, like the entity column: `[{ host, key, title, choices }]`, where
+ * `key` is the payload field for the chosen ids and `choices()` gives the `{ id, label }` choices (the Account column of
+ * the Transactions list, CSD-034 REQ-6).
  * `onChange()` reloads the table. It is called at once for a click and, for typed text, after a short pause in
  * the typing (`TYPING_DELAY_MS`); a change that leaves what Rust is asked the same, such as half a date, calls
  * nothing (REQ-2).
  */
-export function createStatementFilter({ periodHost, entityHost, amountHost = null, textHosts = null, entityTitle, entities, onChange, period = 'month' }) {
+export function createStatementFilter({ periodHost, entityHost, amountHost = null, textHosts = null, choices = [], entityTitle, entities, onChange, period = 'month' }) {
   const days = period === 'day';
   /** The value Rust gets for a typed bound, or null while the text is not a valid month (or day). */
   const bound = (text) => (days ? isoDay(text) : MONTH.test(text) ? text : null);
   const amountText = (text) => (/\d/.test(text) ? text.trim() : null);
-  const entityName = () => t(entityTitle).toLocaleLowerCase();
 
   /** One text field of a panel; typing asks the table again after a pause (see `changed`). */
   function typedField(label, attributes, value, onValue) {
@@ -100,32 +102,38 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
     };
   }
 
-  function entityPart() {
+  /**
+   * A column whose rows each have one of a few choices (a category, an account): one checkbox per choice.
+   * `key` is the field of the payload that holds the chosen ids, `title` the English column title and
+   * `choices()` gives the `{ id, label }` of every choice.
+   */
+  function choicePart({ host, key, title, choices }) {
     const ids = new Set();
+    const name = () => t(title).toLocaleLowerCase();
     return {
-      host: entityHost,
-      filterLabel: () => t('Filter by {entity}', { entity: entityName() }),
-      activeLabel: () => t('Filter by {entity} (active)', { entity: entityName() }),
+      host,
+      filterLabel: () => t('Filter by {entity}', { entity: name() }),
+      activeLabel: () => t('Filter by {entity} (active)', { entity: name() }),
       active: () => ids.size > 0,
-      fields: () => ({ ids: [...ids] }),
+      fields: () => ({ [key]: [...ids] }),
       clear: () => ids.clear(),
-      /** Drops the choices of entities that no longer exist, without a message (REQ-12). */
+      /** Drops the choices that no longer exist, without a message (REQ-12). */
       prune() {
-        const known = new Set(entities().map((entity) => entity.id));
+        const known = new Set(choices().map((choice) => choice.id));
         for (const id of [...ids]) if (!known.has(id)) ids.delete(id);
       },
       panel() {
-        const checks = entities().map((entity) => {
-          const box = h('input', { type: 'checkbox', value: entity.id });
-          box.checked = ids.has(entity.id);
+        const checks = choices().map((choice) => {
+          const box = h('input', { type: 'checkbox', value: choice.id });
+          box.checked = ids.has(choice.id);
           box.addEventListener('change', () => {
-            if (box.checked) ids.add(entity.id);
-            else ids.delete(entity.id);
+            if (box.checked) ids.add(choice.id);
+            else ids.delete(choice.id);
             changed();
           });
-          return h('label', { class: 'filter-check' }, box, h('span', { class: 'wrap' }, entity.label));
+          return h('label', { class: 'filter-check' }, box, h('span', { class: 'wrap' }, choice.label));
         });
-        return panelOf(t('Filter by {entity}', { entity: entityName() }), h('div', { class: 'filter-checks' }, checks));
+        return panelOf(t('Filter by {entity}', { entity: name() }), h('div', { class: 'filter-checks' }, checks));
       },
     };
   }
@@ -173,7 +181,8 @@ export function createStatementFilter({ periodHost, entityHost, amountHost = nul
 
   const parts = [
     periodPart(),
-    entityPart(),
+    choicePart({ host: entityHost, key: 'ids', title: entityTitle, choices: entities }),
+    ...choices.map(choicePart),
     ...(amountHost === null ? [] : [amountPart()]),
     ...(textHosts === null ? [] : [textPart('counterparty', textHosts.counterparty, 'Counterparty'), textPart('description', textHosts.description, 'Description')]),
   ];

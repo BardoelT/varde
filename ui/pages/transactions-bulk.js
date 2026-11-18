@@ -61,7 +61,7 @@ export function syncBulk(count = shownCount) {
   all.setAttribute('aria-label', t('Select all {count} in the filter', { count: shownCount }));
   $('transactions-bulk-set').disabled = selected.size === 0;
   $('transactions-bulk-delete').disabled = selected.size === 0;
-  $('transactions-total-label').colSpan = bulk ? 5 : 4;
+  $('transactions-total-label').colSpan = bulk ? 6 : 5;
   for (const box of document.querySelectorAll('#transactions-rows input[data-select]')) box.checked = selected.has(box.dataset.select);
 }
 

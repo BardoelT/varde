@@ -10,7 +10,7 @@ use crate::domain::common::{Id, IdKind, YearMonth};
 use crate::domain::error::DomainError;
 use crate::domain::money::Money;
 
-use super::Category;
+use super::{AccountId, Category};
 
 /// Identifies a transaction.
 pub type TransactionId = Id<Transaction>;
@@ -93,6 +93,8 @@ impl<'de> Deserialize<'de> for TransactionDate {
 pub struct Transaction {
     /// Identifier of the transaction.
     pub id: TransactionId,
+    /// The account the transaction belongs to (CSD-034).
+    pub account_id: AccountId,
     /// The day the transaction was made.
     pub date: TransactionDate,
     /// Signed amount: a debit is negative, a credit positive.

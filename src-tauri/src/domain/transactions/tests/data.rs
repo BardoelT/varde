@@ -11,8 +11,13 @@ fn test_csd032_ac_17_4_a_transaction_with_an_unknown_category_is_invalid() {
     )]);
     let mut list = data.transactions().to_vec();
     list.first_mut().unwrap().category_id = Some(CategoryId::new());
-    let error = Transactions::from_parts(list, data.categories().to_vec(), data.rules().to_vec())
-        .unwrap_err();
+    let error = Transactions::from_parts(
+        list,
+        data.accounts().to_vec(),
+        data.categories().to_vec(),
+        data.rules().to_vec(),
+    )
+    .unwrap_err();
     assert_eq!(error.code(), "TRANSACTION_DATA_INVALID");
 }
 
@@ -27,13 +32,22 @@ fn test_csd032_ac_17_6_duplicate_ids_and_dangling_rules_are_invalid() {
     )]);
     let mut doubled = data.transactions().to_vec();
     doubled.push(doubled.first().unwrap().clone());
-    assert!(
-        Transactions::from_parts(doubled, data.categories().to_vec(), data.rules().to_vec())
-            .is_err()
-    );
+    assert!(Transactions::from_parts(
+        doubled,
+        data.accounts().to_vec(),
+        data.categories().to_vec(),
+        data.rules().to_vec()
+    )
+    .is_err());
     let mut rules = data.rules().to_vec();
     rules.first_mut().unwrap().category_id = CategoryId::new();
-    assert!(Transactions::from_parts(Vec::new(), data.categories().to_vec(), rules).is_err());
+    assert!(Transactions::from_parts(
+        Vec::new(),
+        data.accounts().to_vec(),
+        data.categories().to_vec(),
+        rules
+    )
+    .is_err());
 }
 
 #[test]

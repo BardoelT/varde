@@ -108,7 +108,9 @@ pub(crate) fn add_transactions(app: &Harness) {
         .join("fixtures")
         .join("example-bank-october.csv");
     let state = app.window.state::<AppState>();
-    let summary = crate::commands::transactions::import_flow(&state, || Some(path))
+    let account = app.ok("add_transaction_account", json!({ "name": "Example Bank" }));
+    let account_id = account["id"].as_str().unwrap().to_owned();
+    let summary = crate::commands::transactions::import_flow(&state, &account_id, || Some(path))
         .unwrap()
         .unwrap();
     assert_eq!((summary.added, summary.skipped), (8, 0));
@@ -344,6 +346,7 @@ pub(crate) fn read_everything(app: &Harness) -> Value {
         "get_expense_insights",
         "list_transactions",
         "yearly_transaction_totals",
+        "list_transaction_accounts",
         "list_transaction_categories",
         "list_transaction_rules",
         "get_categorisation_summary",

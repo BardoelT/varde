@@ -26,7 +26,7 @@ fn test_csd032_ac_1_1_a_file_of_three_new_transactions() {
             "R3",
         ),
     ];
-    let summary = data.import(&export(&rows), Currency::Eur).unwrap();
+    let summary = import_to_first(&mut data, &export(&rows), Currency::Eur).unwrap();
     assert_eq!(
         summary,
         ImportSummary {
@@ -40,7 +40,7 @@ fn test_csd032_ac_1_1_a_file_of_three_new_transactions() {
 #[test]
 fn test_csd032_ac_1_4_an_empty_file_adds_nothing() {
     let mut data = Transactions::default();
-    let summary = data.import(&export(&[]), Currency::Eur).unwrap();
+    let summary = import_to_first(&mut data, &export(&[]), Currency::Eur).unwrap();
     assert_eq!(
         summary,
         ImportSummary {
@@ -96,7 +96,7 @@ fn test_csd032_ac_2_3_line_endings_leave_no_carriage_return() {
     )];
     for text in [export(&rows), export(&rows).replace("\r\n", "\n")] {
         let mut data = Transactions::default();
-        data.import(&text, Currency::Eur).unwrap();
+        import_to_first(&mut data, &text, Currency::Eur).unwrap();
         let only = data.transactions().first().unwrap();
         assert!(!only.reference.contains('\r'));
         assert!(!only.description.contains('\r'));
@@ -157,7 +157,7 @@ fn test_csd032_ac_3_1_one_bad_row_imports_nothing() {
     for (bad, code) in bad_rows {
         let mut data = Transactions::default();
         let text = export(&five_rows_with_bad_fourth(bad));
-        let error = data.import(&text, Currency::Eur).unwrap_err();
+        let error = import_to_first(&mut data, &text, Currency::Eur).unwrap_err();
         assert_eq!(error.code(), code);
         // The header is line 1, so the third data row is line 4.
         assert!(error.to_string().contains("Line 4"), "{error}");
@@ -167,13 +167,9 @@ fn test_csd032_ac_3_1_one_bad_row_imports_nothing() {
 
 #[test]
 fn test_csd032_ac_3_2_another_header_is_not_a_knab_export() {
-    let error = Transactions::default()
-        .import("Datum;Bedrag\r\n30-10-2026;9,00\r\n", Currency::Eur)
-        .unwrap_err();
+    let error = import_into_new("Datum;Bedrag\r\n30-10-2026;9,00\r\n", Currency::Eur).unwrap_err();
     assert_eq!(error.code(), "TRANSACTION_IMPORT_FORMAT");
-    let empty = Transactions::default()
-        .import("", Currency::Eur)
-        .unwrap_err();
+    let empty = import_into_new("", Currency::Eur).unwrap_err();
     assert_eq!(empty.code(), "TRANSACTION_IMPORT_FORMAT");
 }
 
@@ -207,7 +203,7 @@ fn test_csd032_ac_4_1_another_currency_imports_nothing() {
         ),
     ];
     let mut data = Transactions::default();
-    let error = data.import(&export(&rows), Currency::Eur).unwrap_err();
+    let error = import_to_first(&mut data, &export(&rows), Currency::Eur).unwrap_err();
     assert_eq!(error.code(), "TRANSACTION_IMPORT_CURRENCY");
     assert!(error.to_string().contains("Line 4"));
     assert_eq!(data.total_count(), 0);
@@ -216,9 +212,7 @@ fn test_csd032_ac_4_1_another_currency_imports_nothing() {
 #[test]
 fn test_csd032_ac_4_2_the_project_currency_is_compared() {
     let rows = [simple("30-10-2026", "Afschrijvingen", "9,00", "A", "R1")];
-    let error = Transactions::default()
-        .import(&export(&rows), Currency::Usd)
-        .unwrap_err();
+    let error = import_into_new(&export(&rows), Currency::Usd).unwrap_err();
     assert_eq!(error.code(), "TRANSACTION_IMPORT_CURRENCY");
 }
 
@@ -233,7 +227,7 @@ fn test_csd032_ac_5_1_an_overlapping_export_skips_what_is_known() {
     let mut full = first.to_vec();
     full.push(simple("27-10-2026", "Afschrijvingen", "9,00", "D", "R4"));
     full.push(simple("26-10-2026", "Afschrijvingen", "9,00", "E", "R5"));
-    let summary = data.import(&export(&full), Currency::Eur).unwrap();
+    let summary = import_to_first(&mut data, &export(&full), Currency::Eur).unwrap();
     assert_eq!(
         summary,
         ImportSummary {
@@ -263,7 +257,7 @@ fn test_csd032_ac_5_2_the_same_reference_on_another_account_is_added() {
         "d",
         "REF0001",
     );
-    let summary = data.import(&export(&[other]), Currency::Eur).unwrap();
+    let summary = import_to_first(&mut data, &export(&[other]), Currency::Eur).unwrap();
     assert_eq!(summary.added, 1);
 }
 
@@ -271,9 +265,8 @@ fn test_csd032_ac_5_2_the_same_reference_on_another_account_is_added() {
 fn test_csd032_ac_5_3_a_repeated_row_in_one_file_counts_once() {
     let line = simple("30-10-2026", "Afschrijvingen", "9,00", "A", "R1");
     let mut data = Transactions::default();
-    let summary = data
-        .import(&export(&[line.clone(), line]), Currency::Eur)
-        .unwrap();
+    let summary =
+        import_to_first(&mut data, &export(&[line.clone(), line]), Currency::Eur).unwrap();
     assert_eq!(
         summary,
         ImportSummary {
@@ -289,7 +282,7 @@ fn test_csd032_ac_5_4_a_deleted_transaction_can_be_imported_again() {
     let mut data = imported(&rows);
     let id = data.transactions().first().unwrap().id;
     data.delete_transaction(id).unwrap();
-    let summary = data.import(&export(&rows), Currency::Eur).unwrap();
+    let summary = import_to_first(&mut data, &export(&rows), Currency::Eur).unwrap();
     assert_eq!(summary.added, 1);
 }
 

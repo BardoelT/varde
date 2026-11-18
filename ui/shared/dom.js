@@ -34,6 +34,7 @@ const ICON_PATHS = {
   'filter-active': ['M3 4h18l-7 8v6l-4 2v-8Z'],
   'add-rule': ['M12 5v14', 'M5 12h14'],
   grip: ['M4 7h16', 'M4 12h16', 'M4 17h16'],
+  import: ['M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4', 'M7 10l5 5 5-5', 'M12 15V3'],
   delete: ['M3 6h18', 'M8 6V4h8v2', 'M19 6l-1 14H6L5 6', 'M10 11v6', 'M14 11v6'],
 };
 

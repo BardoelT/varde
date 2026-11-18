@@ -11,8 +11,9 @@ import { initTransactionSuggest } from './transactions-suggest.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { deleteWithConfirm } from '../shared/crud.js';
 import { numCell, renderTable, rowHeader } from '../shared/list-rows.js';
-import { state, categoryName, changed, connect, run, showResult, transactionLabel } from './transactions-shared.js';
+import { state, accountName, categoryName, changed, connect, run, transactionLabel } from './transactions-shared.js';
 import { initBulk, isBulk, clearSelection, endBulk, selectBox, syncBulk, pruneSelection, renderBulkCategories } from './transactions-bulk.js';
+import { initTransactionAccounts, renderAccounts } from './transactions-accounts.js';
 import { initTransactionCategories, renderCategories } from './transactions-categories.js';
 import { initTransactionRules, renderRules, openRuleFromTransaction } from './transactions-rules.js';
 
@@ -50,6 +51,14 @@ const transactionsFilter = createStatementFilter({
   amountHost: 'transaction-amount-filter',
   textHosts: { counterparty: 'transaction-counterparty-filter', description: 'transaction-description-filter' },
   period: 'day',
+  choices: [
+    {
+      host: 'transaction-account-filter',
+      key: 'account_ids',
+      title: 'Account',
+      choices: () => state.accounts.map((account) => ({ id: account.id, label: account.name })),
+    },
+  ],
   entityTitle: 'Category',
   entities: () => [
     { id: UNCATEGORIZED, label: t('Uncategorized') },
@@ -148,7 +157,7 @@ async function unsetManual(transaction) {
 }
 
 function renderList(list, hasData) {
-  if (list.count === 0 && !transactionsFilter.payload() && !manualOnly()) $('transactions-empty').textContent = t('No transactions yet');
+  if (list.count === 0 && !transactionsFilter.payload() && !manualOnly()) $('transactions-empty').textContent = t('No transactions yet. Add an account on the Accounts tab and import a file into it.');
   // The total of every transaction that passes the filter, as Rust added it up (CSD-032 REQ-15).
   $('transactions-total').textContent = formatAmount(list.total);
   $('transactions-total-label').textContent = transactionsFilter.payload() || manualOnly() ? t('Filtered total') : t('Total');
@@ -161,6 +170,7 @@ function renderList(list, hasData) {
         {},
         isBulk() ? selectBox(transaction) : null,
         rowHeader(formatDate(transaction.date)),
+        h('td', { class: 'wrap' }, accountName(transaction.account_id)),
         h('td', { class: 'wrap' }, transaction.counterparty_name),
         h('td', { class: 'wrap' }, transaction.description),
         h('td', {}, categorySelect(transaction), transaction.manual ? manualBadge(transaction) : null),
@@ -200,34 +210,15 @@ function deleteTransaction(transaction) {
   });
 }
 
-/** Removes every transaction after a confirmation; categories and rules stay (CSD-032 REQ-25). */
-function deleteAllTransactions() {
-  return deleteWithConfirm({
-    title: t('Delete all transactions?'),
-    message: t('All transactions will be deleted. The categories and the rules stay. You can undo this.'),
-    confirmLabel: t('Delete all transactions'),
-    command: 'delete_all_transactions',
-    args: {},
-    changed,
-  });
-}
-
-function importTransactions() {
-  return run(async () => {
-    const summary = await invoke('import_transactions');
-    if (summary === null) return;
-    showResult(t('{added} added, {skipped} skipped as duplicates', summary));
-    await changed();
-  });
-}
-
 // ---- Loading ----
 
 /** Reloads everything from Rust. */
 export async function reloadTransactionsOverview() {
   const overview = await invoke('get_transactions_overview');
+  state.accounts = overview.accounts;
   state.categories = overview.categories;
   state.rules = overview.rules;
+  renderAccounts();
   renderCategories();
   renderBulkCategories();
   renderRules();
@@ -240,9 +231,9 @@ export function initTransactionsOverview({ onChanged }) {
   connect({ reload: reloadTransactionsOverview, onChanged });
   initTransactionSuggest({ categories: () => state.categories, changed });
   initBulk({ args: filterArgs, reload: loadList });
+  initTransactionAccounts();
   initTransactionCategories();
   initTransactionRules();
-  $('transaction-import').addEventListener('click', importTransactions);
   $('transaction-manual-only').addEventListener('click', () => {
     setManualOnly(!manualOnly());
     limit = PAGE_ROWS;
@@ -253,5 +244,4 @@ export function initTransactionsOverview({ onChanged }) {
     limit += PAGE_ROWS;
     reloadList();
   });
-  $('transaction-delete-all').addEventListener('click', deleteAllTransactions);
 }

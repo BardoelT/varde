@@ -23,9 +23,14 @@ fn export(count: usize) -> String {
 
 fn project_with(count: usize) -> Project {
     let mut project = Project::new();
+    let account = project
+        .transactions_mut()
+        .add_account("Example Bank")
+        .unwrap()
+        .id;
     project
         .transactions_mut()
-        .import(&export(count), Currency::Eur)
+        .import(account, &export(count), Currency::Eur)
         .unwrap();
     project
 }
@@ -64,6 +69,7 @@ fn test_csd032_ac_17_2_a_version_2_file_is_invalid_until_upgraded() {
     value["format_version"] = serde_json::json!(2);
     for section in [
         "transactions",
+        "transaction_accounts",
         "transaction_categories",
         "transaction_rules",
     ] {
@@ -195,6 +201,7 @@ fn test_csd032_ac_17_3_the_script_gives_a_version_2_file_the_default_sections() 
     value["format_version"] = serde_json::json!(2);
     for section in [
         "transactions",
+        "transaction_accounts",
         "transaction_categories",
         "transaction_rules",
     ] {
@@ -210,4 +217,70 @@ fn test_csd032_ac_17_3_the_script_gives_a_version_2_file_the_default_sections() 
     let mut upgraded = Project::new();
     upgraded.open(&path).unwrap();
     assert_eq!(upgraded.transactions(), fresh.transactions());
+}
+
+#[test]
+fn test_csd034_ac_7_1_accounts_and_the_account_of_every_transaction_are_saved() {
+    let dir = TempDir::new().unwrap();
+    let mut project = project_with(2);
+    project
+        .transactions_mut()
+        .add_account("Example Savings")
+        .unwrap();
+    let (path, value) = saved_value(&mut project, &dir);
+    assert_eq!(value["format_version"], 4);
+    let accounts = value["transaction_accounts"].as_array().unwrap();
+    assert_eq!(accounts.len(), 2);
+    assert_eq!(accounts[0]["name"], "Example Bank");
+    let first = accounts[0]["id"].clone();
+    assert!(value["transactions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|transaction| transaction["account_id"] == first));
+    let mut reopened = Project::new();
+    reopened.open(&path).unwrap();
+    assert_eq!(reopened.transactions(), project.transactions());
+}
+
+/// A change that breaks a saved file.
+type Change = fn(&mut serde_json::Value);
+
+#[test]
+fn test_csd034_ac_7_2_a_file_with_a_bad_account_is_invalid() {
+    let dir = TempDir::new().unwrap();
+    let broken: [(&str, Change); 5] = [
+        ("an unknown account on a transaction", |value| {
+            value["transactions"][0]["account_id"] =
+                serde_json::json!("671166f4-5827-4794-bcdc-54d7824fb650");
+        }),
+        ("no account on a transaction", |value| {
+            value["transactions"][0]
+                .as_object_mut()
+                .unwrap()
+                .remove("account_id");
+        }),
+        ("no accounts section", |value| {
+            value
+                .as_object_mut()
+                .unwrap()
+                .remove("transaction_accounts");
+        }),
+        ("an empty account name", |value| {
+            value["transaction_accounts"][0]["name"] = serde_json::json!("");
+        }),
+        ("an unknown field on an account", |value| {
+            value["transaction_accounts"][0]["bank"] = serde_json::json!("Example");
+        }),
+    ];
+    for (what, change) in broken {
+        let (path, mut value) = saved_value(&mut project_with(1), &dir);
+        change(&mut value);
+        fs::write(&path, value.to_string()).unwrap();
+        assert_eq!(
+            Project::new().open(&path).unwrap_err().code(),
+            "PROJECT_INVALID_FILE",
+            "{what}"
+        );
+    }
 }

@@ -313,6 +313,8 @@ dialog p { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
   background: var(--tag-expense-bg);
   border-radius: 8px;
 }
+.dialog-note { margin: 6px 0; font-size: 12px; color: var(--muted); }
+.dialog-row-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 
 .toast {

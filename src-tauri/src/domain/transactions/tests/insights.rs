@@ -72,7 +72,7 @@ fn test_csd033_ac_1_2_monthly_bars_run_from_the_first_month_with_spending_to_the
 fn test_csd033_ac_2_1_the_monthly_series_holds_at_most_36_months_and_older_ones_have_no_slot() {
     let mut data = insights_fixture();
     let old = simple("15-01-2020", "Afschrijvingen", "99,00", "Example Old", "R9");
-    data.import(&export(&[old]), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&[old]), Currency::Eur).unwrap();
     let insights = data.insights(Granularity::Monthly, month(2026, 6));
     // The last month is 2026-10 (the latest debit), so the series starts 35 months before it.
     assert_eq!(insights.years.len(), 36);
@@ -86,7 +86,7 @@ fn test_csd033_ac_2_1_the_monthly_series_holds_at_most_36_months_and_older_ones_
 fn test_csd033_ac_3_1_a_month_after_the_current_one_gets_a_slot() {
     let mut data = with_rules(&[]);
     let line = simple("15-03-2027", "Afschrijvingen", "9,00", "Example", "R1");
-    data.import(&export(&[line]), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&[line]), Currency::Eur).unwrap();
     let insights = data.insights(Granularity::Monthly, month(2026, 12));
     let last = insights.years.last().unwrap();
     assert_eq!(
@@ -111,7 +111,7 @@ fn test_csd033_ac_4_2_no_transactions_no_bars() {
 fn test_csd033_ac_4_4_a_credit_alone_gives_an_income_marker_and_no_segments() {
     let mut data = with_rules(&[]);
     let credit = simple("15-03-2026", "Bijschrijvingen", "9,00", "Example", "R1");
-    data.import(&export(&[credit]), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&[credit]), Currency::Eur).unwrap();
     for granularity in [Granularity::Yearly, Granularity::Monthly] {
         let insights = data.insights(granularity, month(2026, 6));
         let bar = insights

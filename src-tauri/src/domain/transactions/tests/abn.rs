@@ -24,7 +24,7 @@ fn abn_export(lines: &[String]) -> String {
 
 fn abn_imported(lines: &[String]) -> Transactions {
     let mut data = Transactions::default();
-    data.import(&abn_export(lines), Currency::Eur).unwrap();
+    import_to_first(&mut data, &abn_export(lines), Currency::Eur).unwrap();
     data
 }
 
@@ -175,7 +175,7 @@ fn test_csd032_ac_34_3_one_bad_line_imports_nothing_and_names_its_line() {
     for (bad, code) in cases {
         let mut data = Transactions::default();
         let text = abn_export(&[good(1), good(2), bad, good(4)]);
-        let error = data.import(&text, Currency::Eur).unwrap_err();
+        let error = import_to_first(&mut data, &text, Currency::Eur).unwrap_err();
         assert_eq!(error.code(), code);
         // There is no header, so the third line is line 3.
         assert!(error.to_string().contains("Line 3"), "{error}");
@@ -191,7 +191,7 @@ fn test_csd032_ac_34_4_the_same_booking_is_skipped_and_a_repeat_in_a_row_is_kept
     ];
     let mut data = Transactions::default();
     assert_eq!(
-        data.import(&abn_export(&first), Currency::Eur)
+        import_to_first(&mut data, &abn_export(&first), Currency::Eur)
             .unwrap()
             .added,
         2
@@ -202,9 +202,7 @@ fn test_csd032_ac_34_4_the_same_booking_is_skipped_and_a_repeat_in_a_row_is_kept
         first[1].clone(),
         abn_line("20261031", "86,03", "76,03", "-10,00", COLLECTION),
     ];
-    let summary = data
-        .import(&abn_export(&overlapping), Currency::Eur)
-        .unwrap();
+    let summary = import_to_first(&mut data, &abn_export(&overlapping), Currency::Eur).unwrap();
     assert_eq!((summary.added, summary.skipped), (1, 2));
     // A payment and its refund of the same amount leave the same balance twice: both are kept.
     let mut other = Transactions::default();
@@ -214,16 +212,14 @@ fn test_csd032_ac_34_4_the_same_booking_is_skipped_and_a_repeat_in_a_row_is_kept
         abn_line("20261030", "100,00", "105,00", "5,00", LABELLED),
     ];
     assert_eq!(
-        other
-            .import(&abn_export(&same_balance), Currency::Eur)
+        import_to_first(&mut other, &abn_export(&same_balance), Currency::Eur)
             .unwrap()
             .added,
         3
     );
     // Importing that file again adds nothing.
     assert_eq!(
-        other
-            .import(&abn_export(&same_balance), Currency::Eur)
+        import_to_first(&mut other, &abn_export(&same_balance), Currency::Eur)
             .unwrap()
             .added,
         0
@@ -240,19 +236,17 @@ fn test_csd032_ac_34_5_the_format_is_chosen_by_the_file_and_other_files_are_refu
         "Example Shop",
         "R1",
     )]);
-    let summary = data
-        .import(
-            &abn_export(&[abn_line("20261030", "0,00", "1,00", "1,00", STRUCTURED)]),
-            Currency::Eur,
-        )
-        .unwrap();
+    let summary = import_to_first(
+        &mut data,
+        &abn_export(&[abn_line("20261030", "0,00", "1,00", "1,00", STRUCTURED)]),
+        Currency::Eur,
+    )
+    .unwrap();
     assert_eq!(summary.added, 1);
     assert_eq!(data.total_count(), 2);
     // Text with neither semicolons nor tabs is neither format.
     for text in ["", "just some text\r\n", "30-10-2026,9.00\r\n"] {
-        let error = Transactions::default()
-            .import(text, Currency::Eur)
-            .unwrap_err();
+        let error = import_into_new(text, Currency::Eur).unwrap_err();
         assert_eq!(error.code(), "TRANSACTION_IMPORT_FORMAT", "{text:?}");
     }
 }
@@ -260,7 +254,8 @@ fn test_csd032_ac_34_5_the_format_is_chosen_by_the_file_and_other_files_are_refu
 #[test]
 fn test_csd032_ac_34_6_an_abn_amro_line_is_categorised_by_the_rules() {
     let mut data = with_rules(&[("Example Shop*", "Groceries"), ("*Salary*", "Salary")]);
-    data.import(
+    import_to_first(
+        &mut data,
         &abn_export(&[
             abn_line("20261030", "1000,00", "975,50", "-24,50", STRUCTURED),
             abn_line("20261029", "975,50", "2475,50", "1500,00", LABELLED),

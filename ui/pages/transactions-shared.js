@@ -6,8 +6,11 @@ import { showToast } from '../shared/dom.js';
 import { t } from '../shared/i18n.js';
 import { formatDate } from '../shared/format.js';
 
-/** The categories (with their transaction counts) and the rules (with theirs), as the last reload got them. */
-export const state = { categories: [], rules: [] };
+/** The accounts, categories and rules (each with the transactions it holds or categorises), as the last reload got them. */
+export const state = { accounts: [], categories: [], rules: [] };
+
+/** The name of an account by id. */
+export const accountName = (id) => state.accounts.find((account) => account.id === id)?.name ?? '';
 
 /** The name of a category by id; no id is the built-in Uncategorized. */
 export const categoryName = (id) => state.categories.find((category) => category.id === id)?.name ?? t('Uncategorized');

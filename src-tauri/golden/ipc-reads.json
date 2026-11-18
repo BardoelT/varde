@@ -3712,166 +3712,173 @@
       "title": null
     }
   ],
-  "list_transaction_categories": [
+  "list_transaction_accounts": [
     {
       "id": "id-18",
+      "name": "Example Bank",
+      "transaction_count": 8
+    }
+  ],
+  "list_transaction_categories": [
+    {
+      "id": "id-19",
       "name": "Salary",
       "transaction_count": 0
     },
     {
-      "id": "id-19",
+      "id": "id-20",
       "name": "Groceries",
       "transaction_count": 1
     },
     {
-      "id": "id-20",
+      "id": "id-21",
       "name": "Housing",
       "transaction_count": 0
     },
     {
-      "id": "id-21",
+      "id": "id-22",
       "name": "Utilities",
       "transaction_count": 0
     },
     {
-      "id": "id-22",
+      "id": "id-23",
       "name": "Insurance",
       "transaction_count": 0
     },
     {
-      "id": "id-23",
+      "id": "id-24",
       "name": "Transport",
       "transaction_count": 0
     },
     {
-      "id": "id-24",
+      "id": "id-25",
       "name": "Eating out",
       "transaction_count": 0
     },
     {
-      "id": "id-25",
+      "id": "id-26",
       "name": "Shopping",
       "transaction_count": 0
     },
     {
-      "id": "id-26",
+      "id": "id-27",
       "name": "Health",
       "transaction_count": 0
     },
     {
-      "id": "id-27",
+      "id": "id-28",
       "name": "Leisure",
       "transaction_count": 0
     },
     {
-      "id": "id-28",
+      "id": "id-29",
       "name": "Subscriptions",
       "transaction_count": 1
     },
     {
-      "id": "id-29",
+      "id": "id-30",
       "name": "Savings & transfers",
       "transaction_count": 0
     },
     {
-      "id": "id-30",
+      "id": "id-31",
       "name": "Taxes",
       "transaction_count": 0
     },
     {
-      "id": "id-31",
+      "id": "id-32",
       "name": "Other",
       "transaction_count": 1
     }
   ],
   "list_transaction_rules": [
     {
-      "category_id": "id-19",
-      "id": "id-32",
+      "category_id": "id-20",
+      "id": "id-33",
       "text": "Albert Heijn*",
       "transaction_count": 1
     },
     {
-      "category_id": "id-19",
-      "id": "id-33",
+      "category_id": "id-20",
+      "id": "id-34",
       "text": "Jumbo*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-19",
-      "id": "id-34",
+      "category_id": "id-20",
+      "id": "id-35",
       "text": "Lidl*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-19",
-      "id": "id-35",
+      "category_id": "id-20",
+      "id": "id-36",
       "text": "Aldi*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-19",
-      "id": "id-36",
+      "category_id": "id-20",
+      "id": "id-37",
       "text": "Dirk van den Broek*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-25",
-      "id": "id-37",
+      "category_id": "id-26",
+      "id": "id-38",
       "text": "HEMA*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-25",
-      "id": "id-38",
-      "text": "bol.com*",
-      "transaction_count": 0
-    },
-    {
-      "category_id": "id-25",
+      "category_id": "id-26",
       "id": "id-39",
-      "text": "Coolblue*",
+      "text": "bol.com*",
       "transaction_count": 0
     },
     {
       "category_id": "id-26",
       "id": "id-40",
+      "text": "Coolblue*",
+      "transaction_count": 0
+    },
+    {
+      "category_id": "id-27",
+      "id": "id-41",
       "text": "Kruidvat*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-23",
-      "id": "id-41",
-      "text": "NS Reizigers*",
-      "transaction_count": 0
-    },
-    {
-      "category_id": "id-23",
+      "category_id": "id-24",
       "id": "id-42",
-      "text": "Shell*",
+      "text": "NS Reizigers*",
       "transaction_count": 0
     },
     {
       "category_id": "id-24",
       "id": "id-43",
+      "text": "Shell*",
+      "transaction_count": 0
+    },
+    {
+      "category_id": "id-25",
+      "id": "id-44",
       "text": "Thuisbezorgd*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-28",
-      "id": "id-44",
+      "category_id": "id-29",
+      "id": "id-45",
       "text": "Netflix*",
       "transaction_count": 1
     },
     {
-      "category_id": "id-28",
-      "id": "id-45",
+      "category_id": "id-29",
+      "id": "id-46",
       "text": "Spotify*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-22",
-      "id": "id-46",
+      "category_id": "id-23",
+      "id": "id-47",
       "text": "Zilveren Kruis*",
       "transaction_count": 0
     }
@@ -3880,104 +3887,112 @@
     "count": 8,
     "rows": [
       {
+        "account_id": "id-18",
         "amount": "-23.97",
         "category_id": null,
         "counterparty_iban": "",
         "counterparty_name": "Example Market Town",
         "date": "2026-10-30",
         "description": "EXAMPLE TOWN 30-10-2026 13:18 Pas: 0001",
-        "id": "id-47",
+        "id": "id-48",
         "manual": false,
         "own_account": "NL00EXAM0000000001",
         "payment_method": "Betaalautomaat",
         "reference": "REF0000001"
       },
       {
+        "account_id": "id-18",
         "amount": "-45.10",
-        "category_id": "id-19",
+        "category_id": "id-20",
         "counterparty_iban": "NL00EXAM0000000002",
         "counterparty_name": "Albert Heijn Example",
         "date": "2026-10-29",
         "description": "EXAMPLE TOWN 29-10-2026 10:02 Pas: 0001",
-        "id": "id-48",
+        "id": "id-49",
         "manual": false,
         "own_account": "NL00EXAM0000000001",
         "payment_method": "Betaalautomaat",
         "reference": "REF0000002"
       },
       {
+        "account_id": "id-18",
         "amount": "2500.00",
         "category_id": null,
         "counterparty_iban": "NL00EXAM0000000003",
         "counterparty_name": "Example Employer",
         "date": "2026-10-28",
         "description": "Salary October 2026",
-        "id": "id-49",
+        "id": "id-50",
         "manual": false,
         "own_account": "NL00EXAM0000000001",
         "payment_method": "Ontvangen betaling",
         "reference": "REF0000003"
       },
       {
+        "account_id": "id-18",
         "amount": "-13.99",
-        "category_id": "id-28",
+        "category_id": "id-29",
         "counterparty_iban": "NL00EXAM0000000004",
         "counterparty_name": "Netflix Example",
         "date": "2026-10-27",
         "description": "Subscription",
-        "id": "id-50",
+        "id": "id-51",
         "manual": false,
         "own_account": "NL00EXAM0000000001",
         "payment_method": "Periodieke incasso",
         "reference": "REF0000004"
       },
       {
+        "account_id": "id-18",
         "amount": "-200.00",
         "category_id": null,
         "counterparty_iban": "NL00EXAM0000000006",
         "counterparty_name": "Example Savings",
         "date": "2026-10-26",
         "description": "Transfer to savings",
-        "id": "id-51",
+        "id": "id-52",
         "manual": false,
         "own_account": "NL00EXAM0000000001",
         "payment_method": "Overboeking",
         "reference": "REF0000006"
       },
       {
+        "account_id": "id-18",
         "amount": "-1000.00",
         "category_id": null,
         "counterparty_iban": "NL00EXAM0000000005",
         "counterparty_name": "Example Landlord",
         "date": "2026-10-26",
         "description": "Rent October 2026",
-        "id": "id-52",
+        "id": "id-53",
         "manual": false,
         "own_account": "NL00EXAM0000000001",
         "payment_method": "Overboeking",
         "reference": "REF0000005"
       },
       {
+        "account_id": "id-18",
         "amount": "15.50",
-        "category_id": "id-31",
+        "category_id": "id-32",
         "counterparty_iban": "NL00EXAM0000000007",
         "counterparty_name": "Example Friend",
         "date": "2026-10-25",
         "description": "Dinner; shared",
-        "id": "id-53",
+        "id": "id-54",
         "manual": true,
         "own_account": "NL00EXAM0000000001",
         "payment_method": "Ontvangen iDEAL",
         "reference": "REF0000007"
       },
       {
+        "account_id": "id-18",
         "amount": "-60.00",
         "category_id": null,
         "counterparty_iban": "",
         "counterparty_name": "",
         "date": "2026-10-24",
         "description": "Example Fuel Station",
-        "id": "id-54",
+        "id": "id-55",
         "manual": false,
         "own_account": "NL00EXAM0000000001",
         "payment_method": "Onbemand tanken",

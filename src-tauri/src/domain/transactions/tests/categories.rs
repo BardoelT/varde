@@ -75,7 +75,7 @@ fn test_csd032_ac_8_5_a_category_may_change_only_its_own_case() {
 fn test_csd032_ac_11_1_a_manual_choice_sticks() {
     let mut data = with_rules(&[]);
     let line = simple("30-10-2026", "Afschrijvingen", "9,00", "Example Shop", "R1");
-    data.import(&export(&[line]), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&[line]), Currency::Eur).unwrap();
     let id = data.transactions().first().unwrap().id;
     let shopping = category(&data, "Shopping");
     data.set_category(id, Some(shopping)).unwrap();
@@ -91,7 +91,7 @@ fn test_csd032_ac_11_1_a_manual_choice_sticks() {
 fn test_csd032_ac_11_2_back_to_uncategorized_by_hand_stays_manual() {
     let mut data = with_rules(&[("Example", "Shopping")]);
     let line = simple("30-10-2026", "Afschrijvingen", "9,00", "Example Shop", "R1");
-    data.import(&export(&[line]), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&[line]), Currency::Eur).unwrap();
     let id = data.transactions().first().unwrap().id;
     data.set_category(id, None).unwrap();
     let only = data.transactions().first().unwrap();
@@ -105,7 +105,7 @@ fn test_csd032_ac_11_3_a_stale_screen_is_reported() {
     let error = data.set_category(TransactionId::new(), None).unwrap_err();
     assert_eq!(error.code(), "TRANSACTION_NOT_FOUND");
     let line = simple("30-10-2026", "Afschrijvingen", "9,00", "Example Shop", "R1");
-    data.import(&export(&[line]), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&[line]), Currency::Eur).unwrap();
     let id = data.transactions().first().unwrap().id;
     let error = data.set_category(id, Some(CategoryId::new())).unwrap_err();
     assert_eq!(error.code(), "TRANSACTION_CATEGORY_NOT_FOUND");
@@ -118,7 +118,7 @@ fn test_csd032_ac_13_1_deleting_a_category_clears_transactions_and_rules() {
     data.add_rule("Example Gym", leisure).unwrap();
     data.add_rule("Example Club", leisure).unwrap();
     let line = simple("30-10-2026", "Afschrijvingen", "9,00", "Example Gym", "R1");
-    data.import(&export(&[line]), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&[line]), Currency::Eur).unwrap();
     let id = data.transactions().first().unwrap().id;
     data.set_category(id, Some(leisure)).unwrap();
     data.delete_category(leisure).unwrap();
@@ -156,7 +156,8 @@ fn test_csd032_ac_25_1_deleting_all_transactions_keeps_categories_and_rules() {
     ]);
     let categories = data.categories().to_vec();
     let rules = data.rules().to_vec();
-    assert_eq!(data.delete_all_transactions(), 2);
+    let account = first_account(&mut data);
+    assert_eq!(data.delete_account_transactions(account).unwrap(), 2);
     assert_eq!(data.total_count(), 0);
     assert_eq!(data.categories(), categories.as_slice());
     assert_eq!(data.rules(), rules.as_slice());
@@ -219,7 +220,7 @@ fn test_csd032_ac_31_1_the_summary_gives_the_share_of_categorized_transactions()
             )
         })
         .collect();
-    data.import(&export(&rows), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&rows), Currency::Eur).unwrap();
     let groceries = category(&data, "Groceries");
     for day in 1..=7 {
         let id = find(&data, &format!("Example {day}")).id;
@@ -240,7 +241,7 @@ fn test_csd032_ac_31_1_the_summary_gives_the_share_of_categorized_transactions()
             )
         })
         .collect();
-    data.import(&export(&more), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&more), Currency::Eur).unwrap();
     let summary = data.categorisation_summary();
     assert_eq!((summary.categorized, summary.total), (7, 11));
     assert_eq!(summary.percent_label.as_deref(), Some("63.64%"));
@@ -250,7 +251,7 @@ fn test_csd032_ac_31_1_the_summary_gives_the_share_of_categorized_transactions()
 fn test_csd032_ac_11_5_unsetting_manual_keeps_the_category_and_lets_rules_in_again() {
     let mut data = with_rules(&[]);
     let line = simple("30-10-2026", "Afschrijvingen", "9,00", "Example Shop", "R1");
-    data.import(&export(&[line]), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&[line]), Currency::Eur).unwrap();
     let id = data.transactions().first().unwrap().id;
     let shopping = category(&data, "Shopping");
     data.set_category(id, Some(shopping)).unwrap();

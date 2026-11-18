@@ -13,9 +13,9 @@ use tauri_plugin_dialog::DialogExt;
 
 use super::AppState;
 use crate::domain::transactions::{
-    CategorisationSummary, Category, CategoryId, Granularity, ImportSummary, ReapplyScope, Rule,
-    RuleDraft, RuleId, RulePeriod, RuleSuggestions, TransactionDate, TransactionFilter,
-    TransactionFilterInput, TransactionId, TransactionInsights, TransactionList,
+    Account, AccountId, CategorisationSummary, Category, CategoryId, Granularity, ImportSummary,
+    ReapplyScope, Rule, RuleDraft, RuleId, RulePeriod, RuleSuggestions, TransactionDate,
+    TransactionFilter, TransactionFilterInput, TransactionId, TransactionInsights, TransactionList,
     TransactionYearlyTotal, Transactions, UNCATEGORIZED_ENTITY,
 };
 use crate::domain::DomainError;
@@ -73,13 +73,15 @@ fn read_export(path: &Path) -> Result<String, DomainError> {
     Ok(text)
 }
 
-/// Picks a file with `ask_path`, reads it and imports it as one undo step.
-/// `None` means the user cancelled (CSD-032 REQ-1, REQ-6). The project is not
-/// locked while the dialog is open.
+/// Picks a file with `ask_path`, reads it and imports it into the account as
+/// one undo step. `None` means the user cancelled (CSD-032 REQ-1, REQ-6,
+/// CSD-034 REQ-3). The project is not locked while the dialog is open.
 pub(crate) fn import_flow(
     state: &AppState,
+    account_id: &str,
     ask_path: impl FnOnce() -> Option<PathBuf>,
 ) -> Result<Option<ImportSummary>, AppError> {
+    let account = AccountId::parse(account_id)?;
     let Some(path) = ask_path() else {
         return Ok(None);
     };
@@ -87,17 +89,18 @@ pub(crate) fn import_flow(
     let mut project = state.edit(StepLabel::import(Record::Transactions))?;
     let (settings, transactions) = project.settings_and_transactions_mut();
     let currency = settings.currency;
-    Ok(Some(transactions.import(&text, currency)?))
+    Ok(Some(transactions.import(account, &text, currency)?))
 }
 
-/// Imports a Knab CSV or an ABN AMRO TAB file chosen in a native dialog
-/// (CSD-032 REQ-1 to REQ-6, REQ-34).
+/// Imports a Knab CSV or an ABN AMRO TAB file chosen in a native dialog into
+/// an account (CSD-032 REQ-1 to REQ-6, REQ-34, CSD-034 REQ-3).
 #[tauri::command(async)]
 pub fn import_transactions<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
+    account_id: String,
 ) -> Result<Option<ImportSummary>, AppError> {
-    import_flow(&state, || pick_export(&app))
+    import_flow(&state, &account_id, || pick_export(&app))
 }
 
 /// The transactions that pass the filter, newest first, `limit` rows of them
@@ -237,13 +240,78 @@ pub fn delete_transactions(
     Ok(project.transactions_mut().delete_many(&ids)?)
 }
 
-/// Removes every transaction; the categories and the rules stay (CSD-032
-/// REQ-25). One undo step.
+/// An account with the number of transactions in it (CSD-034 REQ-1).
+#[derive(Serialize)]
+pub struct AccountRow {
+    #[serde(flatten)]
+    account: Account,
+    transaction_count: usize,
+}
+
+fn account_rows(transactions: &Transactions) -> Vec<AccountRow> {
+    transactions
+        .account_rows()
+        .into_iter()
+        .map(|(account, transaction_count)| AccountRow {
+            account: account.clone(),
+            transaction_count,
+        })
+        .collect()
+}
+
+/// The accounts, in the order they were added, each with its number of
+/// transactions (CSD-034 REQ-1).
 #[tauri::command]
-pub fn delete_all_transactions(state: State<'_, AppState>) -> Result<(), AppError> {
+pub fn list_transaction_accounts(state: State<'_, AppState>) -> Result<Vec<AccountRow>, AppError> {
+    let project = state.project()?;
+    Ok(account_rows(project.transactions()))
+}
+
+/// Adds an account (CSD-034 REQ-2).
+#[tauri::command]
+pub fn add_transaction_account(
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<Account, AppError> {
+    let mut project = state.edit(StepLabel::add(Record::TransactionAccount))?;
+    Ok(project.transactions_mut().add_account(&name)?)
+}
+
+/// Renames an account (CSD-034 REQ-2).
+#[tauri::command]
+pub fn rename_transaction_account(
+    state: State<'_, AppState>,
+    account_id: String,
+    name: String,
+) -> Result<Account, AppError> {
+    let id = AccountId::parse(&account_id)?;
+    let mut project = state.edit(StepLabel::edit(Record::TransactionAccount))?;
+    Ok(project.transactions_mut().rename_account(id, &name)?)
+}
+
+/// Deletes an account with its transactions, as one undo step, and returns
+/// how many transactions went. The frontend has asked for the confirmation
+/// (CSD-034 REQ-2).
+#[tauri::command]
+pub fn delete_transaction_account(
+    state: State<'_, AppState>,
+    account_id: String,
+) -> Result<usize, AppError> {
+    let id = AccountId::parse(&account_id)?;
+    let mut project = state.edit(StepLabel::delete(Record::TransactionAccount))?;
+    Ok(project.transactions_mut().delete_account(id)?)
+}
+
+/// Removes every transaction of an account; the account, the categories and the
+/// rules stay (CSD-034 REQ-4). One undo step; returns how many were removed.
+#[tauri::command]
+pub fn delete_account_transactions(
+    state: State<'_, AppState>,
+    account_id: String,
+) -> Result<usize, AppError> {
+    let id = AccountId::parse(&account_id)?;
     let mut project = state.edit(StepLabel::delete(Record::Transactions))?;
-    project.transactions_mut().delete_all_transactions();
-    Ok(())
+    Ok(project.transactions_mut().delete_account_transactions(id)?)
 }
 
 /// A category with the number of transactions in it (REQ-30).
@@ -339,6 +407,7 @@ pub fn list_transaction_rules(state: State<'_, AppState>) -> Result<Vec<RuleRow>
 /// state of the project (CSD-032 REQ-33).
 #[derive(Serialize)]
 pub struct TransactionsOverview {
+    accounts: Vec<AccountRow>,
     categories: Vec<CategoryRow>,
     rules: Vec<RuleRow>,
     summary: CategorisationSummary,
@@ -355,6 +424,7 @@ pub fn get_transactions_overview(
     let project = state.project()?;
     let transactions = project.transactions();
     Ok(TransactionsOverview {
+        accounts: account_rows(transactions),
         categories: category_rows(transactions),
         rules: rule_rows(transactions),
         summary: transactions.categorisation_summary(),

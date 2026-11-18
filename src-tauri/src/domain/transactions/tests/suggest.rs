@@ -137,7 +137,8 @@ fn test_csd032_ac_29_5_sorted_and_cut_at_100() {
         texts(&more.suggest_rules(1).unwrap()),
         vec![("Example Big", 3), ("Example Small", 1)]
     );
-    data.delete_all_transactions();
+    let account = first_account(&mut data);
+    data.delete_account_transactions(account).unwrap();
     assert_eq!(data.suggest_rules(1).unwrap().not_shown, 0);
 }
 

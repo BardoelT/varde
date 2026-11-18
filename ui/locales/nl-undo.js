@@ -15,6 +15,7 @@ const RECORDS = {
   Expense: 'Uitgave',
   Transactions: 'Transacties',
   Transaction: 'Transactie',
+  'Transaction Account': 'Transactierekening',
   'Transaction Category': 'Transactiecategorie',
   'Transaction Rule': 'Transactieregel',
 };

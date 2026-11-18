@@ -19,9 +19,22 @@ fn fixture() -> PathBuf {
         .join("example-bank-october.csv")
 }
 
+/// The id of the first account; "Example Bank" is added when there is none.
+fn first_account(app: &Harness) -> String {
+    let accounts = app.ok("list_transaction_accounts", json!({}));
+    if let Some(first) = accounts.as_array().and_then(|list| list.first()) {
+        return first["id"].as_str().unwrap().to_owned();
+    }
+    app.ok("add_transaction_account", json!({ "name": "Example Bank" }))["id"]
+        .as_str()
+        .unwrap()
+        .to_owned()
+}
+
 fn import(app: &Harness, path: PathBuf) -> Result<Option<(usize, usize)>, Value> {
+    let account = first_account(app);
     let state = app.window.state::<AppState>();
-    import_flow(&state, || Some(path))
+    import_flow(&state, &account, || Some(path))
         .map(|summary| summary.map(|found| (found.added, found.skipped)))
         .map_err(|error| serde_json::to_value(&error).unwrap())
 }
@@ -67,10 +80,12 @@ fn test_csd032_ac_1_1_importing_adds_the_transactions_and_marks_the_project_unsa
 fn test_csd032_ac_1_2_cancelling_the_dialog_changes_nothing() {
     let app = harness();
     let state = app.window.state::<AppState>();
-    assert!(import_flow(&state, || None).unwrap().is_none());
+    let account = first_account(&app);
+    let unsaved = app.ok("project_status", json!({}))["unsaved_changes"].clone();
+    assert!(import_flow(&state, &account, || None).unwrap().is_none());
     assert_eq!(
         app.ok("project_status", json!({}))["unsaved_changes"],
-        false
+        unsaved
     );
     assert_eq!(rows(&app).len(), 0);
 }
@@ -147,9 +162,10 @@ fn test_csd032_ac_6_2_a_rejected_import_records_no_step() {
         import(&app, bad).unwrap_err()["code"],
         "TRANSACTION_IMPORT_FORMAT"
     );
+    // The account the helper added is the only step: the rejected import adds none.
     assert_eq!(
         app.ok("project_status", json!({}))["undo_label"],
-        Value::Null
+        "Add Transaction Account"
     );
 }
 
@@ -380,7 +396,7 @@ fn test_csd032_ac_29_10_an_invalid_row_adds_nothing_and_is_named() {
 }
 
 #[test]
-fn test_csd032_ac_25_2_delete_all_is_one_undo_step() {
+fn test_csd034_ac_4_1_deleting_the_transactions_of_an_account_is_one_undo_step() {
     let app = harness();
     import(&app, fixture()).unwrap();
     let before = rows(&app).len();
@@ -394,8 +410,21 @@ fn test_csd032_ac_25_2_delete_all_is_one_undo_step() {
             .collect()
     };
     let rules = texts(&app);
-    app.ok("delete_all_transactions", json!({}));
+    let account = first_account(&app);
+    let deleted = app.ok(
+        "delete_account_transactions",
+        json!({ "accountId": account }),
+    );
+    assert_eq!(deleted, before);
     assert_eq!(rows(&app), Vec::<Value>::new());
+    assert_eq!(
+        app.ok("list_transaction_accounts", json!({}))
+            .as_array()
+            .unwrap()
+            .len(),
+        1,
+        "the account stays"
+    );
     assert_eq!(texts(&app), rules);
     app.ok("undo", json!({}));
     assert_eq!(rows(&app).len(), before);
@@ -757,4 +786,121 @@ fn test_csd032_ac_34_7_an_abn_amro_fixture_imports_over_ipc_and_again_adds_nothi
     assert_eq!((added, skipped), (0, 6));
     let json = serde_json::to_string(&all).unwrap();
     assert!(!json.contains("MANDATE-0001") && !json.contains("NL00ZZZ000000000000"));
+}
+
+fn account_rows_of(app: &Harness) -> Vec<Value> {
+    app.ok("list_transaction_accounts", json!({}))
+        .as_array()
+        .unwrap()
+        .clone()
+}
+
+#[test]
+fn test_csd034_ac_1_1_the_accounts_come_with_their_counts_over_ipc() {
+    let app = harness();
+    let bank = first_account(&app);
+    let savings = app.ok(
+        "add_transaction_account",
+        json!({ "name": "Example Savings" }),
+    );
+    assert!(savings["id"].is_string());
+    assert_eq!(import(&app, fixture()).unwrap(), Some((8, 0)));
+    let accounts = account_rows_of(&app);
+    assert_eq!(accounts.len(), 2);
+    assert_eq!(accounts[0]["id"], bank);
+    assert_eq!(accounts[0]["name"], "Example Bank");
+    assert_eq!(accounts[0]["transaction_count"], 8);
+    assert_eq!(accounts[1]["name"], "Example Savings");
+    assert_eq!(accounts[1]["transaction_count"], 0);
+}
+
+#[test]
+fn test_csd034_ac_2_over_ipc_accounts_are_added_renamed_and_deleted_with_their_transactions() {
+    let app = harness();
+    let bank = first_account(&app);
+    assert_eq!(
+        app.ok("project_status", json!({}))["undo_label"],
+        "Add Transaction Account"
+    );
+    app.ok(
+        "rename_transaction_account",
+        json!({ "accountId": bank, "name": "Example Current" }),
+    );
+    assert_eq!(
+        app.ok("project_status", json!({}))["undo_label"],
+        "Edit Transaction Account"
+    );
+    for (name, code) in [
+        ("", "TRANSACTION_ACCOUNT_NAME_REQUIRED"),
+        ("example current", "TRANSACTION_ACCOUNT_NAME_TAKEN"),
+    ] {
+        let error = app.err("add_transaction_account", json!({ "name": name }));
+        assert_eq!(error["code"], code);
+    }
+    let error = app.err(
+        "rename_transaction_account",
+        json!({ "accountId": "not-an-id", "name": "Example" }),
+    );
+    assert!(error["code"].is_string());
+    import(&app, fixture()).unwrap();
+    let deleted = app.ok("delete_transaction_account", json!({ "accountId": bank }));
+    assert_eq!(deleted, 8);
+    assert_eq!(account_rows_of(&app).len(), 0);
+    assert_eq!(rows(&app).len(), 0);
+    assert_eq!(
+        app.ok("project_status", json!({}))["undo_label"],
+        "Delete Transaction Account"
+    );
+    // One step brings the account and its transactions back.
+    app.ok("undo", json!({}));
+    assert_eq!(account_rows_of(&app).len(), 1);
+    assert_eq!(rows(&app).len(), 8);
+}
+
+#[test]
+fn test_csd034_ac_3_over_ipc_an_import_needs_an_existing_account_and_a_rejected_one_changes_nothing(
+) {
+    let app = harness();
+    let state = app.window.state::<AppState>();
+    let error = import_flow(&state, "not-an-id", || Some(fixture())).unwrap_err();
+    assert!(serde_json::to_value(&error).unwrap()["code"].is_string());
+    let account = first_account(&app);
+    app.ok(
+        "delete_transaction_account",
+        json!({ "accountId": account }),
+    );
+    let error = import_flow(&state, &account, || Some(fixture())).unwrap_err();
+    assert_eq!(
+        serde_json::to_value(&error).unwrap()["code"],
+        "TRANSACTION_ACCOUNT_NOT_FOUND"
+    );
+    assert_eq!(rows(&app).len(), 0);
+}
+
+#[test]
+fn test_csd034_ac_6_over_ipc_the_rows_carry_their_account_and_the_filter_takes_account_ids() {
+    let app = harness();
+    let bank = first_account(&app);
+    let savings = app.ok(
+        "add_transaction_account",
+        json!({ "name": "Example Savings" }),
+    );
+    import(&app, fixture()).unwrap();
+    let all = rows(&app);
+    assert!(all.iter().all(|row| row["account_id"] == bank));
+    let only_savings = app.ok(
+        "list_transactions",
+        json!({ "filter": { "account_ids": [savings["id"]] } }),
+    );
+    assert_eq!(only_savings["count"], 0);
+    let only_bank = app.ok(
+        "list_transactions",
+        json!({ "filter": { "account_ids": [bank] } }),
+    );
+    assert_eq!(only_bank["count"], 8);
+    let ids = app.ok(
+        "list_transaction_ids",
+        json!({ "filter": { "account_ids": [bank] } }),
+    );
+    assert_eq!(ids.as_array().unwrap().len(), 8);
 }

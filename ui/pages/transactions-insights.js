@@ -157,6 +157,7 @@ export function initTransactionsInsights() {
   // Categories and Rules sit left of the Overview, which opens first; the Insights tab recomputes the chart
   // each time it opens (CSD-033 REQ-13).
   initTabs([
+    { tab: 'transactions-tab-accounts', panel: 'transactions-accounts' },
     { tab: 'transactions-tab-categories', panel: 'transactions-categories' },
     { tab: 'transactions-tab-rules', panel: 'transactions-rules' },
     { tab: 'transactions-tab-overview', panel: 'transactions-overview' },

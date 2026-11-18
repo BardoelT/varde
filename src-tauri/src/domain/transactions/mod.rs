@@ -6,6 +6,7 @@
 //! steps and a step pays only for a list it changes (CSD-032 CON-4).
 
 mod abn;
+mod accounts;
 mod bulk;
 mod categories;
 mod category;
@@ -30,6 +31,7 @@ use serde::Deserialize;
 use crate::domain::error::DomainError;
 use crate::domain::money::Currency;
 
+pub use accounts::{Account, AccountId};
 pub use category::{Category, CategoryId, Rule, RuleId, RulePeriod, UNCATEGORIZED_ENTITY};
 pub use filter::{TransactionFilter, TransactionFilterInput};
 pub use insights::{Granularity, TransactionInsights};
@@ -40,6 +42,7 @@ pub use summary::CategorisationSummary;
 pub use totals::TransactionYearlyTotal;
 pub use transaction::{Transaction, TransactionDate, TransactionId};
 
+use accounts::valid_account_name;
 use category::{defaults, fields_of, rule_text, valid_name, CompiledRules};
 
 /// What an import did (CSD-032 REQ-1).
@@ -70,17 +73,19 @@ const BYTES_PER_TRANSACTION: usize = 500;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Transactions {
     list: Arc<Vec<Transaction>>,
+    accounts: Vec<Account>,
     categories: Vec<Category>,
     rules: Vec<Rule>,
 }
 
 impl Default for Transactions {
-    /// A new project: no transactions, the default categories and rules
-    /// (CSD-032 REQ-8, REQ-9).
+    /// A new project: no accounts and no transactions, the default categories
+    /// and rules (CSD-032 REQ-8, REQ-9, CSD-034).
     fn default() -> Self {
         let (categories, rules) = defaults();
         Self {
             list: Arc::new(Vec::new()),
+            accounts: Vec::new(),
             categories,
             rules,
         }
@@ -88,18 +93,20 @@ impl Default for Transactions {
 }
 
 impl Transactions {
-    /// Builds the data from the three sections of a project file and checks
-    /// them (CSD-032 REQ-17).
+    /// Builds the data from the sections of a project file and checks them
+    /// (CSD-032 REQ-17, CSD-034 REQ-7).
     ///
     /// # Errors
     /// Returns `TransactionDataInvalid` for the first inconsistency.
     pub fn from_parts(
         list: Vec<Transaction>,
+        accounts: Vec<Account>,
         categories: Vec<Category>,
         rules: Vec<Rule>,
     ) -> Result<Self, DomainError> {
         let data = Self {
             list: Arc::new(list),
+            accounts,
             categories,
             rules,
         };
@@ -109,6 +116,18 @@ impl Transactions {
 
     fn validate(&self) -> Result<(), DomainError> {
         let invalid = DomainError::TransactionDataInvalid;
+        let mut account_ids = HashSet::new();
+        let mut account_names = HashSet::new();
+        for account in &self.accounts {
+            let name = account.name.trim();
+            if valid_account_name(&[], None, name).is_err()
+                || name != account.name
+                || !account_ids.insert(account.id)
+                || !account_names.insert(name.to_lowercase())
+            {
+                return Err(invalid);
+            }
+        }
         let mut category_ids = HashSet::new();
         let mut names = HashSet::new();
         for category in &self.categories {
@@ -135,6 +154,7 @@ impl Transactions {
         let mut transaction_ids = HashSet::new();
         for transaction in self.list.iter() {
             if !transaction.is_consistent()
+                || !account_ids.contains(&transaction.account_id)
                 || !transaction_ids.insert(transaction.id)
                 || transaction
                     .category_id
@@ -182,17 +202,29 @@ impl Transactions {
         )
     }
 
-    /// Adds the transactions of a Knab export that are not duplicates, each
-    /// with the category of the first matching rule. All or nothing: a bad row
-    /// or a currency that is not `currency` adds nothing (REQ-1 to REQ-5).
+    /// Adds the transactions of an export that are not duplicates to `account`,
+    /// each with the category of the first matching rule. A row is a duplicate
+    /// of a transaction of the same account with the same own account number
+    /// and reference. All or nothing: a bad row or a currency that is not
+    /// `currency` adds nothing (REQ-1 to REQ-5, CSD-034 REQ-3, REQ-5).
     ///
     /// # Errors
-    /// Returns the error of the first offending line (REQ-3, REQ-4).
-    pub fn import(&mut self, text: &str, currency: Currency) -> Result<ImportSummary, DomainError> {
+    /// Returns `TransactionAccountNotFound` or the error of the first
+    /// offending line (REQ-3, REQ-4).
+    pub fn import(
+        &mut self,
+        account: AccountId,
+        text: &str,
+        currency: Currency,
+    ) -> Result<ImportSummary, DomainError> {
+        if !self.has_account(account) {
+            return Err(DomainError::TransactionAccountNotFound);
+        }
         let rows = import::parse(text, currency)?;
         let mut seen: HashSet<(String, String)> = self
             .list
             .iter()
+            .filter(|transaction| transaction.account_id == account)
             .map(|transaction| {
                 (
                     transaction.own_account.clone(),
@@ -210,6 +242,7 @@ impl Transactions {
             }
             added.push(Transaction {
                 id: TransactionId::new(),
+                account_id: account,
                 date: row.date,
                 amount: row.amount,
                 category_id: compiled.category_of(
@@ -284,13 +317,5 @@ impl Transactions {
             .ok_or(DomainError::TransactionNotFound)?;
         Arc::make_mut(&mut self.list).remove(position);
         Ok(())
-    }
-
-    /// Removes every transaction and nothing else: the categories and the
-    /// rules stay (REQ-25). Returns how many were removed.
-    pub fn delete_all_transactions(&mut self) -> usize {
-        let count = self.list.len();
-        self.list = Arc::new(Vec::new());
-        count
     }
 }

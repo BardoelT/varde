@@ -3,7 +3,7 @@ id: CSD-002
 title: Project file (save, open, new)
 status: approved
 owner: Thijs Bardoel
-version: 3.0
+version: 3.1
 last_updated: 12/11/2026
 related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-024, CSD-026, CSD-027, CSD-032]
 ---
@@ -316,7 +316,7 @@ Scenario Outline: The file cannot be opened
     | on a drive that is not mounted                       | PROJECT_OPEN_FAILED  |
     | in a folder that no longer exists                    | PROJECT_OPEN_FAILED  |
     | not a valid project file                             | PROJECT_INVALID_FILE |
-    | from a newer version of the app (format_version 4)   | PROJECT_FILE_NEWER   |
+    | from a newer version of the app (format_version 5)   | PROJECT_FILE_NEWER   |
 
 # @AC-11.2 (removed in v1.0): the notice is not repeated once the path is forgotten, see AC-12.2.
 ```
@@ -370,7 +370,7 @@ Scenario Outline: A file that exists but cannot be used keeps its path
   Examples:
     | problem                                            | code                 |
     | not a valid project file                           | PROJECT_INVALID_FILE |
-    | from a newer version of the app (format_version 4) | PROJECT_FILE_NEWER   |
+    | from a newer version of the app (format_version 5) | PROJECT_FILE_NEWER   |
 
 @AC-13.4
 Scenario Outline: A parent folder that is missing or unreadable keeps the path
@@ -435,15 +435,15 @@ Scenario: A name that exists only after appending asks first
 ```
 
 **REQ-16: Sections of the project file** *(ubiquitous)*
-The project file shall hold a `format_version` and the sections `income`, `investments`, `bank_accounts`, `debts`, `expenses`, `houses`, `settings`, `transactions`, `transaction_categories` and `transaction_rules`, and every section shall be present in every file the app writes.
+The project file shall hold a `format_version` and the sections `income`, `investments`, `bank_accounts`, `debts`, `expenses`, `houses`, `settings`, `transactions`, `transaction_accounts`, `transaction_categories` and `transaction_rules`, and every section shall be present in every file the app writes.
 
 ```gherkin
 @AC-16.1
 Scenario: A saved empty project has every section
   Given a new project
   When the user saves it to "example-a.varde"
-  Then the file has "format_version" 3
-  And the file has the sections "income", "investments", "bank_accounts", "debts", "expenses", "houses", "settings", "transactions", "transaction_categories" and "transaction_rules"
+  Then the file has "format_version" 4
+  And the file has the sections "income", "investments", "bank_accounts", "debts", "expenses", "houses", "settings", "transactions", "transaction_accounts", "transaction_categories" and "transaction_rules"
 ```
 
 **REQ-17: Strict schema** *(unwanted behaviour)*
@@ -474,7 +474,7 @@ If the `format_version` of a project file is higher than the version the app und
 ```gherkin
 @AC-18.1
 Scenario: File from a newer app version is rejected with its own message
-  Given a project file with "format_version" 4 and the app understands version 3
+  Given a project file with "format_version" 5 and the app understands version 4
   And the app holds 1 job in memory
   When the user opens it
   Then an error with code "PROJECT_FILE_NEWER" is shown
@@ -691,6 +691,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-6: Should the app give a version 1 file its own message that names the upgrade script (a new error code), instead of the generic `PROJECT_INVALID_FILE` (AC-18.3)? The draft keeps the generic code, with no new code and no change to the notice texts. Owner: Thijs. Blocks: REQ-18, AC-18.3.
 
 ## 9. Changelog
+- 3.1 (17/11/2026): The project file holds the section `transaction_accounts` and has `format_version` 4 (CSD-034 REQ-7); the example of a newer file is version 5.
 - 3.0 (12/11/2026): Bank transactions (CSD-032, GitHub issue 70): three new required sections `transactions`, `transaction_categories` and `transaction_rules` (REQ-16, section 5), `format_version` is 3, a version 2 file is invalid until the script of REQ-20 has upgraded it, and the script also adds the new sections. The "newer version" examples now use version 4. Back to `draft` until re-approved.
 - 2.2 (09/11/2026): The unsaved indicator is the dot after the file name in the window title (CSD-024 v0.5 REQ-9, GitHub issue 20); the status text in the left pane is gone. REQ-3 and AC-9.3 reworded, new definition "Unsaved indicator", Verification says AC-3.1 and AC-3.2 are proven in Rust. Behaviour of saving, opening and the confirmations is unchanged. Back to `draft` until re-approved.
 - 2.1 (07/11/2026): Undo and redo of project data (CSD-027, GitHub issue 43): NG-2 says the in-memory undo history is not a backup, CON-6 says the Edit menu's Undo and Redo become the project items, new AC-3.2 (the indicator follows undo and redo). Saving is unchanged and does not clear the history. Back to `draft` until re-approved.

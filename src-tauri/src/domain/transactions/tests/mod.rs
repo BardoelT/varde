@@ -7,6 +7,7 @@ use crate::domain::money::Money;
 use crate::domain::NumberFormat;
 
 mod abn;
+mod accounts;
 mod categories;
 mod data;
 mod import;
@@ -77,9 +78,33 @@ fn export(rows: &[String]) -> String {
     lines.join("\r\n") + "\r\n"
 }
 
+/// The first account of `data`, added as "Example Bank" when there is none.
+fn first_account(data: &mut Transactions) -> AccountId {
+    if data.accounts().is_empty() {
+        data.add_account("Example Bank").unwrap();
+    }
+    data.accounts().first().unwrap().id
+}
+
+/// Imports a file into the first account of `data`.
+fn import_to_first(
+    data: &mut Transactions,
+    text: &str,
+    currency: Currency,
+) -> Result<ImportSummary, DomainError> {
+    let account = first_account(data);
+    data.import(account, text, currency)
+}
+
+/// Imports a file into a new project (with the account "Example Bank").
+fn import_into_new(text: &str, currency: Currency) -> Result<ImportSummary, DomainError> {
+    let mut data = Transactions::default();
+    import_to_first(&mut data, text, currency)
+}
+
 fn imported(rows: &[String]) -> Transactions {
     let mut data = Transactions::default();
-    data.import(&export(rows), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(rows), Currency::Eur).unwrap();
     data
 }
 
@@ -109,9 +134,7 @@ fn find<'a>(data: &'a Transactions, name: &str) -> &'a Transaction {
 // REQ-3
 
 fn import_error(rows: &[String]) -> DomainError {
-    Transactions::default()
-        .import(&export(rows), Currency::Eur)
-        .unwrap_err()
+    import_into_new(&export(rows), Currency::Eur).unwrap_err()
 }
 
 fn five_rows_with_bad_fourth(bad: String) -> Vec<String> {
@@ -171,7 +194,7 @@ fn reapply_fixture() -> Transactions {
             "R3",
         ),
     ];
-    data.import(&export(&rows), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&rows), Currency::Eur).unwrap();
     let shopping = category(&data, "Shopping");
     let id = find(&data, "Example Three").id;
     // Three is categorised by an old rule, not by hand.
@@ -210,7 +233,7 @@ fn many(count: u32) -> Transactions {
             )
         })
         .collect();
-    data.import(&export(&rows), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&rows), Currency::Eur).unwrap();
     data
 }
 
@@ -293,7 +316,7 @@ fn insights_fixture() -> Transactions {
             "R5",
         ),
     ];
-    data.import(&export(&rows), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&rows), Currency::Eur).unwrap();
     data
 }
 
@@ -313,7 +336,7 @@ fn holiday_fixture() -> Transactions {
         ),
         simple("16-07-2026", "Afschrijvingen", "9,00", "Example Shop", "R4"),
     ];
-    data.import(&export(&rows), Currency::Eur).unwrap();
+    import_to_first(&mut data, &export(&rows), Currency::Eur).unwrap();
     data
 }
 

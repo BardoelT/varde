@@ -237,8 +237,8 @@ fn test_csd002_ac_18_1_file_from_newer_version_is_rejected_with_its_own_code() {
     let (mut project, path) = saved_project(&dir, "example-a.varde");
     let newer = fs::read_to_string(&path)
         .unwrap()
-        .replace("\"format_version\": 3", "\"format_version\": 4");
-    assert!(newer.contains("\"format_version\": 4"));
+        .replace("\"format_version\": 4", "\"format_version\": 5");
+    assert!(newer.contains("\"format_version\": 5"));
     let newer_path = dir.path().join("newer.varde");
     fs::write(&newer_path, newer).unwrap();
     let before = project.income().clone();
@@ -586,7 +586,7 @@ fn assert_starts_empty_with_notice(project: &mut Project, code: &str, name: &str
 
 #[test]
 fn test_csd002_ac_11_1_the_file_cannot_be_opened() {
-    let newer = r#"{"format_version":4}"#;
+    let newer = r#"{"format_version":5}"#;
     let cases = [
         ("deleted", None, "PROJECT_OPEN_FAILED"),
         (
@@ -673,7 +673,7 @@ fn test_csd002_ac_13_3_a_file_that_exists_but_cannot_be_used_keeps_its_path() {
             "this is not a project file",
             "PROJECT_INVALID_FILE",
         ),
-        ("newer", r#"{"format_version":4}"#, "PROJECT_FILE_NEWER"),
+        ("newer", r#"{"format_version":5}"#, "PROJECT_FILE_NEWER"),
     ];
     for (name, content, code) in cases {
         let dir = TempDir::new().unwrap();
@@ -945,7 +945,7 @@ fn test_csd001_the_file_keeps_pay_periods_and_statements_in_their_own_list() {
 
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
-    assert_eq!(value["format_version"], 3);
+    assert_eq!(value["format_version"], 4);
     let periods: Vec<&str> = value["income"]["jobs"]
         .as_array()
         .unwrap()

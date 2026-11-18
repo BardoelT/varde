@@ -12,6 +12,7 @@ use crate::domain::NumberFormat;
 
 use super::category::{CategoryId, Pattern, UNCATEGORIZED_ENTITY};
 use super::transaction::TransactionDate;
+use super::AccountId;
 use super::Transaction;
 
 /// The filter as the frontend sends it: the amounts are the text the user
@@ -24,6 +25,8 @@ pub struct TransactionFilterInput {
     to: Option<TransactionDate>,
     #[serde(default)]
     ids: Vec<String>,
+    #[serde(default)]
+    account_ids: Vec<String>,
     #[serde(default)]
     min_amount: Option<String>,
     #[serde(default)]
@@ -98,6 +101,14 @@ impl TransactionFilterInput {
             }),
             min_amount: typed_bound(format, self.min_amount.as_deref()),
             max_amount: typed_bound(format, self.max_amount.as_deref()),
+            // The same for the accounts (CSD-034 REQ-6).
+            accounts: (!self.account_ids.is_empty()).then(|| {
+                self.account_ids
+                    .iter()
+                    .take(MAX_FILTER_IDS)
+                    .filter_map(|id| AccountId::parse(id).ok())
+                    .collect()
+            }),
             counterparty: typed_text(self.counterparty.as_deref()),
             description: typed_text(self.description.as_deref()),
         }
@@ -114,6 +125,8 @@ pub struct TransactionFilter {
     to: Option<TransactionDate>,
     /// The categories to keep; `None` means every category (CSD-028 REQ-4).
     entities: Option<HashSet<Entity>>,
+    /// The accounts to keep; `None` means every account (CSD-034 REQ-6).
+    accounts: Option<HashSet<AccountId>>,
     /// The lowest amount to show, itself included; a debit is negative.
     min_amount: Option<Money>,
     /// The highest amount to show, itself included.
@@ -146,6 +159,10 @@ impl TransactionFilter {
                 .entities
                 .as_ref()
                 .is_none_or(|kept| kept.contains(&entity))
+            && self
+                .accounts
+                .as_ref()
+                .is_none_or(|kept| kept.contains(&transaction.account_id))
             && self.min_amount.is_none_or(|min| min <= transaction.amount)
             && self.max_amount.is_none_or(|max| transaction.amount <= max)
             && contains(&self.counterparty, &transaction.counterparty_name)
