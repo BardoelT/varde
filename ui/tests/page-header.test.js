@@ -173,3 +173,11 @@ function window_resize(app) {
 test('test_csd024_ac_12_2_scroll_anchoring_cannot_undo_the_compression', () => {
   assert.equal(rule(layoutCss, '.content')['overflow-anchor'], 'none');
 });
+
+test('test_csd024_ac_10_5_no_content_shows_between_the_title_and_the_tabs_while_collapsing', () => {
+  const strip = rule(chartsCss, '.tabs::before');
+  assert.equal(strip.bottom, '100%', 'the strip sits right above the tabs');
+  assert.match(strip.background, /var\(--bg\)/);
+  assert.ok(Number.parseInt(strip.height, 10) >= 4, 'it covers the rounding gap');
+  assert.ok(Number.parseInt(strip.height, 10) <= 10, 'and stays inside the space under the title');
+});

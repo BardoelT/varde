@@ -6,6 +6,10 @@
   /* Directly below the title, which is pinned too (CSD-024 REQ-10). */
   position: sticky; top: var(--header-height); z-index: 5; background: var(--bg);
 }
+/* While the header collapses, its real height and the calculated `top` of the tabs differ by a pixel or two (rounding,
+   baseline alignment), which let the content show between them. This strip closes that gap with the page background;
+   it stays inside the space the title keeps below itself (at least 10 px). */
+.tabs::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 6px; background: var(--bg); }
 .tab {
   background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
   padding: 8px 14px; font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer;
