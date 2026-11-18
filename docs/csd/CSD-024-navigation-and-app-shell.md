@@ -1,10 +1,10 @@
 ---
 id: CSD-024
 title: Navigation and app shell
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.7
-last_updated: 12/11/2026
+version: 0.8
+last_updated: 18/11/2026
 related: [CSD-002, CSD-003, CSD-004, CSD-022, CSD-027, CSD-031]
 ---
 
@@ -263,7 +263,28 @@ Scenario: A failed save keeps the dot
   And the chosen path is not writable
   When the user saves
   Then the window title is still "something.varde ●"
+
+@AC-9.6
+Scenario: With autosave on the dot follows the write (CSD-002 REQ-23)
+  Given autosave is on and the project file "something.varde" is open
+  When the user adds a job
+  Then the window title is "something.varde"
+
+@AC-9.7
+Scenario: With autosave on a project without a path keeps the dot
+  Given autosave is on and the app has started with a new project
+  When the user adds a job
+  Then the window title is "Untitled ●"
+
+@AC-9.8
+Scenario: A failed autosave keeps the dot (CSD-002 REQ-26)
+  Given autosave is on and the project file "something.varde" is open
+  And its folder is not writable
+  When the user adds a job
+  Then the window title is "something.varde ●"
 ```
+
+The scenarios AC-9.1 to AC-9.5 describe autosave off (CSD-002 section 3).
 
 ## 5. Interfaces and contracts
 
@@ -296,6 +317,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-3: (resolved 03/11/2026) The native menu is specified only as the standard menus (app, File, Edit, View, Window) plus the items already named; it is not listed item by item (REQ-5).
 
 ## 9. Changelog
+- 0.8 (18/11/2026): Autosave (CSD-002 v3.2, GitHub issue 71): new AC-9.6 to AC-9.8 (the dot with autosave on: gone after the write, kept without a path, kept after a failed write); AC-9.1 to AC-9.5 describe autosave off. REQ-9 itself is unchanged. Back to `draft` until re-approved.
 - 0.7 (12/11/2026): The Transactions page of CSD-032 (GitHub issue 70) joins the left pane as the last item of Finance; REQ-1 and AC-1.1 to AC-1.3 change with it and NG-2 no longer lists it. Back to `draft` until re-approved.
 - 0.6 (09/11/2026): REQ-5 says the content of the "About" item is specified in CSD-031 (GitHub issue 54); related adds CSD-031. No other change. Back to `draft` until re-approved.
 - 0.5 (09/11/2026): The name of the open file in the window title (GitHub issue 20). New REQ-8 (AC-8.1 to AC-8.6: the file name with extension, `Untitled` for a new project, no folder, no app name, English only) and REQ-9 (AC-9.1 to AC-9.5: the dot `●` after the name while there are unsaved changes). REQ-4 now pins only Settings and the project status text leaves the left pane (new AC-4.3, NG-7); the unsaved indicator of CSD-002 REQ-3 becomes the dot. New NG-8, NG-9, CON-4, and the window title in section 5 and 7. Owner decisions from the grill-me interview of 09/11/2026. Back to `draft` until re-approved.

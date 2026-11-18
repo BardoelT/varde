@@ -1,10 +1,10 @@
 ---
 id: CSD-008
 title: Application preferences (theme)
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.6
-last_updated: 09/11/2026
+version: 0.7
+last_updated: 18/11/2026
 related: [CSD-002, CSD-003, CSD-022, CSD-029, CSD-030]
 ---
 
@@ -26,7 +26,7 @@ The app already has a light and a dark look and follows the macOS appearance, bu
 - NG-3: Switching the theme on a schedule or by time of day.
 - NG-4: Changing the existing light and dark palettes. This capability only chooses between them.
 - NG-5: Other application preferences. Theme is the first, so later preferences need their own requirements. The language is the second and is specified in CSD-022; it is kept in the same preference file, and `get_preferences` also returns it.
-- NG-6: Date and amount formats follow neither the theme nor the language: dates stay dd/mm/yyyy, and amounts keep the number format the user chose, 1,234.50 by default, in every language (CSD-022 REQ-10, CSD-029). The number format is the third preference in the same file. Discrete mode (hide amounts, CSD-030, GitHub issue 26) is the fourth.
+- NG-6: Date and amount formats follow neither the theme nor the language: dates stay dd/mm/yyyy, and amounts keep the number format the user chose, 1,234.50 by default, in every language (CSD-022 REQ-10, CSD-029). The number format is the third preference in the same file. Discrete mode (hide amounts, CSD-030, GitHub issue 26) is the fourth. Autosave (CSD-002 REQ-24, GitHub issue 71) is the fifth: a boolean `autosave` in the same file, read on its own, on when missing or invalid.
 
 ## 3. Definitions
 | Term | Meaning |
@@ -295,6 +295,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 0.7 (18/11/2026): NG-5 refers to the Autosave preference (CSD-002 REQ-24, GitHub issue 71), kept in the same preference file. No requirement of this CSD changes. Back to `draft` until re-approved.
 - 0.6 (09/11/2026): NG-5 and NG-6 refer to the Discrete mode preference (CSD-030, GitHub issue 26), kept in the same preference file. No requirement of this CSD changes. Back to `draft` until re-approved.
 - 0.5 (09/11/2026): NG-6 refers to the number format preference (CSD-029, GitHub issue 56), kept in the same preference file. No requirement of this CSD changes. Back to `draft` until re-approved.
 - 0.4 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. Section 5 says `set_theme` returns both preferences, as `get_preferences` does. Back to `draft` until re-approved.

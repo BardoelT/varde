@@ -1,10 +1,10 @@
 ---
 id: CSD-002
 title: Project file (save, open, new)
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 3.1
-last_updated: 12/11/2026
+version: 3.2
+last_updated: 18/11/2026
 related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-024, CSD-026, CSD-027, CSD-032]
 ---
 
@@ -21,11 +21,12 @@ The app keeps all of the user's data in one local project file instead of a data
 - The project file format: its sections, the strict schema and its versioning.
 - Saving never overwriting another file without confirmation, and the file extension.
 - Reopening the last used project when the app starts.
+- Autosave: writing the project file after every change of project data, as an application preference that is on by default (REQ-23 to REQ-26, GitHub issue 71).
 - A synthetic example project file in the repository that shows every area (REQ-21, REQ-22).
 
 ### 2.2 Non-goals
 - NG-1: Encryption of the project file. (Remembering the last used file moved into scope in v0.4: REQ-8, REQ-10, REQ-11.)
-- NG-2: Autosave and backup or recovery copies made by the app (no `.bak`). The one-off script of REQ-20 writes its own backup copy before it changes a file. The in-memory undo history of CSD-027 is not a backup: it is never written to disk and ends when the project is replaced or the app quits.
+- NG-2: Backup or recovery copies made by the app (no `.bak`, no hidden scratch file for a project without a path). Autosave itself is in scope since v3.2 (REQ-23 to REQ-26); it writes the project file only, never a second copy. The one-off script of REQ-20 writes its own backup copy before it changes a file. The in-memory undo history of CSD-027 is not a backup: it is never written to disk and ends when the project is replaced or the app quits.
 - NG-3: Multiple projects open at once.
 - NG-4: Cloud sync or sharing of the file.
 - NG-5: Buttons for these actions inside the app window, and an Open Recent list.
@@ -41,6 +42,10 @@ The app keeps all of the user's data in one local project file instead of a data
 | **Gone for good** | The remembered project file does not exist while its parent folder exists and can be read (for example the file was deleted). Any other reason the file cannot be opened is *transient* or a problem of the file itself, and the remembered path is kept (REQ-13). |
 | **Unsaved changes** | The in-memory project differs from the last saved or opened state. |
 | **Unsaved indicator** | The dot `●` after the file name in the window title (CSD-024 REQ-9). It is the only indicator: the app shows no status text in the left pane. |
+| **Autosave** | The application preference "Autosave" (REQ-24). While it is on and the project has a path, the app writes the project file after every step (REQ-23). |
+| **Step** | One confirmed user action that changed project data, as defined in CSD-027 (one saved form, one confirmed delete, one import), however many records it changed. |
+
+Unless a scenario says "autosave is on", the scenarios of this CSD, and those of CSD-024 and CSD-027 that mention saving, describe the app with autosave off, where only the user's own Save writes the file. With autosave on, REQ-23 to REQ-26 apply on top.
 
 ## 4. Requirements
 
@@ -151,6 +156,18 @@ Scenario: Indicator follows undo and redo (CSD-027)
   Then no unsaved indicator is shown
   When the user chooses Edit > Redo
   Then the unsaved indicator is shown
+
+@AC-3.3
+Scenario: With autosave on the indicator stays off for a saved project
+  Given autosave is on and the project file "example-a.varde" is open
+  When the user adds a job
+  Then no unsaved indicator is shown
+
+@AC-3.4
+Scenario: With autosave on a project without a path still shows the indicator
+  Given autosave is on and a new project with no path
+  When the user adds a job
+  Then the unsaved indicator is shown
 ```
 
 **REQ-4: Confirm close with unsaved changes** *(event-driven)*
@@ -169,6 +186,19 @@ Scenario: Close without changes
   Given no unsaved changes
   When the user closes the app
   Then the app closes without asking
+
+@AC-4.3
+Scenario: With autosave on a saved project closes without asking
+  Given autosave is on and the project file "example-a.varde" is open
+  When the user adds a job and closes the app
+  Then the app closes without asking
+  And "example-a.varde" holds the job
+
+@AC-4.4
+Scenario: A failed autosave still asks before closing
+  Given autosave is on and the last autosave failed (AC-26.1)
+  When the user closes the app
+  Then a confirmation is asked
 ```
 
 **REQ-5: Failed save leaves the file intact** *(unwanted behaviour)*
@@ -624,6 +654,171 @@ Scenario: The committed example is what the generator writes
   And a difference fails the test with the hint "EXAMPLE_UPDATE=1 cargo test example"
 ```
 
+### 4.1 Autosave (GitHub issue 71)
+
+**REQ-23: Autosave after every step** *(state-driven)*
+While autosave is on and the project has a path, when a step changes project data, the app shall write all project data to the project file as in REQ-1, once per step and straight after it, and clear the unsaved indicator. Project data is everything in the project file (REQ-16), including the project currency (CSD-003). Undo and redo (CSD-027) are steps. Application preferences (theme, language, number format, discrete mode, autosave) are not project data and never write the project file.
+
+```gherkin
+@AC-23.1
+Scenario: A change is written at once
+  Given autosave is on and the project file "example-a.varde" is open
+  When the user adds a job
+  Then "example-a.varde" holds the job
+  And no unsaved indicator is shown
+
+@AC-23.2
+Scenario: One step is one write
+  Given autosave is on and the project file "example-a.varde" is open
+  When the user imports a transaction file with 100 rows (CSD-032)
+  Then the project file was written once
+  When the user deletes a bank account with 5 statements
+  Then the project file was written once more
+
+@AC-23.3
+Scenario: Undo and redo are written
+  Given autosave is on and the user added a job to "example-a.varde"
+  When the user chooses Edit > Undo
+  Then "example-a.varde" holds no job
+  When the user chooses Edit > Redo
+  Then "example-a.varde" holds the job
+
+@AC-23.4
+Scenario: The project currency is written
+  Given autosave is on and the project file "example-a.varde" is open
+  When the user changes the project currency
+  Then "example-a.varde" holds the new currency
+
+@AC-23.5
+Scenario: A project without a path writes nothing
+  Given autosave is on and a new project with no path
+  When the user adds a job
+  Then no file is written and no dialog is shown
+  And the unsaved indicator is shown
+
+@AC-23.6
+Scenario: After the first Save, autosave takes over
+  Given autosave is on and a new project with a job and no path
+  When the user saves to "example-a.varde" through the native save dialog
+  And adds a second job
+  Then "example-a.varde" holds both jobs
+  And no dialog is shown
+
+@AC-23.7
+Scenario: Save As moves autosave to the new path
+  Given autosave is on and the project was saved to "example-a.varde"
+  When the user chooses Save As and picks "example-b.varde" and then adds a job
+  Then "example-b.varde" holds the job
+  And "example-a.varde" is unchanged
+
+@AC-23.8
+Scenario: Opening, preferences and failed forms write nothing
+  Given autosave is on and the project file "example-a.varde" is open
+  When the user changes the theme or the language
+  Or a form is rejected with a validation error
+  Or the user opens another project file
+  Then no project file is written because of it
+```
+
+**REQ-24: The Autosave preference** *(ubiquitous)*
+The app shall offer a switch "Autosave" on the Settings page, kept as an application preference in the preference file (CSD-008 CON-1), outside the project file. It is on when the preference file is missing, unreadable or holds no valid `autosave` value, so it is on by default, also for users whose preference file predates it. With autosave off the app behaves as before v3.2: only Save and Save As write the project file.
+
+```gherkin
+@AC-24.1
+Scenario Outline: Autosave is on by default
+  Given the preference file is <case>
+  When the app starts
+  Then the "Autosave" switch is on
+
+  Examples:
+    | case                              |
+    | missing                           |
+    | {"theme": "dark"}                 |
+    | {"autosave": "yes"}               |
+    | not JSON                          |
+
+@AC-24.2
+Scenario: The choice is remembered
+  Given the "Autosave" switch is on
+  When the user switches it off and restarts the app
+  Then the "Autosave" switch is off
+
+@AC-24.3
+Scenario: With autosave off only Save writes
+  Given autosave is off and the project file "example-a.varde" is open
+  When the user adds a job
+  Then "example-a.varde" does not hold the job
+  And the unsaved indicator is shown
+  When the user saves
+  Then "example-a.varde" holds the job
+
+@AC-24.4
+Scenario: The preference cannot be saved
+  Given the config folder is read-only and the "Autosave" switch is on
+  When the user switches it off
+  Then the switch shows on again
+  And a message with the error code "PREFERENCES_SAVE_FAILED" and no file path is shown
+
+@AC-24.5
+Scenario: The switch is in Dutch and English
+  Given the language is Dutch
+  When the user opens the Settings page
+  Then the switch is labelled in Dutch
+```
+
+**REQ-25: Switching autosave on or off** *(event-driven)*
+When the user switches autosave on while the project has a path and unsaved changes, the app shall write the project file at once and clear the unsaved indicator. When the user switches it off, the app shall change nothing on disk.
+
+```gherkin
+@AC-25.1
+Scenario: Switching on saves what is pending
+  Given autosave is off and "example-a.varde" is open with an unsaved job
+  When the user switches autosave on
+  Then "example-a.varde" holds the job
+  And no unsaved indicator is shown
+
+@AC-25.2
+Scenario: Switching on without a path writes nothing
+  Given autosave is off and a new project with a job and no path
+  When the user switches autosave on
+  Then no file is written and no dialog is shown
+  And the unsaved indicator is shown
+
+@AC-25.3
+Scenario: Switching off changes nothing on disk
+  Given autosave is on and "example-a.varde" is open
+  When the user switches autosave off
+  Then "example-a.varde" is unchanged
+```
+
+**REQ-26: A failed autosave keeps the change** *(unwanted behaviour)*
+If an autosave write fails, then the app shall keep the change in memory, leave any existing file at that path unchanged (REQ-5), keep the unsaved indicator, show a non-blocking message with the error code `PROJECT_SAVE_FAILED` and no file path or OS detail, and write again after the next step. The user can also retry with Save.
+
+```gherkin
+@AC-26.1
+Scenario: The write fails
+  Given autosave is on and "example-a.varde" is open and its folder is read-only
+  When the user adds a job
+  Then the job is still shown in the app
+  And "example-a.varde" is unchanged
+  And the unsaved indicator is shown
+  And a non-blocking message with the error code "PROJECT_SAVE_FAILED" is shown, without a file path
+
+@AC-26.2
+Scenario: The next step retries
+  Given the last autosave failed and the folder is writable again
+  When the user adds a second job
+  Then "example-a.varde" holds both jobs
+  And no unsaved indicator is shown
+
+@AC-26.3
+Scenario: Save retries by hand
+  Given the last autosave failed and the folder is writable again
+  When the user saves
+  Then "example-a.varde" holds the job
+  And no unsaved indicator is shown
+```
+
 ## 5. Interfaces and contracts
 
 Menu: Rust builds the File menu items `project-new`, `project-open`, `project-save` and `project-save-as`. Choosing one emits the event `menu-action` with the item id to the frontend, which runs the flow of the action, including the confirmations of REQ-7.
@@ -655,7 +850,9 @@ Versioning policy: the version is 1 at the first release. The first change of th
 
 The script `scripts/migrate-debt-opening.mjs` has no dependency (Node only), takes the path of the file as its argument, upgrades a file to `format_version` 3 (openings of debts, the `origin` of settlements and the empty transaction sections with their default categories and rules, REQ-20 and CSD-032 REQ-17), prints the names of debts without statements and no amounts, and is tested with a synthetic file ("Example Mortgage", round amounts) by `node:test` in `npm test`.
 
-Error codes (code plus safe message): `PROJECT_SAVE_FAILED`, `PROJECT_INVALID_FILE`, `PROJECT_OPEN_FAILED`, `PROJECT_FILE_NEWER`.
+Autosave (REQ-23 to REQ-26): Rust does the autosave, inside the command layer, after a command or an undo or redo has changed the project and before it returns, with the same atomic write as Save. The frontend never triggers it and never writes a file. A command whose autosave failed still succeeds (the change is kept) and reports the failed write next to its result, so the frontend can show the non-blocking message; `project_status()` keeps returning the unsaved flag. The preference is `autosave` (boolean) in `preferences.json`, read on its own like the other preferences (CSD-008 section 5); `get_preferences()` also returns it and `set_autosave(enabled)` saves it, and when it switches autosave on with a path and unsaved changes it writes the project file before it returns (REQ-25). The window title and the confirmations follow the unsaved flag and need no change (CSD-024 REQ-9, REQ-4, REQ-7).
+
+Error codes (code plus safe message): `PROJECT_SAVE_FAILED` (Save and a failed autosave alike), `PROJECT_INVALID_FILE`, `PROJECT_OPEN_FAILED`, `PROJECT_FILE_NEWER`. `PREFERENCES_SAVE_FAILED` (CSD-008) is shown when the Autosave preference cannot be saved.
 
 ## 6. Constraints
 - CON-1: The project file is plain, unencrypted JSON, written by writing a temporary file and renaming it over the target. It is never committed (`*.varde` is git-ignored), with one exception: the synthetic `examples/example.varde` (REQ-21), which `.gitignore` re-includes by its exact path. Rationale: a project file holds real financial data and the repo is public. The atomic write backs REQ-5.
@@ -675,10 +872,12 @@ The unsaved flag and the project state live in Rust, so they are proven by `carg
 | AC-9.1 | `cargo test test_csd002_ac_9_` checks the table the menu is built from (ids, labels, shortcuts). Native menus can only be created on the main thread, so the built menu is on the manual checklist |
 | DOM tests (`npm test`) | `dialogs.test.js`: AC-4.1, AC-7.1, AC-7.2, AC-9.3 (close, Open and New with and without unsaved changes, no buttons in the window); `ac-d-preferences.test.js`: AC-9.2, AC-9.4 (File > Save calls the save, File > New and Open ask first). The unsaved indicator (AC-3.1, AC-3.2) is the dot in the native window title, so it is proven in Rust with CSD-024 AC-9.1 to AC-9.4 (`cargo test test_csd002_ac_3_` and `test_csd024_ac_9_`), no longer by a DOM test. AC-4.2 is decided in Rust (`test_csd002_ac_4_2_...`, the close asks only when `has_unsaved_changes`) |
 | Script (REQ-20, AC-20.1 to AC-20.5) | `npm test`: `scripts/tests/migrate-debt-opening.test.js` (`node:test`, synthetic fixtures in a temporary directory) |
+| Autosave (REQ-23, REQ-25, REQ-26, AC-3.3, AC-3.4, AC-4.3, AC-4.4) | `cargo test test_csd002_ac_23_` and so on, on a project in a temporary directory with a counting writer for AC-23.2, a read-only folder for AC-26.1 and the Tauri mock runtime for the window title. Synthetic data only |
+| Autosave preference (REQ-24) | `cargo test test_csd002_ac_24_` (default, missing or invalid key, remembered, read-only config folder) and a DOM test in `ui/tests/` for the switch, its Dutch label and the message of AC-26.1 and AC-24.4 (`test_csd002_ac_24_...`), with canned answers from the fake bridge |
 | Example project (REQ-21, REQ-22) | `cargo test example_project` (`src-tauri/src/example_project_tests.rs`: `test_csd002_ac_21_1_...` to `test_csd002_ac_21_4_...` and `test_csd002_ac_22_1_...`). After a deliberate change of the generator or of the format: `EXAMPLE_UPDATE=1 cargo test example`, then review the diff of `examples/` |
 | Manual checklist (native parts only) | The real File menu items and shortcuts (AC-9.1 to AC-9.4), the native save dialog, and a real window close without unsaved changes (AC-4.2: the mock runtime has no event loop to send it) |
 
-Not covered by a named test yet (0 of 54 ACs): none. Every AC has a test that carries its id; the native parts are on the manual list above.
+Not covered by a named test yet: the new ACs of v3.2 (AC-3.3, AC-3.4, AC-4.3, AC-4.4, AC-23.1 to AC-23.8, AC-24.1 to AC-24.5, AC-25.1 to AC-25.3, AC-26.1 to AC-26.3), because the CSD is `draft` and not implemented yet. Every earlier AC has a test that carries its id; the native parts are on the manual list above.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
@@ -691,6 +890,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-6: Should the app give a version 1 file its own message that names the upgrade script (a new error code), instead of the generic `PROJECT_INVALID_FILE` (AC-18.3)? The draft keeps the generic code, with no new code and no change to the notice texts. Owner: Thijs. Blocks: REQ-18, AC-18.3.
 
 ## 9. Changelog
+- 3.2 (18/11/2026): Autosave (GitHub issue 71). NG-2 no longer excludes it (backup and recovery copies stay excluded). New section 4.1 with REQ-23 (write after every step, once per step, undo and redo included, project data only, no write without a path), REQ-24 (the "Autosave" preference, on by default), REQ-25 (switching on writes pending changes) and REQ-26 (a failed write keeps the change, shows `PROJECT_SAVE_FAILED` and retries on the next step); new AC-3.3, AC-3.4, AC-4.3, AC-4.4. New definitions "Autosave" and "Step", and scenarios elsewhere describe autosave off unless they say otherwise. Amends CSD-008 (NG-5), CSD-024 (REQ-9) and CSD-027 (NG-2, REQ-9). Owner decisions from the grill-me interview of 18/11/2026. Back to `draft` until re-approved.
 - 3.1 (17/11/2026): The project file holds the section `transaction_accounts` and has `format_version` 4 (CSD-034 REQ-7); the example of a newer file is version 5.
 - 3.0 (12/11/2026): Bank transactions (CSD-032, GitHub issue 70): three new required sections `transactions`, `transaction_categories` and `transaction_rules` (REQ-16, section 5), `format_version` is 3, a version 2 file is invalid until the script of REQ-20 has upgraded it, and the script also adds the new sections. The "newer version" examples now use version 4. Back to `draft` until re-approved.
 - 2.2 (09/11/2026): The unsaved indicator is the dot after the file name in the window title (CSD-024 v0.5 REQ-9, GitHub issue 20); the status text in the left pane is gone. REQ-3 and AC-9.3 reworded, new definition "Unsaved indicator", Verification says AC-3.1 and AC-3.2 are proven in Rust. Behaviour of saving, opening and the confirmations is unchanged. Back to `draft` until re-approved.
