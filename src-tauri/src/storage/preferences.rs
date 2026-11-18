@@ -13,12 +13,26 @@ const FILE_NAME: &str = "preferences.json";
 /// The preference file is tiny; anything bigger is not ours.
 const MAX_BYTES: u64 = 64 * 1024;
 
-#[derive(Serialize, Default)]
+#[derive(Serialize)]
 struct Stored {
     theme: Theme,
     language: Language,
     number_format: NumberFormat,
     discrete_mode: bool,
+    autosave: bool,
+}
+
+impl Default for Stored {
+    fn default() -> Self {
+        Self {
+            theme: Theme::default(),
+            language: Language::default(),
+            number_format: NumberFormat::default(),
+            discrete_mode: false,
+            // Autosave is on unless the user switched it off (CSD-002 REQ-24).
+            autosave: true,
+        }
+    }
 }
 
 impl Stored {
@@ -43,6 +57,10 @@ impl Stored {
             discrete_mode: field("discrete_mode")
                 .and_then(|mode| mode.as_bool())
                 .unwrap_or_default(),
+            // Only a real boolean counts; anything else leaves autosave on (CSD-002 REQ-24).
+            autosave: field("autosave")
+                .and_then(|autosave| autosave.as_bool())
+                .unwrap_or(true),
         }
     }
 }
@@ -98,6 +116,13 @@ impl Preferences {
     #[must_use]
     pub fn load_discrete_mode(&self) -> bool {
         self.read().discrete_mode
+    }
+
+    /// Whether Autosave is on. A missing, unreadable, oversized or malformed
+    /// file, or a value that is not a boolean, counts as on (CSD-002 REQ-24).
+    #[must_use]
+    pub fn load_autosave(&self) -> bool {
+        self.read().autosave
     }
 
     fn read(&self) -> Stored {
@@ -168,6 +193,19 @@ impl Preferences {
             .map_err(StorageError::PreferencesSaveFailed)
     }
 
+    /// Saves `autosave`, keeping the other preferences.
+    ///
+    /// # Errors
+    /// Returns `PreferencesSaveFailed` if the preference file cannot be written.
+    pub fn store_autosave(&self, autosave: bool) -> Result<(), StorageError> {
+        let stored = Stored {
+            autosave,
+            ..self.read()
+        };
+        self.write(&stored)
+            .map_err(StorageError::PreferencesSaveFailed)
+    }
+
     fn write(&self, stored: &Stored) -> io::Result<()> {
         let path = self
             .file
@@ -224,7 +262,8 @@ mod tests {
             value,
             serde_json::json!({
                 "theme": "dark", "language": "en", "number_format": "point_comma",
-                "discrete_mode": false
+                "discrete_mode": false,
+                "autosave": true
             })
         );
         let mode = fs::metadata(&file).unwrap().permissions().mode();

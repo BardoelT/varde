@@ -16,6 +16,8 @@ export default {
   'Net worth': 'Vermogen',
   'Ratios': 'Kengetallen',
   'Settings': 'Instellingen',
+  'Autosave': 'Automatisch opslaan',
+  'Writes the project file after every change. A new project is not written until you save it once. This applies to the app on this Mac, not to the project.': 'Schrijft het projectbestand na elke wijziging. Een nieuw project wordt pas geschreven nadat je het één keer hebt opgeslagen. Dit geldt voor de app op deze Mac, niet voor het project.',
   'Discrete mode': 'Discrete modus',
   'Hides every amount behind a blur, so you can show the app to someone else. Percentages stay visible. This applies to the app on this Mac, not to the project.': 'Verbergt elk bedrag achter een waas, zodat je de app aan iemand kunt laten zien. Percentages blijven zichtbaar. Dit geldt voor de app op deze Mac, niet voor het project.',
   'Add your first job': 'Voeg je eerste baan toe',

@@ -20,6 +20,9 @@ const MAIN_WINDOW: &str = "main";
 /// Event the frontend listens for to ask "quit with unsaved changes?".
 const CLOSE_REQUESTED_EVENT: &str = "close-requested";
 
+/// The event that tells the frontend an autosave failed (CSD-002 REQ-26).
+const AUTOSAVE_FAILED_EVENT: &str = "autosave-failed";
+
 fn has_unsaved_changes(state: &AppState) -> bool {
     // If the lock is poisoned, err on the side of asking.
     state
@@ -53,6 +56,10 @@ fn configure_with<R: Runtime>(
                 if let Some(window) = handle.get_webview_window(MAIN_WINDOW) {
                     let _ = window.set_title(title);
                 }
+            });
+            let handle = app.handle().clone();
+            app.state::<AppState>().set_failure_sink(move |error| {
+                let _ = handle.emit(AUTOSAVE_FAILED_EVENT, error);
             });
             startup(app)?;
             let state = app.state::<AppState>();
@@ -177,6 +184,7 @@ fn configure_with<R: Runtime>(
             preferences::set_language,
             preferences::set_number_format,
             preferences::set_discrete_mode,
+            preferences::set_autosave,
             project::project_status,
             project::undo,
             project::redo,
@@ -226,6 +234,7 @@ pub fn run() {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_theme(preferences::window_theme(saved.load_theme()));
             }
+            app.state::<AppState>().set_autosave(saved.load_autosave());
             app.manage(saved);
             Ok(())
         },
@@ -269,6 +278,8 @@ mod ipc_ac_tests_c1;
 mod ipc_ac_tests_c2;
 #[cfg(test)]
 mod ipc_ac_tests_d;
+#[cfg(test)]
+mod ipc_autosave_tests;
 #[cfg(test)]
 mod ipc_discrete_mode_tests;
 #[cfg(test)]

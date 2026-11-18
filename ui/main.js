@@ -121,7 +121,10 @@ async function start() {
     onChanged: async () => {
       await refreshProjectStatus();
     },
+    onWritten: refreshProjectStatus,
   });
+  // A failed autosave keeps the change; the message is not blocking and carries no path (CSD-002 REQ-26).
+  await listen('autosave-failed', (event) => showToast(errorText(event.payload)));
   // Everything is drawn again after a project replaced the data, and after a language change (CSD-022 REQ-3).
   const reloadEverything = () =>
     reportFailures(

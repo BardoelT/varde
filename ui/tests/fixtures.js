@@ -7,7 +7,7 @@ const golden = JSON.parse(readFileSync(fileURLToPath(new URL('../../src-tauri/go
 
 /** The commands every page calls while it starts, apart from the reads of the golden file. */
 const startup = {
-  get_preferences: { theme: 'system', language: 'en', number_format: 'point_comma', discrete_mode: false },
+  get_preferences: { theme: 'system', language: 'en', number_format: 'point_comma', discrete_mode: false, autosave: true },
   take_startup_notice: null,
   // The transactions chart is not part of the golden files: its category ids would renumber the ids of the others.
   get_transaction_insights: {
@@ -24,6 +24,7 @@ const startup = {
   set_theme: ({ theme }) => ({ theme }),
   set_number_format: ({ numberFormat }) => ({ number_format: numberFormat }),
   set_discrete_mode: ({ discreteMode }) => ({ discrete_mode: discreteMode }),
+  set_autosave: ({ autosave }) => ({ autosave }),
 };
 
 /** A copy of what Rust returned for every read command of the example project (a project with data). */

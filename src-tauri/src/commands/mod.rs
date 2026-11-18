@@ -15,6 +15,7 @@ pub mod settings;
 pub mod transactions;
 
 use std::ops::{Deref, DerefMut};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use time::{Date, OffsetDateTime, UtcOffset};
@@ -69,8 +70,13 @@ impl DerefMut for Edit<'_> {
 
 impl Drop for Edit<'_> {
     fn drop(&mut self) {
+        let mut changed = false;
         if let Some(before) = self.before.take() {
+            changed = self.project.data() != &before;
             self.project.record_step(self.label, before);
+        }
+        if changed {
+            self.state.autosave(&mut self.project);
         }
         self.state.sync_title(&self.project);
     }
@@ -79,12 +85,25 @@ impl Drop for Edit<'_> {
 /// Puts a title on the main window.
 type TitleSink = Box<dyn Fn(&str) + Send + Sync>;
 
+/// Tells the frontend that an autosave failed, with the safe error code.
+type FailureSink = Box<dyn Fn(&AppError) + Send + Sync>;
+
 /// Shared app state: the open project and the local UTC offset, read once at
 /// startup while the process is still single-threaded.
 pub struct AppState {
     project: Mutex<Project>,
     /// Sets the window title; installed once the app exists (CSD-024 section 5).
     title_sink: OnceLock<TitleSink>,
+    /// Reports a failed autosave; installed once the app exists (CSD-002 REQ-26).
+    failure_sink: OnceLock<FailureSink>,
+    /// The Autosave preference, kept here so a step needs no file read (CSD-002 REQ-24).
+    autosave: AtomicBool,
+    /// The code of the last failed autosave, which a test can read.
+    #[cfg(test)]
+    last_autosave_failure: Mutex<Option<&'static str>>,
+    /// How many times an autosave wrote the file, which a test can read.
+    #[cfg(test)]
+    autosave_writes: Mutex<u32>,
     /// The title last set, which a test can read where the mock runtime keeps none.
     #[cfg(test)]
     last_title: Mutex<String>,
@@ -102,6 +121,12 @@ impl AppState {
         Self {
             project: Mutex::new(Project::new()),
             title_sink: OnceLock::new(),
+            failure_sink: OnceLock::new(),
+            autosave: AtomicBool::new(true),
+            #[cfg(test)]
+            last_autosave_failure: Mutex::new(None),
+            #[cfg(test)]
+            autosave_writes: Mutex::new(0),
             #[cfg(test)]
             last_title: Mutex::new(String::new()),
             utc_offset,
@@ -140,6 +165,65 @@ impl AppState {
     /// Installs what sets the window title. Only the first call counts.
     pub fn set_title_sink(&self, sink: impl Fn(&str) + Send + Sync + 'static) {
         let _ = self.title_sink.set(Box::new(sink));
+    }
+
+    /// Installs what reports a failed autosave. Only the first call counts.
+    pub fn set_failure_sink(&self, sink: impl Fn(&AppError) + Send + Sync + 'static) {
+        let _ = self.failure_sink.set(Box::new(sink));
+    }
+
+    /// Switches autosave on or off (the saved preference, CSD-002 REQ-24).
+    pub fn set_autosave(&self, enabled: bool) {
+        self.autosave.store(enabled, Ordering::Relaxed);
+    }
+
+    /// Whether autosave is on.
+    #[must_use]
+    pub fn autosave_on(&self) -> bool {
+        self.autosave.load(Ordering::Relaxed)
+    }
+
+    /// Writes the project file after a step when autosave is on, the project
+    /// has a path and it differs from the file (CSD-002 REQ-23). A failed write
+    /// keeps the change and the unsaved indicator and is reported without the
+    /// path (REQ-26); the next step writes again.
+    pub fn autosave(&self, project: &mut Project) {
+        let status = project.status();
+        if !self.autosave_on() || !status.has_path || !status.unsaved_changes {
+            return;
+        }
+        let saved = project.save();
+        #[cfg(test)]
+        if saved.is_ok() {
+            if let Ok(mut writes) = self.autosave_writes.lock() {
+                *writes += 1;
+            }
+        }
+        if let Err(error) = saved {
+            let error = AppError::from(error);
+            #[cfg(test)]
+            if let Ok(mut last) = self.last_autosave_failure.lock() {
+                *last = Some(error.code());
+            }
+            if let Some(sink) = self.failure_sink.get() {
+                sink(&error);
+            }
+        }
+    }
+
+    /// How many times an autosave wrote the project file.
+    #[cfg(test)]
+    pub fn autosave_writes(&self) -> u32 {
+        self.autosave_writes.lock().map_or(0, |writes| *writes)
+    }
+
+    /// The code of the last failed autosave.
+    #[cfg(test)]
+    pub fn last_autosave_failure(&self) -> Option<&'static str> {
+        self.last_autosave_failure
+            .lock()
+            .ok()
+            .and_then(|last| *last)
     }
 
     /// Makes the window title follow `project`: its file name and whether it

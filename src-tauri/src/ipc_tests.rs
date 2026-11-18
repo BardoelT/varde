@@ -26,6 +26,9 @@ pub(crate) fn harness() -> Harness {
     let window = WebviewWindowBuilder::new(&app, "main", tauri::WebviewUrl::default())
         .build()
         .unwrap();
+    window
+        .state::<crate::commands::AppState>()
+        .set_autosave(false);
     Harness { window, _app: app }
 }
 
@@ -40,10 +43,25 @@ pub(crate) fn harness_in(config_dir: &std::path::Path) -> Harness {
     let window = WebviewWindowBuilder::new(&app, "main", tauri::WebviewUrl::default())
         .build()
         .unwrap();
+    window
+        .state::<crate::commands::AppState>()
+        .set_autosave(false);
     Harness { window, _app: app }
 }
 
 impl Harness {
+    /// The app state, for tests that look at what a step did besides its answer.
+    pub(crate) fn state(&self) -> tauri::State<'_, crate::commands::AppState> {
+        self.window.state::<crate::commands::AppState>()
+    }
+
+    /// Switches autosave on, as the saved preference does at start (CSD-002 REQ-24).
+    /// The other tests run with it off, as the scenarios without "autosave is on" say.
+    pub(crate) fn with_autosave(self) -> Self {
+        self.state().set_autosave(true);
+        self
+    }
+
     /// The title the app last set on the main window (the mock runtime keeps none).
     pub(crate) fn title(&self) -> String {
         self.window
@@ -1139,7 +1157,8 @@ fn test_csd008_the_theme_is_chosen_saved_and_restored_over_ipc() {
         app.ok("get_preferences", json!({})),
         json!({
             "theme": "system", "language": "en", "number_format": "point_comma",
-            "discrete_mode": false
+            "discrete_mode": false,
+            "autosave": true
         })
     );
 
@@ -1148,7 +1167,8 @@ fn test_csd008_the_theme_is_chosen_saved_and_restored_over_ipc() {
         app.ok("set_theme", json!({ "theme": "dark" })),
         json!({
             "theme": "dark", "language": "en", "number_format": "point_comma",
-            "discrete_mode": false
+            "discrete_mode": false,
+            "autosave": true
         })
     );
     assert_eq!(app.ok("get_preferences", json!({}))["theme"], "dark");

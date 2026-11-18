@@ -11,6 +11,8 @@ use crate::error::AppError;
 use crate::menu;
 use crate::storage::Preferences;
 
+use super::AppState;
+
 /// The application preferences as the frontend needs them (CSD-008).
 #[derive(Serialize)]
 pub struct PreferencesView {
@@ -18,6 +20,7 @@ pub struct PreferencesView {
     language: Language,
     number_format: NumberFormat,
     discrete_mode: bool,
+    autosave: bool,
 }
 
 /// The language as `set_language` answers it (CSD-022).
@@ -52,6 +55,7 @@ pub fn get_preferences<R: Runtime>(
         language: preferences.load_language(),
         number_format: preferences.load_number_format(),
         discrete_mode,
+        autosave: preferences.load_autosave(),
     }
 }
 
@@ -73,6 +77,7 @@ pub fn set_theme<R: Runtime>(
         language: preferences.load_language(),
         number_format: preferences.load_number_format(),
         discrete_mode: preferences.load_discrete_mode(),
+        autosave: preferences.load_autosave(),
     })
 }
 
@@ -102,6 +107,7 @@ pub fn set_number_format(
         language: preferences.load_language(),
         number_format,
         discrete_mode: preferences.load_discrete_mode(),
+        autosave: preferences.load_autosave(),
     })
 }
 
@@ -124,5 +130,31 @@ pub fn set_discrete_mode<R: Runtime>(
         language: preferences.load_language(),
         number_format: preferences.load_number_format(),
         discrete_mode: saved,
+        autosave: preferences.load_autosave(),
+    })
+}
+
+/// Saves the Autosave preference. Saving comes first, so a failed save changes
+/// nothing (CSD-002 REQ-24). Switching it on writes what is pending at once when
+/// the project has a path; switching it off touches no file (REQ-25).
+#[tauri::command]
+pub fn set_autosave(
+    preferences: State<'_, Preferences>,
+    state: State<'_, AppState>,
+    autosave: bool,
+) -> Result<PreferencesView, AppError> {
+    preferences.store_autosave(autosave)?;
+    state.set_autosave(autosave);
+    if autosave {
+        let mut project = state.project()?;
+        state.autosave(&mut project);
+        state.sync_title(&project);
+    }
+    Ok(PreferencesView {
+        theme: preferences.load_theme(),
+        language: preferences.load_language(),
+        number_format: preferences.load_number_format(),
+        discrete_mode: preferences.load_discrete_mode(),
+        autosave,
     })
 }
