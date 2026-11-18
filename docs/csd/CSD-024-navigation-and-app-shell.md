@@ -3,15 +3,15 @@ id: CSD-024
 title: Navigation and app shell
 status: draft
 owner: Thijs Bardoel
-version: 0.8
+version: 0.9
 last_updated: 18/11/2026
-related: [CSD-002, CSD-003, CSD-004, CSD-022, CSD-027, CSD-031]
+related: [CSD-002, CSD-003, CSD-004, CSD-022, CSD-025, CSD-027, CSD-031]
 ---
 
 # CSD-024: Navigation and app shell
 
 ## 1. Intent
-The app has one window with a left pane that opens the pages, and a native macOS menu bar. The name of the open project file is shown in the window title (GitHub issue 20). Until now the left pane was specified inside the income dashboard CSD (CSD-004), although it belongs to the whole app, and the menu was described only in pieces in CSD-002 and CSD-003. This capability is the one place for the structure of the left pane, which page opens first, how a page is chosen, and what the native menu holds. The pages themselves and the actions behind the menu items stay with their own CSDs.
+The app has one window with a left pane that opens the pages, and a native macOS menu bar. The name of the open project file is shown in the window title (GitHub issue 20). Until now the left pane was specified inside the income dashboard CSD (CSD-004), although it belongs to the whole app, and the menu was described only in pieces in CSD-002 and CSD-003. This capability is the one place for the structure of the left pane, which page opens first, how a page is chosen, and what the native menu holds. On every page the title and the tabs stay in view while the page scrolls, and the title shrinks to give the content more room (GitHub issue 74). The pages themselves and the actions behind the menu items stay with their own CSDs.
 
 ## 2. Scope
 ### 2.1 In scope
@@ -19,17 +19,20 @@ The app has one window with a left pane that opens the pages, and a native macOS
 - The window title: the name of the open project file, and a dot while the project has unsaved changes.
 - Which page the app opens on, and choosing a page with the mouse or the keyboard.
 - The native menu bar: which items it holds, and that its texts stay English.
+- The page header: the title of a page and its tabs stay at the top of the content area while the page scrolls, and the title compresses (REQ-10 to REQ-16).
 
 ### 2.2 Non-goals
 - NG-1: Any page in the Insights group other than the Net worth page of CSD-017 and the Ratios page of CSD-018 (moved from CSD-004 NG-5).
 - NG-2: Pages that have no function yet: Accounts and Budget. (Transactions has a function from CSD-032 and is no longer in this list. Changed in v0.7.)
 - NG-3: Collapsible groups, and a user-defined order of the items.
 - NG-4: Keyboard shortcuts that open a page, other than ⌘, for Settings (CSD-003 REQ-2). Decided for the first release (OQ-1).
-- NG-5: The content of a page, its tabs (such as Overview and Insights) and the actions behind the menu items (the owning CSDs).
+- NG-5: The content of a page, its tabs (such as Overview and Insights) and the actions behind the menu items (the owning CSDs). Keeping the title and the tabs in view is shell behaviour and is specified here (REQ-10).
 - NG-6: Remembering the last shown page between sessions (OQ-2).
 - NG-7: A status text in the left pane for the project ("New project", "All changes saved"); the window title replaces it (GitHub issue 20).
 - NG-8: The macOS "document edited" dot in the close button (it needs `NSWindow` through FFI, which `CLAUDE.md` forbids) and an "— Edited" suffix: the dot is a character in the title (REQ-9).
 - NG-9: A translated window title: "Untitled" stays English, like the menu (REQ-6).
+- NG-10: Pinning anything else than the title and the tabs: panel headers, table headers (the ratios row labels of CSD-018 stay as they are), the filter bars of CSD-028 and the left pane (GitHub issue 74).
+- NG-11: A setting to turn the pinned header or the compression off (GitHub issue 74).
 
 ## 3. Definitions
 | Term | Meaning |
@@ -38,6 +41,8 @@ The app has one window with a left pane that opens the pages, and a native macOS
 | **Group** | A plain, non-collapsible heading in the left pane with the pages below it. |
 | **Page** | One view the left pane can open. Exactly one page is shown at a time. |
 | **Window title** | The text the native macOS title bar of the window shows, centred at the top. |
+| **Page header** | The title of a page (its `h1`) and, on a page that has them, its tabs (such as Overview and Insights). |
+| **Compressed** | The state of the page header while the page is scrolled: a smaller title with less space above and below it. **Expanded** is the state at the top of the page. |
 | **Unsaved dot** | The character `●`, placed after the file name in the window title while the project has unsaved changes (CSD-002 REQ-3). |
 
 ## 4. Requirements
@@ -286,9 +291,184 @@ Scenario: A failed autosave keeps the dot (CSD-002 REQ-26)
 
 The scenarios AC-9.1 to AC-9.5 describe autosave off (CSD-002 section 3).
 
+**REQ-10: The page header stays in view** *(ubiquitous)*
+The app shall keep the page header of the shown page at the top of the content area while the page content scrolls, on every page: the title alone on Dashboard, Settings, Net worth and Ratios, and the title with the tabs on Income, Investments, Bank accounts, Houses, Debts, Transactions and Expenses. The header has the page background, so scrolling content does not show through it.
+
+```gherkin
+@AC-10.1
+Scenario: Title alone
+  Given the Dashboard is shown and its content is taller than the window
+  When the user scrolls down 400 px
+  Then the title "Dashboard" is still at the top of the content area
+
+@AC-10.2
+Scenario: Title and tabs
+  Given the Income page is shown with one job and its content is taller than the window
+  When the user scrolls down 400 px
+  Then the title "Income" and the tabs "Overview" and "Insights" are still at the top of the content area
+  And the tabs are directly below the title
+
+@AC-10.3
+Scenario: A page whose tabs are hidden
+  Given the Income page is shown and no job exists, so its tabs are hidden
+  When the user scrolls down
+  Then only the title "Income" is kept at the top
+
+@AC-10.4
+Scenario Outline: Every page
+  Given the page "<page>" is shown
+  Then its title is part of the pinned page header
+  And its tabs are too: "<tabs>"
+
+  Examples:
+    | page          | tabs                                          |
+    | Dashboard     | none                                          |
+    | Income        | Overview, Insights                            |
+    | Expenses      | Overview, Insights                            |
+    | Transactions  | Accounts, Categories, Rules, Overview, Insights |
+    | Bank accounts | Overview, Insights                            |
+    | Investments   | Overview, Insights                            |
+    | Houses        | Overview, Insights                            |
+    | Debts         | Overview, Insights                            |
+    | Net worth     | none                                          |
+    | Ratios        | none                                          |
+    | Settings      | none                                          |
+
+@AC-10.5
+Scenario: The content does not show above the header
+  Given the Income page is scrolled down 400 px
+  Then no part of the content is visible above the title
+```
+
+**REQ-11: The header compresses while scrolled** *(state-driven)*
+While the page is scrolled down more than 32 px from the top, the app shall show the page header compressed: the title at 16 px instead of 20 px, and 10 px of space above and below the title instead of 30 px above and 22 px below.
+
+```gherkin
+@AC-11.1
+Scenario: Compressed after 40 px
+  Given the Income page is shown at the top and its content is taller than the window by 800 px
+  When the user scrolls down 40 px
+  Then the page header is compressed
+
+@AC-11.2
+Scenario: Not yet at 32 px
+  Given the Income page is shown at the top and its content is taller than the window by 800 px
+  When the user scrolls down 32 px
+  Then the page header is still expanded
+
+@AC-11.3
+Scenario: The sizes
+  Given the page header is expanded
+  Then the title is 20 px with 30 px of space above and 22 px below
+  When the page header is compressed
+  Then the title is 16 px with 10 px of space above and 10 px below
+  And the tabs keep their look and sit directly below the title
+```
+
+**REQ-12: The header expands at the top, and does not flicker** *(event-driven)*
+When the user scrolls back to the very top of the page, the app shall expand the page header again, and shall keep the state it has while the page is scrolled between 0 and 32 px. If the page overflows the content area by less than the shrink of the header plus 32 px, then the app shall not compress the header, so that a short page never switches back and forth.
+
+```gherkin
+@AC-12.1
+Scenario: Back at the top
+  Given the page header is compressed
+  When the user scrolls back to the top
+  Then the page header is expanded
+
+@AC-12.2
+Scenario: Between 0 and 32 px keeps the state
+  Given the page header is compressed at 100 px
+  When the user scrolls up to 20 px
+  Then the page header is still compressed
+
+@AC-12.3
+Scenario: A short page never compresses
+  Given a page whose content is taller than the content area by 40 px
+  When the user scrolls down to the bottom of the page
+  Then the page header is still expanded
+
+@AC-12.4
+Scenario: Another page starts expanded
+  Given the page header of Income is compressed
+  When the user chooses "Debts"
+  Then the Debts page is shown at the top with its page header expanded
+```
+
+**REQ-13: Charts do not change when the header compresses** *(ubiquitous)*
+The app shall size a yearly chart as if the page header were expanded, so that compressing or expanding the header neither changes the plot height nor redraws the chart, and the rule of CSD-025 holds: with the page scrolled to the top the chart ends at the bottom of the window. A change of the window size still redraws it.
+
+```gherkin
+@AC-13.1
+Scenario: No redraw while scrolling
+  Given the Insights tab of Income is shown with a chart
+  When the user scrolls down 400 px so that the page header compresses
+  Then the chart is not drawn again
+  And its plot height is unchanged
+
+@AC-13.2
+Scenario: At the top the chart still ends at the bottom of the window
+  Given the Insights tab of Income is shown at the top
+  Then the chart ends at the bottom of the window as in CSD-025
+
+@AC-13.3
+Scenario: A resize still redraws
+  Given the Insights tab of Income is shown with a chart
+  When the window is made 200 px lower
+  Then the chart is drawn again with a plot about 200 px lower
+```
+
+**REQ-14: Focus and jumps stay clear of the header** *(ubiquitous)*
+The app shall keep an element that receives the focus, or that is scrolled into view, below the compressed page header and not under it.
+
+```gherkin
+@AC-14.1
+Scenario: Tab to a field further down
+  Given the Debts page is shown and a field is below the window
+  When the user reaches the field with Tab
+  Then the field is scrolled into view below the page header, not behind it
+```
+
+**REQ-15: The header lies below popovers, tooltips and dialogs** *(ubiquitous)*
+The app shall show the page header above the page content (including the sticky row labels of the ratios table) and below the filter panel of CSD-028, the tooltips, and the dialogs.
+
+```gherkin
+@AC-15.1
+Scenario: Filter panel above the header
+  Given the filter panel of a table is open near the top of the window
+  Then the panel is shown above the page header
+
+@AC-15.2
+Scenario: Dialog above the header
+  Given the page header is compressed
+  When the user opens the dialog "Add job"
+  Then the dialog and its backdrop cover the page header
+
+@AC-15.3
+Scenario: Table rows pass below the header
+  Given the Ratios page is scrolled down 400 px
+  Then the row labels of the table pass below the page header, not over it
+```
+
+**REQ-16: Reduced motion** *(optional)*
+Where the system setting "reduce motion" is on, the app shall change the page header between compressed and expanded without a transition.
+
+```gherkin
+@AC-16.1
+Scenario: Transition by default
+  Given "reduce motion" is off
+  Then the page header changes between its two states with a short transition
+
+@AC-16.2
+Scenario: No transition with reduced motion
+  Given "reduce motion" is on
+  Then the page header changes between its two states at once
+```
+
 ## 5. Interfaces and contracts
 
 Window title: Rust sets the title of the main window after every change of the project state (open, save, Save As, new project, edit, undo, redo) and at startup, with the pure function `window_title(file_name: Option<&str>, unsaved_changes: bool) -> String` in `domain/`. The command layer passes the last part of the path only, so the folder never reaches the title. The title is never set from the frontend.
+
+Page header: the sizes of REQ-11 are CSS custom properties in `ui/styles/`, in one place for the expanded and one for the compressed state, and the `top` of the tabs is the height of the title in the current state, so nothing is measured with JavaScript for the position. The frontend only toggles one class on the content area (compressed or not) from the scroll position of the content area, with the thresholds of REQ-11 and REQ-12. The chart code measures the position of a chart against the expanded header (REQ-13). No figure is computed.
 
 Menu: Rust builds the menu. The items `open-settings`, `project-new`, `project-open`, `project-save` and `project-save-as` emit the event `menu-action` with the item id to the frontend, which runs the action. The page elements and their ids are frontend-internal.
 
@@ -296,6 +476,8 @@ Menu: Rust builds the menu. The items `open-settings`, `project-new`, `project-o
 - CON-1: The menu uses Tauri's built-in menu API: no plugin and no extra permission. Rationale: least privilege per `CLAUDE.md` (as CSD-002 CON-6 and CSD-003 CON-3).
 - CON-2: The standard macOS Edit menu stays, except that its predefined Undo and Redo are replaced by the project Undo and Redo of CSD-027, which leave ⌘Z and ⇧⌘Z to a focused text field (CSD-027 REQ-11, CON-3). Rationale: it makes copy and paste work in text fields, and typing can still be undone there (CSD-002 CON-6).
 - CON-4: The window title is set with Tauri's built-in window API from Rust: no plugin and no new capability (`core:window:allow-set-title` is not added). Rationale: least privilege per `CLAUDE.md`, and the file name stays in Rust (CSD-002 error rule: no paths to the UI).
+- CON-5: The page header uses a CSS sticky position and one class toggle: no `style=` attribute, no `<style>` block, no `setAttribute('style', ...)` and no new dependency (`CLAUDE.md` CSP rule, CSD-021 CON-5). The scroll listener is passive. Rationale: the strict CSP, and a scroll listener must not slow scrolling.
+- CON-6: The page header is only layout and has no data: it adds no command, no capability and no permission. Rationale: least privilege per `CLAUDE.md`.
 - CON-3: The left pane is part of the page, not of one capability: a capability that adds a page adds its item through this CSD. Rationale: one place for the order.
 
 ## 7. Verification
@@ -304,10 +486,11 @@ The left pane and the page switching are checked by DOM tests (`npm test`, dev-o
 | What | How |
 |---|---|
 | Display ACs with a DOM test | `npm test`: `navigation.test.js` (AC-1.1 to AC-1.3, AC-2.1, AC-2.2, AC-3.1 to AC-3.3, AC-4.1 to AC-4.3, AC-6.1, AC-7.1, AC-7.2) |
+| Page header (REQ-10 to REQ-16) | `npm test`: `page-header.test.js` (class toggle on scroll with the thresholds of REQ-11 and REQ-12, the short-page guard with stubbed `scrollHeight` and `clientHeight`, every page and its tabs, the chart not redrawn on compress with the real chart code and a stubbed layout, and the rules of the stylesheets: sticky, the two sets of sizes, `scroll-padding-top`, the z-index order and the reduced-motion rule). jsdom has no layout, so the real sticky behaviour, the look, the transition, the focus jump and the layers are on the manual checklist (AC-10.1 to AC-10.3, AC-10.5, AC-11.3, AC-14.1, AC-15.1 to AC-15.3, AC-16.1, AC-16.2) |
 | Window title (REQ-8, REQ-9) | `cargo test test_csd024_`: `window_title` as a pure function (all four strings, `Untitled` and the dot), and the command layer with the Tauri mock runtime (the title after open, save, Save As, new, edit, undo, redo and the failed save, AC-8.1 to AC-8.6, AC-9.1 to AC-9.5). jsdom cannot see a native title |
 | Menu tables (REQ-5, REQ-7) | `cargo test test_csd002_ac_9_` and `cargo test test_csd003_ac_2_1` check the tables the menu is built from. Native menus can only be created on the main thread, so the built menu (AC-5.1, AC-5.2, AC-6.1 menu texts) is on the manual checklist |
 
-Not covered by a named test yet (2 of 27 ACs; no test carries the AC id): AC-5.1, AC-5.2. Both need the native menu bar and a real text field, which no automatic test can build (muda creates menus on the main thread only, and a native paste is an OS action). The parts of AC-5.1 that are tables are proven by `test_csd002_ac_9_1_...` and `test_csd003_ac_2_1_...`; the rest is on the manual checklist.
+Not covered by a named test yet (2 of 27 ACs; no test carries the AC id): AC-5.1, AC-5.2. The page header ACs (AC-10.1 to AC-16.2) get their tests, or their place on the manual checklist, when this version is approved and implemented. Both need the native menu bar and a real text field, which no automatic test can build (muda creates menus on the main thread only, and a native paste is an OS action). The parts of AC-5.1 that are tables are proven by `test_csd002_ac_9_1_...` and `test_csd003_ac_2_1_...`; the rest is on the manual checklist.
 
 Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm test` pass.
 
@@ -317,6 +500,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-3: (resolved 03/11/2026) The native menu is specified only as the standard menus (app, File, Edit, View, Window) plus the items already named; it is not listed item by item (REQ-5).
 
 ## 9. Changelog
+- 0.9 (18/11/2026): The page header stays in view (GitHub issue 74): new REQ-10 to REQ-16 (AC-10.1 to AC-16.2), the definitions Page header and Compressed, NG-10, NG-11, CON-5, CON-6, and the interface and verification notes. The title and the tabs of every page stay at the top while the page scrolls; the title compresses (20 px to 16 px, 30/22 px to 10/10 px of space) after 32 px of scrolling and expands again at the top, not on pages that overflow too little; charts keep their size (CSD-025 rule unchanged); focus, layers and reduced motion follow. NG-5 now excludes the pinned header. Owner decisions from the grill-me interview of 18/11/2026. Back to `draft` until re-approved.
 - 0.8 (18/11/2026): Autosave (CSD-002 v3.2, GitHub issue 71): new AC-9.6 to AC-9.8 (the dot with autosave on: gone after the write, kept without a path, kept after a failed write); AC-9.1 to AC-9.5 describe autosave off. REQ-9 itself is unchanged. Back to `draft` until re-approved.
 - 0.7 (12/11/2026): The Transactions page of CSD-032 (GitHub issue 70) joins the left pane as the last item of Finance; REQ-1 and AC-1.1 to AC-1.3 change with it and NG-2 no longer lists it. Back to `draft` until re-approved.
 - 0.6 (09/11/2026): REQ-5 says the content of the "About" item is specified in CSD-031 (GitHub issue 54); related adds CSD-031. No other change. Back to `draft` until re-approved.
