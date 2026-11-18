@@ -3,12 +3,14 @@ id: CSD-015
 title: Houses
 status: approved
 owner: Thijs Bardoel
-version: 2.1
-last_updated: 04/11/2026
-related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-016, CSD-019, CSD-020, CSD-026]
+version: 2.2
+last_updated: 18/11/2026
+related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-016, CSD-019, CSD-020, CSD-026, CSD-035]
 ---
 
 # CSD-015: Houses
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The app tracks bank accounts, investments and debts, but has no view of the houses the user owns. This capability, which replaces the former Assets capability (the app tracks houses only), lets the user record houses, each with its purchase, and, per house, one value per month or per year, with an optional note. From these the app derives, per valuation, how much the value changed since the previous one and, per calendar year, the yearly values with the closing value and the change. It is for a single person keeping a private, local history of what their houses are worth. It records values as the user estimates or reads them, such as a valuation report. It does not model the house: no depreciation, no address. The purchase and the sale of a house are specified in CSD-019. The result is a value history per house, which the Insights chart of CSD-016 and the Net worth page of CSD-017 build on. It follows the structure of Debts (CSD-011), with a value that cannot be negative and with the change counted as growth.
@@ -1084,6 +1086,7 @@ None open. (OQ-1, the position in the left pane, is settled by REQ-26 and CSD-02
 - OQ-2: (resolved 03/11/2026) The sale fields keep the names `sell_date` and `sell_amount` in the data model, IPC and the project file (section 5, CSD-002, CSD-019).
 
 ## 9. Changelog
+- 2.2 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 2.1 (04/11/2026): Wording follows the UI; no behaviour change: period field label and placeholder (AC-16.1, AC-16.2), amounts grouped as in CSD-022 AC-10.1 and the table dash written as "—" (AC-21.2, AC-21.3, AC-21.8, AC-22.2). Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A typed value with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-28 (AC-28.1 to AC-28.3), REQ-10 applies to the rounded value, the AC-10.1 row for 1000.999 and the code `HOUSE_VALUATION_VALUE_PRECISION` are removed, CON-11 updated. CSD-019 REQ-15 does the same for purchase and sell amounts. Owner decision. Back to `draft` until re-approved.
 - 1.3 (04/11/2026): Live references follow the split of the former CSD-020: the purchase, the sale, the holding window and the house totals are CSD-019 (REQ-1 to REQ-14, numbers unchanged), the debt link is CSD-020 (REQ-15) and linked debts in the view and the delete rule are CSD-026 (REQ-7, REQ-12); no behaviour change. Back to `draft` until re-approved.

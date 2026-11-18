@@ -56,22 +56,22 @@ async function openInsights(insights, { handlers = {}, reads = exampleReads() } 
 
 // ---- REQ-1: the tabs ----
 
-test('test_csd010_ac_1_1_the_overview_is_shown_first', async () => {
+test('test_csd010_ac_1_1_the_the_first_tab_is_shown_first', async () => {
   const app = await openApp();
   await app.click(app.item('bank'));
-  assert.equal(app.$('bank-tab-overview').getAttribute('aria-selected'), 'true');
-  assert.equal(app.isShown(app.$('bank-overview')), true);
-  const titles = [...app.document.querySelectorAll('#bank-overview .panel-title')].map((el) => app.text(el));
+  assert.equal(app.$('bank-tab-accounts').getAttribute('aria-selected'), 'true');
+  assert.equal(app.isShown(app.$('bank-accounts')), true);
+  const titles = app.overviewTitles('bank');
   assert.deepEqual(titles, ['Accounts', 'Yearly totals', 'Entries']);
   assert.equal(app.isShown(app.$('bank-insights')), false);
   app.close();
 });
 
-test('test_csd010_ac_1_2_switching_to_insights_hides_the_overview_and_shows_the_chart', async () => {
+test('test_csd010_ac_1_2_switching_to_insights_hides_the_first_panel_and_shows_the_chart', async () => {
   const app = await openApp();
   await app.click(app.item('bank'));
   await app.click(app.$('bank-tab-insights'));
-  assert.equal(app.isShown(app.$('bank-overview')), false, 'the Overview sections are hidden');
+  assert.equal(app.isShown(app.$('bank-accounts')), false, 'the first panel is hidden');
   assert.equal(app.isShown(app.$('bank-insights')), true);
   assert.equal(app.isShown(app.$('bank-insights-scroll')), true);
   assert.ok(app.$('bank-insights-chart').querySelector('svg'), 'the insights chart is drawn');
@@ -242,7 +242,7 @@ test('test_csd010_ac_9_5_a_deleted_bank_leaves_the_legend', async () => {
   await app.click(app.item('bank'));
   await app.click(app.$('bank-tab-insights'));
   assert.deepEqual([...app.$('bank-insights-legend').querySelectorAll('li')].map((item) => app.text(item)).slice(0, 2), ['Example Savings', 'Example Current Account']);
-  await app.click(app.$('bank-tab-overview'));
+  await app.click(app.$('bank-tab-accounts'));
   await app.click(app.document.querySelector('[aria-label="Delete Example Savings"]'));
   await app.click(app.$('confirm-ok'));
   await app.click(app.$('bank-tab-insights'));
@@ -374,7 +374,7 @@ test('test_csd010_ac_15_1_the_figures_follow_a_change_on_the_overview', async ()
   const marker = () => app.text(app.$('bank-insights-chart').querySelector('.chart-marker-label'));
   assert.equal(marker(), '2.50k');
 
-  await app.click(app.$('bank-tab-overview'));
+  await app.click(app.$('bank-tab-accounts'));
   await app.click(app.$('bank-entry-add'));
   const form = app.$('bank-entry-form');
   form.elements.period.value = '';
@@ -405,7 +405,7 @@ test('test_csd010_ac_15_2_deleting_the_last_entry_shows_the_note_again', async (
   await app.click(app.$('bank-tab-insights'));
   assert.ok(app.$('bank-insights-chart').querySelector('svg'), 'the Insights tab showed a chart');
 
-  await app.click(app.$('bank-tab-overview'));
+  await app.click(app.$('bank-tab-accounts'));
   await app.click(app.document.querySelector('#bank-entries-rows [aria-label^="Delete"]'));
   await app.click(app.$('confirm-ok'));
   assert.equal(app.callsOf('delete_bank_entry').length, 1);

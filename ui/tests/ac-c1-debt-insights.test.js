@@ -93,14 +93,14 @@ function gridlines(chart) {
 
 // ---- REQ-1: the tabs ----
 
-test('test_csd012_ac_1_1_overview_is_shown_first', async () => {
+test('test_csd012_ac_1_1_the_first_tab_is_shown_first', async () => {
   const app = await openApp();
   await app.click(app.item('debts'));
-  assert.equal(app.$('debts-tab-overview').getAttribute('aria-selected'), 'true', 'the Overview tab is selected');
+  assert.equal(app.$('debts-tab-debts').getAttribute('aria-selected'), 'true', 'the first tab is selected');
   assert.equal(app.$('debts-tab-insights').getAttribute('aria-selected'), 'false');
-  const titles = [...app.$('debts-overview').querySelectorAll('.panel-title')].map((node) => app.text(node));
+  const titles = app.overviewTitles('debts');
   assert.deepEqual(titles, ['Debts', 'Yearly totals', 'Statements']);
-  assert.equal(app.isShown(app.$('debts-overview')), true);
+  assert.equal(app.isShown(app.$('debts-debts')), true);
   assert.equal(app.isShown(app.$('debts-insights')), false);
   app.close();
 });
@@ -109,7 +109,7 @@ test('test_csd012_ac_1_2_switching_to_insights', async () => {
   const app = await openApp();
   await app.click(app.item('debts'));
   await app.click(app.$('debts-tab-insights'));
-  assert.equal(app.isShown(app.$('debts-overview')), false, 'the Overview sections are hidden');
+  assert.equal(app.isShown(app.$('debts-debts')), false, 'the first panel is hidden');
   assert.equal(app.isShown(app.$('debts-insights-scroll')), true, 'the insights chart is shown');
   assert.ok(app.$('debts-insights-chart').querySelector('svg .chart-year-group'));
   app.close();
@@ -121,7 +121,7 @@ test('test_csd012_ac_1_3_no_debts_yet_means_a_prompt_and_no_tabs', async () => {
   assert.equal(app.isShown(app.$('debts-empty')), true);
   assert.equal(app.text(app.$('debts-empty').querySelector('p')), 'No debts yet. Add your first debt to start tracking what you owe.');
   assert.equal(app.text(app.$('debt-add-first')), 'Add your first debt');
-  assert.equal(app.isShown(app.$('debts-tab-overview')), false, 'there are no tabs');
+  assert.equal(app.isShown(app.$('debts-tab-debts')), false, 'there are no tabs');
   assert.equal(app.isShown(app.$('debts-tab-insights')), false);
   app.close();
 });
@@ -311,7 +311,7 @@ test('test_csd012_ac_9_5_a_deleted_debt_leaves_the_legend', async () => {
   const { app, legend } = await openChart(twoYears());
   assert.deepEqual([...legend.querySelectorAll('li')].map((item) => app.text(item)), ['Example Mortgage', 'Example Student Loan', 'Total debt']);
   // The student loan is deleted on the Overview tab: Rust now answers without it.
-  await app.click(app.$('debts-tab-overview'));
+  await app.click(app.$('debts-tab-debts'));
   app.bridge.table.get_debt_insights = series(debtList(['Example Mortgage']), [debtYear(2026, [['id-1', '150000.00']])]);
   await app.click(app.$('debts-tab-insights'));
   assert.deepEqual([...app.$('debts-insights-legend').querySelectorAll('li')].map((item) => app.text(item)), ['Example Mortgage', 'Total debt']);

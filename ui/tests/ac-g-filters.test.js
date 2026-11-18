@@ -28,6 +28,7 @@ async function openBank({ reads = exampleReads(), handlers = {} } = {}) {
     handlers: { list_bank_entries: bankAnswer(reads.list_bank_entries), ...handlers },
   });
   await app.click(app.item('bank'));
+  await app.click(app.$('bank-tab-entries'));
   return app;
 }
 

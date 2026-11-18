@@ -1,4 +1,4 @@
-// Settings page: the project currency (CSD-003), the app theme (CSD-008) and the language (CSD-022) the number format (CSD-029) and Discrete mode (CSD-030).
+// Settings page: the project currency (CSD-003), the app theme (CSD-008) and the language (CSD-022) the number format (CSD-029), Discrete mode (CSD-030) and Autosave (CSD-002).
 import { invoke, errorText } from '../shared/ipc.js';
 import { showToast, confirmAction } from '../shared/dom.js';
 import { setLanguage, t } from '../shared/i18n.js';
@@ -11,12 +11,14 @@ const languageSelect = () => document.getElementById('setting-language');
 const numberFormatSelect = () => document.getElementById('setting-number-format');
 const discreteSwitch = () => document.getElementById('setting-discrete-mode');
 const discreteBadge = () => document.getElementById('discrete-badge');
+const autosaveSwitch = () => document.getElementById('setting-autosave');
 
 let settings = { currency: 'EUR', entry_count: 0 };
 let savedTheme = 'system';
 let savedLanguage = 'en';
 let savedNumberFormat = 'point_comma';
 let savedDiscreteMode = false;
+let savedAutosave = true;
 
 /** Shows a theme: `data-theme` for light and dark, none for system so macOS decides (REQ-4). */
 function applyTheme(theme) {
@@ -52,6 +54,12 @@ async function applyDiscreteMode(on) {
   await setDiscreteMode(savedDiscreteMode);
 }
 
+/** Shows the Autosave choice in the switch (CSD-002 REQ-24). */
+function applyAutosave(on) {
+  savedAutosave = on !== false;
+  autosaveSwitch().checked = savedAutosave;
+}
+
 /** Loads the saved theme and language from Rust and applies them. Called first at start (CSD-008 REQ-6, CSD-022 REQ-4). */
 export async function loadPreferences() {
   const preferences = await invoke('get_preferences');
@@ -59,6 +67,7 @@ export async function loadPreferences() {
   await applyLanguage(preferences.language);
   await applyNumberFormat(preferences.number_format);
   await applyDiscreteMode(preferences.discrete_mode);
+  applyAutosave(preferences.autosave);
 }
 
 /** Applies a theme only once Rust has saved it, so a failed save changes nothing (REQ-10). */
@@ -113,6 +122,23 @@ async function onDiscreteModeChosen() {
   }
 }
 
+/**
+ * Applies Autosave only once Rust has saved it, so a failed save changes nothing (CSD-002 REQ-24).
+ * Switching it on may write the project, so the menu and the window follow (REQ-25).
+ */
+async function onAutosaveChosen(onWritten) {
+  const requested = autosaveSwitch().checked;
+  if (requested === savedAutosave) return;
+  try {
+    const preferences = await invoke('set_autosave', { autosave: requested });
+    applyAutosave(preferences.autosave);
+    await onWritten();
+  } catch (error) {
+    autosaveSwitch().checked = savedAutosave;
+    showToast(errorText(error));
+  }
+}
+
 /** The menu item and ⌘⇧D flip the mode like the switch does (CSD-030 REQ-11). */
 export async function toggleDiscreteMode() {
   discreteSwitch().checked = !savedDiscreteMode;
@@ -152,10 +178,11 @@ async function onCurrencyChosen(onChanged) {
   await onChanged();
 }
 
-export function initSettings({ onChanged }) {
+export function initSettings({ onChanged, onWritten = async () => {} }) {
   select().addEventListener('change', () => onCurrencyChosen(onChanged));
   themeSelect().addEventListener('change', onThemeChosen);
   languageSelect().addEventListener('change', onLanguageChosen);
   numberFormatSelect().addEventListener('change', onNumberFormatChosen);
   discreteSwitch().addEventListener('change', onDiscreteModeChosen);
+  autosaveSwitch().addEventListener('change', () => onAutosaveChosen(onWritten));
 }

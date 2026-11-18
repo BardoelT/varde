@@ -3,12 +3,14 @@ id: CSD-009
 title: Bank accounts
 status: approved
 owner: Thijs Bardoel
-version: 2.2
-last_updated: 12/11/2026
-related: [CSD-000, CSD-002, CSD-003, CSD-005, CSD-010, CSD-025]
+version: 2.3
+last_updated: 18/11/2026
+related: [CSD-000, CSD-002, CSD-003, CSD-005, CSD-010, CSD-025, CSD-035]
 ---
 
 # CSD-009: Bank accounts
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The app tracks wealth, but has no view of the money the user keeps in bank accounts (a current account, a savings account). This capability lets the user record bank accounts and, per account, one closing balance per month or per year, with an optional note. From these the app derives, per calendar year, the yearly totals, and a total of the latest balances. It is for a single person keeping a private, local history of their bank balances. It records balances as the user reads them off a statement. It does not track individual transactions. The result is a balance history per account that the Insights chart of CSD-010 and the Net worth page of CSD-017 build on. It follows the structure of Investments (CSD-005), without net deposits and capital growth, because a bank balance is not an investment return.
@@ -971,6 +973,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-2: Whether `docs/architecture.md` and the layout line of `CLAUDE.md` ("money, income, investments") get a bank accounts mention when this CSD is implemented. Owner: Thijs. Blocks: none.
 
 ## 9. Changelog
+- 2.3 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 2.2 (12/11/2026): NG-1 points to CSD-032 for bank transactions, which stand apart from the balances recorded here (GitHub issue 70). Back to `draft` until re-approved.
 - 2.1 (04/11/2026): Wording follows the UI; no behaviour change: period field label and placeholder (AC-16.1, AC-16.2), amounts grouped as in CSD-022 AC-10.1 and the dash written as "—" (AC-20.2, AC-21.2). Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A typed balance with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-25 (AC-25.1 to AC-25.3), REQ-10 applies to the rounded balance, the AC-10.1 rows for 1000.999 and -1000.999 and the code `BANK_ENTRY_BALANCE_PRECISION` are removed, AC-10.3 and AC-13.4 use "abc" (`BANK_ENTRY_BALANCE_INVALID`), CON-11 updated. Owner decision. Back to `draft` until re-approved.

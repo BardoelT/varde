@@ -3,12 +3,14 @@ id: CSD-010
 title: Bank account insights
 status: approved
 owner: Thijs Bardoel
-version: 1.3
-last_updated: 03/11/2026
-related: [CSD-007, CSD-009, CSD-025]
+version: 1.4
+last_updated: 18/11/2026
+related: [CSD-007, CSD-009, CSD-025, CSD-035]
 ---
 
 # CSD-010: Bank account insights
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The Bank accounts page lists accounts, entries and a table of yearly totals, but a table does not show how the money at the banks is spread over the accounts and how that changed over the years. This capability adds an insights layer to the Bank accounts page: a chart with one bar per calendar year, stacked from one segment per bank, with a marker at the closing balance of the year. It is for the owner looking back over their own bank balances. The chart frame (axis, bars, tooltip, highlight, motion, size, look, legend, colours, tabs, short labels) is shared and specified in CSD-025. It follows the Investment insights of CSD-007, but a bank entry is only a balance, so the segments are the banks instead of opening balance, deposits and growth. It supersedes CSD-009 NG-6 for this view only to the extent that the chart shows the closing balance per bank.
@@ -516,6 +518,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-2: (resolved 03/11/2026) An entry after the current year extends the series to the latest year with an entry, so the closing balances equal the yearly totals of CSD-009 REQ-19 (REQ-2, AC-2.5, AC-5.5). The series spans at most 50 years back from its last year; an older entry gets no slot but still counts (AC-2.6). A future year is not marked partial (REQ-4, AC-4.3).
 
 ## 9. Changelog
+- 1.4 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 1.3 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. The claim that display ACs have DOM tests is removed.
 - 1.2 (03/11/2026): The axis tick labels in AC-2.4 and the section 5 example are whole numbers ("0", "10k"), as CSD-025 REQ-17 says; markers keep 2 decimals. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Resolved OQ-2: the series runs to the later of the current year and the latest year with an entry (REQ-2, new AC-2.5), spans at most 50 years back from its last year, older entries still count (new AC-2.6), a future year is not partial (REQ-4, new AC-4.3), AC-5.5 covers future years. Back to `draft` until re-approved.

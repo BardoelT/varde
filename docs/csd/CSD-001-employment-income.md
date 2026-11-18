@@ -3,12 +3,14 @@ id: CSD-001
 title: Employment income tracking
 status: approved
 owner: Thijs Bardoel
-version: 2.1
-last_updated: 04/11/2026
-related: [CSD-000, CSD-002, CSD-003, CSD-006]
+version: 2.2
+last_updated: 18/11/2026
+related: [CSD-000, CSD-002, CSD-003, CSD-006, CSD-035]
 ---
 
 # CSD-001: Employment income tracking
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The app tracks wealth but has no view of what comes in. This capability lets the user record employment income over time: any number of jobs, each recorded either monthly, with one paycheck per month, or yearly, with one annual statement per year. Both are made up of gross salary, holiday pay and bonus. It is for a single person keeping a private, local history of their employment earnings. Scope is employment only. The result is a record per job, by month or by year, and yearly totals, which the dashboard (CSD-004) and the Insights chart (CSD-006) build on.
@@ -921,6 +923,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-7: (reversed in v1.1) Deleting a paycheck or an annual statement asks for confirmation, see REQ-31.
 
 ## 9. Changelog
+- 2.2 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 2.1 (04/11/2026): Wording follows the UI; no behaviour change: the add form labels the period field "Month" or "Year" with the placeholder "yyyy-mm" (maximum length 7) or a four-digit year (maximum length 4) (AC-28.1, AC-28.2). Back to `draft` until re-approved.
 - 2.0 (04/11/2026): Typed amounts with more than two decimals are rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-32 (AC-32.1 to AC-32.5), REQ-7 applies to the rounded amount, the AC-7.1 row for 3000.999 and the code `PAYCHECK_AMOUNT_PRECISION` are removed, CON-1 updated. Owner decision. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. NG-5 now says income is not part of the net worth (CSD-017 NG-6) instead of forbidding an integration that CSD-017 specifies; the intro points to CSD-004 and CSD-006. Back to `draft` until re-approved.

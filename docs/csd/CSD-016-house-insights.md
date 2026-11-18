@@ -3,12 +3,14 @@ id: CSD-016
 title: House insights
 status: approved
 owner: Thijs Bardoel
-version: 1.5
-last_updated: 04/11/2026
-related: [CSD-000, CSD-010, CSD-012, CSD-015, CSD-019, CSD-025]
+version: 1.6
+last_updated: 18/11/2026
+related: [CSD-000, CSD-010, CSD-012, CSD-015, CSD-019, CSD-025, CSD-035]
 ---
 
 # CSD-016: House insights
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The Houses page lists houses, valuations and a table of yearly values, but a table does not show how the houses grow and which house is growing. This capability adds an insights layer to the Houses page: a chart with one bar per calendar year, stacked from one segment per house, with a marker at the total value of the year and the change in the tooltip. It is for the owner looking back over their own houses. It follows the Debt insights of CSD-012 and the Bank account insights of CSD-010, with the houses as segments and without negative values, because a house value is never negative. It shows the value per house, and not any percentage or forecast.
@@ -588,6 +590,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-1: (resolved 03/11/2026) A year after the current year (a valuation in the future, CSD-015 REQ-7) is not marked and looks like any other year (REQ-4, AC-4.3). The series runs to the latest year with a valuation, at most 50 years back from its last year (REQ-2, AC-2.4, AC-2.5).
 
 ## 9. Changelog
+- 1.6 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 1.5 (04/11/2026): Wording follows the UI; no behaviour change: the tooltip dash for change none is "–" (AC-10.5), and the tooltip and the accessible label show grouped amounts (AC-10.1, AC-13.4). Back to `draft` until re-approved.
 - 1.4 (04/11/2026): Live reference follows the split of the former CSD-020: houses held at the end of the year are CSD-019 REQ-10 (REQ-2); no behaviour change. Back to `draft` until re-approved.
 - 1.3 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.

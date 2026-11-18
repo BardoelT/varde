@@ -48,7 +48,11 @@ pub fn set_currency(
     currency: String,
 ) -> Result<SettingsView, AppError> {
     let mut project = state.project()?;
+    let before = project.snapshot();
     project.settings_mut().set_currency(&currency)?;
+    if project.data() != &before {
+        state.autosave(&mut project);
+    }
     state.sync_title(&project);
     Ok(SettingsView::of(&project))
 }

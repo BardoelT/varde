@@ -49,6 +49,7 @@ test('test_csd011_ac_33_1_the_opening_row_is_the_oldest_row_of_its_debt', async 
 test('test_csd011_ac_33_3_a_debt_without_statements_still_shows_its_opening_row', async () => {
   const empty = debt({ latest_balance: null, latest_period: null, statement_count: 0 });
   const app = await openDebts(reads([empty], [openingRow()]));
+  await app.click(app.$('debts-tab-statements'));
   assert.equal(statementRows(app).length, 1);
   assert.equal(app.text(statementRows(app)[0].querySelector('.note-cell')), 'Opening');
   assert.equal(app.isShown(app.$('debt-statements-table')), true);
@@ -61,6 +62,7 @@ test('test_csd011_ac_21_4_more_than_one_row_in_the_table', async () => {
   const empty = (id, name) => debt({ id, name, latest_balance: null, latest_period: null, statement_count: 0 });
   const rows = [openingRow(), openingRow({ debt_id: 'id-2', debt_name: 'Example Card' })];
   const app = await openDebts(reads([empty('id-1', 'Example Mortgage'), empty('id-2', 'Example Card')], rows));
+  await app.click(app.$('debts-tab-statements'));
   assert.equal(statementRows(app).length, 2);
   assert.equal(app.isShown(app.$('debt-statements-empty')), false, 'no "No statements yet."');
   app.close();

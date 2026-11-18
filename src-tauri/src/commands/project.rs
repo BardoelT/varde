@@ -172,6 +172,7 @@ pub fn undo<R: Runtime>(
 ) -> Result<HistoryResult, AppError> {
     let mut project = state.project()?;
     let step = project.undo()?;
+    state.autosave(&mut project);
     Ok(HistoryResult {
         step,
         status: publish(&app, &state, &project),
@@ -186,6 +187,7 @@ pub fn redo<R: Runtime>(
 ) -> Result<HistoryResult, AppError> {
     let mut project = state.project()?;
     let step = project.redo()?;
+    state.autosave(&mut project);
     Ok(HistoryResult {
         step,
         status: publish(&app, &state, &project),

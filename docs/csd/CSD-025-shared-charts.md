@@ -3,12 +3,14 @@ id: CSD-025
 title: Shared charts
 status: approved
 owner: Thijs Bardoel
-version: 0.6
-last_updated: 12/11/2026
-related: [CSD-000, CSD-006, CSD-007, CSD-010, CSD-012, CSD-014, CSD-016, CSD-017]
+version: 0.7
+last_updated: 18/11/2026
+related: [CSD-000, CSD-006, CSD-007, CSD-010, CSD-012, CSD-014, CSD-016, CSD-017, CSD-035]
 ---
 
 # CSD-025: Shared charts
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The Insights tabs of Income, Investments, Bank accounts, Debts, Expenses, Houses and the Net worth page each draw a yearly stacked bar chart, and each CSD used to repeat the same text for the axis, the bars, the tooltip, the legend, the highlight, the motion and the look. This CSD holds that shared behaviour once. It also fixes one rule for every chart: Rust computes all figures and builds all short labels such as "2.55k", and the frontend only displays what it receives. What is specific to an area (which pieces a bar has, the legend entries, the tooltip rows, growth labels, the empty-state text) stays in the CSD of that area. It is for the owner reading their own history year by year.
@@ -565,6 +567,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-4: (resolved 03/11/2026) CSD-006 and CSD-007 now point here instead of holding copies of the look, size and motion text (CSD-010 already did).
 
 ## 9. Changelog
+- 0.7 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 0.6 (12/11/2026): A chart that scrolls sideways reserves the height of its scrollbar in the plot height, so the scrollbar does not make the page scroll (REQ-11, AC-11.4). Owner report. Back to `draft` until re-approved.
 - 0.5 (03/11/2026): OQ-4 resolved: CSD-006 1.3 and CSD-007 1.3 point to this CSD. No requirement changes.
 - 0.4 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.

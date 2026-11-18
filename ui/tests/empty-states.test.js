@@ -48,15 +48,15 @@ test('test_csd025_ac_16_1_nothing_to_draw', async () => {
 });
 
 test('test_csd025_ac_16_2_the_last_figure_is_deleted', async () => {
-  for (const { page, insights } of TAB_PAGES) {
+  for (const { page, first, insights } of TAB_PAGES) {
     const app = await openApp();
     await app.click(app.item(page));
     await app.click(app.$(`${page}-tab-insights`));
     assert.equal(app.isShown(app.$(`${page}-insights-empty`)), false);
     assert.ok(app.$(`${page}-insights-chart`).children.length > 0, 'the chart showed');
 
-    // The only figure is deleted on the Overview tab, so Rust now answers with no years.
-    await app.click(app.$(`${page}-tab-overview`));
+    // The only figure is deleted on the first tab, so Rust now answers with no years.
+    await app.click(app.$(`${page}-tab-${first}`));
     app.bridge.table[insights] = { ...app.bridge.table[insights], years: [] };
     await app.click(app.$(`${page}-tab-insights`));
     assert.equal(app.isShown(app.$(`${page}-insights-empty`)), true, 'the note is shown');
@@ -113,7 +113,7 @@ for (const [title, page, text, button] of FIRST_PROMPTS) {
     if (text) assert.equal(app.text(prompt.querySelector('p')), text);
     if (button) assert.equal(app.text(prompt.querySelector('button')), button);
     assert.equal(app.isShown(app.$(`${page}-content`)), false, 'no tabs, no statement or entry form');
-    assert.equal(app.isShown(app.$(`${page}-tab-overview`)), false);
+    assert.equal(app.isShown(app.$(`${page}-tab-insights`)), false);
     app.close();
   });
 }
@@ -121,11 +121,12 @@ for (const [title, page, text, button] of FIRST_PROMPTS) {
 test('test_csd013_ac_14_1_no_expenses', async () => {
   const app = await openApp({ reads: emptyReads() });
   await app.click(app.item('expenses'));
-  assert.equal(app.textOf('expenses-empty'), 'No expenses yet. Add your first expense.');
-  assert.equal(app.isShown(app.$('expenses-empty')), true);
   assert.equal(app.textOf('expense-totals-empty'), 'No totals yet. Totals appear once there is an expense.');
   assert.equal(app.isShown(app.$('expense-totals-empty')), true);
   assert.equal(app.isShown(app.$('expense-totals-table')), false);
+  await app.click(app.$('expenses-tab-expenses'));
+  assert.equal(app.textOf('expenses-empty'), 'No expenses yet. Add your first expense.');
+  assert.equal(app.isShown(app.$('expenses-empty')), true);
   const add = [...app.document.querySelectorAll('#expenses button')].find((button) => app.text(button) === 'Add expense');
   assert.ok(add && app.isShown(add), 'the button "Add expense" is available');
   assert.equal(app.$('toast').hidden, true, 'no error is shown');
@@ -137,9 +138,11 @@ test('test_csd001_ac_13_2_jobs_without_entries_show_a_note_and_no_error', async 
   Object.assign(reads, { yearly_totals: [], list_entries: [] });
   const app = await openApp({ reads });
   await app.click(app.item('income'));
+  await app.click(app.$('income-tab-totals'));
   assert.equal(app.isShown(app.$('totals-empty')), true);
-  assert.equal(app.isShown(app.$('paycheck-empty')), true);
   assert.equal(app.isShown(app.$('totals-table')), false);
+  await app.click(app.$('income-tab-paychecks'));
+  assert.equal(app.isShown(app.$('paycheck-empty')), true);
   assert.equal(app.$('toast').hidden, true);
   app.close();
 });

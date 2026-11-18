@@ -97,17 +97,17 @@ test('test_csd030_ac_2_1_first_start_shows_every_amount', async () => {
 test('test_csd030_ac_3_1_and_3_2_switching_on_and_off_redraws_at_once_without_a_confirmation', async () => {
   const app = await openApp();
   await app.click(app.item('income'));
-  const before = app.text(app.$('income-overview'));
+  const before = app.overviewText('income');
   assert.match(before, AMOUNT);
 
   await app.click(app.$('setting-discrete-mode'));
   assert.deepEqual(app.callsOf('set_discrete_mode').map((call) => call.args), [{ discreteMode: true }]);
   assert.equal(app.$('confirm-dialog').open, false, 'no confirmation is asked');
-  assert.doesNotMatch(app.text(app.$('income-overview')), AMOUNT);
+  assert.doesNotMatch(app.overviewText('income'), AMOUNT);
 
   await app.click(app.$('setting-discrete-mode'));
   assert.deepEqual(app.callsOf('set_discrete_mode').map((call) => call.args.discreteMode), [true, false]);
-  assert.equal(app.text(app.$('income-overview')), before, 'every amount is shown again');
+  assert.equal(app.overviewText('income'), before, 'every amount is shown again');
   app.close();
 });
 
@@ -133,7 +133,7 @@ test('test_csd030_ac_4_2_another_project_is_hidden_too', async () => {
   await app.emit('menu-action', 'project-open');
   await app.click(app.item('bank'));
   assert.equal(app.callsOf('open_project').length, 1);
-  assert.doesNotMatch(app.text(app.$('bank-overview')), AMOUNT);
+  assert.doesNotMatch(app.overviewText('bank'), AMOUNT);
   app.close();
 });
 
@@ -184,7 +184,7 @@ test('test_csd030_ac_6_1_percentages_ratios_and_dates_stay', async () => {
   await app.click(app.item('ratios'));
   assert.match(app.text(app.$('ratios')), /\d+\.\d\d%/, 'ratios and percentages are shown');
   await app.click(app.item('income'));
-  assert.match(app.text(app.$('income-overview')), /\d{2}\/\d{2}\/\d{4}|\b20\d\d\b/, 'dates and years are shown');
+  assert.match(app.overviewText('income'), /\d{2}\/\d{2}\/\d{4}|\b20\d\d\b/, 'dates and years are shown');
   app.close();
 });
 
@@ -199,7 +199,7 @@ test('test_csd030_ac_6_3_names_and_counts_stay', async () => {
   const app = await openApp({ reads: readsWith(true) });
   await app.click(app.item('bank'));
   const name = exampleReads().list_bank_accounts.accounts[0].name;
-  assert.ok(app.text(app.$('bank-overview')).includes(name), 'the account name is shown');
+  assert.ok(app.overviewText('bank').includes(name), 'the account name is shown');
   app.close();
 });
 
@@ -262,7 +262,7 @@ test('test_csd030_ac_9_1_and_9_2_amount_fields_are_blurred_and_keep_their_value'
   assert.match(css, /\.discrete-mode input\[inputmode="decimal"\],\s*\.discrete-mode input\[inputmode="decimal"\]:focus\s*\{\s*filter: blur\(/, 'blurred, also while focused');
   await app.click(app.item('income'));
   await app.click(app.$('job-add-first') ?? app.$('job-add'));
-  const form = app.document.querySelector('#income-overview form') ?? app.$('job-form');
+  const form = app.document.querySelector('#income form') ?? app.$('job-form');
   assert.ok(form);
   const field = app.document.querySelector('input[inputmode="decimal"]');
   assert.ok(field, 'an amount field exists');
@@ -280,11 +280,11 @@ test('test_csd030_ac_9_3_fields_that_are_not_amounts_are_not_blurred', async () 
 test('test_csd030_ac_10_1_hovering_and_clicking_do_not_reveal', async () => {
   const app = await openApp({ reads: readsWith(true) });
   await app.click(app.item('income'));
-  const mark = app.document.querySelector('#income-overview .hidden-amount');
+  const mark = app.document.querySelector('#income .hidden-amount');
   for (const type of ['mouseover', 'mouseenter', 'mousedown', 'click', 'focus']) mark.dispatchEvent(new app.window.MouseEvent(type, { bubbles: true }));
   await app.settle();
   assert.equal(app.text(mark.closest('td, .account-amount') ?? mark.parentElement).includes('•••••'), true);
-  assert.doesNotMatch(app.text(app.$('income-overview')), AMOUNT);
+  assert.doesNotMatch(app.overviewText('income'), AMOUNT);
   app.close();
 });
 
@@ -293,7 +293,7 @@ test('test_csd030_ac_10_2_copying_does_not_leak', async () => {
   await app.click(app.item('income'));
   assert.match(css, /\.hidden-amount\s*\{[^}]*user-select: none/);
   const range = app.document.createRange();
-  range.selectNodeContents(app.$('income-overview'));
+  range.selectNodeContents(app.$('income-content'));
   assert.doesNotMatch(range.toString(), AMOUNT, 'what is selected holds no amount');
   app.close();
 });

@@ -173,62 +173,68 @@
 
         <div id="income-content" hidden>
           <div class="tabs" role="tablist" aria-label="Income views">
-            <button type="button" class="tab" role="tab" id="income-tab-overview" aria-controls="income-overview" aria-selected="true">Overview</button>
+            <button type="button" class="tab" role="tab" id="income-tab-jobs" aria-controls="income-jobs" aria-selected="true">Jobs</button>
+            <button type="button" class="tab" role="tab" id="income-tab-totals" aria-controls="income-totals" aria-selected="false" tabindex="-1">Yearly totals</button>
+            <button type="button" class="tab" role="tab" id="income-tab-paychecks" aria-controls="income-paychecks" aria-selected="false" tabindex="-1">Paychecks and statements</button>
             <button type="button" class="tab" role="tab" id="income-tab-insights" aria-controls="income-insights" aria-selected="false" tabindex="-1">Insights</button>
           </div>
 
-          <div id="income-overview" role="tabpanel" aria-labelledby="income-tab-overview">
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Jobs</span>
-              <button type="button" class="btn primary" id="job-add">Add job</button>
-            </div>
-            <ul class="job-list" id="job-list"></ul>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header"><span class="panel-title">Yearly totals</span></div>
-            <p class="empty-note" id="totals-empty" hidden>No totals yet. Totals appear once there is a paycheck or an annual statement.</p>
-            <div class="table-wrap">
-              <table class="data-table" id="totals-table" hidden>
-                <thead>
-                  <tr>
-                    <th scope="col">Year</th>
-                    <th scope="col" class="num">Gross salary</th>
-                    <th scope="col" class="num">Holiday pay</th>
-                    <th scope="col" class="num">Bonus</th>
-                    <th scope="col" class="num">Total gross</th>
-                  </tr>
-                </thead>
-                <tbody id="totals-rows"></tbody>
-              </table>
+          <div id="income-jobs" role="tabpanel" aria-labelledby="income-tab-jobs">
+            <div class="panel">
+              <div class="panel-header">
+                <span class="panel-title">Jobs</span>
+                <button type="button" class="btn primary" id="job-add">Add job</button>
+              </div>
+              <ul class="job-list" id="job-list"></ul>
             </div>
           </div>
 
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Paychecks and statements</span>
-              <button type="button" class="btn primary" id="paycheck-add">Add entry</button>
-            </div>
-            <p class="empty-note" id="paycheck-empty" hidden>No paychecks or annual statements yet.</p>
-            <p class="empty-note" id="paycheck-nomatch" hidden>No paychecks or annual statements match the filters.</p>
-            <div class="table-wrap">
-              <table class="data-table" id="paycheck-table" hidden>
-                <thead>
-                  <tr>
-                    <th scope="col">Period<span class="col-filter" id="paycheck-period-filter"></span></th>
-                    <th scope="col">Job<span class="col-filter" id="paycheck-entity-filter"></span></th>
-                    <th scope="col" class="num">Gross salary</th>
-                    <th scope="col" class="num">Holiday pay</th>
-                    <th scope="col" class="num">Bonus</th>
-                    <th scope="col" class="num">Total gross</th>
-                    <th scope="col"><span class="visually-hidden">Actions</span></th>
-                  </tr>
-                </thead>
-                <tbody id="paycheck-rows"></tbody>
-              </table>
+          <div id="income-totals" role="tabpanel" aria-labelledby="income-tab-totals" hidden>
+            <div class="panel">
+              <div class="panel-header"><span class="panel-title">Yearly totals</span></div>
+              <p class="empty-note" id="totals-empty" hidden>No totals yet. Totals appear once there is a paycheck or an annual statement.</p>
+              <div class="table-wrap">
+                <table class="data-table" id="totals-table" hidden>
+                  <thead>
+                    <tr>
+                      <th scope="col">Year</th>
+                      <th scope="col" class="num">Gross salary</th>
+                      <th scope="col" class="num">Holiday pay</th>
+                      <th scope="col" class="num">Bonus</th>
+                      <th scope="col" class="num">Total gross</th>
+                    </tr>
+                  </thead>
+                  <tbody id="totals-rows"></tbody>
+                </table>
+              </div>
             </div>
           </div>
+
+          <div id="income-paychecks" role="tabpanel" aria-labelledby="income-tab-paychecks" hidden>
+            <div class="panel">
+              <div class="panel-header">
+                <span class="panel-title">Paychecks and statements</span>
+                <button type="button" class="btn primary" id="paycheck-add">Add entry</button>
+              </div>
+              <p class="empty-note" id="paycheck-empty" hidden>No paychecks or annual statements yet.</p>
+              <p class="empty-note" id="paycheck-nomatch" hidden>No paychecks or annual statements match the filters.</p>
+              <div class="table-wrap">
+                <table class="data-table" id="paycheck-table" hidden>
+                  <thead>
+                    <tr>
+                      <th scope="col">Period<span class="col-filter" id="paycheck-period-filter"></span></th>
+                      <th scope="col">Job<span class="col-filter" id="paycheck-entity-filter"></span></th>
+                      <th scope="col" class="num">Gross salary</th>
+                      <th scope="col" class="num">Holiday pay</th>
+                      <th scope="col" class="num">Bonus</th>
+                      <th scope="col" class="num">Total gross</th>
+                      <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="paycheck-rows"></tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <div id="income-insights" role="tabpanel" aria-labelledby="income-tab-insights" hidden>
@@ -259,66 +265,72 @@
 
         <div id="investments-content" hidden>
           <div class="tabs" role="tablist" aria-label="Investment views">
-            <button type="button" class="tab" role="tab" id="investments-tab-overview" aria-controls="investments-overview" aria-selected="true">Overview</button>
+            <button type="button" class="tab" role="tab" id="investments-tab-accounts" aria-controls="investments-accounts" aria-selected="true">Accounts</button>
+            <button type="button" class="tab" role="tab" id="investments-tab-totals" aria-controls="investments-totals" aria-selected="false" tabindex="-1">Yearly totals</button>
+            <button type="button" class="tab" role="tab" id="investments-tab-statements" aria-controls="investments-statements" aria-selected="false" tabindex="-1">Statements</button>
             <button type="button" class="tab" role="tab" id="investments-tab-insights" aria-controls="investments-insights" aria-selected="false" tabindex="-1">Insights</button>
           </div>
 
-          <div id="investments-overview" role="tabpanel" aria-labelledby="investments-tab-overview">
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Accounts</span>
-              <button type="button" class="btn primary" id="account-add">Add account</button>
-            </div>
-            <ul class="job-list" id="account-list"></ul>
-            <div class="job-row account-total" id="account-total" hidden>
-              <span class="job-name">Total of latest balances</span>
-              <span class="job-meta"></span>
-              <span class="account-amount" id="account-total-value"></span>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header"><span class="panel-title">Yearly totals</span></div>
-            <p class="empty-note" id="investment-totals-empty" hidden>No totals yet. Totals appear once there is a statement.</p>
-            <div class="table-wrap">
-              <table class="data-table" id="investment-totals-table" hidden>
-                <thead>
-                  <tr>
-                    <th scope="col">Year</th>
-                    <th scope="col" class="num">Closing balance</th>
-                    <th scope="col" class="num">Net deposits</th>
-                    <th scope="col" class="num">Capital growth</th>
-                  </tr>
-                </thead>
-                <tbody id="investment-totals-rows"></tbody>
-              </table>
+          <div id="investments-accounts" role="tabpanel" aria-labelledby="investments-tab-accounts">
+            <div class="panel">
+              <div class="panel-header">
+                <span class="panel-title">Accounts</span>
+                <button type="button" class="btn primary" id="account-add">Add account</button>
+              </div>
+              <ul class="job-list" id="account-list"></ul>
+              <div class="job-row account-total" id="account-total" hidden>
+                <span class="job-name">Total of latest balances</span>
+                <span class="job-meta"></span>
+                <span class="account-amount" id="account-total-value"></span>
+              </div>
             </div>
           </div>
 
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Statements</span>
-              <button type="button" class="btn primary" id="statement-add">Add statement</button>
-            </div>
-            <p class="empty-note" id="statements-empty" hidden>No statements yet.</p>
-            <p class="empty-note" id="statements-nomatch" hidden>No statements match the filters.</p>
-            <div class="table-wrap">
-              <table class="data-table" id="statements-table" hidden>
-                <thead>
-                  <tr>
-                    <th scope="col">Period<span class="col-filter" id="statement-period-filter"></span></th>
-                    <th scope="col">Account<span class="col-filter" id="statement-entity-filter"></span></th>
-                    <th scope="col" class="num">Balance</th>
-                    <th scope="col" class="num">Net deposits</th>
-                    <th scope="col" class="num">Capital growth</th>
-                    <th scope="col">Note</th>
-                    <th scope="col"><span class="visually-hidden">Actions</span></th>
-                  </tr>
-                </thead>
-                <tbody id="statements-rows"></tbody>
-              </table>
+          <div id="investments-totals" role="tabpanel" aria-labelledby="investments-tab-totals" hidden>
+            <div class="panel">
+              <div class="panel-header"><span class="panel-title">Yearly totals</span></div>
+              <p class="empty-note" id="investment-totals-empty" hidden>No totals yet. Totals appear once there is a statement.</p>
+              <div class="table-wrap">
+                <table class="data-table" id="investment-totals-table" hidden>
+                  <thead>
+                    <tr>
+                      <th scope="col">Year</th>
+                      <th scope="col" class="num">Closing balance</th>
+                      <th scope="col" class="num">Net deposits</th>
+                      <th scope="col" class="num">Capital growth</th>
+                    </tr>
+                  </thead>
+                  <tbody id="investment-totals-rows"></tbody>
+                </table>
+              </div>
             </div>
           </div>
+
+          <div id="investments-statements" role="tabpanel" aria-labelledby="investments-tab-statements" hidden>
+            <div class="panel">
+              <div class="panel-header">
+                <span class="panel-title">Statements</span>
+                <button type="button" class="btn primary" id="statement-add">Add statement</button>
+              </div>
+              <p class="empty-note" id="statements-empty" hidden>No statements yet.</p>
+              <p class="empty-note" id="statements-nomatch" hidden>No statements match the filters.</p>
+              <div class="table-wrap">
+                <table class="data-table" id="statements-table" hidden>
+                  <thead>
+                    <tr>
+                      <th scope="col">Period<span class="col-filter" id="statement-period-filter"></span></th>
+                      <th scope="col">Account<span class="col-filter" id="statement-entity-filter"></span></th>
+                      <th scope="col" class="num">Balance</th>
+                      <th scope="col" class="num">Net deposits</th>
+                      <th scope="col" class="num">Capital growth</th>
+                      <th scope="col">Note</th>
+                      <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="statements-rows"></tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <div id="investments-insights" role="tabpanel" aria-labelledby="investments-tab-insights" hidden>
@@ -349,62 +361,68 @@
 
         <div id="bank-content" hidden>
           <div class="tabs" role="tablist" aria-label="Bank account views">
-            <button type="button" class="tab" role="tab" id="bank-tab-overview" aria-controls="bank-overview" aria-selected="true">Overview</button>
+            <button type="button" class="tab" role="tab" id="bank-tab-accounts" aria-controls="bank-accounts" aria-selected="true">Accounts</button>
+            <button type="button" class="tab" role="tab" id="bank-tab-totals" aria-controls="bank-totals" aria-selected="false" tabindex="-1">Yearly totals</button>
+            <button type="button" class="tab" role="tab" id="bank-tab-entries" aria-controls="bank-entries" aria-selected="false" tabindex="-1">Entries</button>
             <button type="button" class="tab" role="tab" id="bank-tab-insights" aria-controls="bank-insights" aria-selected="false" tabindex="-1">Insights</button>
           </div>
 
-          <div id="bank-overview" role="tabpanel" aria-labelledby="bank-tab-overview">
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Accounts</span>
-              <button type="button" class="btn primary" id="bank-account-add">Add account</button>
-            </div>
-            <ul class="job-list" id="bank-account-list"></ul>
-            <div class="job-row account-total" id="bank-account-total" hidden>
-              <span class="job-name">Total of latest balances</span>
-              <span class="job-meta"></span>
-              <span class="account-amount" id="bank-account-total-value"></span>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header"><span class="panel-title">Yearly totals</span></div>
-            <p class="empty-note" id="bank-totals-empty" hidden>No totals yet. Totals appear once there is an entry.</p>
-            <div class="table-wrap">
-              <table class="data-table" id="bank-totals-table" hidden>
-                <thead>
-                  <tr>
-                    <th scope="col">Year</th>
-                    <th scope="col" class="num">Closing balance</th>
-                  </tr>
-                </thead>
-                <tbody id="bank-totals-rows"></tbody>
-              </table>
+          <div id="bank-accounts" role="tabpanel" aria-labelledby="bank-tab-accounts">
+            <div class="panel">
+              <div class="panel-header">
+                <span class="panel-title">Accounts</span>
+                <button type="button" class="btn primary" id="bank-account-add">Add account</button>
+              </div>
+              <ul class="job-list" id="bank-account-list"></ul>
+              <div class="job-row account-total" id="bank-account-total" hidden>
+                <span class="job-name">Total of latest balances</span>
+                <span class="job-meta"></span>
+                <span class="account-amount" id="bank-account-total-value"></span>
+              </div>
             </div>
           </div>
 
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Entries</span>
-              <button type="button" class="btn primary" id="bank-entry-add">Add entry</button>
-            </div>
-            <p class="empty-note" id="bank-entries-empty" hidden>No entries yet.</p>
-            <p class="empty-note" id="bank-entries-nomatch" hidden>No entries match the filters.</p>
-            <div class="table-wrap">
-              <table class="data-table" id="bank-entries-table" hidden>
-                <thead>
-                  <tr>
-                    <th scope="col">Period<span class="col-filter" id="bank-entry-period-filter"></span></th>
-                    <th scope="col">Account<span class="col-filter" id="bank-entry-entity-filter"></span></th>
-                    <th scope="col" class="num">Balance</th>
-                    <th scope="col">Note</th>
-                    <th scope="col"><span class="visually-hidden">Actions</span></th>
-                  </tr>
-                </thead>
-                <tbody id="bank-entries-rows"></tbody>
-              </table>
+          <div id="bank-totals" role="tabpanel" aria-labelledby="bank-tab-totals" hidden>
+            <div class="panel">
+              <div class="panel-header"><span class="panel-title">Yearly totals</span></div>
+              <p class="empty-note" id="bank-totals-empty" hidden>No totals yet. Totals appear once there is an entry.</p>
+              <div class="table-wrap">
+                <table class="data-table" id="bank-totals-table" hidden>
+                  <thead>
+                    <tr>
+                      <th scope="col">Year</th>
+                      <th scope="col" class="num">Closing balance</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bank-totals-rows"></tbody>
+                </table>
+              </div>
             </div>
           </div>
+
+          <div id="bank-entries" role="tabpanel" aria-labelledby="bank-tab-entries" hidden>
+            <div class="panel">
+              <div class="panel-header">
+                <span class="panel-title">Entries</span>
+                <button type="button" class="btn primary" id="bank-entry-add">Add entry</button>
+              </div>
+              <p class="empty-note" id="bank-entries-empty" hidden>No entries yet.</p>
+              <p class="empty-note" id="bank-entries-nomatch" hidden>No entries match the filters.</p>
+              <div class="table-wrap">
+                <table class="data-table" id="bank-entries-table" hidden>
+                  <thead>
+                    <tr>
+                      <th scope="col">Period<span class="col-filter" id="bank-entry-period-filter"></span></th>
+                      <th scope="col">Account<span class="col-filter" id="bank-entry-entity-filter"></span></th>
+                      <th scope="col" class="num">Balance</th>
+                      <th scope="col">Note</th>
+                      <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="bank-entries-rows"></tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <div id="bank-insights" role="tabpanel" aria-labelledby="bank-tab-insights" hidden>
@@ -435,64 +453,70 @@
 
         <div id="houses-content" hidden>
           <div class="tabs" role="tablist" aria-label="House views">
-            <button type="button" class="tab" role="tab" id="houses-tab-overview" aria-controls="houses-overview" aria-selected="true">Overview</button>
+            <button type="button" class="tab" role="tab" id="houses-tab-houses" aria-controls="houses-houses" aria-selected="true">Houses</button>
+            <button type="button" class="tab" role="tab" id="houses-tab-totals" aria-controls="houses-totals" aria-selected="false" tabindex="-1">Yearly values</button>
+            <button type="button" class="tab" role="tab" id="houses-tab-valuations" aria-controls="houses-valuations" aria-selected="false" tabindex="-1">Valuations</button>
             <button type="button" class="tab" role="tab" id="houses-tab-insights" aria-controls="houses-insights" aria-selected="false" tabindex="-1">Insights</button>
           </div>
 
-          <div id="houses-overview" role="tabpanel" aria-labelledby="houses-tab-overview">
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Houses</span>
-              <button type="button" class="btn primary" id="house-add">Add house</button>
-            </div>
-            <ul class="job-list" id="house-list"></ul>
-            <div class="job-row account-total" id="house-total" hidden>
-              <span class="job-name">Total value</span>
-              <span class="job-meta"></span>
-              <span class="account-amount" id="house-total-value"></span>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header"><span class="panel-title">Yearly values</span></div>
-            <p class="empty-note" id="house-totals-empty" hidden>No yearly values yet. They appear once there is a valuation.</p>
-            <div class="table-wrap">
-              <table class="data-table" id="house-totals-table" hidden>
-                <thead>
-                  <tr>
-                    <th scope="col">Year</th>
-                    <th scope="col" class="num">Closing value</th>
-                    <th scope="col" class="num">Change</th>
-                  </tr>
-                </thead>
-                <tbody id="house-totals-rows"></tbody>
-              </table>
+          <div id="houses-houses" role="tabpanel" aria-labelledby="houses-tab-houses">
+            <div class="panel">
+              <div class="panel-header">
+                <span class="panel-title">Houses</span>
+                <button type="button" class="btn primary" id="house-add">Add house</button>
+              </div>
+              <ul class="job-list" id="house-list"></ul>
+              <div class="job-row account-total" id="house-total" hidden>
+                <span class="job-name">Total value</span>
+                <span class="job-meta"></span>
+                <span class="account-amount" id="house-total-value"></span>
+              </div>
             </div>
           </div>
 
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Valuations</span>
-              <button type="button" class="btn primary" id="house-valuation-add">Add valuation</button>
-            </div>
-            <p class="empty-note" id="house-valuations-empty" hidden>No valuations yet.</p>
-            <p class="empty-note" id="house-valuations-nomatch" hidden>No valuations match the filters.</p>
-            <div class="table-wrap">
-              <table class="data-table" id="house-valuations-table" hidden>
-                <thead>
-                  <tr>
-                    <th scope="col">Period<span class="col-filter" id="house-valuation-period-filter"></span></th>
-                    <th scope="col">House<span class="col-filter" id="house-valuation-entity-filter"></span></th>
-                    <th scope="col" class="num">Value</th>
-                    <th scope="col" class="num">Change</th>
-                    <th scope="col">Note</th>
-                    <th scope="col"><span class="visually-hidden">Actions</span></th>
-                  </tr>
-                </thead>
-                <tbody id="house-valuations-rows"></tbody>
-              </table>
+          <div id="houses-totals" role="tabpanel" aria-labelledby="houses-tab-totals" hidden>
+            <div class="panel">
+              <div class="panel-header"><span class="panel-title">Yearly values</span></div>
+              <p class="empty-note" id="house-totals-empty" hidden>No yearly values yet. They appear once there is a valuation.</p>
+              <div class="table-wrap">
+                <table class="data-table" id="house-totals-table" hidden>
+                  <thead>
+                    <tr>
+                      <th scope="col">Year</th>
+                      <th scope="col" class="num">Closing value</th>
+                      <th scope="col" class="num">Change</th>
+                    </tr>
+                  </thead>
+                  <tbody id="house-totals-rows"></tbody>
+                </table>
+              </div>
             </div>
           </div>
+
+          <div id="houses-valuations" role="tabpanel" aria-labelledby="houses-tab-valuations" hidden>
+            <div class="panel">
+              <div class="panel-header">
+                <span class="panel-title">Valuations</span>
+                <button type="button" class="btn primary" id="house-valuation-add">Add valuation</button>
+              </div>
+              <p class="empty-note" id="house-valuations-empty" hidden>No valuations yet.</p>
+              <p class="empty-note" id="house-valuations-nomatch" hidden>No valuations match the filters.</p>
+              <div class="table-wrap">
+                <table class="data-table" id="house-valuations-table" hidden>
+                  <thead>
+                    <tr>
+                      <th scope="col">Period<span class="col-filter" id="house-valuation-period-filter"></span></th>
+                      <th scope="col">House<span class="col-filter" id="house-valuation-entity-filter"></span></th>
+                      <th scope="col" class="num">Value</th>
+                      <th scope="col" class="num">Change</th>
+                      <th scope="col">Note</th>
+                      <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="house-valuations-rows"></tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <div id="houses-insights" role="tabpanel" aria-labelledby="houses-tab-insights" hidden>
@@ -523,64 +547,70 @@
 
         <div id="debts-content" hidden>
           <div class="tabs" role="tablist" aria-label="Debt views">
-            <button type="button" class="tab" role="tab" id="debts-tab-overview" aria-controls="debts-overview" aria-selected="true">Overview</button>
+            <button type="button" class="tab" role="tab" id="debts-tab-debts" aria-controls="debts-debts" aria-selected="true">Debts</button>
+            <button type="button" class="tab" role="tab" id="debts-tab-totals" aria-controls="debts-totals" aria-selected="false" tabindex="-1">Yearly totals</button>
+            <button type="button" class="tab" role="tab" id="debts-tab-statements" aria-controls="debts-statements" aria-selected="false" tabindex="-1">Statements</button>
             <button type="button" class="tab" role="tab" id="debts-tab-insights" aria-controls="debts-insights" aria-selected="false" tabindex="-1">Insights</button>
           </div>
 
-          <div id="debts-overview" role="tabpanel" aria-labelledby="debts-tab-overview">
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Debts</span>
-              <button type="button" class="btn primary" id="debt-add">Add debt</button>
-            </div>
-            <ul class="job-list" id="debt-list"></ul>
-            <div class="job-row account-total" id="debt-total" hidden>
-              <span class="job-name">Total debt</span>
-              <span class="job-meta"></span>
-              <span class="account-amount" id="debt-total-value"></span>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header"><span class="panel-title">Yearly totals</span></div>
-            <p class="empty-note" id="debt-totals-empty" hidden>No totals yet. Totals appear once there is a statement.</p>
-            <div class="table-wrap">
-              <table class="data-table" id="debt-totals-table" hidden>
-                <thead>
-                  <tr>
-                    <th scope="col">Year</th>
-                    <th scope="col" class="num">Closing balance</th>
-                    <th scope="col" class="num">Repaid</th>
-                  </tr>
-                </thead>
-                <tbody id="debt-totals-rows"></tbody>
-              </table>
+          <div id="debts-debts" role="tabpanel" aria-labelledby="debts-tab-debts">
+            <div class="panel">
+              <div class="panel-header">
+                <span class="panel-title">Debts</span>
+                <button type="button" class="btn primary" id="debt-add">Add debt</button>
+              </div>
+              <ul class="job-list" id="debt-list"></ul>
+              <div class="job-row account-total" id="debt-total" hidden>
+                <span class="job-name">Total debt</span>
+                <span class="job-meta"></span>
+                <span class="account-amount" id="debt-total-value"></span>
+              </div>
             </div>
           </div>
 
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Statements</span>
-              <button type="button" class="btn primary" id="debt-statement-add">Add statement</button>
+          <div id="debts-totals" role="tabpanel" aria-labelledby="debts-tab-totals" hidden>
+            <div class="panel">
+              <div class="panel-header"><span class="panel-title">Yearly totals</span></div>
+              <p class="empty-note" id="debt-totals-empty" hidden>No totals yet. Totals appear once there is a statement.</p>
+              <div class="table-wrap">
+                <table class="data-table" id="debt-totals-table" hidden>
+                  <thead>
+                    <tr>
+                      <th scope="col">Year</th>
+                      <th scope="col" class="num">Closing balance</th>
+                      <th scope="col" class="num">Repaid</th>
+                    </tr>
+                  </thead>
+                  <tbody id="debt-totals-rows"></tbody>
+                </table>
+              </div>
             </div>
-            <div class="table-wrap">
-              <table class="data-table" id="debt-statements-table" hidden>
-                <thead>
-                  <tr>
-                    <th scope="col">Period<span class="col-filter" id="debt-statement-period-filter"></span></th>
-                    <th scope="col">Debt<span class="col-filter" id="debt-statement-entity-filter"></span></th>
-                    <th scope="col" class="num">Balance</th>
-                    <th scope="col" class="num">Change</th>
-                    <th scope="col">Note</th>
-                    <th scope="col"><span class="visually-hidden">Actions</span></th>
-                  </tr>
-                </thead>
-                <tbody id="debt-statements-rows"></tbody>
-              </table>
-            </div>
-            <p class="empty-note" id="debt-statements-empty" hidden>No statements yet.</p>
-            <p class="empty-note" id="debt-statements-nomatch" hidden>No statements match the filters.</p>
           </div>
+
+          <div id="debts-statements" role="tabpanel" aria-labelledby="debts-tab-statements" hidden>
+            <div class="panel">
+              <div class="panel-header">
+                <span class="panel-title">Statements</span>
+                <button type="button" class="btn primary" id="debt-statement-add">Add statement</button>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table" id="debt-statements-table" hidden>
+                  <thead>
+                    <tr>
+                      <th scope="col">Period<span class="col-filter" id="debt-statement-period-filter"></span></th>
+                      <th scope="col">Debt<span class="col-filter" id="debt-statement-entity-filter"></span></th>
+                      <th scope="col" class="num">Balance</th>
+                      <th scope="col" class="num">Change</th>
+                      <th scope="col">Note</th>
+                      <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="debt-statements-rows"></tbody>
+                </table>
+              </div>
+              <p class="empty-note" id="debt-statements-empty" hidden>No statements yet.</p>
+              <p class="empty-note" id="debt-statements-nomatch" hidden>No statements match the filters.</p>
+            </div>
           </div>
 
           <div id="debts-insights" role="tabpanel" aria-labelledby="debts-tab-insights" hidden>
@@ -608,7 +638,8 @@
           <button type="button" class="tab" role="tab" id="transactions-tab-accounts" aria-controls="transactions-accounts" aria-selected="false" tabindex="-1">Accounts</button>
           <button type="button" class="tab" role="tab" id="transactions-tab-categories" aria-controls="transactions-categories" aria-selected="false" tabindex="-1">Categories</button>
           <button type="button" class="tab" role="tab" id="transactions-tab-rules" aria-controls="transactions-rules" aria-selected="false" tabindex="-1">Rules</button>
-          <button type="button" class="tab" role="tab" id="transactions-tab-overview" aria-controls="transactions-overview" aria-selected="true">Overview</button>
+          <button type="button" class="tab" role="tab" id="transactions-tab-totals" aria-controls="transactions-totals" aria-selected="false" tabindex="-1">Yearly totals</button>
+          <button type="button" class="tab" role="tab" id="transactions-tab-transactions" aria-controls="transactions-transactions" aria-selected="true">Transactions</button>
           <button type="button" class="tab" role="tab" id="transactions-tab-insights" aria-controls="transactions-insights" aria-selected="false" tabindex="-1">Insights</button>
         </div>
 
@@ -653,73 +684,75 @@
           </div>
         </div>
 
-        <div id="transactions-overview" role="tabpanel" aria-labelledby="transactions-tab-overview">
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Yearly totals</span>
-              <span class="summary-note" id="transaction-categorisation" hidden></span>
-            </div>
-            <p class="empty-note" id="transaction-totals-empty" hidden>No totals yet. Totals appear once there is a transaction.</p>
-            <div class="table-wrap">
-              <table class="data-table" id="transaction-totals-table" hidden>
-                <thead>
-                  <tr>
-                    <th scope="col">Year</th>
-                    <th scope="col" class="num">Income</th>
-                    <th scope="col" class="num">Spent</th>
-                    <th scope="col" class="num">Net</th>
-                  </tr>
-                </thead>
-                <tbody id="transaction-totals-rows"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Transactions</span>
-              <div class="panel-actions">
-                <button type="button" class="btn" id="transaction-bulk-toggle" aria-pressed="false">Bulk select</button>
-                <button type="button" class="btn" id="transaction-manual-only" aria-pressed="false">Manual only</button>
+        <div id="transactions-totals" role="tabpanel" aria-labelledby="transactions-tab-totals" hidden>
+            <div class="panel">
+              <div class="panel-header">
+                <span class="panel-title">Yearly totals</span>
+                <span class="summary-note" id="transaction-categorisation" hidden></span>
+              </div>
+              <p class="empty-note" id="transaction-totals-empty" hidden>No totals yet. Totals appear once there is a transaction.</p>
+              <div class="table-wrap">
+                <table class="data-table" id="transaction-totals-table" hidden>
+                  <thead>
+                    <tr>
+                      <th scope="col">Year</th>
+                      <th scope="col" class="num">Income</th>
+                      <th scope="col" class="num">Spent</th>
+                      <th scope="col" class="num">Net</th>
+                    </tr>
+                  </thead>
+                  <tbody id="transaction-totals-rows"></tbody>
+                </table>
               </div>
             </div>
-            <div class="bulk-bar" id="transactions-bulk" hidden>
-              <span id="transactions-bulk-count"></span>
-              <label class="visually-hidden" for="transactions-bulk-category">Category for the selected transactions</label>
-              <select class="table-select" id="transactions-bulk-category"></select>
-              <button type="button" class="btn" id="transactions-bulk-set">Set category</button>
-              <button type="button" class="btn danger" id="transactions-bulk-delete">Delete selected</button>
+        </div>
+
+        <div id="transactions-transactions" role="tabpanel" aria-labelledby="transactions-tab-transactions">
+            <div class="panel">
+              <div class="panel-header">
+                <span class="panel-title">Transactions</span>
+                <div class="panel-actions">
+                  <button type="button" class="btn" id="transaction-bulk-toggle" aria-pressed="false">Bulk select</button>
+                  <button type="button" class="btn" id="transaction-manual-only" aria-pressed="false">Manual only</button>
+                </div>
+              </div>
+              <div class="bulk-bar" id="transactions-bulk" hidden>
+                <span id="transactions-bulk-count"></span>
+                <label class="visually-hidden" for="transactions-bulk-category">Category for the selected transactions</label>
+                <select class="table-select" id="transactions-bulk-category"></select>
+                <button type="button" class="btn" id="transactions-bulk-set">Set category</button>
+                <button type="button" class="btn danger" id="transactions-bulk-delete">Delete selected</button>
+              </div>
+              <p class="empty-note" id="transactions-empty" hidden></p>
+              <p class="empty-note" id="transactions-nomatch" hidden>No transactions match the filters.</p>
+              <div class="table-wrap">
+                <table class="data-table" id="transactions-table" hidden>
+                  <thead>
+                    <tr>
+                      <th scope="col">Date<span class="col-filter" id="transaction-period-filter"></span></th>
+                      <th scope="col">Account<span class="col-filter" id="transaction-account-filter"></span></th>
+                      <th scope="col">Counterparty<span class="col-filter" id="transaction-counterparty-filter"></span></th>
+                      <th scope="col">Description<span class="col-filter" id="transaction-description-filter"></span></th>
+                      <th scope="col">Category<span class="col-filter" id="transaction-entity-filter"></span></th>
+                      <th scope="col" class="num">Amount<span class="col-filter" id="transaction-amount-filter"></span></th>
+                      <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="transactions-rows"></tbody>
+                  <tfoot>
+                    <tr>
+                      <th scope="row" colspan="5" id="transactions-total-label">Total</th>
+                      <td class="num" id="transactions-total"></td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <div class="list-more" id="transactions-more" hidden>
+                <span id="transactions-shown"></span>
+                <button type="button" class="btn" id="transactions-load-more">Load more</button>
+              </div>
             </div>
-            <p class="empty-note" id="transactions-empty" hidden></p>
-            <p class="empty-note" id="transactions-nomatch" hidden>No transactions match the filters.</p>
-            <div class="table-wrap">
-              <table class="data-table" id="transactions-table" hidden>
-                <thead>
-                  <tr>
-                    <th scope="col">Date<span class="col-filter" id="transaction-period-filter"></span></th>
-                    <th scope="col">Account<span class="col-filter" id="transaction-account-filter"></span></th>
-                    <th scope="col">Counterparty<span class="col-filter" id="transaction-counterparty-filter"></span></th>
-                    <th scope="col">Description<span class="col-filter" id="transaction-description-filter"></span></th>
-                    <th scope="col">Category<span class="col-filter" id="transaction-entity-filter"></span></th>
-                    <th scope="col" class="num">Amount<span class="col-filter" id="transaction-amount-filter"></span></th>
-                    <th scope="col"><span class="visually-hidden">Actions</span></th>
-                  </tr>
-                </thead>
-                <tbody id="transactions-rows"></tbody>
-                <tfoot>
-                  <tr>
-                    <th scope="row" colspan="5" id="transactions-total-label">Total</th>
-                    <td class="num" id="transactions-total"></td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-            <div class="list-more" id="transactions-more" hidden>
-              <span id="transactions-shown"></span>
-              <button type="button" class="btn" id="transactions-load-more">Load more</button>
-            </div>
-          </div>
         </div>
 
         <div id="transactions-insights" role="tabpanel" aria-labelledby="transactions-tab-insights" hidden>
@@ -747,60 +780,63 @@
         </div>
 
         <div class="tabs" role="tablist" aria-label="Expense views">
-          <button type="button" class="tab" role="tab" id="expenses-tab-overview" aria-controls="expenses-overview" aria-selected="true">Overview</button>
+          <button type="button" class="tab" role="tab" id="expenses-tab-totals" aria-controls="expenses-totals" aria-selected="true">Yearly totals</button>
+          <button type="button" class="tab" role="tab" id="expenses-tab-expenses" aria-controls="expenses-expenses" aria-selected="false" tabindex="-1">Expenses</button>
           <button type="button" class="tab" role="tab" id="expenses-tab-insights" aria-controls="expenses-insights" aria-selected="false" tabindex="-1">Insights</button>
         </div>
 
-        <div id="expenses-overview" role="tabpanel" aria-labelledby="expenses-tab-overview">
-          <div class="panel">
-            <div class="panel-header"><span class="panel-title">Yearly totals</span></div>
-            <p class="empty-note" id="expense-totals-empty" hidden>No totals yet. Totals appear once there is an expense.</p>
-            <div class="table-wrap">
-              <table class="data-table" id="expense-totals-table" hidden>
-                <thead>
-                  <tr>
-                    <th scope="col">Year</th>
-                    <th scope="col" class="num">Total</th>
-                    <th scope="col" class="num">Largest</th>
-                  </tr>
-                </thead>
-                <tbody id="expense-totals-rows"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Expenses</span>
-              <div class="panel-actions">
-                <button type="button" class="btn primary" id="expense-add">Add expense</button>
+        <div id="expenses-totals" role="tabpanel" aria-labelledby="expenses-tab-totals">
+            <div class="panel">
+              <div class="panel-header"><span class="panel-title">Yearly totals</span></div>
+              <p class="empty-note" id="expense-totals-empty" hidden>No totals yet. Totals appear once there is an expense.</p>
+              <div class="table-wrap">
+                <table class="data-table" id="expense-totals-table" hidden>
+                  <thead>
+                    <tr>
+                      <th scope="col">Year</th>
+                      <th scope="col" class="num">Total</th>
+                      <th scope="col" class="num">Largest</th>
+                    </tr>
+                  </thead>
+                  <tbody id="expense-totals-rows"></tbody>
+                </table>
               </div>
             </div>
-            <p class="empty-note" id="expenses-empty" hidden></p>
-            <p class="empty-note" id="expenses-nomatch" hidden>No expenses match the filters.</p>
-            <div class="table-wrap">
-              <table class="data-table" id="expenses-table" hidden>
-                <thead>
-                  <tr>
-                    <th scope="col">Date<span class="col-filter" id="expense-period-filter"></span></th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Category<span class="col-filter" id="expense-entity-filter"></span></th>
-                    <th scope="col" class="num">Amount</th>
-                    <th scope="col">Note</th>
-                    <th scope="col"><span class="visually-hidden">Actions</span></th>
-                  </tr>
-                </thead>
-                <tbody id="expenses-rows"></tbody>
-                <tfoot>
-                  <tr>
-                    <th scope="row" colspan="3" id="expenses-total-label">Total</th>
-                    <td class="num" id="expenses-total"></td>
-                    <td colspan="2"></td>
-                  </tr>
-                </tfoot>
-              </table>
+        </div>
+
+        <div id="expenses-expenses" role="tabpanel" aria-labelledby="expenses-tab-expenses" hidden>
+            <div class="panel">
+              <div class="panel-header">
+                <span class="panel-title">Expenses</span>
+                <div class="panel-actions">
+                  <button type="button" class="btn primary" id="expense-add">Add expense</button>
+                </div>
+              </div>
+              <p class="empty-note" id="expenses-empty" hidden></p>
+              <p class="empty-note" id="expenses-nomatch" hidden>No expenses match the filters.</p>
+              <div class="table-wrap">
+                <table class="data-table" id="expenses-table" hidden>
+                  <thead>
+                    <tr>
+                      <th scope="col">Date<span class="col-filter" id="expense-period-filter"></span></th>
+                      <th scope="col">Name</th>
+                      <th scope="col">Category<span class="col-filter" id="expense-entity-filter"></span></th>
+                      <th scope="col" class="num">Amount</th>
+                      <th scope="col">Note</th>
+                      <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="expenses-rows"></tbody>
+                  <tfoot>
+                    <tr>
+                      <th scope="row" colspan="3" id="expenses-total-label">Total</th>
+                      <td class="num" id="expenses-total"></td>
+                      <td colspan="2"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
-          </div>
         </div>
 
         <div id="expenses-insights" role="tabpanel" aria-labelledby="expenses-tab-insights" hidden>
@@ -834,6 +870,13 @@
               <option value="USD">USD</option>
               <option value="GBP">GBP</option>
             </select>
+          </div>
+          <div class="setting-row">
+            <div class="setting-text">
+              <label class="setting-name" for="setting-autosave">Autosave</label>
+              <p class="setting-help" id="setting-autosave-help">Writes the project file after every change. A new project is not written until you save it once. This applies to the app on this Mac, not to the project.</p>
+            </div>
+            <input type="checkbox" role="switch" class="switch" id="setting-autosave" aria-describedby="setting-autosave-help" checked>
           </div>
         </div>
         <div class="panel">
@@ -1420,7 +1463,7 @@
 
   <div class="toast" id="toast" role="alert" hidden></div>
 
-  <script src="navigation.js"></script>
+  <script type="module" src="navigation.js"></script>
   <script type="module" src="main.js"></script>
 </body>
 </html>

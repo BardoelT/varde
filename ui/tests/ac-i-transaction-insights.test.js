@@ -49,7 +49,7 @@ const legendNames = (app) => [...app.$('transactions-insights-legend').querySele
 test('test_csd033_ac_9_1_the_insights_tab_is_the_last_tab_and_opens_the_chart', async () => {
   const app = await openApp({ handlers: { get_transaction_insights: YEARS } });
   await app.click(app.item('transactions'));
-  assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Accounts', 'Categories', 'Rules', 'Overview', 'Insights']);
+  assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Accounts', 'Categories', 'Rules', 'Yearly totals', 'Transactions', 'Insights']);
   assert.equal(app.isShown(app.$('transactions-insights')), false);
   await app.click(app.$('transactions-tab-insights'));
   assert.ok(app.isShown(app.$('transactions-insights')));
@@ -94,7 +94,7 @@ test('test_csd033_ac_5_3_choosing_the_current_view_again_asks_nothing', async ()
 test('test_csd033_ac_5_4_the_choice_is_kept_while_the_tab_is_reopened', async () => {
   const app = await insightsPage({ get_transaction_insights: ({ granularity }) => (granularity === 'monthly' ? MONTHS() : YEARS()) });
   await app.click(app.$('transactions-insights-monthly'));
-  await app.click(app.$('transactions-tab-overview'));
+  await app.click(app.$('transactions-tab-transactions'));
   await app.click(app.$('transactions-tab-insights'));
   assert.deepEqual(labels(app), ['2026-09', '2026-10 MTD']);
   app.close();
@@ -150,7 +150,7 @@ test('test_csd033_ac_12_1_without_spending_the_note_is_shown_instead_of_a_chart'
 test('test_csd033_ac_13_1_opening_the_tab_again_asks_rust_again', async () => {
   const app = await insightsPage({ get_transaction_insights: YEARS });
   const before = app.callsOf('get_transaction_insights').length;
-  await app.click(app.$('transactions-tab-overview'));
+  await app.click(app.$('transactions-tab-transactions'));
   await app.click(app.$('transactions-tab-insights'));
   assert.equal(app.callsOf('get_transaction_insights').length, before + 1);
   app.close();

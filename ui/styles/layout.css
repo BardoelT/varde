@@ -91,26 +91,48 @@
 /* ── Content ── */
 
 .content {
+  /* The page header (CSD-024 REQ-10 to REQ-16). The collapse is one number, --header-progress, from 0 (expanded) to 1
+     (compressed), which the script sets from the scroll position; the sizes in between are interpolated here. The
+     expanded and compressed heights are the sum of the title (1.25 times its size) and the space around it, kept as plain
+     lengths because the chart code reads them (REQ-13). */
+  --header-progress: 0;
+  --title-size: calc(20px - 4px * var(--header-progress));
+  --header-above: calc(30px - 20px * var(--header-progress));
+  --header-below: calc(22px - 12px * var(--header-progress));
+  --header-expanded: 77px;
+  --header-compressed: 40px;
+  --header-height: calc(var(--header-above) + var(--title-size) * 1.25 + var(--header-below));
   flex: 1;
   overflow-y: auto;
   /* The room of the page scrollbar is always kept. The charts are as wide as this box, so a scrollbar that came and went
      changed their width, redrew them, and could make the scrollbar of the chart itself come and go in turn. */
   scrollbar-gutter: stable;
-  padding: 30px 32px;
+  padding: 0 32px 30px;
+  /* A focused field or a jump stays below the compressed header, and below the tabs (REQ-14). */
+  scroll-padding-top: 100px;
+  /* Collapsing the header shortens the page above the content. With scroll anchoring the browser would then move the
+     scroll position back by the same amount, which collapses less, and the header would jitter. */
+  overflow-anchor: none;
   min-width: 0;
 }
-
 .section { display: none; }
 .section.active { display: block; }
 
+/* The header lies above the page content and its sticky row labels (z-index 1), and below the filter panel (20),
+   the tooltips (10) and the dialogs (REQ-15). */
 .section-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   align-items: baseline;
   gap: 12px;
-  margin-bottom: 22px;
+  padding: var(--header-above) 0 var(--header-below);
+  background: var(--bg);
 }
 .section-title {
-  font-size: 20px;
+  font-size: var(--title-size);
+  line-height: 1.25;
   font-weight: 700;
   letter-spacing: -.4px;
   color: var(--text);

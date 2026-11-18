@@ -56,22 +56,22 @@ const y2025 = (data) => groups(data)[2];
 
 // ---- REQ-1: the tabs ----
 
-test('test_csd006_ac_1_1_overview_is_shown_first', async () => {
+test('test_csd006_ac_1_1_the_first_tab_is_shown_first', async () => {
   const app = await openApp();
   await app.click(app.item('income'));
-  assert.equal(app.$('income-tab-overview').getAttribute('aria-selected'), 'true');
+  assert.equal(app.$('income-tab-jobs').getAttribute('aria-selected'), 'true');
   assert.equal(app.$('income-tab-insights').getAttribute('aria-selected'), 'false');
-  assert.equal(app.isShown(app.$('income-overview')), true);
+  assert.equal(app.isShown(app.$('income-jobs')), true);
   assert.equal(app.isShown(app.$('income-insights')), false);
-  const titles = [...app.$('income-overview').querySelectorAll('.panel-title')].map((node) => app.text(node));
+  const titles = app.overviewTitles('income');
   assert.deepEqual(titles, ['Jobs', 'Yearly totals', 'Paychecks and statements']);
   app.close();
 });
 
-test('test_csd006_ac_1_2_switching_to_insights_hides_the_overview_and_shows_the_chart', async () => {
+test('test_csd006_ac_1_2_switching_to_insights_hides_the_first_panel_and_shows_the_chart', async () => {
   const { app, chart } = await openInsights();
   assert.equal(app.$('income-tab-insights').getAttribute('aria-selected'), 'true');
-  assert.equal(app.isShown(app.$('income-overview')), false, 'the Overview sections are hidden');
+  assert.equal(app.isShown(app.$('income-jobs')), false, 'the first panel is hidden');
   assert.equal(app.isShown(app.$('income-insights')), true);
   assert.equal(app.isShown(app.$('income-insights-scroll')), true);
   assert.ok(chart.querySelector('svg'), 'the chart is drawn');
@@ -83,7 +83,7 @@ test('test_csd006_ac_1_3_without_jobs_there_is_a_prompt_and_no_tabs', async () =
   await app.click(app.item('income'));
   assert.equal(app.isShown(app.$('income-empty')), true, 'the prompt to add the first job');
   assert.equal(app.isShown(app.$('job-add-first')), true);
-  assert.equal(app.isShown(app.$('income-tab-overview')), false, 'no tabs');
+  assert.equal(app.isShown(app.$('income-tab-jobs')), false, 'no tabs');
   assert.equal(app.isShown(app.$('income-tab-insights')), false);
   app.close();
 });
@@ -222,7 +222,7 @@ test('test_csd006_ac_9_3_the_bar_has_an_accessible_label', async () => {
 test('test_csd006_ac_11_1_the_figures_follow_changes', async () => {
   const { app, chart } = await openInsights();
   assert.match(y2025(chart).getAttribute('aria-label'), /total gross 48,100\.00/);
-  await app.click(app.$('income-tab-overview'));
+  await app.click(app.$('income-tab-jobs'));
   const changed = golden();
   Object.assign(changed.years[2], { bonus: '3000.00', total_gross: '48600.00' });
   app.bridge.table.get_income_insights = changed;
@@ -236,7 +236,7 @@ test('test_csd006_ac_11_1_the_figures_follow_changes', async () => {
 test('test_csd006_ac_11_2_the_last_entry_is_deleted', async () => {
   const { app, chart } = await openInsights();
   assert.ok(chart.children.length > 0);
-  await app.click(app.$('income-tab-overview'));
+  await app.click(app.$('income-tab-jobs'));
   app.bridge.table.get_income_insights = { ...golden(), years: [] };
   await app.click(app.$('income-tab-insights'));
   assert.equal(app.isShown(app.$('income-insights-empty')), true);

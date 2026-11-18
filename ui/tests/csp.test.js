@@ -38,3 +38,12 @@ test('test_ui_csp_tauri_conf_style_src_has_no_unsafe_inline', () => {
   const styleSrc = csp.split(';').map((part) => part.trim()).find((part) => part.startsWith('style-src'));
   assert.equal(styleSrc, "style-src 'self'");
 });
+
+// A classic script cannot hold an `import`: the browser stops at the syntax error and nothing in it runs.
+test('test_ui_every_script_that_imports_is_loaded_as_a_module', () => {
+  const dom = new JSDOM(readFileSync(`${uiDir}index.html`, 'utf8'));
+  for (const script of dom.window.document.querySelectorAll('script[src]')) {
+    const source = readFileSync(`${uiDir}${script.getAttribute('src')}`, 'utf8');
+    if (/^\s*import\s/m.test(source)) assert.equal(script.type, 'module', `${script.getAttribute('src')} imports, so it must be a module`);
+  }
+});

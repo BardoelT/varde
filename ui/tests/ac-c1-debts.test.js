@@ -144,7 +144,7 @@ test('test_csd011_ac_16_3_switching_debt_switches_the_form', async () => {
 
 test('test_csd011_ac_20_1_the_sections_appear_in_order_and_debts_is_in_the_left_pane', async () => {
   const app = await openDebts();
-  const titles = [...app.$('debts-overview').querySelectorAll('.panel-title')].map((node) => app.text(node));
+  const titles = app.overviewTitles('debts');
   assert.deepEqual(titles, ['Debts', 'Yearly totals', 'Statements']);
   assert.ok(app.item('debts'), 'Debts is an item in the left pane');
   assert.match(app.text(app.item('debts')), /^Debts$/);
@@ -222,7 +222,7 @@ test('test_csd011_ac_20_6_notes_are_shown_as_plain_text', async () => {
 
 test('test_csd011_ac_20_7_the_add_buttons_sit_in_the_section_headers', async () => {
   const app = await openDebts();
-  const panels = [...app.$('debts-overview').querySelectorAll('.panel')];
+  const panels = app.overviewPanels('debts');
   const header = (panel) => panel.querySelector('.panel-header');
   assert.equal(app.text(header(panels[0]).querySelector('button')), 'Add debt');
   assert.equal(header(panels[0]).lastElementChild, app.$('debt-add'), 'at the right edge of the Debts header');
@@ -263,6 +263,7 @@ test('test_csd011_ac_21_2_a_debt_without_statements', async () => {
   assert.equal(app.text(row.querySelector('.account-amount')), '—', 'a dash as latest balance');
   assert.match(app.text(row.querySelector('.job-meta')), /Monthly/, 'its statement period');
   assert.doesNotMatch(app.text(row), /No statements yet/);
+  await app.click(app.$('debts-tab-statements'));
   assert.equal(app.isShown(app.$('debt-statements-empty')), true);
   assert.equal(app.textOf('debt-statements-empty'), 'No statements yet.');
   assert.equal(app.$('toast').hidden, true, 'no error is shown');
@@ -274,6 +275,7 @@ test('test_csd011_ac_21_3_no_statements_in_any_debt_means_no_totals_table', asyn
   const empty = { ...MORTGAGE, latest_balance: null, latest_period: null, statement_count: 0 };
   Object.assign(reads, { list_debts: { debts: [empty], total: null }, list_debt_statements: [], yearly_debt_totals: [] });
   const app = await openDebts(reads);
+  await app.click(app.$('debts-tab-totals'));
   assert.equal(app.isShown(app.$('debt-totals-empty')), true);
   assert.equal(app.textOf('debt-totals-empty'), 'No totals yet. Totals appear once there is a statement.');
   assert.equal(app.isShown(app.$('debt-totals-table')), false, 'no table');
@@ -283,7 +285,7 @@ test('test_csd011_ac_21_3_no_statements_in_any_debt_means_no_totals_table', asyn
 
 test('test_csd011_ac_22_1_no_currency_in_the_sections', async () => {
   const app = await openDebts();
-  const titles = [...app.$('debts-overview').querySelectorAll('.panel-title')].map((node) => app.text(node));
+  const titles = app.overviewTitles('debts');
   assert.deepEqual(titles, ['Debts', 'Yearly totals', 'Statements'], 'titled without a currency');
   const shown = [app.$('debt-list'), app.$('debt-total'), app.$('debt-totals-table'), app.$('debt-statements-table')].map((node) => app.text(node)).join(' ');
   assert.doesNotMatch(shown, /EUR|€|USD|\$|GBP|£/, 'no currency in the rows or the tables');

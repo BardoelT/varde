@@ -3,12 +3,14 @@ id: CSD-014
 title: Expense insights
 status: approved
 owner: Thijs Bardoel
-version: 1.2
-last_updated: 03/11/2026
-related: [CSD-000, CSD-010, CSD-012, CSD-013, CSD-025]
+version: 1.3
+last_updated: 18/11/2026
+related: [CSD-000, CSD-010, CSD-012, CSD-013, CSD-025, CSD-035]
 ---
 
 # CSD-014: Expense insights
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The Expenses page lists expenses and a table of yearly totals, but a table does not show how spending develops over the years or what it went to. This capability adds an insights layer to the Expenses page: one chart with one bar per calendar year, stacked from one segment per category, so the height of a bar is what was spent that year and its segments show where it went. It is for the owner looking back over their own purchases. It follows the Debt insights of CSD-012, with the eight fixed categories of CSD-013 as segments, with sums in place of balances, and without a total marker, because the top of the stack is the total. It shows what was spent and nothing else: no budget, no comparison and no forecast.
@@ -546,6 +548,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-1: (resolved 03/11/2026) A year after the current year (an expense dated in the future, CSD-013 REQ-4) is not marked and looks like any other year (REQ-3, AC-3.3). The series runs to the latest year with an expense, at most 50 years back from its last year (REQ-1, AC-1.5, AC-1.6).
 
 ## 9. Changelog
+- 1.3 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.
 - 1.1 (03/11/2026): Resolved OQ-1: a future year is not marked. The series spans at most 50 years back from its last year; older expenses get no slot but still count in the totals (REQ-1, new AC-1.6). Back to `draft` until re-approved.
 - 1.0 (03/11/2026): Future dates are allowed (CSD-013 v1.0), so the series runs up to the later of the current year and the year of the latest expense (REQ-1, AC-1.5), a future year is not partial (REQ-3, AC-3.3, OQ-1). The short axis labels are built by the backend (CSD-025; REQ-5, new AC-5.7, section 5). Motion (REQ-10), look (REQ-11) and size (REQ-14) now refer to CSD-025: AC-10.2, AC-10.3, AC-11.1 to AC-11.3 and AC-14.2 removed, the tooltip placement refers to CSD-025. Money rounding references CSD-000 CON-8 (new CON-8). Verification table rewritten to what is covered (the claimed coverage of AC-13.3 by `cargo test` is corrected; display ACs are covered by DOM tests). Back to `draft` for re-approval.

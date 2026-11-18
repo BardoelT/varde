@@ -3,8 +3,8 @@ id: CSD-027
 title: Undo and redo
 status: approved
 owner: Thijs Bardoel
-version: 0.4
-last_updated: 12/11/2026
+version: 0.5
+last_updated: 18/11/2026
 related: [CSD-002, CSD-003, CSD-008, CSD-022, CSD-024, CSD-026, CSD-032]
 ---
 
@@ -22,7 +22,7 @@ A wrong click should not cost the user an entry. Today an accidental delete of a
 
 ### 2.2 Non-goals
 - NG-1: A history that survives quitting the app or opening another project.
-- NG-2: Autosave and backup or recovery copies made by the app (CSD-002 NG-2 stays). Undo never writes the project file.
+- NG-2: Backup or recovery copies made by the app (CSD-002 NG-2 stays). With autosave off, undo never writes the project file. With autosave on, an undo or redo is a step like any other and the project file is written after it (CSD-002 REQ-23).
 - NG-3: On-screen undo buttons, and toasts with an undo button.
 - NG-4: Undoing settings (the currency, CSD-003), application preferences (theme and language, CSD-008) and file actions (New, Open, Save, Save As).
 - NG-5: A list of past steps, and jumping back several steps at once ("undo to here").
@@ -198,7 +198,7 @@ Scenario: A failed Open keeps the history
 ```
 
 **REQ-9: Undo and the saved state** *(state-driven)*
-While the project data differs from the last saved or opened state, the app shall show the unsaved-changes indicator (CSD-002 REQ-3), after an undo or redo as after any other change, and saving shall not clear the history.
+While the project data differs from the last saved or opened state, the app shall show the unsaved-changes indicator (CSD-002 REQ-3), after an undo or redo as after any other change, and saving shall not clear the history. While autosave is on and the project has a path, an undo or redo writes the project file like any other step (CSD-002 REQ-23), so the file on disk equals the project after it. AC-9.1 and AC-9.2 describe autosave off.
 
 ```gherkin
 @AC-9.1
@@ -214,6 +214,14 @@ Scenario: Undo past a save
   When the user chooses Edit > Undo
   Then the job is removed and the unsaved indicator is shown
   And the project file on disk still holds the job until the user saves again
+
+@AC-9.3
+Scenario: With autosave on, undo past a save is written
+  Given autosave is on and the user added a job to the open project file
+  When the user chooses Edit > Undo
+  Then the job is removed and no unsaved indicator is shown
+  And the project file on disk holds no job
+  And the history still holds the step, so Edit > Redo brings the job back and writes it again
 ```
 
 **REQ-10: Menu items** *(ubiquitous)*
@@ -330,6 +338,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-1: How does the Edit menu know a form is open or a text field has the focus (REQ-11)? The draft only fixes what the user sees: project undo does nothing in those states. Whether the item is also greyed out is left to the implementation. Owner: Thijs. Blocks: AC-11.2 only if greying out is required.
 
 ## 9. Changelog
+- 0.5 (18/11/2026): Autosave (CSD-002 v3.2, GitHub issue 71): NG-2 no longer excludes autosave, with autosave on an undo or redo writes the project file (REQ-9 extended, new AC-9.3); AC-9.1 and AC-9.2 describe autosave off. Back to `draft` until re-approved.
 - 0.4 (12/11/2026): The message after an undo or redo is yellow (#ffbb00, dark text) instead of orange (REQ-13, AC-13.1). Owner request. Back to `draft` until re-approved.
 - 0.3 (12/11/2026): The message after an undo or redo is orange, like the results of CSD-032 REQ-16, and no longer the red of an error (REQ-13, AC-13.1). Owner request. Back to `draft` until re-approved.
 - 0.2 (12/11/2026): The history shares the transaction list between steps (CON-1) and has a memory budget in addition to the 100-step limit (REQ-6), for CSD-032 (GitHub issue 70). Back to `draft` until re-approved.

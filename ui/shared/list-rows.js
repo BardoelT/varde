@@ -2,6 +2,7 @@
 // their empty states and the edit and delete buttons of a row. They only lay out what Rust sent.
 import { $, h, iconButton } from './dom.js';
 import { formatAmount } from './format.js';
+import { resetTabs } from './tabs.js';
 
 /** A table cell holding a number, aligned right. */
 export const numCell = (text) => h('td', { class: 'num' }, text);
@@ -9,8 +10,12 @@ export const numCell = (text) => h('td', { class: 'num' }, text);
 /** The first cell of a table row (the period or the year), as the row header. */
 export const rowHeader = (text) => h('th', { scope: 'row' }, text);
 
-/** Shows `contentId` when there are items, else the empty state `emptyId`. */
+/**
+ * Shows `contentId` when there are items, else the empty state `emptyId`. A page that goes from
+ * its empty state to its tabs opens on its first tab (CSD-035 REQ-5).
+ */
 export function toggleEmpty(emptyId, contentId, hasItems) {
+  if (hasItems && $(contentId).hidden) resetTabs(contentId.replace(/-content$/, ''));
   $(emptyId).hidden = hasItems;
   $(contentId).hidden = !hasItems;
 }

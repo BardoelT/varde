@@ -1,6 +1,8 @@
 // Entry point: wires the project controls, the income, investments, bank accounts, houses, debts, expenses and transactions views (each with an insights chart), the net worth chart, the ratios table, the settings and the dashboard.
 import { errorText, listen } from './shared/ipc.js';
 import { showToast } from './shared/dom.js';
+import { resetTabs } from './shared/tabs.js';
+import { initPageHeader } from './shared/page-header.js';
 import { collectStaticTexts, onLanguageChange } from './shared/i18n.js';
 import { onNumberFormatChange } from './shared/number-format.js';
 import { onDiscreteModeChange } from './shared/discrete-mode.js';
@@ -59,6 +61,7 @@ async function start() {
   }
 
   initDateMasks();
+  initPageHeader();
 
   document.querySelectorAll('dialog [data-cancel]').forEach((button) => {
     button.addEventListener('click', () => button.closest('dialog').close());
@@ -118,7 +121,10 @@ async function start() {
     onChanged: async () => {
       await refreshProjectStatus();
     },
+    onWritten: refreshProjectStatus,
   });
+  // A failed autosave keeps the change; the message is not blocking and carries no path (CSD-002 REQ-26).
+  await listen('autosave-failed', (event) => showToast(errorText(event.payload)));
   // Everything is drawn again after a project replaced the data, and after a language change (CSD-022 REQ-3).
   const reloadEverything = () =>
     reportFailures(
@@ -146,6 +152,7 @@ async function start() {
   await initProject({ onReplaced: reloadEverything, onSwitched: () => {
       resetAllFilters();
       resetTransactionsManualFilter();
+      resetTabs();
     },
   });
   const redraw = async () => {

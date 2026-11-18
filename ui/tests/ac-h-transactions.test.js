@@ -4,14 +4,15 @@ import assert from 'node:assert/strict';
 import { openApp } from './harness.js';
 import { BANK, SAVINGS, GROCERIES, SHOPPING, transaction, readsWith, transactionsPage, rowCells, tableRows, bulkRows, bulkHandlers, totalsRows } from './transactions-helpers.js';
 
-test('test_csd032_ac_16_1_transactions_is_in_the_left_pane_after_expenses_and_shows_the_overview_tab', async () => {
+test('test_csd032_ac_16_1_transactions_is_in_the_left_pane_after_expenses_and_shows_the_transactions_tab', async () => {
   const app = await openApp();
   const items = [...app.document.querySelectorAll('.nav-item')].map((item) => app.text(item));
   assert.ok(items.indexOf('Transactions') === items.indexOf('Expenses') + 1, 'after Expenses');
   await app.click(app.item('transactions'));
   assert.ok(app.isShown(app.$('transactions')));
-  assert.equal(app.textOf('transactions-tab-overview'), 'Overview');
-  assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Accounts', 'Categories', 'Rules', 'Overview', 'Insights']);
+  assert.equal(app.textOf('transactions-tab-transactions'), 'Transactions');
+  assert.equal(app.$('transactions-tab-transactions').getAttribute('aria-selected'), 'true', 'the page opens on the Transactions tab');
+  assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Accounts', 'Categories', 'Rules', 'Yearly totals', 'Transactions', 'Insights']);
   app.close();
 });
 
@@ -170,7 +171,8 @@ test('test_csd032_ac_31_2_the_overview_shows_the_categorized_share_in_the_yearly
   const app = await transactionsPage(reads);
   const note = app.$('transaction-categorisation');
   assert.equal(app.text(note), '87.50% of the transactions are categorized (35 of 40)');
-  await app.click(app.$('transactions-tab-overview'));
+  assert.equal(app.isShown(note), false, 'not on the Transactions tab');
+  await app.click(app.$('transactions-tab-totals'));
   assert.ok(app.isShown(note));
   assert.equal(note.closest('.panel').querySelector('.panel-title').textContent, 'Yearly totals', 'in the panel of the yearly totals');
   assert.equal(app.$('transactions-rules').contains(note), false, 'not on the Rules tab');
@@ -235,7 +237,7 @@ test('test_csd032_ac_16_3_categories_and_rules_are_on_their_own_tabs', async () 
   const app = await transactionsPage(readsWith({ rows: [transaction('t1', '2026-10-30', '-1.00', 'Example Shop')] }));
   const own = ['transaction-categories', 'transaction-rules', 'transaction-apply-rules', 'transaction-apply-rules-all'];
   const overview = ['transactions-table'];
-  assert.equal(app.$('transactions-tab-overview').getAttribute('aria-selected'), 'true');
+  assert.equal(app.$('transactions-tab-transactions').getAttribute('aria-selected'), 'true');
   for (const id of overview) assert.ok(app.isShown(app.$(id)), `${id} is on the Overview`);
   for (const id of own) assert.equal(app.isShown(app.$(id)), false, `${id} is not on the Overview`);
   await app.click(app.$('transactions-tab-categories'));
@@ -393,14 +395,14 @@ test('test_csd032_ac_24_1_the_yearly_totals_are_shown_as_rust_returned_them_abov
     { year: 2025, income: '0.00', spent: '150.00', net: '-150.00', transaction_count: 2 },
   ];
   const app = await transactionsPage(reads);
+  await app.click(app.$('transactions-tab-totals'));
   assert.deepEqual(totalsRows(app), [
     ['2026', '2,500.00', '23.97', '2,476.03'],
     ['2025', '0.00', '150.00', '-150.00'],
   ]);
   const headers = [...app.$('transaction-totals-table').querySelectorAll('thead th')].map((cell) => app.text(cell));
   assert.deepEqual(headers, ['Year', 'Income', 'Spent', 'Net']);
-  const panels = [...app.$('transactions-overview').querySelectorAll(':scope > .panel .panel-title')].map((node) => app.text(node));
-  assert.deepEqual(panels, ['Yearly totals', 'Transactions'], 'the totals come first');
+  assert.deepEqual(app.overviewTitles('transactions'), ['Accounts', 'Categories', 'Rules', 'Yearly totals', 'Transactions'], 'the totals come before the list');
   app.close();
 });
 
@@ -408,6 +410,7 @@ test('test_csd032_ac_24_2_no_transactions_no_totals', async () => {
   const reads = readsWith({ rows: [], count: 0 });
   reads.get_transactions_overview.totals = [];
   const app = await transactionsPage(reads);
+  await app.click(app.$('transactions-tab-totals'));
   assert.equal(app.isShown(app.$('transaction-totals-table')), false);
   assert.equal(app.textOf('transaction-totals-empty'), 'No totals yet. Totals appear once there is a transaction.');
   assert.ok(app.isShown(app.$('transaction-totals-empty')));
@@ -443,6 +446,7 @@ test('test_csd032_ac_24_5_discrete_mode_hides_the_yearly_amounts', async () => {
   reads.get_transactions_overview.totals = [{ year: 2026, income: '2500.00', spent: '23.97', net: '2476.03', transaction_count: 2 }];
   reads.get_preferences = { theme: 'system', language: 'en', number_format: 'point_comma', discrete_mode: true };
   const app = await transactionsPage(reads);
+  await app.click(app.$('transactions-tab-totals'));
   assert.deepEqual(totalsRows(app), [['2026', '•••••', '•••••', '•••••']]);
   app.close();
 });

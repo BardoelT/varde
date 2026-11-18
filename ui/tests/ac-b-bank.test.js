@@ -18,8 +18,8 @@ async function openBank(options) {
 }
 
 const panelOf = (app, title) =>
-  [...app.document.querySelectorAll('#bank-overview .panel')].find((panel) => app.text(panel.querySelector('.panel-title')) === title);
-const panelTitles = (app) => [...app.document.querySelectorAll('#bank-overview .panel-title')].map((el) => app.text(el));
+  app.overviewPanels('bank').find((panel) => app.text(panel.querySelector('.panel-title')) === title);
+const panelTitles = (app) => app.overviewTitles('bank');
 
 /** The example project with the entries of "Example Current Account" replaced by `periods`. */
 function readsWithCurrentEntries(periods) {
@@ -173,6 +173,7 @@ test('test_csd009_ac_21_2_an_account_without_entries_shows_a_dash', async () => 
   assert.equal(app.text(row.querySelector('.account-amount')), '—');
   assert.equal(app.text(row.querySelector('.job-meta')), 'Monthly');
   assert.ok(!app.text(row).includes('No entries yet'));
+  await app.click(app.$('bank-tab-entries'));
   assert.equal(app.isShown(app.$('bank-entries-empty')), true);
   assert.equal(app.textOf('bank-entries-empty'), 'No entries yet.');
   assert.equal(app.isShown(app.$('toast')), false, 'no error is shown');
@@ -182,6 +183,7 @@ test('test_csd009_ac_21_2_an_account_without_entries_shows_a_dash', async () => 
 
 test('test_csd009_ac_21_3_no_entries_in_any_account_shows_the_totals_note', async () => {
   const app = await openBank({ reads: readsWithEmptyAccount() });
+  await app.click(app.$('bank-tab-totals'));
   assert.equal(app.isShown(app.$('bank-totals-empty')), true);
   assert.equal(app.textOf('bank-totals-empty'), 'No totals yet. Totals appear once there is an entry.');
   assert.equal(app.isShown(app.$('bank-totals-table')), false, 'no table');
@@ -193,7 +195,7 @@ test('test_csd009_ac_22_1_no_currency_in_the_sections', async () => {
   const app = await openBank();
   assert.equal(app.$('setting-currency').value, 'EUR', 'the project is in EUR');
   assert.deepEqual(panelTitles(app), ['Accounts', 'Yearly totals', 'Entries']);
-  const shown = app.text(app.$('bank-overview'));
+  const shown = app.overviewText('bank');
   for (const currency of ['EUR', 'USD', 'GBP', '€', '$', '£']) assert.ok(!shown.includes(currency), `no ${currency} on the page`);
   app.close();
 });

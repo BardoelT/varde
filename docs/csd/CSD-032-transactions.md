@@ -1,14 +1,16 @@
 ---
 id: CSD-032
 title: Transactions
-status: draft
+status: approved
 owner: Thijs Bardoel
-version: 0.42
-last_updated: 16/11/2026
-related: [CSD-000, CSD-034, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033]
+version: 0.43
+last_updated: 18/11/2026
+related: [CSD-000, CSD-034, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033, CSD-035]
 ---
 
 # CSD-032: Transactions
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The app tracks what the user owns, owes and has spent on notable purchases, but not what the bank account itself shows: the daily stream of payments, incomes and direct debits. Typing those in is not realistic. This capability lets the user import the transactions of a bank export into the project, have each one categorised automatically by simple rules, and browse, filter and correct them on a new Transactions page. It is for a single person keeping a private, local history. It comes from GitHub issue 70, and it deliberately reverses the earlier decision that the app has no transaction model (`CLAUDE.md`, CSD-009 NG-1, CSD-013 NG-9, CSD-024 NG-2). Transactions stand on their own: they feed no balance, no net worth figure and no expense.
@@ -1364,6 +1366,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.43 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 0.42 (17/11/2026): The accounts of CSD-034 are a tab "Accounts" of the Transactions page, left of "Categories", not a page of the left pane. Owner request. Back to `draft` until re-approved.
 - 0.41 (17/11/2026): The transactions belong to accounts (CSD-034): the import goes into an account chosen on the Accounts page (REQ-1), duplicates are checked within the account (REQ-5), the project file holds `transaction_accounts` and `account_id` with format version 4 (REQ-17), "Delete all transactions" becomes the deletion of the transactions of an account (REQ-25), and the Transactions page has an Account column and filter and no import button (REQ-15, REQ-16). Owner request. Back to `draft` until re-approved.
 - 0.40 (17/11/2026): Import of an ABN AMRO TAB (`.TAB`) export next to the Knab CSV (new REQ-34, AC-34.1 to AC-34.7; REQ-1, NG-1). The `.xls` export is a non-goal: the TAB file has the same lines and needs no spreadsheet reader or new crate. My choices: the bank's lack of a reference is solved with the day, amount and balance after; `.gitignore` now also covers `.tab`, `.xls` and `.xlsx` exports. Back to `draft` until re-approved.

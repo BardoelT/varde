@@ -3,12 +3,14 @@ id: CSD-013
 title: Expenses
 status: approved
 owner: Thijs Bardoel
-version: 2.2
-last_updated: 12/11/2026
-related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-014]
+version: 2.3
+last_updated: 18/11/2026
+related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-014, CSD-035]
 ---
 
 # CSD-013: Expenses
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The app tracks what the user owns and owes, but has no view of what the user spends money on: a new roof, a car, a holiday, a washing machine. This capability lets the user log expenses, each on a specific date, with an amount, a category and an optional note. From these the app derives, per calendar year, the total spent and the largest expense, and lists all expenses with their total. It is for a single person keeping a private, local history of their purchases. It is a log of what was spent: it has no budgets, no recurrence and no link to bank accounts. The result is a dated history of expenses that the Insights chart of CSD-014 builds on. It follows the structure of Debts (CSD-011), but an expense is one dated record on its own and does not belong to a parent item such as a debt.
@@ -695,6 +697,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 2.3 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 2.2 (12/11/2026): NG-9 points to CSD-032 for bank transactions, which never create or change an expense (GitHub issue 70). Back to `draft` until re-approved.
 - 2.1 (04/11/2026): Wording follows the UI; no behaviour change: the amount shown in a list row is grouped as in CSD-022 AC-10.1 (AC-13.3). Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A typed amount with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-18 (AC-18.1 to AC-18.3), REQ-5 applies to the rounded amount (an amount that rounds to 0.00 is not above zero), the AC-5.1 row for 100.999 and the code `EXPENSE_AMOUNT_PRECISION` are removed, CON-1 updated. Owner decision. Back to `draft` until re-approved.

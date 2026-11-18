@@ -3,12 +3,14 @@ id: CSD-033
 title: Transaction insights
 status: approved
 owner: Thijs Bardoel
-version: 0.6
-last_updated: 12/11/2026
-related: [CSD-000, CSD-014, CSD-022, CSD-025, CSD-030, CSD-032]
+version: 0.7
+last_updated: 18/11/2026
+related: [CSD-000, CSD-014, CSD-022, CSD-025, CSD-030, CSD-032, CSD-035]
 ---
 
 # CSD-033: Transaction insights
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The Transactions page (CSD-032) lists what the bank account shows and totals it per year, but a table does not show how spending develops or what it went to. This capability adds an Insights tab to the Transactions page: one chart of what was spent, stacked from one segment per category, with what came in drawn as a marker across each bar, and with one bar per calendar year or, when the user chooses, one bar per month, so the user sees at a glance whether more was spent than came in. It is the standard Insights chart of the app (CSD-014, CSD-025) with one addition: the choice between Yearly and Monthly. It is for the owner looking at their own spending, and it follows the categories the owner keeps.
@@ -296,6 +298,7 @@ The list is called `years` and a bar `year` because the frame of the yearly char
 - OQ-2: Is 36 months the right length of the Monthly chart? Owner: Thijs. Blocks: REQ-2.
 
 ## 9. Changelog
+- 0.7 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 0.6 (17/11/2026): The tabs of the Transactions page now start with "Accounts" (CSD-034); REQ-9 and its scenarios list five tabs. Back to `draft` until re-approved.
 - 0.5 (12/11/2026): The tab "Categories and rules" is split into "Categories" and "Rules" (REQ-9, AC-9.1), following CSD-032 v0.14. Owner request. Back to `draft` until re-approved.
 - 0.4 (12/11/2026): The tooltip is fitted by measuring it, not by an estimate (REQ-8, AC-8.3), and the scroll boxes of the charts are made steady: sideways scrolling only, a clipped chart box and a stable page scrollbar gutter (new CON-4). The first fix did not stop the scrollbars from appearing and disappearing in the owner's window. Owner report. Back to `draft` until re-approved.

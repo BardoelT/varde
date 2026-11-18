@@ -36,9 +36,9 @@ async function openInvestments(options) {
 }
 
 const panelOf = (app, title) =>
-  [...app.document.querySelectorAll('#investments-overview .panel')].find((panel) => app.text(panel.querySelector('.panel-title')) === title);
+  app.overviewPanels('investments').find((panel) => app.text(panel.querySelector('.panel-title')) === title);
 
-const panelTitles = (app) => [...app.document.querySelectorAll('#investments-overview .panel-title')].map((el) => app.text(el));
+const panelTitles = (app) => app.overviewTitles('investments');
 
 test('test_csd005_ac_17_1_sections_in_order_and_an_item_in_the_left_pane', async () => {
   const app = await openInvestments();
@@ -127,6 +127,7 @@ test('test_csd005_ac_18_2_an_account_without_statements_shows_a_dash', async () 
   assert.equal(app.text(row.querySelector('.account-amount')), '—', 'a dash as latest balance');
   assert.equal(app.text(row.querySelector('.job-meta')), 'Monthly', 'only its period as meta');
   assert.ok(!app.text(row).includes('No statements yet'));
+  await app.click(app.$('investments-tab-statements'));
   assert.equal(app.isShown(app.$('statements-empty')), true);
   assert.equal(app.textOf('statements-empty'), 'No statements yet.');
   assert.equal(app.isShown(app.$('toast')), false, 'no error is shown');
@@ -143,6 +144,7 @@ test('test_csd005_ac_18_3_no_statements_in_any_account_shows_the_totals_note', a
   reads.list_investment_statements = [];
   reads.yearly_investment_totals = [];
   const app = await openInvestments({ reads });
+  await app.click(app.$('investments-tab-totals'));
   assert.equal(app.isShown(app.$('investment-totals-empty')), true);
   assert.equal(app.textOf('investment-totals-empty'), 'No totals yet. Totals appear once there is a statement.');
   assert.equal(app.isShown(app.$('investment-totals-table')), false, 'no table');
@@ -154,7 +156,7 @@ test('test_csd005_ac_20_1_no_currency_in_the_sections', async () => {
   const app = await openInvestments();
   assert.equal(app.$('setting-currency').value, 'EUR', 'the project is in EUR');
   assert.deepEqual(panelTitles(app), ['Accounts', 'Yearly totals', 'Statements']);
-  const shown = app.text(app.$('investments-overview'));
+  const shown = app.overviewText('investments');
   for (const currency of ['EUR', 'USD', 'GBP', '€', '$', '£']) assert.ok(!shown.includes(currency), `no ${currency} on the page`);
   app.close();
 });

@@ -6,7 +6,7 @@ import { $, h } from './dom.js';
 import { formatAmount } from './format.js';
 import { swatch, legendLabel, nameLabel, legendItem, tooltipRow, topToBottom } from './chart.js';
 import { createYearlyChart, levelMarker, isNegative, yearLabel } from './yearly-chart.js';
-import { initTabs } from './tabs.js';
+import { initPageTabs } from './tabs.js';
 
 /** The label under a bar: the year (`labelLines` of the chart). */
 export const yearLabelLines = (row) => [{ text: yearLabel(row), className: 'chart-year' }];
@@ -38,14 +38,11 @@ export function tooltipFrame({ row, partialNote, emptyNote, isEmpty, rows }) {
 }
 
 /**
- * The Overview and Insights tabs of the page `prefix` (`bank`). Opening Insights recomputes the
- * chart, so it never shows stale figures.
+ * The tabs of the page `prefix` (`bank`, CSD-035). Opening Insights recomputes the chart, so it
+ * never shows stale figures.
  */
 export function initInsightsTabs(prefix, chart) {
-  initTabs([
-    { tab: `${prefix}-tab-overview`, panel: `${prefix}-overview` },
-    { tab: `${prefix}-tab-insights`, panel: `${prefix}-insights`, onOpen: chart.reload },
-  ]);
+  initPageTabs(prefix, { onOpen: { [`${prefix}-insights`]: chart.reload } });
 }
 
 /**

@@ -30,23 +30,23 @@ const gap = (year) => investmentYear({ year, count: 0 });
 
 // ---- REQ-1: the tabs ----
 
-test('test_csd007_ac_1_1_the_overview_is_shown_first', async () => {
+test('test_csd007_ac_1_1_the_the_first_tab_is_shown_first', async () => {
   const app = await openApp();
   await app.click(app.item('investments'));
-  assert.equal(app.$('investments-tab-overview').getAttribute('aria-selected'), 'true');
+  assert.equal(app.$('investments-tab-accounts').getAttribute('aria-selected'), 'true');
   assert.equal(app.$('investments-tab-insights').getAttribute('aria-selected'), 'false');
-  assert.equal(app.isShown(app.$('investments-overview')), true);
-  const titles = [...app.document.querySelectorAll('#investments-overview .panel-title')].map((el) => app.text(el));
+  assert.equal(app.isShown(app.$('investments-accounts')), true);
+  const titles = app.overviewTitles('investments');
   assert.deepEqual(titles, ['Accounts', 'Yearly totals', 'Statements']);
   assert.equal(app.isShown(app.$('investments-insights')), false);
   app.close();
 });
 
-test('test_csd007_ac_1_2_switching_to_insights_hides_the_overview_and_shows_the_chart', async () => {
+test('test_csd007_ac_1_2_switching_to_insights_hides_the_first_panel_and_shows_the_chart', async () => {
   const app = await openApp();
   await app.click(app.item('investments'));
   await app.click(app.$('investments-tab-insights'));
-  assert.equal(app.isShown(app.$('investments-overview')), false, 'the Overview sections are hidden');
+  assert.equal(app.isShown(app.$('investments-accounts')), false, 'the first panel is hidden');
   assert.equal(app.isShown(app.$('investments-insights')), true);
   assert.equal(app.isShown(app.$('investments-insights-scroll')), true);
   assert.ok(app.$('investments-insights-chart').querySelector('svg'), 'the insights chart is drawn');
@@ -234,7 +234,7 @@ test('test_csd007_ac_13_1_the_figures_follow_a_change_on_the_overview', async ()
   const marker = () => app.text(app.$('investments-insights-chart').querySelector('.chart-marker-label'));
   assert.equal(marker(), '12.50k', 'the Insights tab showed 12500.00 for 2026');
 
-  await app.click(app.$('investments-tab-overview'));
+  await app.click(app.$('investments-tab-accounts'));
   await app.click(app.$('statement-add'));
   const form = app.$('statement-form');
   form.elements.period.value = '';
@@ -265,7 +265,7 @@ test('test_csd007_ac_13_2_deleting_the_last_statement_shows_the_note_again', asy
   await app.click(app.$('investments-tab-insights'));
   assert.ok(app.$('investments-insights-chart').querySelector('svg'), 'the Insights tab showed a chart');
 
-  await app.click(app.$('investments-tab-overview'));
+  await app.click(app.$('investments-tab-accounts'));
   await app.click(app.document.querySelector('#statements-rows [aria-label^="Delete"]'));
   await app.click(app.$('confirm-ok'));
   assert.equal(app.callsOf('delete_investment_statement').length, 1);
