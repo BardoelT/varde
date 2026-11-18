@@ -1,9 +1,9 @@
 ---
 id: CSD-004
 title: Dashboard
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 3.0
+version: 3.1
 last_updated: 09/11/2026
 related: [CSD-001, CSD-003, CSD-005, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-019, CSD-024]
 ---
@@ -357,6 +357,30 @@ Scenario: Net worth opens its insight page
   Then the Net worth page is shown
 ```
 
+**REQ-16: A welcome hint on an empty project** *(state-driven)*
+While every tile says "No data yet" (REQ-14), the dashboard shall show a short hint above the tiles that says how to begin: add data on any page, open an existing project with File > Open (⌘O), and that nothing is saved until the user chooses File > Save (⌘S). When any tile has data, the hint shall not be shown.
+
+```gherkin
+@AC-16.1
+Scenario: A new project shows the hint
+  Given a new project
+  When the user views the dashboard
+  Then the dashboard shows the hint "Welcome to Varde" above the 7 tiles
+  And the hint names File > Open (⌘O) and File > Save (⌘S)
+
+@AC-16.2
+Scenario: One record hides the hint
+  Given a project with one bank account entry
+  When the user views the dashboard
+  Then the hint is not shown
+
+@AC-16.3
+Scenario: The hint is in Dutch
+  Given the language is Dutch and a new project
+  When the user views the dashboard
+  Then the hint is shown in Dutch
+```
+
 ## 5. Interfaces and contracts
 
 Command: `get_dashboard()` returns the seven tiles. It no longer returns `has_jobs`, `year_to_date` or `last_month_totals`:
@@ -397,6 +421,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 3.1 (18/11/2026): New REQ-16: a welcome hint above the tiles while the project is empty (pre-release audit: a first-time user saw only "No data yet" tiles and no way in). Back to `draft` until re-approved.
 - 3.0 (09/11/2026): The Ratios tile is removed (owner decision: it adds little on the dashboard; the Ratios page stays). The dashboard has the Net worth hero tile and six tiles (REQ-8 to REQ-15, NG-8, AC-8.1, AC-8.2, AC-13.2, AC-14.1, AC-15.3), AC-9.7 and AC-10.8 are removed, and the `year`, `kind` and `ratios` fields leave the payload (section 5), which undoes the clarification of 2.1. Back to `draft` until re-approved.
 - 2.1 (09/11/2026): Clarification found while implementing (CSD-000 REQ-14): the payload carries `year`, which labels the Ratios tile (REQ-13), and a tile value is also `null` when the figure cannot be computed. No change to a requirement or an AC.
 - 2.0 (09/11/2026): From income dashboard to overview dashboard (GitHub issue 40, grill-me interview). The dashboard shows one tile per area, with a year-to-date or current figure and an indicator against last year (REQ-8 to REQ-15). REQ-2 to REQ-5 and their ACs are removed (the income blocks and the empty prompt are replaced by the Income tile and REQ-14), REQ-6 and REQ-7 are rewritten, NG-1 is removed, NG-6 to NG-9 are new, `get_dashboard()` changes (section 5), and the file is renamed to `CSD-004-dashboard.md`. Back to `draft` until re-approved.
