@@ -13,6 +13,7 @@ pub mod project;
 pub mod ratios;
 pub mod settings;
 pub mod transactions;
+pub mod updates;
 
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicBool, Ordering};

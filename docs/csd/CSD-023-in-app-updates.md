@@ -3,7 +3,7 @@ id: CSD-023
 title: In-app updates
 status: approved
 owner: Thijs Bardoel
-version: 0.1
+version: 0.2
 last_updated: 18/11/2026
 related: [CSD-000, CSD-002, CSD-008, CSD-021, CSD-022, CSD-024]
 ---
@@ -364,8 +364,9 @@ Scenario: Every text has a Dutch translation
 ```
 
 ## 5. Interfaces and contracts
-Commands (Rust, `src-tauri/src/commands/`), both async:
+Commands (Rust, `src-tauri/src/commands/updates.rs`):
 
+- `app_version()` returns the current version as text, so the section can show it before any check (REQ-1). It makes no network call.
 - `check_for_update()` returns `{ status: "up_to_date", current }` or `{ status: "available", current, version }`. An error returns `{ code }` with one update code.
 - `install_update()` checks again, downloads, verifies, installs and restarts. It returns only on an error (`{ code }`) or when the endpoint says there is nothing newer (`{ status: "up_to_date", current }`).
 
@@ -413,4 +414,5 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-2: The checklist runs on Apple Silicon. The Intel Mac gap stays an accepted risk, since one universal build serves both. Is an Intel Mac available for one run? Owner: Thijs. Blocks: nothing.
 
 ## 9. Changelog
+- 0.2 (18/11/2026): section 5 lists the third command `app_version()` that the implementation needs for REQ-1. Interface clarification only, no behaviour change.
 - 0.1 (18/11/2026): initial draft from the grill-me interview of 18/11/2026 on GitHub issue 39. Owner decisions: manual check only, Rust-driven with no webview permission, one universal artifact, the unsaved-changes confirmation follows the close rule (autosave aware), four safe codes, a percentage progress bar, results kept in memory only, and the end-to-end checklist is a hard gate before the first release.

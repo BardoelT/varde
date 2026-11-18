@@ -23,7 +23,8 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["dmg"],
+    "targets": ["dmg", "app"],
+    "createUpdaterArtifacts": true,
     "category": "Finance",
     "icon": [
       "icons/128x128@2x.png",
@@ -32,5 +33,12 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "REPLACE_WITH_THE_UPDATER_PUBLIC_KEY",
+      "endpoints": ["https://github.com/BardoelT/varde/releases/latest/download/latest.json"],
+      "requireSignedVersion": true
+    }
   }
 }

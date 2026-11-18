@@ -11,7 +11,7 @@ use time::UtcOffset;
 
 use commands::{
     bank_accounts, dashboard, debts, expenses, houses, income, investments, net_worth, preferences,
-    project, ratios, settings, transactions, AppState,
+    project, ratios, settings, transactions, updates, AppState,
 };
 
 /// The label of the one window.
@@ -194,6 +194,9 @@ fn configure_with<R: Runtime>(
             project::save_project,
             project::save_project_as,
             project::quit_app,
+            updates::app_version,
+            updates::check_for_update,
+            updates::install_update,
         ])
         .on_window_event(|window, event| {
             // CSD-002 REQ-4: closing with unsaved changes needs a confirmation.
@@ -213,7 +216,10 @@ pub fn run() {
     let utc_offset = UtcOffset::current_local_offset().unwrap_or(UtcOffset::UTC);
 
     let built = configure_with(
-        tauri::Builder::default().plugin(tauri_plugin_dialog::init()),
+        tauri::Builder::default()
+            .plugin(tauri_plugin_dialog::init())
+            // CSD-023: used from Rust only; no updater permission is granted to the webview.
+            .plugin(tauri_plugin_updater::Builder::new().build()),
         utc_offset,
         |app| {
             // CSD-002 REQ-8: reopen the last used project. Without a config
