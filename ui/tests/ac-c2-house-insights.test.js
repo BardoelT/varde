@@ -57,7 +57,7 @@ async function openInsights(houses, years, ticks = axis(0, 400000), reads = exam
   const rows = () => [...tooltip().querySelectorAll('dt')].map((dt, index) => [app.text(dt), app.text(tooltip().querySelectorAll('dd')[index])]);
   const reopen = async (answer) => {
     app.bridge.table.get_house_insights = answer;
-    await app.click(app.$('houses-tab-overview'));
+    await app.click(app.$('houses-tab-houses'));
     await app.click(app.$('houses-tab-insights'));
   };
   return { app, chart, groups, shapes, hover, tooltip, rows, reopen, legend: app.$('houses-insights-legend') };
@@ -75,22 +75,22 @@ const gridlines = (chart) => {
 
 // ---- REQ-1: tabs ----
 
-test('test_csd016_ac_1_1_overview_is_shown_first_with_its_three_sections', async () => {
+test('test_csd016_ac_1_1_the_first_tab_is_shown_first_with_its_three_sections', async () => {
   const app = await openApp();
   await app.click(app.item('houses'));
-  assert.equal(app.$('houses-tab-overview').getAttribute('aria-selected'), 'true');
-  assert.equal(app.isShown(app.$('houses-overview')), true);
+  assert.equal(app.$('houses-tab-houses').getAttribute('aria-selected'), 'true');
+  assert.equal(app.isShown(app.$('houses-houses')), true);
   assert.equal(app.isShown(app.$('houses-insights')), false);
-  const titles = [...app.$('houses-overview').querySelectorAll('.panel-title')].map((node) => app.text(node));
+  const titles = app.overviewTitles('houses');
   assert.deepEqual(titles, ['Houses', 'Yearly values', 'Valuations']);
   app.close();
 });
 
-test('test_csd016_ac_1_2_switching_to_insights_hides_the_overview', async () => {
+test('test_csd016_ac_1_2_switching_to_insights_hides_the_first_panel', async () => {
   const app = await openApp();
   await app.click(app.item('houses'));
   await app.click(app.$('houses-tab-insights'));
-  assert.equal(app.isShown(app.$('houses-overview')), false);
+  assert.equal(app.isShown(app.$('houses-houses')), false);
   assert.equal(app.isShown(app.$('houses-insights')), true);
   assert.ok(app.$('houses-insights-chart').querySelector('.chart-year-group'), 'the chart is drawn');
   app.close();
@@ -101,7 +101,7 @@ test('test_csd016_ac_1_3_no_houses_shows_the_prompt_and_no_tabs', async () => {
   await app.click(app.item('houses'));
   assert.equal(app.isShown(app.$('houses-empty')), true);
   assert.match(app.text(app.$('houses-empty').querySelector('button')), /^Add your first /);
-  assert.equal(app.isShown(app.$('houses-tab-overview')), false);
+  assert.equal(app.isShown(app.$('houses-tab-houses')), false);
   assert.equal(app.isShown(app.$('houses-tab-insights')), false);
   app.close();
 });

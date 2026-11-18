@@ -7,7 +7,7 @@ import { formatAmount } from '../shared/format.js';
 import { swatch, noSwatch, legendLabel, tooltipRow, topToBottom } from '../shared/chart.js';
 import { createYearlyChart, yearLabel } from '../shared/yearly-chart.js';
 import { fillLegend, markerDecorator } from '../shared/insights-page.js';
-import { initTabs } from '../shared/tabs.js';
+import { initPageTabs } from '../shared/tabs.js';
 import { t, tn } from '../shared/i18n.js';
 import { errorText } from '../shared/ipc.js';
 
@@ -154,15 +154,8 @@ export const reloadTransactionsInsightsIfOpen = async () => {
 
 export function initTransactionsInsights() {
   chart.init();
-  // Categories and Rules sit left of the Overview, which opens first; the Insights tab recomputes the chart
-  // each time it opens (CSD-033 REQ-13).
-  initTabs([
-    { tab: 'transactions-tab-accounts', panel: 'transactions-accounts' },
-    { tab: 'transactions-tab-categories', panel: 'transactions-categories' },
-    { tab: 'transactions-tab-rules', panel: 'transactions-rules' },
-    { tab: 'transactions-tab-overview', panel: 'transactions-overview' },
-    { tab: 'transactions-tab-insights', panel: 'transactions-insights', onOpen: chart.reload },
-  ]);
+  // The page opens on the Transactions tab; the Insights tab recomputes the chart each time it opens (CSD-035 REQ-3, CSD-033 REQ-13).
+  initPageTabs('transactions', { initial: 'transactions-transactions', onOpen: { 'transactions-insights': chart.reload } });
   $('transactions-insights-yearly').addEventListener('click', () => choose('yearly'));
   $('transactions-insights-monthly').addEventListener('click', () => choose('monthly'));
   syncToggle();

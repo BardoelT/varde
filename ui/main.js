@@ -1,6 +1,7 @@
 // Entry point: wires the project controls, the income, investments, bank accounts, houses, debts, expenses and transactions views (each with an insights chart), the net worth chart, the ratios table, the settings and the dashboard.
 import { errorText, listen } from './shared/ipc.js';
 import { showToast } from './shared/dom.js';
+import { resetTabs } from './shared/tabs.js';
 import { collectStaticTexts, onLanguageChange } from './shared/i18n.js';
 import { onNumberFormatChange } from './shared/number-format.js';
 import { onDiscreteModeChange } from './shared/discrete-mode.js';
@@ -146,6 +147,7 @@ async function start() {
   await initProject({ onReplaced: reloadEverything, onSwitched: () => {
       resetAllFilters();
       resetTransactionsManualFilter();
+      resetTabs();
     },
   });
   const redraw = async () => {

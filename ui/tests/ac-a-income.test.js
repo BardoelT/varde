@@ -79,7 +79,7 @@ test('test_csd001_ac_9_3_the_copy_follows_the_chosen_job', async () => {
 test('test_csd001_ac_23_1_the_sections_appear_in_order', async () => {
   const app = await incomePage();
   assert.equal(app.textOf('income-title'), 'Income');
-  const panels = [...app.$('income-overview').querySelectorAll('.panel-title')].map((title) => app.text(title));
+  const panels = app.overviewTitles('income');
   assert.deepEqual(panels, ['Jobs', 'Yearly totals', 'Paychecks and statements'], 'no section describes one selected job');
   app.close();
 });

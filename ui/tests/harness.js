@@ -138,6 +138,12 @@ export async function openApp({ reads = exampleReads(), handlers = {} } = {}) {
     /** The text of an element with its white space collapsed. */
     text: (element) => element.textContent.replace(/\s+/g, ' ').trim(),
     textOf: (id) => app.text($(id)),
+    /** The panels of a page's tabs other than Insights, in order (CSD-035): `overviewPanels('income')`. */
+    overviewPanels: (page) => [...document.querySelectorAll(`#${page} [role="tabpanel"]:not(#${page}-insights) > .panel`)],
+    /** The titles of those panels. */
+    overviewTitles: (page) => app.overviewPanels(page).map((panel) => app.text(panel.querySelector('.panel-title'))),
+    /** All their text, so an assertion can look at every tab but Insights at once. */
+    overviewText: (page) => app.overviewPanels(page).map((panel) => app.text(panel)).join(' '),
     /** Clicks, then lets the loading it starts settle. */
     async click(element) {
       element.click();

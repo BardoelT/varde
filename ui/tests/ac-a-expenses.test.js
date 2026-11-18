@@ -60,9 +60,9 @@ test('test_csd013_ac_13_1_expenses_is_an_item_in_the_left_pane_with_a_receipt_ic
 
 test('test_csd013_ac_13_2_the_sections_appear_in_order', async () => {
   const app = await expensesPage();
-  assert.equal(app.$('expenses-tab-overview').getAttribute('aria-selected'), 'true', 'the Overview tab is selected');
-  assert.equal(app.isShown(app.$('expenses-overview')), true);
-  const titles = [...app.$('expenses-overview').querySelectorAll('.panel-title')].map((node) => app.text(node));
+  assert.equal(app.$('expenses-tab-totals').getAttribute('aria-selected'), 'true', 'the first tab is selected');
+  assert.equal(app.isShown(app.$('expenses-totals')), true);
+  const titles = app.overviewTitles('expenses');
   assert.deepEqual(titles, ['Yearly totals', 'Expenses']);
   app.close();
 });
@@ -139,7 +139,7 @@ test('test_csd013_ac_13_9_the_insights_tab_shows_the_chart', async () => {
   const app = await expensesPage();
   await app.click(app.$('expenses-tab-insights'));
   assert.equal(app.$('expenses-tab-insights').getAttribute('aria-selected'), 'true');
-  assert.equal(app.isShown(app.$('expenses-overview')), false, 'the Overview sections are hidden');
+  assert.equal(app.isShown(app.$('expenses-totals')), false, 'the first panel is hidden');
   assert.equal(app.isShown(app.$('expenses-insights')), true);
   assert.equal(app.isShown(app.$('expenses-insights-scroll')), true);
   assert.ok(app.$('expenses-insights-chart').querySelector('svg'), 'the chart of CSD-014 is drawn');
@@ -148,12 +148,12 @@ test('test_csd013_ac_13_9_the_insights_tab_shows_the_chart', async () => {
 
 test('test_csd013_ac_15_1_no_currency_in_the_sections', async () => {
   const app = await expensesPage();
-  assert.equal(app.text(app.$('expenses-overview').querySelectorAll('.panel-title')[0]), 'Yearly totals');
-  assert.equal(app.text(app.$('expenses-overview').querySelectorAll('.panel-title')[1]), 'Expenses');
+  assert.equal(app.overviewTitles('expenses')[0], 'Yearly totals');
+  assert.equal(app.overviewTitles('expenses')[1], 'Expenses');
   for (const id of ['expense-totals-table', 'expenses-table', 'expense-dialog']) {
     assert.doesNotMatch(app.textOf(id), CURRENCY, `${id} shows no currency`);
   }
-  assert.doesNotMatch(app.textOf('expenses-overview'), CURRENCY);
+  assert.doesNotMatch(app.overviewText('expenses'), CURRENCY);
   app.close();
 });
 

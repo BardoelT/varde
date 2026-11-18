@@ -349,7 +349,7 @@ test('test_csd014_ac_12_1_without_expenses_there_is_a_note_and_no_chart', async 
 test('test_csd014_ac_13_1_the_figures_follow_changes', async () => {
   const { app, chart } = await openInsights(series([year(2026, [['Home', '900.00']], { partial: true })]));
   assert.match(groups(chart)[0].getAttribute('aria-label'), /total 900\.00/);
-  await app.click(app.$('expenses-tab-overview'));
+  await app.click(app.$('expenses-tab-totals'));
   app.bridge.table.get_expense_insights = series([year(2026, [['Home', '900.00'], ['Appliances', '650.00']], { partial: true })]);
   const before = app.callsOf('get_expense_insights').length;
   await app.click(app.$('expenses-tab-insights'));
@@ -365,7 +365,7 @@ test('test_csd014_ac_13_1_the_figures_follow_changes', async () => {
 test('test_csd014_ac_13_2_the_last_expense_is_deleted', async () => {
   const { app, chart } = await openInsights(series([year(2026, [['Home', '900.00']], { partial: true })]));
   assert.equal(chart.querySelectorAll('svg').length > 0, true);
-  await app.click(app.$('expenses-tab-overview'));
+  await app.click(app.$('expenses-tab-totals'));
   app.bridge.table.get_expense_insights = series([]);
   await app.click(app.$('expenses-tab-insights'));
   assert.equal(app.isShown(app.$('expenses-insights-empty')), true);

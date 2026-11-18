@@ -36,7 +36,7 @@ async function openHouses({ houses = [HOUSE, LODGE], total = '380000.00', valuat
   reads.yearly_house_values = totals;
   const app = await openApp({ reads, handlers });
   await app.click(app.item('houses'));
-  const panels = () => [...app.$('houses-overview').querySelectorAll('.panel')];
+  const panels = () => app.overviewPanels('houses');
   const panel = (title) => panels().find((node) => app.text(node.querySelector('.panel-title')) === title);
   return { app, panels, panel };
 }
@@ -145,6 +145,7 @@ test('test_csd015_ac_22_2_a_house_without_valuations_shows_a_dash_and_the_empty_
   assert.equal(app.text(row.querySelector('.account-amount')), '—');
   assert.match(app.text(row.querySelector('.job-meta')), /^Monthly/);
   assert.doesNotMatch(app.text(row), /No valuations yet/);
+  await app.click(app.$('houses-tab-valuations'));
   assert.equal(app.isShown(app.$('house-valuations-empty')), true);
   assert.equal(app.textOf('house-valuations-empty'), 'No valuations yet.');
   assert.equal(app.$('toast').hidden, true, 'no error is shown');
@@ -153,6 +154,7 @@ test('test_csd015_ac_22_2_a_house_without_valuations_shows_a_dash_and_the_empty_
 
 test('test_csd015_ac_22_3_no_valuations_in_any_house_shows_the_yearly_values_note_and_no_table', async () => {
   const { app } = await openHouses({ houses: [house({ latest_period: null, latest_value: null, valuation_count: 0 })], total: null });
+  await app.click(app.$('houses-tab-totals'));
   assert.equal(app.isShown(app.$('house-totals-empty')), true);
   assert.equal(app.textOf('house-totals-empty'), 'No yearly values yet. They appear once there is a valuation.');
   assert.equal(app.isShown(app.$('house-totals-table')), false);
@@ -166,7 +168,7 @@ test('test_csd015_ac_23_1_the_sections_show_no_currency', async () => {
     totals: [{ year: 2026, closing_value: '300000.00', change: '500.00', valuation_count: 1 }],
   });
   assert.deepEqual(panels().map((node) => app.text(node.querySelector('.panel-title'))), ['Houses', 'Yearly values', 'Valuations']);
-  assert.doesNotMatch(app.text(app.$('houses-overview')), /EUR|€|USD|\$/);
+  assert.doesNotMatch(app.overviewText('houses'), /EUR|€|USD|\$/);
   app.close();
 });
 

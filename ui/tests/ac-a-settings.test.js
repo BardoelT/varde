@@ -99,7 +99,7 @@ for (const entries of [1, 5]) {
 test('test_csd003_ac_8_1_other_views_show_no_currency', async () => {
   const app = await appWithEntries(2, 'USD');
   await app.click(app.item('income'));
-  const titles = [...app.$('income-overview').querySelectorAll('.panel-title')].map((title) => app.text(title));
+  const titles = app.overviewTitles('income');
   assert.deepEqual(titles, ['Jobs', 'Yearly totals', 'Paychecks and statements']);
   for (const id of ['job-list', 'paycheck-table', 'totals-table']) {
     assert.doesNotMatch(app.textOf(id), /EUR|USD|GBP|[$€£]/, `${id} shows no currency`);
