@@ -8,7 +8,7 @@
 import { invoke } from './ipc.js';
 import { t } from './i18n.js';
 import { formatAmountLabel } from './number-format.js';
-import { COMPRESSED_CLASS, headerShrink } from './page-header.js';
+import { headerShrink } from './page-header.js';
 import { svg, toPosition, segmentShape, createTooltip, bindHighlight } from './chart.js';
 
 const MARGIN = { top: 28, right: 16, left: 48 };
@@ -54,15 +54,14 @@ function scrollbarHeight() {
 }
 
 /**
- * Where the box sits with the page scrolled to the top and the page header expanded. A compressed
- * header makes the page shorter, so the chart is measured as if it were expanded: compressing or
+ * Where the box sits with the page scrolled to the top and the page header expanded. A collapsed
+ * header makes the page shorter, so the chart is measured as if it were expanded: collapsing or
  * expanding then neither changes the plot height nor redraws the chart (CSD-024 REQ-13).
  */
 function topAtPageStart(element) {
   const scroller = element.closest('.content');
   if (!scroller) return element.getBoundingClientRect().top;
-  const compressed = scroller.classList.contains(COMPRESSED_CLASS) ? headerShrink(scroller) : 0;
-  return element.getBoundingClientRect().top + scroller.scrollTop + compressed;
+  return element.getBoundingClientRect().top + scroller.scrollTop + headerShrink(scroller);
 }
 
 /**
