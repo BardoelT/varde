@@ -1,3 +1,5 @@
+import { resetPageHeader } from './shared/page-header.js';
+
 const navItems = document.querySelectorAll('.nav-item');
 const sections = document.querySelectorAll('.section');
 
@@ -10,6 +12,8 @@ function navigate(sectionId) {
   sections.forEach((section) => {
     section.classList.toggle('active', section.id === sectionId);
   });
+  // The chosen page starts at the top with its header expanded (CSD-024 REQ-12).
+  resetPageHeader();
 }
 
 navItems.forEach((item) => {

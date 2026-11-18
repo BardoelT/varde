@@ -91,27 +91,56 @@
 /* ── Content ── */
 
 .content {
+  /* The page header (CSD-024 REQ-10 to REQ-16). The sizes are in one place for each state; the expanded and compressed
+     heights are the sum of the title (1.25 times its size) and the space around it, kept as plain lengths because the
+     chart code reads them (REQ-13). Compressing is one class on this box, set from the scroll position. */
+  --title-size: 20px;
+  --header-above: 30px;
+  --header-below: 22px;
+  --header-expanded: 77px;
+  --header-compressed: 40px;
+  --header-height: var(--header-expanded);
   flex: 1;
   overflow-y: auto;
   /* The room of the page scrollbar is always kept. The charts are as wide as this box, so a scrollbar that came and went
      changed their width, redrew them, and could make the scrollbar of the chart itself come and go in turn. */
   scrollbar-gutter: stable;
-  padding: 30px 32px;
+  padding: 0 32px 30px;
+  /* A focused field or a jump stays below the compressed header, and below the tabs (REQ-14). */
+  scroll-padding-top: 100px;
   min-width: 0;
+}
+.content.header-compressed {
+  --title-size: 16px;
+  --header-above: 10px;
+  --header-below: 10px;
+  --header-height: var(--header-compressed);
 }
 
 .section { display: none; }
 .section.active { display: block; }
 
+/* The header lies above the page content and its sticky row labels (z-index 1), and below the filter panel (20),
+   the tooltips (10) and the dialogs (REQ-15). */
 .section-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   align-items: baseline;
   gap: 12px;
-  margin-bottom: 22px;
+  padding: var(--header-above) 0 var(--header-below);
+  background: var(--bg);
+  transition: padding 120ms ease-out;
 }
 .section-title {
-  font-size: 20px;
+  font-size: var(--title-size);
+  line-height: 1.25;
   font-weight: 700;
   letter-spacing: -.4px;
   color: var(--text);
+  transition: font-size 120ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .section-header, .section-title { transition: none; }
 }

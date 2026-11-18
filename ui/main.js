@@ -2,6 +2,7 @@
 import { errorText, listen } from './shared/ipc.js';
 import { showToast } from './shared/dom.js';
 import { resetTabs } from './shared/tabs.js';
+import { initPageHeader } from './shared/page-header.js';
 import { collectStaticTexts, onLanguageChange } from './shared/i18n.js';
 import { onNumberFormatChange } from './shared/number-format.js';
 import { onDiscreteModeChange } from './shared/discrete-mode.js';
@@ -60,6 +61,7 @@ async function start() {
   }
 
   initDateMasks();
+  initPageHeader();
 
   document.querySelectorAll('dialog [data-cancel]').forEach((button) => {
     button.addEventListener('click', () => button.closest('dialog').close());

@@ -8,6 +8,7 @@
 import { invoke } from './ipc.js';
 import { t } from './i18n.js';
 import { formatAmountLabel } from './number-format.js';
+import { COMPRESSED_CLASS, headerShrink } from './page-header.js';
 import { svg, toPosition, segmentShape, createTooltip, bindHighlight } from './chart.js';
 
 const MARGIN = { top: 28, right: 16, left: 48 };
@@ -53,14 +54,25 @@ function scrollbarHeight() {
 }
 
 /**
+ * Where the box sits with the page scrolled to the top and the page header expanded. A compressed
+ * header makes the page shorter, so the chart is measured as if it were expanded: compressing or
+ * expanding then neither changes the plot height nor redraws the chart (CSD-024 REQ-13).
+ */
+function topAtPageStart(element) {
+  const scroller = element.closest('.content');
+  if (!scroller) return element.getBoundingClientRect().top;
+  const compressed = scroller.classList.contains(COMPRESSED_CLASS) ? headerShrink(scroller) : 0;
+  return element.getBoundingClientRect().top + scroller.scrollTop + compressed;
+}
+
+/**
  * The plot height that lets the chart end at the bottom of the window with the page
  * scrolled to the top, and never less than `CHART_SIZE.minPlotHeight` (CSD-010 REQ-13).
  * `scrollbar` is the height of the horizontal scrollbar the chart box is going to show, which
  * sits below the chart and must fit in the window too, or the page would get a scrollbar of its own.
  */
 function plotHeightFor(inner, margin, scrollbar) {
-  const scroller = inner.closest('.content');
-  const top = inner.getBoundingClientRect().top + (scroller ? scroller.scrollTop : 0);
+  const top = topAtPageStart(inner);
   // One pixel less, so rounding never pushes the page into a scrollbar.
   const room = window.innerHeight - top - margin.top - margin.bottom - spaceBelow(inner) - scrollbar - 1;
   return Math.max(CHART_SIZE.minPlotHeight, Math.floor(room));
@@ -225,10 +237,10 @@ export function createYearlyChart(strategy) {
       drawnFor = null;
       return;
     }
-    const size = `${scroll.clientWidth}x${window.innerHeight}x${Math.round(part('chart').getBoundingClientRect().top)}`;
+    const size = `${scroll.clientWidth}x${window.innerHeight}x${Math.round(topAtPageStart(part('chart')))}`;
     if (size === drawnFor) return;
     draw(drawnData);
-    drawnFor = `${scroll.clientWidth}x${window.innerHeight}x${Math.round(part('chart').getBoundingClientRect().top)}`;
+    drawnFor = `${scroll.clientWidth}x${window.innerHeight}x${Math.round(topAtPageStart(part('chart')))}`;
   };
 
   /**
