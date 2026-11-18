@@ -2,6 +2,7 @@ use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 use thiserror::Error;
 
+use crate::domain::updates::UpdateError;
 use crate::domain::DomainError;
 use crate::storage::StorageError;
 
@@ -13,6 +14,8 @@ pub enum AppError {
     Domain(#[from] DomainError),
     #[error(transparent)]
     Storage(#[from] StorageError),
+    #[error(transparent)]
+    Update(#[from] UpdateError),
     #[error("Something went wrong. Please try again.")]
     Internal,
 }
@@ -24,6 +27,7 @@ impl AppError {
         match self {
             Self::Domain(error) => error.code(),
             Self::Storage(error) => error.code(),
+            Self::Update(error) => error.code(),
             Self::Internal => "INTERNAL",
         }
     }

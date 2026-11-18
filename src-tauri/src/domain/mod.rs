@@ -19,6 +19,7 @@ pub mod ratios;
 pub(crate) mod series;
 pub mod settings;
 pub mod transactions;
+pub mod updates;
 pub mod window_title;
 
 pub use bank_accounts::{

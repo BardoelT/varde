@@ -25,6 +25,7 @@ import { initExpensesOverview, reloadExpensesOverview } from './pages/expenses-o
 import { initTransactionsOverview, reloadTransactionsOverview, resetTransactionsManualFilter } from './pages/transactions-overview.js';
 import { initTransactionsInsights, reloadTransactionsInsightsIfOpen } from './pages/transactions-insights.js';
 import { initSettings, loadPreferences, reloadSettings, toggleDiscreteMode } from './pages/settings.js';
+import { initUpdates } from './pages/settings-updates.js';
 import { reloadDashboard } from './pages/dashboard.js';
 import { initNetWorth, reloadNetWorthIfOpen } from './pages/net-worth.js';
 import { initRatios, reloadRatiosIfOpen } from './pages/ratios.js';
@@ -125,6 +126,7 @@ async function start() {
   });
   // A failed autosave keeps the change; the message is not blocking and carries no path (CSD-002 REQ-26).
   await listen('autosave-failed', (event) => showToast(errorText(event.payload)));
+  await initUpdates();
   // Everything is drawn again after a project replaced the data, and after a language change (CSD-022 REQ-3).
   const reloadEverything = () =>
     reportFailures(

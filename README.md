@@ -23,7 +23,7 @@ All insights charts look and behave alike: hovering a legend item highlights tha
 
 ## Principles
 
-- **Local only.** All data lives in one project file you choose. There is no cloud sync, no backend server, no telemetry and no network access.
+- **Local only.** All data lives in one project file you choose. There is no cloud sync, no backend server and no telemetry. The app makes one network call, and only when you ask: **Check for updates** on the Settings page reads a static file from this repository's GitHub releases and sends nothing about you or your project.
 - **macOS only** (Apple Silicon and Intel).
 - **Exact money math.** Amounts use `rust_decimal`, never floats, and are in the one currency of the project.
 - **Safe saving.** Files are written to a temporary file and renamed over the target, so a failed save never damages an existing project.
@@ -47,6 +47,10 @@ The app is not signed or notarized yet, so macOS blocks it the first time you op
 
 On macOS 14 and older you can instead right-click the app and choose **Open**.
 
+### Updating
+
+Open **Settings**, choose **Check for updates** and, when a newer version is shown, **Install**. The app downloads the update, verifies its signature, replaces itself and restarts. Nothing is checked until you ask. If you have unsaved changes, the app asks before it installs.
+
 ## Getting started
 
 Prerequisites: [rustup](https://rustup.rs/), which installs the Rust toolchain pinned in `rust-toolchain.toml` by itself, and the Tauri CLI.
@@ -64,8 +68,10 @@ cargo tauri dev
 Build a release bundle (`.app` / `.dmg`):
 
 ```bash
-cargo tauri build
+cargo tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}'
 ```
+
+The release workflow builds the signed update files too. Without the updater signing key in your environment (`TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`), a plain `cargo tauri build` stops at that step, so a local build turns them off as above.
 
 The app has no frontend build step and no runtime npm dependency. `ui/` is served as-is. Node and npm are only needed to run the frontend tests (see Development).
 

@@ -9,6 +9,7 @@ import debtsHouses from './nl-debts-houses.js';
 import undo from './nl-undo.js';
 import filters from './nl-filters.js';
 import transactions from './nl-transactions.js';
+import updates from './nl-updates.js';
 
 export default {
   ...staticTexts,
@@ -19,5 +20,6 @@ export default {
   ...undo,
   ...filters,
   ...transactions,
+  ...updates,
   ...errors,
 };

@@ -16,7 +16,7 @@ Personal wealth tracking desktop app: bank accounts, houses, investments, debts,
 
 ```bash
 cargo tauri dev                          # run the app locally
-cargo tauri build                        # release build (.app / .dmg)
+cargo tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}'   # local release build (.app / .dmg); the signed update files need the updater key and are built by release.yml
 cargo fmt --all                          # format
 cargo clippy --all-targets --all-features -- -D warnings   # lint (must be clean)
 cargo test --all-features                # all tests
@@ -117,7 +117,7 @@ module_name_repetitions = "allow"
 - **Least privilege capabilities.** Only enable the permissions a feature needs in `src-tauri/capabilities/`. Do not add `shell`, `fs` with broad scopes, or `http` plugins without asking.
 - `tauri.conf.json` sets a strict CSP: no `unsafe-eval`, no remote scripts, no remote content. `style-src` is `'self'` only, so `ui/` must not use `style=` attributes, `<style>` blocks or `setAttribute('style', ...)`/`cssText` (put styles in `ui/styles/`; `element.style.x = ...` through the CSSOM is fine); a DOM test guards this. CSD-021 covers the release workflow.
 - Treat every `#[tauri::command]` input as untrusted: validate and bound it before use.
-- No network calls at all unless explicitly requested (e.g. a future exchange-rate fetch must be opt-in and documented).
+- No network calls at all unless explicitly requested (e.g. a future exchange-rate fetch must be opt-in and documented). The one call today is the manual update check of CSD-023, to one fixed GitHub URL; the webview has no updater permission.
 - Don't use `dangerousDisableAssetCspModification` or similar `dangerous*` options.
 
 ## Privacy and the public repo

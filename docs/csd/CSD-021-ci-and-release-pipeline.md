@@ -3,9 +3,9 @@ id: CSD-021
 title: CI and release pipeline
 status: approved
 owner: Thijs Bardoel
-version: 0.6
-last_updated: 04/11/2026
-related: [CSD-000]
+version: 0.7
+last_updated: 18/11/2026
+related: [CSD-000, CSD-023]
 ---
 
 # CSD-021: CI and release pipeline
@@ -17,13 +17,14 @@ The repository has no automated checks and no way to produce an installable app.
 ### 2.1 In scope
 - A release run triggered by a stable version tag, with guards on the tag. It starts with the checks: format, lint, the Rust tests, the frontend DOM tests and the `cargo deny` licence and advisory check.
 - A universal macOS `.dmg` (Apple Silicon and Intel) attached to a draft GitHub Release.
-- The bundle settings in `tauri.conf.json` that the `.dmg` needs.
+- The update files that the in-app update (CSD-023) needs: a signed universal `.app.tar.gz` with its `.sig`, and a `latest.json`, attached to the same draft release.
+- The bundle settings in `tauri.conf.json` that the `.dmg` and the update files need.
 
 ### 2.2 Non-goals
 - NG-1: Publishing a release automatically. The owner publishes the draft.
 - NG-2: Code signing and notarization. Builds are unsigned, so macOS blocks the first launch. The user allows it with Open Anyway in System Settings > Privacy & Security (macOS 15 and later) or right-click > Open (older versions), as the README explains.
 - NG-3: Windows and Linux builds (`CLAUDE.md`: macOS only).
-- NG-4: Automatic updates inside the app.
+- NG-4: (removed in v0.7) Updating from inside the app is now CSD-023. Key rotation for the update signature, release channels and `tauri-action` stay out.
 - NG-5: Releases from pre-release tags such as `v0.1.0-rc1`.
 - NG-6: (removed in v0.5) The strict CSP is set in `src-tauri/tauri.conf.json` (OQ-1 resolved). It is not a requirement of this pipeline.
 - NG-7: Checks on pull requests or on pushes to any branch. The owner runs them locally before tagging, and the release run repeats them.
@@ -34,6 +35,8 @@ The repository has no automated checks and no way to produce an installable app.
 | **Checks** | Five steps: `cargo fmt --all --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo test --all-features`, the frontend DOM tests (`npm test`, CSD-000 REQ-6) and `cargo deny check`. |
 | **Release tag** | A tag of the form `vMAJOR.MINOR.PATCH`, for example `v0.1.0`. |
 | **App version** | The `version` in `src-tauri/Cargo.toml` and in `src-tauri/tauri.conf.json`. |
+| **Update files** | `Varde_<version>_universal.app.tar.gz`, its signature `Varde_<version>_universal.app.tar.gz.sig` and `latest.json`. |
+| **Updater key** | The minisign key pair that signs the update archive. The public key is in `tauri.conf.json` (CSD-023 CON-3), the private key and its password are the Actions secrets `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. It is separate from Apple signing. |
 
 ## 4. Requirements
 
@@ -46,10 +49,13 @@ flowchart TD
     C -- No --> X
     C -- Yes --> D{Tagged commit in main?}
     D -- No --> X
-    D -- Yes --> E[Build universal macOS dmg]
-    E --> F{Release for tag exists?}
+    D -- Yes --> K{Updater key secrets set?}
+    K -- No --> X
+    K -- Yes --> E[Build universal macOS dmg<br/>and signed update archive]
+    E --> J[Write latest.json]
+    J --> F{Release for tag exists?}
     F -- Yes --> X
-    F -- No --> G[Create draft GitHub Release with the dmg]
+    F -- No --> G[Create draft GitHub Release with<br/>the dmg and the update files]
     G --> H[Owner reviews and publishes]
 ```
 
@@ -186,17 +192,24 @@ Scenario: The dmg is universal
   And its app binary contains both "arm64" and "x86_64"
 ```
 
-**REQ-8: Draft release with the dmg** *(event-driven)*
-When the dmg is built, the pipeline shall create a draft GitHub Release for the tag with the dmg attached.
+**REQ-8: Draft release with the dmg and the update files** *(event-driven)*
+When the dmg and the update files are built, the pipeline shall create a draft GitHub Release for the tag with the dmg and the update files attached.
 
 ```gherkin
 @AC-8.1
 Scenario: A draft release is created
-  Given a built "Varde_0.1.0_universal.dmg" for the tag "v0.1.0"
+  Given a built "Varde_0.1.0_universal.dmg" and the update files for the tag "v0.1.0"
   When the release step runs
   Then a draft GitHub Release "Varde v0.1.0" exists
-  And it has the dmg attached
+  And it has the dmg, "Varde_0.1.0_universal.app.tar.gz", its ".sig" and "latest.json" attached
   And it is not published
+
+@AC-8.2
+Scenario: Publishing the draft is the rollout
+  Given the draft release "Varde v0.1.0"
+  When the owner publishes it
+  Then the URL "https://github.com/BardoelT/varde/releases/latest/download/latest.json" serves its "latest.json"
+  And while the release is a draft that URL does not serve it
 ```
 
 **REQ-9: An existing release is left alone** *(unwanted behaviour)*
@@ -211,15 +224,63 @@ Scenario: The tag is pushed again after a release exists
   And the existing release and its files are unchanged
 ```
 
-**REQ-10: No secrets beyond the workflow token** *(ubiquitous)*
-The pipeline shall use no secret other than the token GitHub provides to the workflow run.
+**REQ-10: Secrets: the workflow token and the updater key only** *(ubiquitous)*
+The pipeline shall use no secret other than the token GitHub provides to the workflow run and the two updater key secrets, and shall never print any of them.
 
 ```gherkin
 @AC-10.1
-Scenario: A run needs no configured secrets
-  Given a repository with no Actions secrets configured
+Scenario: A run with the updater key secrets completes
+  Given a repository whose only Actions secrets are "TAURI_SIGNING_PRIVATE_KEY" and "TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
   When a release run starts
   Then it completes without a missing-secret error
+
+@AC-10.2
+Scenario: The logs hold no secret
+  Given a finished release run
+  When its log is read
+  Then it contains neither the private key nor its password
+```
+
+**REQ-11: A signed update archive** *(event-driven)*
+When the build runs, the pipeline shall produce one universal `Varde_<version>_universal.app.tar.gz` and its `.sig`, signed with the updater key.
+
+```gherkin
+@AC-11.1
+Scenario: The archive and its signature exist
+  Given a release run that passed all guards
+  When the build finishes
+  Then "Varde_0.1.0_universal.app.tar.gz" and "Varde_0.1.0_universal.app.tar.gz.sig" exist
+  And the signature verifies with the public key in "tauri.conf.json"
+```
+
+**REQ-12: latest.json for both Macs** *(event-driven)*
+When the update archive is built, the pipeline shall write a `latest.json` with the version, the publication date, and the same archive URL and signature under `darwin-aarch64` and under `darwin-x86_64`.
+
+```gherkin
+@AC-12.1
+Scenario: Both platform keys point at the universal archive
+  Given the archive "Varde_0.1.0_universal.app.tar.gz" for the tag "v0.1.0"
+  When "latest.json" is written
+  Then its "version" is "0.1.0"
+  And "platforms.darwin-aarch64" and "platforms.darwin-x86_64" both have the url "https://github.com/BardoelT/varde/releases/download/v0.1.0/Varde_0.1.0_universal.app.tar.gz"
+  And both have the signature held in the ".sig" file
+```
+
+**REQ-13: A missing updater key stops the run before the build** *(unwanted behaviour)*
+If either updater key secret is missing or empty, then the pipeline shall fail without building and without creating a release.
+
+```gherkin
+@AC-13.1
+Scenario Outline: A secret is missing
+  Given the secret "<missing>" is not set
+  When the release run reaches the build job
+  Then the run fails with a message naming the secret
+  And no dmg is built and no release is created
+
+  Examples:
+    | missing                              |
+    | TAURI_SIGNING_PRIVATE_KEY            |
+    | TAURI_SIGNING_PRIVATE_KEY_PASSWORD   |
 ```
 
 ## 5. Interfaces and contracts
@@ -227,7 +288,9 @@ Scenario: A run needs no configured secrets
 - `package.json` and `package-lock.json` at the repository root: they hold the dev-only dependencies of the DOM tests and the `npm test` script. The workflow installs them from the lock file (`npm ci`) in the check job.
 - `rust-toolchain.toml` at the repository root: the exact Rust version (with rustfmt, clippy and both macOS targets) used locally and in the release run. The workflow installs the same version explicitly, because the install action cannot read the file.
 - `deny.toml`: the allowed licences for `cargo deny`, checked for the two macOS targets only.
-- `src-tauri/tauri.conf.json`: `bundle.active` is `true` and the target is `dmg`.
+- `src-tauri/tauri.conf.json`: `bundle.active` is `true`, the targets are `dmg` and `app`, `bundle.createUpdaterArtifacts` is `true`, and `plugins.updater` holds the public key and the endpoint (CSD-023 section 5).
+- The build runs `cargo tauri build --target universal-apple-darwin --bundles dmg,app -- --locked` with the two updater key secrets in its environment. A `jq` step writes `latest.json`: `{ "version", "notes": "", "pub_date", "platforms": { "darwin-aarch64": { "signature", "url" }, "darwin-x86_64": { "signature", "url" } } }`. `tauri-action` is not used.
+- GitHub serves `releases/latest/download/` only for a published release, so a draft is invisible to installed apps until the owner publishes it.
 
 ## 6. Constraints
 - CON-1: Runs use `macos-latest`. Rationale: macOS is the only supported platform and the `.dmg` can only be built there.
@@ -247,8 +310,10 @@ Workflow behaviour cannot be proven with `cargo test`, so ACs are checked in Git
 | AC-1.1, AC-2.1, AC-2.2, AC-2.3 | Push a throwaway tag on a scratch branch or fork, then one on a commit with a deliberate clippy warning and one with a deliberately failing DOM test, and read the run. |
 | AC-1.2, AC-1.3 | Merge a pull request, open one, and push to `development`. Confirm in the Actions tab that no run starts. |
 | AC-3.1, AC-3.2, AC-5.1, AC-5.2, AC-6.1, AC-6.2 | Push throwaway tags on a scratch branch or fork and read the run. |
-| AC-4.1, AC-7.1, AC-8.1, AC-9.1 | Push the first real tag. Open the draft release, check the file name, run `lipo -archs` on the app binary, push the tag again. |
-| AC-10.1 | Confirm the repository has no Actions secrets and the run completes. |
+| AC-4.1, AC-7.1, AC-8.1, AC-9.1 | Push the first real tag. Open the draft release, check the file names (dmg, archive, `.sig`, `latest.json`), run `lipo -archs` on the app binary, push the tag again. |
+| AC-8.2, AC-11.1, AC-12.1 | On the first real tag: read `latest.json` in the draft, verify the `.sig` with the public key (`minisign -V`), and after publishing fetch the endpoint URL. The CSD-023 checklist covers the install itself. |
+| AC-10.1, AC-10.2 | Confirm the repository has only the two updater key secrets, the run completes, and read the log for the key and the password. |
+| AC-13.1 | Push a throwaway tag on a scratch fork without one of the secrets and read the run. |
 
 ## 8. Open questions
 - OQ-1: (resolved 03/11/2026) A strict CSP is set in `src-tauri/tauri.conf.json` (default-src 'self', no remote scripts, no `unsafe-eval`).
@@ -256,6 +321,7 @@ Workflow behaviour cannot be proven with `cargo test`, so ACs are checked in Git
 - OQ-3: Who bumps the app version, and in which commit, so the tag matches (REQ-5)? Owner: Thijs.
 
 ## 9. Changelog
+- 0.7 (18/11/2026): The release also produces the update files for the in-app update (CSD-023, GitHub issue 39): a signed universal `.app.tar.gz` with its `.sig`, and a `latest.json` listing it under both `darwin-aarch64` and `darwin-x86_64`, all on the draft release (REQ-8 widened, new AC-8.2, new REQ-11 to REQ-13, definitions, flow, sections 2.1 and 5). REQ-10 now allows the two updater key secrets and no others (AC-10.1 reworded, new AC-10.2); the release is no longer free of secrets. NG-4 removed. Apple signing stays out (NG-2). Back to `draft` until re-approved.
 - 0.6 (04/11/2026): Release hardening, approved by the owner: actions pinned to commit SHAs (CON-6), `--locked` on the cargo commands (CON-7), a pinned toolchain in `rust-toolchain.toml` that the workflow matches (CON-8, section 5). Requirements and ACs are unchanged. Stays `draft` until re-approved.
 - 0.5 (03/11/2026): NG-6 removed and OQ-1 resolved: `tauri.conf.json` now holds a strict CSP. The verification table is unchanged: the ACs are checked in GitHub Actions and no `test_csd021_` tests exist by design. Back to `draft` until re-approved.
 - 0.4 (03/11/2026): The frontend DOM tests are a fifth check (definition Checks, section 1, section 2.1, AC-1.1, new AC-2.3, section 5 with `package.json` and the lock file, new CON-5 for the tests-only JavaScript dependencies, section 7). Back to `draft` until re-approved.
