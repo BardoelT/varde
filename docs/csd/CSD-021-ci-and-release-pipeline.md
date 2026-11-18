@@ -1,9 +1,9 @@
 ---
 id: CSD-021
 title: CI and release pipeline
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.7
+version: 0.8
 last_updated: 18/11/2026
 related: [CSD-000, CSD-023]
 ---
@@ -49,13 +49,13 @@ flowchart TD
     C -- No --> X
     C -- Yes --> D{Tagged commit in main?}
     D -- No --> X
-    D -- Yes --> K{Updater key secrets set?}
+    D -- Yes --> R{Release for tag exists?}
+    R -- Yes --> X
+    R -- No --> K{Updater key secrets set?}
     K -- No --> X
     K -- Yes --> E[Build universal macOS dmg<br/>and signed update archive]
     E --> J[Write latest.json]
-    J --> F{Release for tag exists?}
-    F -- Yes --> X
-    F -- No --> G[Create draft GitHub Release with<br/>the dmg and the update files]
+    J --> G[Create draft GitHub Release with<br/>the dmg and the update files]
     G --> H[Owner reviews and publishes]
 ```
 
@@ -213,15 +213,21 @@ Scenario: Publishing the draft is the rollout
 ```
 
 **REQ-9: An existing release is left alone** *(unwanted behaviour)*
-If a GitHub Release for the tag already exists, then the pipeline shall fail and leave that release unchanged.
+If a GitHub Release for the tag already exists, draft or published, then the pipeline shall fail before building and leave that release unchanged.
 
 ```gherkin
 @AC-9.1
 Scenario: The tag is pushed again after a release exists
   Given a GitHub Release for "v0.1.0" already exists
-  When a release run for "v0.1.0" reaches the release step
-  Then the step fails
+  When a release run for "v0.1.0" reaches the release check
+  Then the run fails and no dmg is built
   And the existing release and its files are unchanged
+
+@AC-9.2
+Scenario: An old draft for the tag
+  Given a draft GitHub Release "Varde v0.1.0" with an old dmg and no tag
+  When the tag "v0.1.0" is pushed
+  Then the run fails before the build and the draft is unchanged
 ```
 
 **REQ-10: Secrets: the workflow token and the updater key only** *(ubiquitous)*
@@ -310,6 +316,7 @@ Workflow behaviour cannot be proven with `cargo test`, so ACs are checked in Git
 | AC-1.1, AC-2.1, AC-2.2, AC-2.3 | Push a throwaway tag on a scratch branch or fork, then one on a commit with a deliberate clippy warning and one with a deliberately failing DOM test, and read the run. |
 | AC-1.2, AC-1.3 | Merge a pull request, open one, and push to `development`. Confirm in the Actions tab that no run starts. |
 | AC-3.1, AC-3.2, AC-5.1, AC-5.2, AC-6.1, AC-6.2 | Push throwaway tags on a scratch branch or fork and read the run. |
+| AC-9.2 | Leave a draft release for the tag, push the tag and read the run: it stops before the build. |
 | AC-4.1, AC-7.1, AC-8.1, AC-9.1 | Push the first real tag. Open the draft release, check the file names (dmg, archive, `.sig`, `latest.json`), run `lipo -archs` on the app binary, push the tag again. |
 | AC-8.2, AC-11.1, AC-12.1 | On the first real tag: read `latest.json` in the draft, verify the `.sig` with the public key (`minisign -V`), and after publishing fetch the endpoint URL. The CSD-023 checklist covers the install itself. |
 | AC-10.1, AC-10.2 | Confirm the repository has only the two updater key secrets, the run completes, and read the log for the key and the password. |
@@ -321,6 +328,7 @@ Workflow behaviour cannot be proven with `cargo test`, so ACs are checked in Git
 - OQ-3: Who bumps the app version, and in which commit, so the tag matches (REQ-5)? Owner: Thijs.
 
 ## 9. Changelog
+- 0.8 (18/11/2026): REQ-9 now stops the run before the build when a release for the tag exists, draft or published (new AC-9.2), because an old draft would otherwise sit next to the new one. Flow diagram follows. Back to `draft` until re-approved.
 - 0.7 (18/11/2026): The release also produces the update files for the in-app update (CSD-023, GitHub issue 39): a signed universal `.app.tar.gz` with its `.sig`, and a `latest.json` listing it under both `darwin-aarch64` and `darwin-x86_64`, all on the draft release (REQ-8 widened, new AC-8.2, new REQ-11 to REQ-13, definitions, flow, sections 2.1 and 5). REQ-10 now allows the two updater key secrets and no others (AC-10.1 reworded, new AC-10.2); the release is no longer free of secrets. NG-4 removed. Apple signing stays out (NG-2). Back to `draft` until re-approved.
 - 0.6 (04/11/2026): Release hardening, approved by the owner: actions pinned to commit SHAs (CON-6), `--locked` on the cargo commands (CON-7), a pinned toolchain in `rust-toolchain.toml` that the workflow matches (CON-8, section 5). Requirements and ACs are unchanged. Stays `draft` until re-approved.
 - 0.5 (03/11/2026): NG-6 removed and OQ-1 resolved: `tauri.conf.json` now holds a strict CSP. The verification table is unchanged: the ACs are checked in GitHub Actions and no `test_csd021_` tests exist by design. Back to `draft` until re-approved.

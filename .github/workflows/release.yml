@@ -68,6 +68,16 @@ jobs:
             exit 1
           fi
 
+      # CSD-021 REQ-9: a release for the tag, draft or published, stops the run before the build.
+      - name: Check no release exists for the tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            echo "A release for $GITHUB_REF_NAME already exists. Delete it first, it is left unchanged."
+            exit 1
+          fi
+
       # CSD-021 REQ-13: no updater key, no build and no release. Only the presence is tested; the
       # values are never printed.
       - name: Check the updater key secrets are set

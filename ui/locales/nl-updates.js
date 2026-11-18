@@ -10,6 +10,7 @@ export default {
   'Up to date ({version})': 'Up-to-date ({version})',
   'Version {version} is available': 'Versie {version} is beschikbaar',
   'Downloading and installing the update…': 'De update wordt gedownload en geïnstalleerd…',
+  'Version {version} is installed. Restart Varde to use it.': 'Versie {version} is geïnstalleerd. Start Varde opnieuw op om het te gebruiken.',
   'Code: {code}': 'Code: {code}',
   'Install the update without saving?': 'De update installeren zonder op te slaan?',
   'You have unsaved changes. They will be lost when the app restarts to install the update.': 'Je hebt niet-opgeslagen wijzigingen. Die gaan verloren als de app opnieuw start om de update te installeren.',
