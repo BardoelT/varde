@@ -8,9 +8,10 @@
 
 use std::future::Future;
 
-use tauri::{AppHandle, Emitter, Runtime};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
 use tauri_plugin_updater::{Error as PluginError, Update, UpdaterExt};
 
+use crate::commands::AppState;
 use crate::domain::updates::{is_newer, Progress, UpdateCheck, UpdateError};
 use crate::error::AppError;
 
@@ -53,8 +54,8 @@ pub trait UpdateSource: Send + Sync {
 /// How an install run ended without an error.
 #[derive(Debug, PartialEq, Eq)]
 pub enum InstallOutcome {
-    /// The update is in place; the caller restarts the app.
-    Installed,
+    /// The update is in place, with its version; the caller restarts the app.
+    Installed(String),
     /// The endpoint offers nothing newer (any more), so nothing was downloaded.
     UpToDate,
 }
@@ -92,7 +93,7 @@ pub async fn run_install<S: UpdateSource>(
     };
     let bytes = source.download(&found.handle, &mut on_progress).await?;
     source.install(&found.handle, &bytes)?;
-    Ok(InstallOutcome::Installed)
+    Ok(InstallOutcome::Installed(found.version))
 }
 
 /// A signature problem is told apart from the stage's own failure.
@@ -179,14 +180,27 @@ pub async fn check_for_update<R: Runtime>(app: AppHandle<R>) -> Result<UpdateChe
     Ok(run_check(&PluginSource { app }, env!("CARGO_PKG_VERSION")).await?)
 }
 
+/// Whether the app may restart now (CSD-023 REQ-14): it may when nothing is
+/// unsaved, or when the user was asked about the unsaved changes and said yes
+/// (REQ-7). Changes made after that question have not been asked about.
+#[must_use]
+pub fn may_restart(unsaved_now: bool, unsaved_confirmed: bool) -> bool {
+    !unsaved_now || unsaved_confirmed
+}
+
 /// Downloads, verifies and installs the newest version, then restarts the app
-/// (CSD-023 REQ-5). Returns only when it ended in an error, or when there was
-/// nothing newer. The frontend has already asked about unsaved changes (REQ-7).
+/// (CSD-023 REQ-5). Returns only when it ended in an error, when there was
+/// nothing newer, or when the update is installed but the restart waits
+/// (REQ-14). `unsaved_confirmed` says the frontend asked about unsaved changes
+/// and the user agreed (REQ-7).
 ///
 /// # Errors
 /// An update code (REQ-8).
 #[tauri::command]
-pub async fn install_update<R: Runtime>(app: AppHandle<R>) -> Result<UpdateCheck, AppError> {
+pub async fn install_update<R: Runtime>(
+    app: AppHandle<R>,
+    unsaved_confirmed: bool,
+) -> Result<UpdateCheck, AppError> {
     let source = PluginSource { app: app.clone() };
     let progress_app = app.clone();
     let outcome = run_install(&source, move |progress| {
@@ -198,7 +212,18 @@ pub async fn install_update<R: Runtime>(app: AppHandle<R>) -> Result<UpdateCheck
         InstallOutcome::UpToDate => Ok(UpdateCheck::UpToDate {
             current: env!("CARGO_PKG_VERSION").to_owned(),
         }),
-        InstallOutcome::Installed => app.restart(),
+        InstallOutcome::Installed(version) => {
+            // The question was asked before the download. If the project changed
+            // since (autosave off, no file yet), restarting would lose that work.
+            let unsaved_now = app
+                .state::<AppState>()
+                .project()
+                .map_or(true, |project| project.status().unsaved_changes);
+            if may_restart(unsaved_now, unsaved_confirmed) {
+                app.restart();
+            }
+            Ok(UpdateCheck::Installed { version })
+        }
     }
 }
 
@@ -336,7 +361,7 @@ mod tests {
     fn test_csd023_ac_5_1_a_successful_install_checks_downloads_and_installs() {
         let source = Canned::new(vec![Ok(Some("0.2.0"))]);
         let outcome = block_on(run_install(&source, |_| {}));
-        assert_eq!(outcome, Ok(InstallOutcome::Installed));
+        assert_eq!(outcome, Ok(InstallOutcome::Installed("0.2.0".into())));
         assert_eq!(source.calls(), ["check", "download", "install"]);
     }
 
@@ -345,7 +370,7 @@ mod tests {
         // The check that found 0.2.0 is long gone: install asks again and gets 0.3.0.
         let source = Canned::new(vec![Ok(Some("0.3.0"))]);
         let outcome = block_on(run_install(&source, |_| {}));
-        assert_eq!(outcome, Ok(InstallOutcome::Installed));
+        assert_eq!(outcome, Ok(InstallOutcome::Installed("0.3.0".into())));
         assert_eq!(source.calls().first(), Some(&"check"));
     }
 
@@ -362,7 +387,7 @@ mod tests {
         let source = Canned::new(vec![Ok(Some("0.2.0"))]);
         let mut seen = Vec::new();
         let outcome = block_on(run_install(&source, |progress| seen.push(progress)));
-        assert_eq!(outcome, Ok(InstallOutcome::Installed));
+        assert_eq!(outcome, Ok(InstallOutcome::Installed("0.2.0".into())));
         assert_eq!(
             seen,
             [
@@ -476,6 +501,31 @@ mod tests {
         let conf = conf();
         assert_eq!(conf["bundle"]["createUpdaterArtifacts"], true);
         assert_eq!(conf["bundle"]["targets"], serde_json::json!(["dmg", "app"]));
+    }
+
+    #[test]
+    fn test_csd023_ac_14_1_unconfirmed_changes_made_during_the_download_stop_the_restart() {
+        // Nothing unsaved at the question, something unsaved now: no restart.
+        assert!(!may_restart(true, false));
+    }
+
+    #[test]
+    fn test_csd023_ac_14_2_the_restart_goes_on_when_the_user_agreed_or_nothing_is_unsaved() {
+        assert!(may_restart(true, true), "the user agreed to lose them");
+        assert!(may_restart(false, false), "nothing to lose");
+        assert!(may_restart(false, true));
+    }
+
+    #[test]
+    fn test_csd023_ac_14_1_the_installed_answer_serializes_with_its_version() {
+        let json = serde_json::to_value(UpdateCheck::Installed {
+            version: "0.2.0".into(),
+        })
+        .unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({ "status": "installed", "version": "0.2.0" })
+        );
     }
 
     #[test]

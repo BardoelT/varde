@@ -58,5 +58,7 @@ function renderTile(spec, tile) {
 /** Loads the tiles from Rust and shows them. */
 export async function reloadDashboard() {
   const d = await invoke('get_dashboard');
+  // A project with no data at all shows how to begin (CSD-004 REQ-16).
+  $('dashboard-welcome').hidden = !tilesFor().every((spec) => !d[spec.key].has_data);
   $('dashboard-tiles').replaceChildren(...tilesFor().map((spec) => renderTile(spec, d[spec.key])));
 }

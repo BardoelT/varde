@@ -63,7 +63,7 @@ fn test_csd032_ac_17_1_transactions_survive_save_and_open() {
 }
 
 #[test]
-fn test_csd032_ac_17_2_a_version_2_file_is_invalid_until_upgraded() {
+fn test_csd032_ac_17_2_a_version_2_file_is_refused_as_older_until_upgraded() {
     let dir = TempDir::new().unwrap();
     let (path, mut value) = saved_value(&mut project_with(1), &dir);
     value["format_version"] = serde_json::json!(2);
@@ -77,7 +77,7 @@ fn test_csd032_ac_17_2_a_version_2_file_is_invalid_until_upgraded() {
     }
     fs::write(&path, value.to_string()).unwrap();
     let error = Project::new().open(&path).unwrap_err();
-    assert_eq!(error.code(), "PROJECT_INVALID_FILE");
+    assert_eq!(error.code(), "PROJECT_FILE_OLDER");
 }
 
 #[test]

@@ -36,8 +36,14 @@ function statusText() {
       return t('Up to date ({version})', { version: message.current });
     case 'available':
       return t('Version {version} is available', { version: message.version });
-    case 'error':
-      return `${errorText(message.error)} ${t('Code: {code}', { code: message.error.code })}`;
+    case 'error': {
+      // A rejection can be a plain string or null (a missing command): then there is no code to show.
+      const code = message.error?.code;
+      const text = errorText(message.error);
+      return code ? `${text} ${t('Code: {code}', { code })}` : text;
+    }
+    case 'installed':
+      return t('Version {version} is installed. Restart Varde to use it.', { version: message.version });
     default:
       return '';
   }
@@ -81,7 +87,10 @@ function setBusy(value) {
 
 /** The answer of a check or of an install that found nothing newer. */
 function showAnswer(answer) {
-  if (answer.status === 'available') {
+  if (answer.status === 'installed') {
+    available = null;
+    message = { kind: 'installed', version: answer.version };
+  } else if (answer.status === 'available') {
     available = answer.version;
     message = { kind: 'available', version: answer.version };
   } else {
@@ -110,7 +119,8 @@ async function onInstall() {
   setBusy(true);
   try {
     const status = await invoke('project_status');
-    if (status.unsaved_changes) {
+    const unsavedConfirmed = status.unsaved_changes;
+    if (unsavedConfirmed) {
       const confirmed = await confirmAction({
         title: t('Install the update without saving?'),
         message: t('You have unsaved changes. They will be lost when the app restarts to install the update.'),
@@ -122,8 +132,9 @@ async function onInstall() {
     progress = null;
     message = { kind: 'installing' };
     render();
-    // On success Rust restarts the app and never answers; an answer means nothing was installed.
-    showAnswer(await invoke('install_update'));
+    // On success Rust restarts the app and never answers. It answers when nothing was installed, or when
+    // the update is installed but the restart waits because changes appeared after the question (REQ-14).
+    showAnswer(await invoke('install_update', { unsavedConfirmed }));
   } catch (error) {
     message = { kind: 'error', error }; // the same version stays available for a retry (REQ-8)
   } finally {

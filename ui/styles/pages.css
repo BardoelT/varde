@@ -90,6 +90,15 @@
 .tile-change.bad { color: var(--chart-loss); }
 .tile-change.neutral { color: var(--muted); }
 .tile-arrow { font-size: 11px; }
+.welcome-hint {
+  margin-bottom: 20px;
+  padding: 18px 22px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+}
+.welcome-title { font-size: 16px; font-weight: 600; letter-spacing: -.2px; color: var(--text); }
+.welcome-hint p { margin-top: 6px; font-size: 13.5px; color: var(--muted); max-width: 70ch; }
 .tile-empty { margin-top: auto; font-size: 14px; color: var(--muted); }
 
 /* Transactions (CSD-032) */

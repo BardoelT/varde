@@ -52,6 +52,12 @@ pub enum UpdateCheck {
         /// The newer version.
         version: String,
     },
+    /// The update is installed, but the app has not restarted: there are
+    /// changes the user was not asked about (CSD-023 REQ-14).
+    Installed {
+        /// The version that is installed.
+        version: String,
+    },
 }
 
 /// Download progress in bytes, as the `update-progress` event carries it

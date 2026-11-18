@@ -51,7 +51,7 @@ fn test_csd002_ac_16_1_a_saved_empty_project_has_every_section() {
 }
 
 #[test]
-fn test_csd002_ac_18_3_a_version_1_file_is_invalid_until_the_script_has_upgraded_it() {
+fn test_csd002_ac_18_3_a_version_1_file_is_refused_as_older_until_the_script_has_upgraded_it() {
     let dir = TempDir::new().unwrap();
     let path = dir.path().join("example-a.varde");
     let mut project = Project::new();
@@ -64,7 +64,7 @@ fn test_csd002_ac_18_3_a_version_1_file_is_invalid_until_the_script_has_upgraded
     add_job(&mut project);
     let before: Income = project.income().clone();
     let error = project.open(&old).unwrap_err();
-    assert_eq!(error.code(), "PROJECT_INVALID_FILE");
+    assert_eq!(error.code(), "PROJECT_FILE_OLDER");
     assert_eq!(project.income(), &before);
 }
 

@@ -83,12 +83,12 @@ fn test_csd013_ac_16_4_a_damaged_section_is_an_invalid_file() {
     let id = "671166f4-5827-4794-bcdc-54d7824fb650";
     let expense = |amount: &str, date: &str, category: &str| {
         format!(
-            r#"{{"format_version":2,"income":{{"jobs":[],"paychecks":[]}},"expenses":{{"expenses":[
+            r#"{{"format_version":4,"income":{{"jobs":[],"paychecks":[]}},"expenses":{{"expenses":[
             {{"id":"{id}","name":"Example","amount":"{amount}","date":"{date}","category":"{category}"}}]}}}}"#
         )
     };
     let duplicate = format!(
-        r#"{{"format_version":2,"income":{{"jobs":[],"paychecks":[]}},"expenses":{{"expenses":[
+        r#"{{"format_version":4,"income":{{"jobs":[],"paychecks":[]}},"expenses":{{"expenses":[
         {{"id":"{id}","name":"A","amount":"1.00","date":"2026-09-15","category":"Home"}},
         {{"id":"{id}","name":"B","amount":"1.00","date":"2026-09-15","category":"Home"}}]}}}}"#
     );

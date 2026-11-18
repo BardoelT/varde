@@ -209,10 +209,10 @@ fn test_csd002_ac_2_2_invalid_file_is_rejected() {
             "no-version.varde",
             r#"{"income":{"jobs":[],"paychecks":[]}}"#,
         ),
-        ("wrong-shape.varde", r#"{"format_version":2,"income":42}"#),
+        ("wrong-shape.varde", r#"{"format_version":4,"income":42}"#),
         (
             "orphan-paycheck.varde",
-            r#"{"format_version":2,"income":{"jobs":[],"paychecks":[{
+            r#"{"format_version":4,"income":{"jobs":[],"paychecks":[{
                 "job_id":"00000000-0000-4000-8000-000000000000","month":"2026-09",
                 "gross_salary":"3000.00","holiday_pay":"0.00","bonus":"0.00"}]}}"#,
         ),
@@ -967,7 +967,7 @@ fn a_file_with_an_entry_of_the_wrong_kind_is_invalid() {
     // An annual statement for a job that has no pay period, so it is monthly.
     fs::write(
         &path,
-        r#"{"format_version":2,"income":{
+        r#"{"format_version":4,"income":{
             "jobs":[{"id":"671166f4-5827-4794-bcdc-54d7824fb650","employer":"Example Employer",
                 "title":null,"start_date":"2024-03-01","end_date":null}],
             "paychecks":[],

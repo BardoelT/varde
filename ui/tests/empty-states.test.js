@@ -146,3 +146,30 @@ test('test_csd001_ac_13_2_jobs_without_entries_show_a_note_and_no_error', async 
   assert.equal(app.$('toast').hidden, true);
   app.close();
 });
+
+// ---- CSD-004 REQ-16: the welcome hint on an empty project ----
+
+test('test_csd004_ac_16_1_a_new_project_shows_the_welcome_hint_above_the_tiles', async () => {
+  const app = await openApp({ reads: emptyReads() });
+  const hint = app.$('dashboard-welcome');
+  assert.equal(app.isShown(hint), true);
+  assert.match(app.text(hint), /^Welcome to Varde/);
+  assert.match(app.text(hint), /File > Open \(⌘O\)/);
+  assert.match(app.text(hint), /File > Save \(⌘S\)/);
+  assert.ok(hint.compareDocumentPosition(app.$('dashboard-tiles')) & 4, 'the hint comes before the tiles');
+  app.close();
+});
+
+test('test_csd004_ac_16_2_a_project_with_data_has_no_hint', async () => {
+  const app = await openApp();
+  assert.equal(app.isShown(app.$('dashboard-welcome')), false);
+  app.close();
+});
+
+test('test_csd004_ac_16_3_the_hint_is_in_dutch', async () => {
+  const reads = emptyReads();
+  reads.get_preferences = { ...reads.get_preferences, language: 'nl' };
+  const app = await openApp({ reads });
+  assert.match(app.textOf('dashboard-welcome'), /^Welkom bij Varde/);
+  app.close();
+});

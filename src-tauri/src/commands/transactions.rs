@@ -20,7 +20,7 @@ use crate::domain::transactions::{
 };
 use crate::domain::DomainError;
 use crate::error::AppError;
-use crate::storage::{Preferences, Record, StepLabel};
+use crate::storage::{Preferences, Record, StepLabel, StorageError, MAX_FILE_BYTES};
 
 /// Rows the page shows before "Load more" (CSD-032 REQ-15).
 const PAGE_ROWS: usize = 200;
@@ -81,6 +81,19 @@ pub(crate) fn import_flow(
     account_id: &str,
     ask_path: impl FnOnce() -> Option<PathBuf>,
 ) -> Result<Option<ImportSummary>, AppError> {
+    import_flow_limited(state, account_id, ask_path, MAX_FILE_BYTES)
+}
+
+/// [`import_flow`] with the size limit of the project file given. An import
+/// that would make the project file larger than `max_bytes` adds nothing and
+/// fails with `PROJECT_TOO_LARGE`, so a project is never saved that cannot be
+/// opened again (CSD-002 REQ-27).
+pub(crate) fn import_flow_limited(
+    state: &AppState,
+    account_id: &str,
+    ask_path: impl FnOnce() -> Option<PathBuf>,
+    max_bytes: u64,
+) -> Result<Option<ImportSummary>, AppError> {
     let account = AccountId::parse(account_id)?;
     let Some(path) = ask_path() else {
         return Ok(None);
@@ -89,7 +102,12 @@ pub(crate) fn import_flow(
     let mut project = state.edit(StepLabel::import(Record::Transactions))?;
     let (settings, transactions) = project.settings_and_transactions_mut();
     let currency = settings.currency;
-    Ok(Some(transactions.import(account, &text, currency)?))
+    let summary = transactions.import(account, &text, currency)?;
+    if project.file_size()? > max_bytes {
+        project.discard();
+        return Err(StorageError::ProjectTooLarge.into());
+    }
+    Ok(Some(summary))
 }
 
 /// Imports a Knab CSV or an ABN AMRO TAB file chosen in a native dialog into

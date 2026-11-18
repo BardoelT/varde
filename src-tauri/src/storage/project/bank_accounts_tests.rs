@@ -104,7 +104,7 @@ fn test_csd009_an_inconsistent_bank_section_is_an_invalid_file() {
     // An entry of an account that does not exist.
     fs::write(
         &path,
-        r#"{"format_version":2,"income":{"jobs":[],"paychecks":[]},
+        r#"{"format_version":4,"income":{"jobs":[],"paychecks":[]},
             "bank_accounts":{"accounts":[],"entries":[
             {"account_id":"671166f4-5827-4794-bcdc-54d7824fb650","period":"2026-09","balance":"1.00"}]}}"#,
     )

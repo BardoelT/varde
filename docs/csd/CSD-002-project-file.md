@@ -3,7 +3,7 @@ id: CSD-002
 title: Project file (save, open, new)
 status: approved
 owner: Thijs Bardoel
-version: 3.2
+version: 3.3
 last_updated: 18/11/2026
 related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-024, CSD-026, CSD-027, CSD-032]
 ---
@@ -26,7 +26,7 @@ The app keeps all of the user's data in one local project file instead of a data
 
 ### 2.2 Non-goals
 - NG-1: Encryption of the project file. (Remembering the last used file moved into scope in v0.4: REQ-8, REQ-10, REQ-11.)
-- NG-2: Backup or recovery copies made by the app (no `.bak`, no hidden scratch file for a project without a path). Autosave itself is in scope since v3.2 (REQ-23 to REQ-26); it writes the project file only, never a second copy. The one-off script of REQ-20 writes its own backup copy before it changes a file. The in-memory undo history of CSD-027 is not a backup: it is never written to disk and ends when the project is replaced or the app quits.
+- NG-2: Recovery features beyond one backup copy (no history of backups, no restore button, no hidden scratch file for a project without a path). Since v3.3 the app keeps one backup copy of a project file per session (REQ-28). Autosave itself is in scope since v3.2 (REQ-23 to REQ-26); it writes the project file, and the backup of REQ-28 once per session. The one-off script of REQ-20 writes its own backup copy before it changes a file. The in-memory undo history of CSD-027 is not a backup: it is never written to disk and ends when the project is replaced or the app quits.
 - NG-3: Multiple projects open at once.
 - NG-4: Cloud sync or sharing of the file.
 - NG-5: Buttons for these actions inside the app window, and an Open Recent list.
@@ -523,10 +523,10 @@ Scenario Outline: A missing or zero version is an invalid file
     | absent  |
 
 @AC-18.3
-Scenario: A version 1 file is invalid until the script has upgraded it
+Scenario: A version 1 file is refused as older until the script has upgraded it
   Given a project file with "format_version" 1
   When the user opens it
-  Then an error with code "PROJECT_INVALID_FILE" is shown
+  Then an error with code "PROJECT_FILE_OLDER" is shown
   And the in-memory project is unchanged
 ```
 
@@ -819,6 +819,93 @@ Scenario: Save retries by hand
   And no unsaved indicator is shown
 ```
 
+**REQ-27: A saved project can always be opened again** *(unwanted behaviour)*
+If saving a project would write a file larger than 50 MiB, the largest file the app opens (REQ-2), then the app shall not write it, leave any existing file unchanged (REQ-5), keep the unsaved changes, and show the error code `PROJECT_TOO_LARGE` with a message that says the project is too large and suggests removing data. If an import of transactions (CSD-032 REQ-1) would make the file larger than that, then the app shall add nothing, record no undo step and show the same error.
+
+```gherkin
+@AC-27.1
+Scenario: A save over the limit writes nothing
+  Given "example-a.varde" is open and its file would be larger than 50 MiB after the next save
+  When the project is saved, by the user or by autosave
+  Then the error code "PROJECT_TOO_LARGE" is shown without a file path
+  And "example-a.varde" is unchanged
+  And the unsaved indicator is shown
+
+@AC-27.2
+Scenario: An import over the limit adds nothing
+  Given a project whose file would be larger than 50 MiB with the transactions of "October.csv"
+  When the user imports "October.csv"
+  Then the error code "PROJECT_TOO_LARGE" is shown
+  And no transaction is added and no undo step is recorded
+
+@AC-27.3
+Scenario: The limit of saving is the limit of opening
+  Then the largest file the app writes is the largest file the app opens, 50 MiB
+```
+
+**REQ-28: One backup per file per session** *(event-driven)*
+When a project is saved to a file that already exists and the app has not yet saved to that file in this session, the app shall first copy the existing file to the same name with `.bak` appended (`example-a.varde.bak`), replacing an older backup, and shall then write the project. If the copy fails, then the save shall fail with `PROJECT_SAVE_FAILED` and leave the file unchanged. Later saves of the same session do not touch the backup.
+
+```gherkin
+@AC-28.1
+Scenario: The first save keeps the state the session started with
+  Given "example-a.varde" holds 1 job and the user opens it and adds a second job
+  When the project is saved
+  Then "example-a.varde.bak" holds the file as it was opened, with 1 job
+  And "example-a.varde" holds 2 jobs
+
+@AC-28.2
+Scenario: Later saves leave the backup alone
+  Given the first save of the session made "example-a.varde.bak"
+  When the user adds more jobs and saves twice more
+  Then "example-a.varde.bak" still holds the file as it was opened
+
+@AC-28.3
+Scenario: A new file has no backup
+  Given a project saved for the first time to "example-a.varde", a file that did not exist
+  When the user saves again
+  Then no "example-a.varde.bak" exists
+
+@AC-28.4
+Scenario: Save As over another file backs that file up
+  Given "example-b.varde" exists with 1 job
+  When the user saves another project as "example-b.varde" and confirms
+  Then "example-b.varde.bak" holds the old file
+
+@AC-28.5
+Scenario: A new project saved over the same file backs it up again
+  Given the session already saved "example-a.varde"
+  When the user starts a new project and saves it as "example-a.varde" and confirms
+  Then "example-a.varde.bak" holds the file as it was before
+
+@AC-28.6
+Scenario: The copy fails
+  Given the backup cannot be written
+  When the project is saved
+  Then the error code "PROJECT_SAVE_FAILED" is shown
+  And "example-a.varde" is unchanged and the unsaved indicator is shown
+```
+
+**REQ-29: An older file has its own error** *(unwanted behaviour)*
+If the `format_version` of a project file is at least 1 and lower than the version the app understands, then the app shall reject the file with the error code `PROJECT_FILE_OLDER`, whose message says that the file was made by an older version of the app and has to be upgraded first, and leave the in-memory project unchanged. A missing or zero version stays `PROJECT_INVALID_FILE` (REQ-18).
+
+```gherkin
+@AC-29.1
+Scenario Outline: An older file is refused with its own message
+  Given a project file with "format_version" <version> and the app understands version 4
+  And the app holds 1 job in memory
+  When the user opens it
+  Then an error with code "PROJECT_FILE_OLDER" is shown
+  And the message says the file is from an older version and has to be upgraded first
+  And the 1 job in memory is unchanged
+
+  Examples:
+    | version |
+    | 1       |
+    | 2       |
+    | 3       |
+```
+
 ## 5. Interfaces and contracts
 
 Menu: Rust builds the File menu items `project-new`, `project-open`, `project-save` and `project-save-as`. Choosing one emits the event `menu-action` with the item id to the frontend, which runs the flow of the action, including the confirmations of REQ-7.
@@ -846,13 +933,13 @@ Since `format_version` 3 the file also holds the sections of CSD-032 (`transacti
 
 A debt keeps its opening as `opening_date` and `opening_amount`, both required (CSD-011 REQ-30); its closing is the existing `settlement` (CSD-026), which since `format_version` 2 also holds a required `origin`, `Sale` or `Manual`.
 
-Versioning policy: the version is 1 at the first release. The first change of the schema after 1.0 would normally raise `format_version`, so that an older app shows the `PROJECT_FILE_NEWER` error (REQ-18) instead of a generic parse error. Owner decision of 04/11/2026: the opening of a debt (CSD-011 v3.0) does not raise it, and `format_version` stays 1. An older app that opens a file with the new keys therefore shows `PROJECT_INVALID_FILE` (REQ-17), and a version 1 file without openings is invalid in this app until the one-off script of REQ-20 has upgraded it. The next schema change shall raise the version, and the `origin` of a settlement (CSD-026 v3.0) is that change: `format_version` is 2 from v2.0 of this CSD, a version 1 file is invalid in this app until the script of REQ-20 has upgraded it (AC-18.3), and an older app that opens a version 2 file shows `PROJECT_FILE_NEWER`. There is no migration in the app (NG-7) and no backup copy made by the app (NG-2).
+Versioning policy: the version is 1 at the first release. The first change of the schema after 1.0 would normally raise `format_version`, so that an older app shows the `PROJECT_FILE_NEWER` error (REQ-18) instead of a generic parse error. Owner decision of 04/11/2026: the opening of a debt (CSD-011 v3.0) does not raise it, and `format_version` stays 1. An older app that opens a file with the new keys therefore shows `PROJECT_INVALID_FILE` (REQ-17), and a version 1 file without openings is invalid in this app until the one-off script of REQ-20 has upgraded it. The next schema change shall raise the version, and the `origin` of a settlement (CSD-026 v3.0) is that change: `format_version` is 2 from v2.0 of this CSD, a version 1 file is invalid in this app until the script of REQ-20 has upgraded it (AC-18.3), and an older app that opens a version 2 file shows `PROJECT_FILE_NEWER`. There is no migration in the app (NG-7). The app keeps one backup copy per file per session (REQ-28, NG-2).
 
 The script `scripts/migrate-debt-opening.mjs` has no dependency (Node only), takes the path of the file as its argument, upgrades a file to `format_version` 3 (openings of debts, the `origin` of settlements and the empty transaction sections with their default categories and rules, REQ-20 and CSD-032 REQ-17), prints the names of debts without statements and no amounts, and is tested with a synthetic file ("Example Mortgage", round amounts) by `node:test` in `npm test`.
 
 Autosave (REQ-23 to REQ-26): Rust does the autosave, inside the command layer, after a command or an undo or redo has changed the project and before it returns, with the same atomic write as Save. The frontend never triggers it and never writes a file. A command whose autosave failed still succeeds (the change is kept) and reports the failed write next to its result, so the frontend can show the non-blocking message; `project_status()` keeps returning the unsaved flag. The preference is `autosave` (boolean) in `preferences.json`, read on its own like the other preferences (CSD-008 section 5); `get_preferences()` also returns it and `set_autosave(enabled)` saves it, and when it switches autosave on with a path and unsaved changes it writes the project file before it returns (REQ-25). The window title and the confirmations follow the unsaved flag and need no change (CSD-024 REQ-9, REQ-4, REQ-7).
 
-Error codes (code plus safe message): `PROJECT_SAVE_FAILED` (Save and a failed autosave alike), `PROJECT_INVALID_FILE`, `PROJECT_OPEN_FAILED`, `PROJECT_FILE_NEWER`. `PREFERENCES_SAVE_FAILED` (CSD-008) is shown when the Autosave preference cannot be saved.
+Error codes (code plus safe message): `PROJECT_SAVE_FAILED` (Save and a failed autosave alike, and a failed backup), `PROJECT_TOO_LARGE`, `PROJECT_INVALID_FILE`, `PROJECT_OPEN_FAILED`, `PROJECT_FILE_NEWER`, `PROJECT_FILE_OLDER`. `PREFERENCES_SAVE_FAILED` (CSD-008) is shown when the Autosave preference cannot be saved.
 
 ## 6. Constraints
 - CON-1: The project file is plain, unencrypted JSON, written by writing a temporary file and renaming it over the target. It is never committed (`*.varde` is git-ignored), with one exception: the synthetic `examples/example.varde` (REQ-21), which `.gitignore` re-includes by its exact path. Rationale: a project file holds real financial data and the repo is public. The atomic write backs REQ-5.
@@ -874,6 +961,7 @@ The unsaved flag and the project state live in Rust, so they are proven by `carg
 | Script (REQ-20, AC-20.1 to AC-20.5) | `npm test`: `scripts/tests/migrate-debt-opening.test.js` (`node:test`, synthetic fixtures in a temporary directory) |
 | Autosave (REQ-23, REQ-25, REQ-26, AC-3.3, AC-3.4, AC-4.3, AC-4.4) | `cargo test test_csd002_ac_23_` and so on, on a project in a temporary directory with a counting writer for AC-23.2, a read-only folder for AC-26.1 and the Tauri mock runtime for the window title. Synthetic data only |
 | Autosave preference (REQ-24) | `cargo test test_csd002_ac_24_` (default, missing or invalid key, remembered, read-only config folder) and a DOM test in `ui/tests/` for the switch, its Dutch label and the message of AC-26.1 and AC-24.4 (`test_csd002_ac_24_...`), with canned answers from the fake bridge |
+| Size limit, backup, older file (REQ-27 to REQ-29) | `cargo test test_csd002_ac_27_`, `test_csd002_ac_28_` and `test_csd002_ac_29_` (`storage/project/safety_tests.rs`, and `ipc_transactions_tests.rs` for AC-27.2). The limit is injected in the tests, so no test builds a 50 MiB project |
 | Example project (REQ-21, REQ-22) | `cargo test example_project` (`src-tauri/src/example_project_tests.rs`: `test_csd002_ac_21_1_...` to `test_csd002_ac_21_4_...` and `test_csd002_ac_22_1_...`). After a deliberate change of the generator or of the format: `EXAMPLE_UPDATE=1 cargo test example`, then review the diff of `examples/` |
 | Manual checklist (native parts only) | The real File menu items and shortcuts (AC-9.1 to AC-9.4), the native save dialog, and a real window close without unsaved changes (AC-4.2: the mock runtime has no event loop to send it) |
 
@@ -887,9 +975,10 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-3: (resolved 03/11/2026) A typed name without `.varde` gets the extension appended, it is not rejected (REQ-15 stays as written).
 - OQ-4: (resolved 03/11/2026) A remembered file is gone for good only when its parent folder exists and the file does not (REQ-12). When the parent folder is missing or cannot be read, the error is transient and the path is kept (REQ-13).
 - OQ-5: (resolved 03/11/2026) A remembered file that exists but is invalid or from a newer app version keeps its remembered path and shows the error (REQ-13, AC-13.3).
-- OQ-6: Should the app give a version 1 file its own message that names the upgrade script (a new error code), instead of the generic `PROJECT_INVALID_FILE` (AC-18.3)? The draft keeps the generic code, with no new code and no change to the notice texts. Owner: Thijs. Blocks: REQ-18, AC-18.3.
+- OQ-6: (resolved 18/11/2026) Should the app give an older file its own message instead of the generic `PROJECT_INVALID_FILE`? Yes: `PROJECT_FILE_OLDER` (REQ-29).
 
 ## 9. Changelog
+- 3.3 (18/11/2026): Pre-release audit, owner decisions. New REQ-27 (a project is never saved larger than the app opens: `PROJECT_TOO_LARGE`, import included), REQ-28 (one `.bak` copy per file per session; NG-2 narrowed) and REQ-29 (an older file gets `PROJECT_FILE_OLDER`; AC-18.3 now expects it). Error codes in section 5 extended. Back to `draft` until re-approved.
 - 3.2 (18/11/2026): Autosave (GitHub issue 71). NG-2 no longer excludes it (backup and recovery copies stay excluded). New section 4.1 with REQ-23 (write after every step, once per step, undo and redo included, project data only, no write without a path), REQ-24 (the "Autosave" preference, on by default), REQ-25 (switching on writes pending changes) and REQ-26 (a failed write keeps the change, shows `PROJECT_SAVE_FAILED` and retries on the next step); new AC-3.3, AC-3.4, AC-4.3, AC-4.4. New definitions "Autosave" and "Step", and scenarios elsewhere describe autosave off unless they say otherwise. Amends CSD-008 (NG-5), CSD-024 (REQ-9) and CSD-027 (NG-2, REQ-9). Owner decisions from the grill-me interview of 18/11/2026. Back to `draft` until re-approved.
 - 3.1 (17/11/2026): The project file holds the section `transaction_accounts` and has `format_version` 4 (CSD-034 REQ-7); the example of a newer file is version 5.
 - 3.0 (12/11/2026): Bank transactions (CSD-032, GitHub issue 70): three new required sections `transactions`, `transaction_categories` and `transaction_rules` (REQ-16, section 5), `format_version` is 3, a version 2 file is invalid until the script of REQ-20 has upgraded it, and the script also adds the new sections. The "newer version" examples now use version 4. Back to `draft` until re-approved.

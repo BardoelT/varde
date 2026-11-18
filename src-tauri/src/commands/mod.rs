@@ -69,6 +69,16 @@ impl DerefMut for Edit<'_> {
     }
 }
 
+impl Edit<'_> {
+    /// Takes the change back: the project is as it was when the edit began, no
+    /// step is recorded and nothing is saved.
+    pub fn discard(&mut self) {
+        if let Some(before) = self.before.take() {
+            self.project.restore_data(before);
+        }
+    }
+}
+
 impl Drop for Edit<'_> {
     fn drop(&mut self) {
         let mut changed = false;

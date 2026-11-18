@@ -92,6 +92,20 @@ test('test_csd023_ac_3_3_an_unreachable_endpoint_shows_the_message_and_the_code'
   app.close();
 });
 
+test('test_csd023_ac_3_5_a_rejection_without_a_code_still_shows_a_message_and_frees_the_buttons', async () => {
+  for (const rejection of ['plain text failure', null]) {
+    const app = await settingsApp({
+      check_for_update: () => {
+        throw rejection;
+      },
+    });
+    await app.click(check(app));
+    assert.equal(status(app), 'Something went wrong. Please try again.', 'a generic message and no "Code: undefined"');
+    assert.equal(check(app).disabled, false, 'Check is enabled again');
+    app.close();
+  }
+});
+
 test('test_csd023_ac_4_1_a_second_check_shows_the_new_answer', async () => {
   const answers = [{ status: 'available', current: '0.1.0', version: '0.2.0' }, { status: 'available', current: '0.1.0', version: '0.3.0' }];
   const app = await settingsApp({ check_for_update: () => answers.shift() });
@@ -184,6 +198,34 @@ test('test_csd023_ac_7_3_and_7_4_no_unsaved_changes_no_question', async () => {
   await app.click(install(app));
   assert.equal(app.$('confirm-dialog').open, false, 'no confirmation is asked');
   assert.equal(app.callsOf('install_update').length, 1);
+  app.close();
+});
+
+test('test_csd023_ac_14_the_install_says_whether_the_user_confirmed_unsaved_changes', async () => {
+  for (const unsaved of [true, false]) {
+    const app = await settingsApp({
+      check_for_update: { status: 'available', current: '0.1.0', version: '0.2.0' },
+      install_update: { status: 'up_to_date', current: '0.1.0' },
+    }, { unsaved });
+    await app.click(check(app));
+    install(app).click();
+    await app.settle();
+    if (unsaved) await app.click(app.$('confirm-ok'));
+    assert.deepEqual(app.callsOf('install_update').map((call) => call.args), [{ unsavedConfirmed: unsaved }]);
+    app.close();
+  }
+});
+
+test('test_csd023_ac_14_3_an_installed_update_that_waits_for_a_restart_says_so', async () => {
+  const app = await settingsApp({
+    check_for_update: { status: 'available', current: '0.1.0', version: '0.2.0' },
+    install_update: { status: 'installed', version: '0.2.0' },
+  });
+  await app.click(check(app));
+  await app.click(install(app));
+  assert.equal(status(app), 'Version 0.2.0 is installed. Restart Varde to use it.');
+  assert.equal(install(app).hidden, true, 'nothing left to install');
+  assert.equal(check(app).disabled, false);
   app.close();
 });
 

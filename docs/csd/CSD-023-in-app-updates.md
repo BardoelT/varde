@@ -3,7 +3,7 @@ id: CSD-023
 title: In-app updates
 status: approved
 owner: Thijs Bardoel
-version: 0.2
+version: 0.3
 last_updated: 18/11/2026
 related: [CSD-000, CSD-002, CSD-008, CSD-021, CSD-022, CSD-024]
 ---
@@ -138,6 +138,13 @@ Scenario: The endpoint answers with something that is not a valid update file
   Given the endpoint answers with text that is not valid JSON
   When the user chooses "Check for updates"
   Then the section shows a generic message and the code "UPDATE_CHECK_FAILED"
+
+@AC-3.5
+Scenario: A rejection that carries no code
+  Given the command fails with a plain text or with nothing
+  When the user chooses "Check for updates"
+  Then the section shows the generic message "Something went wrong. Please try again." without a code
+  And the "Check for updates" button is enabled again
 ```
 
 **REQ-4: Always fresh, only newer** *(ubiquitous)*
@@ -363,12 +370,36 @@ Scenario: Every text has a Dutch translation
   Then it holds a translation for every English text of the Updates section
 ```
 
+**REQ-14: A restart never discards unasked changes** *(unwanted behaviour)*
+If the project has unsaved changes when the update is installed and the user was not asked about them (REQ-7), then the app shall not restart. It shall keep running, leave the changes alone and show that the version is installed and that Varde must be restarted to use it.
+
+```gherkin
+@AC-14.1
+Scenario: Changes made during the download stop the restart
+  Given autosave is off and nothing is unsaved when the user chooses "Install"
+  And the user adds a job while the update downloads
+  When the update is installed
+  Then the app does not restart and the job is still shown
+  And the section shows "Version 0.2.0 is installed. Restart Varde to use it."
+
+@AC-14.2
+Scenario: Changes the user agreed to lose do not stop the restart
+  Given unsaved changes and the user confirmed the question of REQ-7
+  When the update is installed
+  Then the app restarts
+
+@AC-14.3
+Scenario: Nothing unsaved at the end
+  Given nothing is unsaved when the update is installed
+  Then the app restarts
+```
+
 ## 5. Interfaces and contracts
 Commands (Rust, `src-tauri/src/commands/updates.rs`):
 
 - `app_version()` returns the current version as text, so the section can show it before any check (REQ-1). It makes no network call.
 - `check_for_update()` returns `{ status: "up_to_date", current }` or `{ status: "available", current, version }`. An error returns `{ code }` with one update code.
-- `install_update()` checks again, downloads, verifies, installs and restarts. It returns only on an error (`{ code }`) or when the endpoint says there is nothing newer (`{ status: "up_to_date", current }`).
+- `install_update(unsaved_confirmed)` checks again, downloads, verifies, installs and restarts. `unsaved_confirmed` is true when the frontend asked the question of REQ-7 and the user agreed. It returns only on an error (`{ code }`), when the endpoint says there is nothing newer (`{ status: "up_to_date", current }`), or when the update is installed but REQ-14 holds the restart back (`{ status: "installed", version }`).
 
 Event `update-progress` with `{ downloaded, total }` (bytes; `total` is `null` when unknown), sent by Rust while downloading. The frontend only listens (`core:event:allow-listen` is already granted) and computes no figures except the display percentage of a number it was given.
 
@@ -390,7 +421,8 @@ Tests are named `test_csd023_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 
 | ACs | How |
 |---|---|
-| AC-3.1 to AC-3.4, AC-4.1, AC-4.2, AC-5.2, AC-5.3, AC-8.1, AC-8.2, AC-12.2 | `cargo test test_csd023_`: the decision (newer or not, error to code) is a pure function; the plugin is behind a small trait so tests feed canned answers. No test calls the network. |
+| AC-14.1 to AC-14.3 | `cargo test test_csd023_ac_14_` (the restart rule is a pure function), and the DOM tests for the answer. The restart itself is on the manual checklist. |
+| AC-3.1 to AC-3.5, AC-4.1, AC-4.2, AC-5.2, AC-5.3, AC-8.1, AC-8.2, AC-12.2 | `cargo test test_csd023_`: the decision (newer or not, error to code) is a pure function; the plugin is behind a small trait so tests feed canned answers. No test calls the network. |
 | AC-1.1, AC-1.2, AC-3.x display, AC-6.1, AC-6.2, AC-7.1 to AC-7.4, AC-9.1 to AC-9.3, AC-10.1, AC-13.1 | `npm test`, DOM tests in `ui/tests/` with a fake Tauri bridge. |
 | AC-2.1 to AC-2.3, AC-10.2, AC-11.1 | `cargo test test_csd023_` on the configuration and on the startup path (no call without a command), plus a read of `tauri.conf.json` and the capabilities. |
 | AC-5.1, AC-8.3, AC-8.4, AC-11.2, AC-12.1 | The manual end-to-end checklist below. |
@@ -414,5 +446,6 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-2: The checklist runs on Apple Silicon. The Intel Mac gap stays an accepted risk, since one universal build serves both. Is an Intel Mac available for one run? Owner: Thijs. Blocks: nothing.
 
 ## 9. Changelog
+- 0.3 (18/11/2026): new REQ-14 (a restart never discards changes the user was not asked about) after the pre-release audit: `install_update` takes `unsaved_confirmed` and may answer `installed`; new AC-3.5 (a rejection without a code). Back to `draft` until re-approved.
 - 0.2 (18/11/2026): section 5 lists the third command `app_version()` that the implementation needs for REQ-1. Interface clarification only, no behaviour change.
 - 0.1 (18/11/2026): initial draft from the grill-me interview of 18/11/2026 on GitHub issue 39. Owner decisions: manual check only, Rust-driven with no webview permission, one universal artifact, the unsaved-changes confirmation follows the close rule (autosave aware), four safe codes, a percentage progress bar, results kept in memory only, and the end-to-end checklist is a hard gate before the first release.
