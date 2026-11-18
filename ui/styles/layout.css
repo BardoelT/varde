@@ -108,6 +108,9 @@
   padding: 0 32px 30px;
   /* A focused field or a jump stays below the compressed header, and below the tabs (REQ-14). */
   scroll-padding-top: 100px;
+  /* Compressing the header shortens the page above the content. With scroll anchoring the browser would then move the
+     scroll position back by the same amount, back under 32 px, and the header would expand and compress in a loop. */
+  overflow-anchor: none;
   min-width: 0;
 }
 .content.header-compressed {

@@ -171,3 +171,7 @@ test('test_csd024_ac_13_1_the_chart_is_not_drawn_again_when_the_header_compresse
 function window_resize(app) {
   app.window.dispatchEvent(new app.window.Event('resize'));
 }
+
+test('test_csd024_ac_12_2_scroll_anchoring_cannot_undo_the_compression', () => {
+  assert.equal(rule(layoutCss, '.content')['overflow-anchor'], 'none');
+});
