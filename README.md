@@ -6,7 +6,7 @@ A private, local-only desktop app for tracking personal wealth: what comes in, w
 
 The left pane groups the pages as **Overview**, **Finance**, **Wealth**, **Liabilities** and **Insights** (the Net worth and Ratios pages), with Settings and the project status at the bottom.
 
-- **Dashboard:** your income this year to date and last month (total gross, gross salary, holiday pay and bonus), summed over all jobs. An annual statement counts in full in this year and not in last month.
+- **Dashboard:** one tile per area (net worth, income, expenses, bank accounts, investments, houses, debts) with a headline figure and its change against last year. A new project shows a short hint on how to begin.
 - **Income:** any number of jobs. A monthly job has one paycheck per month, a yearly job has one annual statement per year, both with gross salary, holiday pay and bonus. Yearly totals and a list of all paychecks and annual statements sit next to the jobs. Insights charts income per year with the year-over-year growth.
 - **Expenses:** dated expenses with a name, amount, category (a fixed list) and a note, with yearly totals and the largest expense of each year. Insights charts the spending per year, stacked by category.
 - **Bank accounts:** any number of accounts, each recorded monthly or yearly as a closing balance (negative when overdrawn) and a note. Yearly totals and the total of the latest balances. Insights charts the balance per bank per year with a closing-balance marker.
@@ -15,7 +15,11 @@ The left pane groups the pages as **Overview**, **Finance**, **Wealth**, **Liabi
 - **Debts:** what you owe, each recorded monthly or yearly as a remaining balance, with the amount repaid per year. Insights charts the debt per debt per year.
 - **Net worth:** one chart of your overall financial state: a stacked bar per year with houses, investments and cash above the zero line and debts below it, and a marker at the net worth. Every figure is the one the chart of its own area shows. A year without a record in an area counts as 0.00 there (only investments carry their last statement forward), so a forgotten year-end entry shows as a dip in net worth.
 - **Ratios:** one table with the years as columns: total income, how much of it became wealth (bank increase, investment net deposits and debt repaid), the growth of the investments and of the total wealth, and the disposable income with its share of the income.
-- **Settings:** the currency (EUR, USD or GBP) of the whole project, the theme (System, Light or Dark) and the language (English or Dutch). Changing the currency does not convert any amount.
+- **Transactions:** import the transactions of a bank export (Knab CSV or ABN AMRO TAB) into an account of your own naming, have each one categorised by simple rules you control, and browse, filter and correct them. Insights charts what you spent per category. Transactions are kept in the project file and are never part of net worth.
+- **Filters and tabs:** the tables can be narrowed by account, category or period, and every page keeps one feature per tab.
+- **Undo and redo:** ⌘Z and ⇧⌘Z undo and redo changes to the project during the session.
+- **Settings:** the currency (EUR, USD or GBP) of the whole project, the theme (System, Light or Dark), the language (English or Dutch), the number format, Discrete mode (hides every amount, for showing the app to someone), Autosave, and updates. Changing the currency does not convert any amount.
+- **Project file:** everything is saved in one file you choose, and the app reopens the last one you used. With Autosave on (the default) the file is written after every change. The first save to a file in a session keeps the file as it was in `<name>.varde.bak`.
 - **Project file:** everything is saved in one file you choose, and the app reopens the last one you used.
 
 All insights charts look and behave alike: hovering a legend item highlights that series in every year, and the tooltip lists its rows in the same order as the bar.
@@ -46,6 +50,10 @@ The app is not signed or notarized yet, so macOS blocks it the first time you op
 3. Confirm with your password or Touch ID. macOS remembers the choice.
 
 On macOS 14 and older you can instead right-click the app and choose **Open**.
+
+### Opening an older project file
+
+A file made by an older format of the app is refused with a message that it has to be upgraded first. The one-off script `scripts/migrate-debt-opening.mjs` (Node only) upgrades such a file and writes a backup next to it: `node scripts/migrate-debt-opening.mjs <file.varde>`.
 
 ### Updating
 
@@ -106,7 +114,7 @@ ui/                 frontend (HTML, CSS, JS; no build step)
   index.html
   main.js           entry point: wires the pages and reloads them
   navigation.js     left-pane navigation
-  pages/            one file per page or view (income-overview, income-insights, ..., dashboard, settings)
+  pages/            one file per page or view (income-overview, income-insights, ..., dashboard, settings, settings-updates)
   shared/           helpers pages share (ipc, dom, crud, list-rows, record-form, insights-page, format, i18n, settle, date-mask, chart, yearly-chart, tabs)
   locales/          Dutch texts (the English text in the code is the key)
   styles/           CSS by area (base, layout, components, pages, charts)
@@ -115,7 +123,7 @@ src-tauri/
   src/lib.rs        app setup, command registration
   src/menu.rs       native macOS menu bar (File menu, Settings…)
   src/commands/     thin #[tauri::command] handlers
-  src/domain/       pure business logic (income, expenses, bank accounts, investments, houses, debts, net worth, ratios, the shared series core, charts and money, preferences, settings), unit-tested
+  src/domain/       pure business logic (income, expenses, bank accounts, investments, houses, debts, transactions, net worth, ratios, the shared series core, charts and money, preferences, settings, updates), unit-tested
   src/storage/      project file persistence (JSON, atomic write), last project, preferences
   src/error.rs      app error type
   capabilities/     Tauri permission files
@@ -134,7 +142,7 @@ Behaviour is defined in Capability Specification Documents in [`docs/csd/`](docs
 | [CSD-001](docs/csd/CSD-001-employment-income.md) | Income tracking (employment income) |
 | [CSD-002](docs/csd/CSD-002-project-file.md) | Project file (save, open, new, reopen last project) |
 | [CSD-003](docs/csd/CSD-003-project-settings.md) | Project settings (currency) |
-| [CSD-004](docs/csd/CSD-004-income-dashboard.md) | Income dashboard |
+| [CSD-004](docs/csd/CSD-004-dashboard.md) | Dashboard |
 | [CSD-005](docs/csd/CSD-005-investments.md) | Investments (accounts, statements, net deposits, capital growth, yearly totals) |
 | [CSD-006](docs/csd/CSD-006-income-insights.md) | Income insights chart |
 | [CSD-007](docs/csd/CSD-007-investment-insights.md) | Investment insights chart |
@@ -153,9 +161,19 @@ Behaviour is defined in Capability Specification Documents in [`docs/csd/`](docs
 | [CSD-020](docs/csd/CSD-020-debt-linked-to-house.md) | Debt linked to a house |
 | [CSD-021](docs/csd/CSD-021-ci-and-release-pipeline.md) | CI and release pipeline |
 | [CSD-022](docs/csd/CSD-022-language.md) | Language (English and Dutch) |
+| [CSD-023](docs/csd/CSD-023-in-app-updates.md) | In-app updates |
 | [CSD-024](docs/csd/CSD-024-navigation-and-app-shell.md) | Navigation and app shell |
 | [CSD-025](docs/csd/CSD-025-shared-charts.md) | Shared charts |
 | [CSD-026](docs/csd/CSD-026-sale-settlement-of-linked-debts.md) | Sale settlement of linked debts |
+| [CSD-027](docs/csd/CSD-027-undo-and-redo.md) | Undo and redo |
+| [CSD-028](docs/csd/CSD-028-statement-table-filters.md) | Filters in the statement tables |
+| [CSD-029](docs/csd/CSD-029-number-format.md) | Number format |
+| [CSD-030](docs/csd/CSD-030-discrete-mode.md) | Discrete mode |
+| [CSD-031](docs/csd/CSD-031-about-window.md) | About window |
+| [CSD-032](docs/csd/CSD-032-transactions.md) | Transactions |
+| [CSD-033](docs/csd/CSD-033-transaction-insights.md) | Transaction insights |
+| [CSD-034](docs/csd/CSD-034-transaction-accounts.md) | Transaction accounts |
+| [CSD-035](docs/csd/CSD-035-page-tabs.md) | Page tabs |
 
 Only specs with `status: approved` are implemented; check a spec's status before relying on it. Tests reference acceptance criteria in their names, for example `test_csd002_ac_1_1_...` (Rust) and `test_csd024_ac_3_1_...` (DOM tests).
 
