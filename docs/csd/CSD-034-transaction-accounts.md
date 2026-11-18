@@ -1,7 +1,7 @@
 ---
 id: CSD-034
 title: Transaction accounts
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 0.3
 last_updated: 18/11/2026

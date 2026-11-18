@@ -1,7 +1,7 @@
 ---
 id: CSD-028
 title: Filters in the statement tables
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 0.9
 last_updated: 16/11/2026

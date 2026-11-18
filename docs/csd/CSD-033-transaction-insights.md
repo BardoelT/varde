@@ -1,7 +1,7 @@
 ---
 id: CSD-033
 title: Transaction insights
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 0.7
 last_updated: 18/11/2026

@@ -1,7 +1,7 @@
 ---
 id: CSD-024
 title: Navigation and app shell
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 0.9
 last_updated: 18/11/2026

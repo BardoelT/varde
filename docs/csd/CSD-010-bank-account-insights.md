@@ -1,7 +1,7 @@
 ---
 id: CSD-010
 title: Bank account insights
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 1.4
 last_updated: 18/11/2026
