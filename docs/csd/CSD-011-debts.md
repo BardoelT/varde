@@ -1,14 +1,16 @@
 ---
 id: CSD-011
 title: Debts
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 3.3
-last_updated: 04/11/2026
-related: [CSD-000, CSD-002, CSD-003, CSD-004, CSD-005, CSD-009, CSD-012, CSD-018, CSD-020, CSD-024, CSD-026]
+version: 3.4
+last_updated: 18/11/2026
+related: [CSD-000, CSD-002, CSD-003, CSD-004, CSD-005, CSD-009, CSD-012, CSD-018, CSD-020, CSD-024, CSD-026, CSD-035]
 ---
 
 # CSD-011: Debts
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The app tracks wealth, but has no view of what the user owes: a mortgage, a student loan, a credit card. This capability lets the user record debts and, per debt, one remaining balance per month or per year, with an optional note. From these the app derives, per statement, how much was repaid since the previous one and, per calendar year, the yearly totals with the closing balance and the amount repaid. It is for a single person keeping a private, local history of their debts. It records balances as the user reads them off a statement. It does not model loans: no interest, terms or payments. The result is a balance history per debt that shows how the debts shrink, which the Insights chart of CSD-012 and the Net worth page of CSD-017 build on. It follows the structure of Bank accounts (CSD-009), with a balance that cannot be negative and with the progress derived. Like a house with its purchase and its sale (CSD-019), a debt also holds the day it started and the amount borrowed, its **opening**, and optionally the day it was closed and the amount then still open, its **closing** (GitHub issue 51). The opening is required. The closing is the settlement of CSD-026, entered by hand. Neither changes any figure: balances still come only from statements.
@@ -1465,6 +1467,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-3: (resolved 04/11/2026) The Opening rows are listed in the Statements table below the statements, and count as entries of the table: "No statements yet." shows only while the table holds at most one row (REQ-21, REQ-33).
 
 ## 9. Changelog
+- 3.4 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 3.3 (04/11/2026): The opening amount is the balance before the first statement: the change of a first statement is the opening amount minus its balance (REQ-25, new AC-25.7 to AC-25.10; AC-25.1, AC-25.3, AC-25.4 give 0.00 instead of none under the new shorthand), and a debt with no earlier statement has its opening amount as its opening balance of a year, so it adds to the repaid amount of the yearly totals, the insights and the ratios in its first year (definitions, REQ-19, AC-19.1, AC-19.3, AC-19.5, AC-19.6 changed, AC-19.8 reworded, new AC-19.14; AC-30.4 and AC-33.4 reworded). NG-15 and CON-12 narrowed: the closing amount is still not used, except as the settled amount of a Cancelled debt. The shorthand opening amount is now the balance of the first statement of the scenario, so unchanged scenarios keep their results; it also governs CSD-012, CSD-018 and CSD-026. Total debt, balances and net worth are unchanged. Owner decisions of 04/11/2026. Back to `draft` until re-approved.
 - 3.2 (04/11/2026): The closing fields of the debt form are editable for every debt, also one linked to a house or settled by the sale of its house (REQ-34, AC-34.2 reversed, new AC-34.4, AC-34.5; OQ-2 reversed), because a loan or a mortgage can be repaid or cancelled without selling the house and a closing can be edited in place (CSD-026 v3.0, REQ-15 to REQ-18). The settle dialog skips debts that are closed already (REQ-27). The closing carries an `origin` (section 5). Owner decisions from the grill-me interview of 04/11/2026. Back to `draft` until re-approved.
 - 3.1 (04/11/2026): Found while implementing v3.0: AC-32.1 and CSD-026 REQ-6 gave two codes for a statement after the closing; the existing lock `DEBT_SETTLED_LOCKED` wins (REQ-32 and AC-32.1 reworded), and an invalid closing date has its own code `DEBT_CLOSING_DATE_INVALID` (REQ-31, error list). No other behaviour change.

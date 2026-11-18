@@ -1,14 +1,16 @@
 ---
 id: CSD-005
 title: Investments
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 2.1
-last_updated: 04/11/2026
-related: [CSD-000, CSD-001, CSD-002, CSD-003, CSD-007, CSD-025]
+version: 2.2
+last_updated: 18/11/2026
+related: [CSD-000, CSD-001, CSD-002, CSD-003, CSD-007, CSD-025, CSD-035]
 ---
 
 # CSD-005: Investments
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The app tracks wealth but has no view of what the user has invested. This capability lets the user record investment accounts (a brokerage, a pension, a crypto exchange) and, per account, one closing balance per month or per year, with the net deposits of that period and a note. From these the app derives the capital growth of the period and, per calendar year, the yearly totals. It is for a single person keeping a private, local history of their investments. It records balances as the user reads them off a statement. It does not track individual stocks, prices or trades. The result is a balance history per account, the growth per period and a total of the latest balances, which the Insights chart of CSD-007 and the Net worth page of CSD-017 build on.
@@ -1270,6 +1272,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-4: (resolved 03/11/2026) The Insights series of CSD-007 runs from the earliest year with a statement to the later of the current year and the latest year with a statement, so a statement after the current year gets a slot, and spans at most 50 years back from its last year. A statement older than that gets no slot but still counts in the yearly totals of REQ-26 and in every total and ratio (CSD-007 REQ-2).
 
 ## 9. Changelog
+- 2.2 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 2.1 (04/11/2026): Wording follows the UI; no behaviour change: period field label and placeholder (AC-14.1, AC-14.2), amounts grouped as in CSD-022 AC-10.1 and the dash written as "—" (AC-17.2, AC-17.8, AC-18.2). Back to `draft` until re-approved.
 - 2.0 (04/11/2026): A typed balance, net deposits or capital growth with more than two decimals is rounded half-up instead of rejected (CSD-000 CON-8 v4.0): new REQ-30 (AC-30.1 to AC-30.5), REQ-9, REQ-22 and REQ-25 apply to the rounded amount, the rows with more than two decimals of AC-9.1, AC-22.1 and AC-25.2 and the codes `INVESTMENT_BALANCE_PRECISION`, `INVESTMENT_NET_DEPOSITS_PRECISION` and `INVESTMENT_GROWTH_PRECISION` are removed, AC-22.3 and AC-25.4 use "abc" (`INVESTMENT_NET_DEPOSITS_INVALID`), CON-12 updated. Owner decision. Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. AC-5.2 and AC-12.2 are listed as not covered (the old table said all of REQ-1 to REQ-13 except AC-5.3). NG-4 and the intro no longer call the net-worth integration future work: it is specified in CSD-017. Back to `draft` until re-approved.

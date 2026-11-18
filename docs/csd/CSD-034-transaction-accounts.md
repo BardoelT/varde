@@ -3,12 +3,14 @@ id: CSD-034
 title: Transaction accounts
 status: draft
 owner: Thijs Bardoel
-version: 0.2
-last_updated: 17/11/2026
-related: [CSD-000, CSD-002, CSD-022, CSD-027, CSD-028, CSD-032]
+version: 0.3
+last_updated: 18/11/2026
+related: [CSD-000, CSD-002, CSD-022, CSD-027, CSD-028, CSD-032, CSD-035]
 ---
 
 # CSD-034: Transaction accounts
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The transactions of CSD-032 come from different banks and accounts, and the import only knows a file, not where it belongs. This capability adds an Accounts tab to the Transactions page. An account is a name the user chooses; every transaction belongs to exactly one account, and transactions are imported into, and deleted from, an account on that tab. The Overview tab then shows the account of each transaction and can filter on it.
@@ -262,5 +264,6 @@ Commands (names and payloads are indicative): `list_transaction_accounts()` → 
 - None.
 
 ## 9. Changelog
+- 0.3 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 0.2 (17/11/2026): The accounts are a tab of the Transactions page, not a page of the left pane (REQ-1, REQ-6, REQ-9). Owner request.
 - 0.1 (17/11/2026): First draft. Owner request: an Accounts page (since 0.2 a tab) where the user adds an account, imports transactions into it and deletes the transactions; every transaction belongs to exactly one account. Owner answers of 17/11/2026: the user adds the account first and imports inside the account dialog; transactions of older project files are not supported; the Transactions page loses its import and delete-all and gets an account column and filter; deleting an account deletes its transactions after a confirmation. My choices: the project file version goes to 4 and the script drops the transactions of a version 3 file instead of leaving the whole file unusable; the duplicate check is per account; the page loads from the overview of CSD-032 REQ-33.

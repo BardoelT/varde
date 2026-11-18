@@ -1,14 +1,16 @@
 ---
 id: CSD-007
 title: Investment insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.5
-last_updated: 04/11/2026
-related: [CSD-000, CSD-003, CSD-005, CSD-006, CSD-025]
+version: 1.6
+last_updated: 18/11/2026
+related: [CSD-000, CSD-003, CSD-005, CSD-006, CSD-025, CSD-035]
 ---
 
 # CSD-007: Investment insights
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The Investments page lists accounts, statements and a table of yearly totals, but a table does not show how an investment pot grew: how much of the change came from money paid in and how much from the market. This capability adds an insights layer to the Investments page: a chart with one bar per year that starts at the balance the year opened with, adds net deposits, and ends with the capital growth, together with a marker at the closing balance and the growth as a percentage of the opening balance. It is for the owner looking back over their own investments. It follows the Income insights of CSD-006 and supersedes CSD-005 NG-4 for this view only, and CSD-005 NG-3 for the growth percentage of this view only.
@@ -608,6 +610,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 1.6 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 1.5 (04/11/2026): Wording follows the UI; no behaviour change: the last tooltip row is called "Growth", not "Growth (%)" (REQ-14, AC-14.1, AC-14.9); its value carries the sign and the percent sign. Back to `draft` until re-approved.
 - 1.4 (04/11/2026): New AC-7.4: a year in which only new accounts have statements has an opening balance of 0.00 and therefore no growth percentage (REQ-7). The behaviour was already built and tested; the AC states it. Back to `draft` until re-approved.
 - 1.3 (03/11/2026): The copies of the look, size and motion text are gone; this CSD points to CSD-025 (REQ-15 reduced to the marker thickening and the gain and loss legend items, REQ-16 and REQ-17 removed in favour of CSD-025 REQ-10, REQ-18 reduced to the colour roles and the withdrawal segment). Back to `draft` until re-approved.

@@ -1,14 +1,16 @@
 ---
 id: CSD-012
 title: Debt insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.5
-last_updated: 04/11/2026
-related: [CSD-000, CSD-010, CSD-011, CSD-025, CSD-026]
+version: 1.6
+last_updated: 18/11/2026
+related: [CSD-000, CSD-010, CSD-011, CSD-025, CSD-026, CSD-035]
 ---
 
 # CSD-012: Debt insights
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The Debts page lists debts, statements and a table of yearly totals, but a table does not show how the debts shrink and which debt is shrinking. This capability adds an insights layer to the Debts page: a chart with one bar per calendar year, stacked from one segment per debt, with a marker at the total debt of the year and the amount repaid in the tooltip. It is for the owner looking back over their own debts. It follows the Bank account insights of CSD-010, with the debts as segments and without negative values, because a debt balance is never negative. It supersedes CSD-011 NG-2 for this view only to the extent that the chart shows the balance per debt, and not any percentage or forecast.
@@ -582,6 +584,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 1.6 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 1.5 (04/11/2026): The repaid amount follows CSD-011 v3.3: a debt with no earlier statement starts from its opening amount, so a year with statements always has a repaid amount (the example in section 5 shows 0.00 for 2025); only a year without statements has repaid none (REQ-5). The scenarios use the shorthand of CSD-011 and keep their figures. Back to `draft` until re-approved.
 - 1.4 (04/11/2026): Wording follows the UI; no behaviour change: the tooltip dash for repaid none is "–" (en dash). Back to `draft` until re-approved.
 - 1.3 (04/11/2026): Live references follow the split of the former CSD-020: the Cancelled-adjusted repaid amount is CSD-026 REQ-10 and REQ-11 (definition of Repaid, AC-5.6); no behaviour change. Back to `draft` until re-approved.

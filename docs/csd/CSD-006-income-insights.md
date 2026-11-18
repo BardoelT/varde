@@ -1,14 +1,16 @@
 ---
 id: CSD-006
 title: Income insights
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 1.3
-last_updated: 03/11/2026
-related: [CSD-000, CSD-001, CSD-003, CSD-004, CSD-007, CSD-025]
+version: 1.4
+last_updated: 18/11/2026
+related: [CSD-000, CSD-001, CSD-003, CSD-004, CSD-007, CSD-025, CSD-035]
 ---
 
 # CSD-006: Income insights
+
+> Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
 ## 1. Intent
 The Income page lists jobs, paychecks and a table of yearly totals, but a table does not show whether income is growing. This capability adds an insights layer to the Income page: a chart of income per year, split into gross salary, holiday pay and bonus, with the year-over-year growth of total gross. It is for the owner looking back over their own employment history. It supersedes CSD-001 NG-6 for this view only.
@@ -449,6 +451,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 1.4 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 1.3 (03/11/2026): The copies of the look, size and motion text are gone; this CSD points to CSD-025 (REQ-13 to REQ-15 removed in favour of CSD-025 REQ-9 and REQ-10, REQ-16 and REQ-17 reduced to the pointer and the legend items, AC-16.x and AC-17.1, 17.2 removed). Back to `draft` until re-approved.
 - 1.2 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed. NG-6 names the Net worth page (CSD-017) instead of the Reports page, which no longer exists. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): The series runs to the later of the current year and the latest year with an entry, so future years get a slot, and spans at most 50 years back from its last year, older entries still count in the totals (REQ-2, new AC-2.4, AC-2.5; owner decision). A future year is not partial (REQ-4, new AC-4.2). Back to `draft` until re-approved.
