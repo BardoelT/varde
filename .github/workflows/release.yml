@@ -68,6 +68,20 @@ jobs:
             exit 1
           fi
 
+      # CSD-021 REQ-13: no updater key, no build and no release. Only the presence is tested; the
+      # values are never printed.
+      - name: Check the updater key secrets are set
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          for name in TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "The Actions secret $name is not set"
+              exit 1
+            fi
+          done
+
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: 1.99.1
@@ -75,12 +89,42 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - run: cargo install tauri-cli --version "^2" --locked
 
-      - run: cargo tauri build --target universal-apple-darwin --bundles dmg -- --locked
+      # The dmg and the signed update archive (CSD-021 REQ-7, REQ-11). The updater key signs the
+      # archive; it is a minisign key and has nothing to do with Apple signing.
+      - name: Build the dmg and the signed update archive
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: cargo tauri build --target universal-apple-darwin --bundles dmg,app -- --locked
 
+      # latest.json lists the one universal archive under both Mac platforms (CSD-021 REQ-12).
+      - name: Write the update files
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          bundle=target/universal-apple-darwin/release/bundle/macos
+          archive="Varde_${version}_universal.app.tar.gz"
+          mkdir -p update
+          cp "$bundle/Varde.app.tar.gz" "update/$archive"
+          cp "$bundle/Varde.app.tar.gz.sig" "update/$archive.sig"
+          jq -n \
+            --arg version "$version" \
+            --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${archive}" \
+            --rawfile signature "update/$archive.sig" \
+            '($signature | rtrimstr("\n")) as $sig
+             | { version: $version, notes: "", pub_date: $pub_date,
+                 platforms: {
+                   "darwin-aarch64": { signature: $sig, url: $url },
+                   "darwin-x86_64": { signature: $sig, url: $url } } }' \
+            > update/latest.json
+
+      # A draft is invisible to installed apps: publishing it is the rollout (CSD-021 AC-8.2).
       - name: Publish a draft release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
             --draft --verify-tag --title "Varde $GITHUB_REF_NAME" --generate-notes \
-            target/universal-apple-darwin/release/bundle/dmg/*.dmg
+            target/universal-apple-darwin/release/bundle/dmg/*.dmg \
+            update/*.app.tar.gz update/*.sig update/latest.json
