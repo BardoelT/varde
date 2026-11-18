@@ -135,6 +135,8 @@ export default {
   'code:PROJECT_OPEN_FAILED': 'Het bestand kon niet worden geopend.',
   'code:PROJECT_INVALID_FILE': 'Dit is geen geldig projectbestand.',
   'code:PROJECT_FILE_NEWER': 'Dit bestand is gemaakt met een nieuwere versie van de app.',
+  'code:PROJECT_FILE_OLDER': 'Dit bestand is gemaakt met een oudere versie van de app. Het moet eerst worden bijgewerkt voordat het kan worden geopend.',
+  'code:PROJECT_TOO_LARGE': 'Het project is te groot om op te slaan. Verwijder wat gegevens, zoals oude transacties, en probeer het opnieuw.',
   'code:PROJECT_NO_PATH': 'Het project heeft nog geen bestand.',
   'code:PREFERENCES_SAVE_FAILED': 'Het thema kon niet worden opgeslagen.',
   'code:UPDATE_CHECK_FAILED': 'Zoeken naar updates is mislukt. Controleer je verbinding en probeer het opnieuw.',

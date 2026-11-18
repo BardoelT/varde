@@ -60,6 +60,10 @@ pub struct Project {
     data: ProjectData,
     saved: ProjectData,
     path: Option<PathBuf>,
+    /// The file that was backed up, or created, by a save in this session: the
+    /// backup is made once per file per session, before the first write
+    /// (CSD-002 REQ-28).
+    backed_up: Option<PathBuf>,
     /// The steps that can be undone and redone (CSD-027). Memory only.
     history: History,
     /// Where the last used path is remembered, if anywhere (REQ-10).
@@ -265,6 +269,31 @@ impl Project {
         std::mem::replace(&mut self.data, data)
     }
 
+    /// The size of the project file as it would be written now, in bytes
+    /// (CSD-002 REQ-27).
+    ///
+    /// # Errors
+    /// Returns `SaveFailed` when the project cannot be rendered.
+    pub fn file_size(&self) -> Result<u64, StorageError> {
+        file::size_of(&self.data)
+    }
+
+    /// Writes to `path` with a given size limit, for the tests of REQ-27.
+    #[cfg(test)]
+    pub(crate) fn write_limited_for_test(
+        &self,
+        path: &Path,
+        max_bytes: u64,
+    ) -> Result<(), StorageError> {
+        file::write_limited(path, &self.data, max_bytes)
+    }
+
+    /// Puts back the data a change started from, without recording a step: the
+    /// change was refused after it was made (CSD-002 REQ-27).
+    pub(crate) fn restore_data(&mut self, data: ProjectData) {
+        self.data = data;
+    }
+
     /// Replaces the project with an empty one that has no path (REQ-6).
     ///
     /// The remembered path is left alone: starting a new project is not using
@@ -327,7 +356,11 @@ impl Project {
     /// Returns `SaveFailed`; the project keeps its previous path and stays unsaved.
     pub fn save_as(&mut self, path: PathBuf) -> Result<(), StorageError> {
         let path = with_extension(path);
+        if self.backed_up.as_deref() != Some(path.as_path()) {
+            file::backup(&path)?;
+        }
         file::write(&path, &self.data)?;
+        self.backed_up = Some(path.clone());
         self.saved = self.data.clone();
         self.path = Some(path);
         self.remember();
@@ -463,6 +496,8 @@ mod houses_tests;
 mod investments_tests;
 #[cfg(test)]
 mod opening_tests;
+#[cfg(test)]
+mod safety_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]

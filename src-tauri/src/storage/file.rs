@@ -14,7 +14,8 @@ use crate::domain::{
 /// Version of the project file format this app writes and understands.
 pub const FORMAT_VERSION: u32 = 4;
 
-/// Largest project file the app will read, a bound on untrusted input.
+/// Largest project file the app will read and the largest it will write, so a
+/// file it saved can always be opened again (CSD-002 REQ-27).
 pub const MAX_FILE_BYTES: u64 = 50 * 1024 * 1024;
 
 #[derive(Serialize)]
@@ -75,8 +76,9 @@ pub(super) fn to_json(data: &ProjectData) -> Result<String, StorageError> {
 
 /// Parses and validates project file contents.
 ///
-/// Files with a missing, zero, older or newer `format_version` are rejected: a
-/// version 1 file is upgraded outside the app first (CSD-002 REQ-20, AC-18.3).
+/// Files with a missing, zero, older or newer `format_version` are rejected. An
+/// older one has its own error, and is upgraded outside the app first (CSD-002
+/// REQ-20, REQ-29).
 pub(super) fn from_json(text: &str) -> Result<ProjectData, StorageError> {
     let value: serde_json::Value =
         serde_json::from_str(text).map_err(|_| StorageError::InvalidFile)?;
@@ -84,8 +86,11 @@ pub(super) fn from_json(text: &str) -> Result<ProjectData, StorageError> {
         .get("format_version")
         .and_then(serde_json::Value::as_u64)
         .ok_or(StorageError::InvalidFile)?;
-    if version < u64::from(FORMAT_VERSION) {
+    if version == 0 {
         return Err(StorageError::InvalidFile);
+    }
+    if version < u64::from(FORMAT_VERSION) {
+        return Err(StorageError::FileOlder);
     }
     if version > u64::from(FORMAT_VERSION) {
         return Err(StorageError::FileNewer);
@@ -153,9 +158,52 @@ pub(super) fn read(path: &Path) -> Result<ProjectData, StorageError> {
 /// same directory which is renamed over the target, so a failed write never
 /// damages an existing file (CSD-002 REQ-5).
 pub(super) fn write(path: &Path, data: &ProjectData) -> Result<(), StorageError> {
+    write_limited(path, data, MAX_FILE_BYTES)
+}
+
+/// [`write`] with the size limit given, so the limit can be tested with a small
+/// project. A project whose file would be larger than `max_bytes` is refused
+/// and nothing is written (CSD-002 REQ-27).
+pub(super) fn write_limited(
+    path: &Path,
+    data: &ProjectData,
+    max_bytes: u64,
+) -> Result<(), StorageError> {
     let json = to_json(data)?;
+    if u64::try_from(json.len()).map_or(true, |len| len > max_bytes) {
+        return Err(StorageError::ProjectTooLarge);
+    }
     write_atomic_with(path, |file| file.write_all(json.as_bytes()))
         .map_err(StorageError::SaveFailed)
+}
+
+/// The size of the project file as it would be written now, in bytes.
+pub(super) fn size_of(data: &ProjectData) -> Result<u64, StorageError> {
+    let json = to_json(data)?;
+    Ok(u64::try_from(json.len()).unwrap_or(u64::MAX))
+}
+
+/// The backup copy next to a project file: `example-a.varde.bak`.
+pub(super) fn backup_path(path: &Path) -> Option<std::path::PathBuf> {
+    let mut name = path.file_name()?.to_os_string();
+    name.push(".bak");
+    Some(path.with_file_name(name))
+}
+
+/// Copies the project file that is about to be replaced to its backup, in the
+/// same atomic way a project is written. Nothing happens when there is no file
+/// yet. An existing backup is replaced (CSD-002 REQ-28).
+pub(super) fn backup(path: &Path) -> Result<(), StorageError> {
+    let Ok(metadata) = fs::metadata(path) else {
+        return Ok(());
+    };
+    if !metadata.is_file() {
+        return Ok(());
+    }
+    let target = backup_path(path)
+        .ok_or_else(|| StorageError::SaveFailed(io::Error::from(io::ErrorKind::InvalidInput)))?;
+    let bytes = fs::read(path).map_err(StorageError::SaveFailed)?;
+    write_atomic_with(&target, |file| file.write_all(&bytes)).map_err(StorageError::SaveFailed)
 }
 
 /// Atomic write with an injectable writer, so failures can be tested.

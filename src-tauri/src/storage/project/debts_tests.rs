@@ -110,7 +110,7 @@ fn test_csd011_ac_23_5_a_damaged_section_is_an_invalid_file() {
     // A statement of a debt that does not exist.
     fs::write(
         &path,
-        r#"{"format_version":2,"income":{"jobs":[],"paychecks":[]},
+        r#"{"format_version":4,"income":{"jobs":[],"paychecks":[]},
             "debts":{"debts":[],"statements":[
             {"debt_id":"671166f4-5827-4794-bcdc-54d7824fb650","period":"2026-09","balance":"1.00"}]}}"#,
     )

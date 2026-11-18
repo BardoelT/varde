@@ -5,6 +5,7 @@ mod last_project;
 mod preferences;
 mod project;
 
+pub use file::MAX_FILE_BYTES;
 pub use last_project::LastProject;
 pub use preferences::Preferences;
 pub use project::{OpenOutcome, Project, ProjectStatus, Record, SaveOutcome, StepLabel};
@@ -27,6 +28,10 @@ pub enum StorageError {
     InvalidFile,
     #[error("This file was made by a newer version of the app.")]
     FileNewer,
+    #[error("This file was made by an older version of the app. It has to be upgraded before it can be opened.")]
+    FileOlder,
+    #[error("The project is too large to save. Remove some data, such as old transactions, and try again.")]
+    ProjectTooLarge,
     #[error("The project has no file yet.")]
     NoPath,
     #[error("The theme could not be saved.")]
@@ -46,6 +51,8 @@ impl StorageError {
             Self::OpenFailed(_) => "PROJECT_OPEN_FAILED",
             Self::InvalidFile => "PROJECT_INVALID_FILE",
             Self::FileNewer => "PROJECT_FILE_NEWER",
+            Self::FileOlder => "PROJECT_FILE_OLDER",
+            Self::ProjectTooLarge => "PROJECT_TOO_LARGE",
             Self::NoPath => "PROJECT_NO_PATH",
             Self::PreferencesSaveFailed(_) => "PREFERENCES_SAVE_FAILED",
             Self::NothingToUndo => "NOTHING_TO_UNDO",

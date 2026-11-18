@@ -904,3 +904,27 @@ fn test_csd034_ac_6_over_ipc_the_rows_carry_their_account_and_the_filter_takes_a
     );
     assert_eq!(ids.as_array().unwrap().len(), 8);
 }
+
+#[test]
+fn test_csd002_ac_27_2_an_import_that_would_exceed_the_file_limit_adds_nothing() {
+    use crate::commands::transactions::import_flow_limited;
+    let app = harness();
+    let account = first_account(&app);
+    let before = rows(&app).len();
+    let state = app.window.state::<AppState>();
+    let undo_before = state.project().unwrap().status().undo_label;
+    let limit = state.project().unwrap().file_size().unwrap() + 100;
+    let error = import_flow_limited(&state, &account, || Some(fixture()), limit).unwrap_err();
+    let error = serde_json::to_value(&error).unwrap();
+    assert_eq!(error["code"], "PROJECT_TOO_LARGE");
+    assert!(!error["message"].as_str().unwrap().contains('/'));
+    assert_eq!(rows(&app).len(), before, "nothing was added");
+    assert_eq!(
+        state.project().unwrap().status().undo_label,
+        undo_before,
+        "no undo step is left"
+    );
+
+    let ok = import_flow_limited(&state, &account, || Some(fixture()), u64::MAX).unwrap();
+    assert!(ok.is_some(), "the same import fits under a high limit");
+}
