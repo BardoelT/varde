@@ -4141,9 +4141,102 @@
   ],
   "yearly_transaction_totals": [
     {
+      "categories": [
+        {
+          "id": "id-20",
+          "months": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "-45.10",
+            null,
+            null
+          ],
+          "name": "Groceries",
+          "total": "-45.10"
+        },
+        {
+          "id": "id-29",
+          "months": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "-13.99",
+            null,
+            null
+          ],
+          "name": "Subscriptions",
+          "total": "-13.99"
+        },
+        {
+          "id": "id-32",
+          "months": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "15.50",
+            null,
+            null
+          ],
+          "name": "Other",
+          "total": "15.50"
+        },
+        {
+          "id": "uncategorized",
+          "months": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "1216.03",
+            null,
+            null
+          ],
+          "name": "Uncategorized",
+          "total": "1216.03"
+        }
+      ],
       "income": "2515.50",
+      "months": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "1172.44",
+        null,
+        null
+      ],
       "net": "1172.44",
       "spent": "1343.06",
+      "total": "1172.44",
       "transaction_count": 8,
       "year": 2026
     }

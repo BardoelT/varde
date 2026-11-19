@@ -654,7 +654,29 @@ fn test_csd032_ac_24_1_yearly_totals_over_ipc() {
             "income": "2515.50",
             "spent": "1343.06",
             "net": "1172.44",
-            "transaction_count": 8
+            "transaction_count": 8,
+            "total": "1172.44",
+            "months": [null, null, null, null, null, null, null, null, null, "1172.44", null, null],
+            "categories": [
+                {
+                    "id": "76617264-6500-0001-0000-000000000001",
+                    "name": "Groceries",
+                    "months": [null, null, null, null, null, null, null, null, null, "-45.10", null, null],
+                    "total": "-45.10"
+                },
+                {
+                    "id": "76617264-6500-0001-0000-00000000000a",
+                    "name": "Subscriptions",
+                    "months": [null, null, null, null, null, null, null, null, null, "-13.99", null, null],
+                    "total": "-13.99"
+                },
+                {
+                    "id": "uncategorized",
+                    "name": "Uncategorized",
+                    "months": [null, null, null, null, null, null, null, null, null, "1231.53", null, null],
+                    "total": "1231.53"
+                }
+            ]
         }])
     );
 }
