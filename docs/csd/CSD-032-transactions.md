@@ -1,9 +1,9 @@
 ---
 id: CSD-032
 title: Transactions
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.44
+version: 0.45
 last_updated: 19/11/2026
 related: [CSD-000, CSD-034, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033, CSD-035]
 ---
@@ -819,7 +819,7 @@ Scenario: Saving and cancelling
 ```
 
 **REQ-24: Yearly totals** *(ubiquitous)*
-The tab "Yearly totals" shall show, in its panel, one block per calendar year that has at least one transaction, newest year first, and no year without transactions. The header of a block is one full-width button that shows a chevron, the year and, with their labels, the income (the sum of the credits), the spent amount (the sum of the debits, as a positive amount) and the net (income minus spent) of that year. The button expands and collapses the block with a click, Enter and Space, and has `aria-expanded`. An expanded block shows a grid with one row per category that has at least one transaction, credit or debit, in that year, in the order of the Categories tab with "Uncategorized" last, and the columns Category, Jan to Dec (all twelve months, future months of the current year included, short month names in the chosen language) and Total. A cell is the net (credits minus debits, signed) of the category in the month; the Total column is the net of the category in the year. The last row, "Total", is the net of all categories per month, and its Total cell equals the net in the header. A month without a transaction in a category (or in any category, for the Total row) is an empty cell, shown as a dimmed "–"; a month whose credits and debits cancel out is shown as 0.00. A negative amount gets the negative style of the app. The grid scrolls horizontally inside its panel and keeps the Category column in view. The grid of a collapsed block is not in the tab order or the accessibility tree. The totals and the grid cover every transaction, whatever the filters of the list are. Rust computes every figure, including which cells are empty. The categorized share of REQ-31 stays once in the header of the panel.
+The tab "Yearly totals" shall show, in its panel, one block per calendar year that has at least one transaction, newest year first, and no year without transactions. The header of a block is one full-width button that shows a chevron, the year and, aligned to the right of the row and with their labels, the income (the sum of the credits), the spent amount (the sum of the debits, as a positive amount) and the net (income minus spent) of that year. The button expands and collapses the block with a click, Enter and Space, and has `aria-expanded`. An expanded block shows a grid with one row per category that has at least one transaction, credit or debit, in that year, in the order of the Categories tab with "Uncategorized" last, and the columns Category, Jan to Dec (all twelve months, future months of the current year included, short month names in the chosen language) and Total. A cell is the net (credits minus debits, signed) of the category in the month; the Total column is the net of the category in the year. The last row, "Total", is the net of all categories per month, and its Total cell equals the net in the header. A month without a transaction in a category (or in any category, for the Total row) is an empty cell, shown as a dimmed "–"; a month whose credits and debits cancel out is shown as 0.00. A negative amount gets the negative style of the app. The grid scrolls horizontally inside its panel and keeps the Category column in view. The grid of a collapsed block is not in the tab order or the accessibility tree. The totals and the grid cover every transaction, whatever the filters of the list are. Rust computes every figure, including which cells are empty. The categorized share of REQ-31 is not on this tab.
 
 Which blocks are expanded: only the newest year at first. The app remembers, in memory for the session and nowhere else, the years the user expanded or collapsed; a year the user never touched is expanded when it is the newest year and collapsed otherwise, so a new newest year after an import opens, and a year the user chose stays as chosen after every change.
 
@@ -910,8 +910,9 @@ Scenario: Dutch month names
   Then the month columns read Jan, Feb, Mrt, Apr, Mei, Jun, Jul, Aug, Sep, Okt, Nov, Dec
 
 @AC-24.15
-Scenario: The categorized share stays in the panel header
-  Then the line of REQ-31 is shown once in the header of the panel, above the blocks, and not in a block
+Scenario: Income, spent and net at the right, and no categorized share
+  Then the income, spent and net in every header are aligned to the right of the row
+  And the line of REQ-31 is not on the Yearly totals tab
 ```
 
 **REQ-25: Delete all transactions** *(event-driven)*
@@ -1216,7 +1217,7 @@ Scenario: The count comes with the category list
   Then every category carries its transaction count
 
 **REQ-31: Categorized share** *(ubiquitous)*
-The Overview tab shall show, right-aligned in the header of the Yearly totals panel, a line with the percentage of the transactions that have a category, so 100% is the best and the numbers behind it, as "87.50% of the transactions are categorized (35 of 40)". Rust counts and computes the percentage (two decimals, half-up, CSD-000 CON-8), and the line follows every change of the transactions, the rules and the categories. While there are no transactions the line is not shown.
+The Categories tab shall show, right-aligned in the header of the Categories panel, left of the button "Add category", a line with the percentage of the transactions that have a category, so 100% is the best and the numbers behind it, as "87.50% of the transactions are categorized (35 of 40)". Rust counts and computes the percentage (two decimals, half-up, CSD-000 CON-8), and the line follows every change of the transactions, the rules and the categories. While there are no transactions the line is not shown.
 ```gherkin
 @AC-31.1
 Scenario: The share of categorized transactions
@@ -1227,9 +1228,10 @@ Scenario: The share of categorized transactions
   And with no transactions there is no percentage
 
 @AC-31.2
-Scenario: The Overview tab shows the line
+Scenario: The Categories tab shows the line
   Given the summary 35 of 40 and "87.50%"
-  Then the Yearly totals panel of the Overview tab shows "87.50% of the transactions are categorized (35 of 40)"
+  Then the Categories panel shows "87.50% of the transactions are categorized (35 of 40)" in its header
+  And the line is not on the Yearly totals tab
   And the line is hidden while there are no transactions
 
 **REQ-32: Rules for a period** *(ubiquitous)*
@@ -1430,6 +1432,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.45 (19/11/2026): The categorized share moves from the header of the Yearly totals panel to the header of the Categories panel (REQ-31, AC-31.2, REQ-24, AC-24.15), and the income, spent and net in the header of a year are aligned to the right of the row (REQ-24, AC-24.15). GitHub issue 79, owner request. Back to `draft` until re-approved.
 - 0.44 (19/11/2026): The yearly totals become one collapsible block per year with Income, Spent and Net in the header and, when expanded, a grid of the net per category and month with a Total row and column (REQ-24, AC-24.1 to AC-24.15; payload of `yearly_transaction_totals` in section 5). GitHub issue 79 and the grill-me interview. Owner answers: Transactions page only; the cell is the net, not the spent amount; the newest year is open at first and the choice of the user is kept in memory only; the grid ignores the list filters. Back to `draft` until re-approved.
 - 0.43 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 0.42 (17/11/2026): The accounts of CSD-034 are a tab "Accounts" of the Transactions page, left of "Categories", not a page of the left pane. Owner request. Back to `draft` until re-approved.
