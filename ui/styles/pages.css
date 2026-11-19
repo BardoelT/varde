@@ -10,7 +10,9 @@
   padding: 16px 20px;
 }
 .setting-name { font-size: 14px; font-weight: 600; color: var(--text); }
-.setting-help { margin-top: 3px; font-size: 12.5px; color: var(--muted); max-width: 46ch; }
+.setting-text { flex: 1 1 auto; min-width: 0; }
+.setting-row > :not(.setting-text) { flex: none; }
+.setting-help { margin-top: 3px; font-size: 12.5px; color: var(--muted); }
 .setting-row select {
   min-width: 110px;
   padding: 8px 10px;
@@ -23,8 +25,8 @@
 }
 .setting-row select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .setting-value { font-size: 14px; font-variant-numeric: tabular-nums; color: var(--text); }
-.setting-actions { display: flex; gap: 10px; }
-.update-status { font-size: 13.5px; color: var(--text); max-width: 56ch; }
+.setting-actions { display: flex; align-items: center; gap: 10px; }
+.update-status { margin-top: 6px; font-size: 13.5px; color: var(--text); }
 .update-status:empty { display: none; }
 .update-progress { display: block; width: min(320px, 100%); height: 8px; margin-top: 8px; accent-color: var(--accent); }
 
