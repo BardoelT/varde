@@ -1,9 +1,9 @@
 ---
 id: CSD-032
 title: Transactions
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.45
+version: 0.46
 last_updated: 19/11/2026
 related: [CSD-000, CSD-034, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033, CSD-035]
 ---
@@ -1217,7 +1217,7 @@ Scenario: The count comes with the category list
   Then every category carries its transaction count
 
 **REQ-31: Categorized share** *(ubiquitous)*
-The Categories tab shall show, right-aligned in the header of the Categories panel, left of the button "Add category", a line with the percentage of the transactions that have a category, so 100% is the best and the numbers behind it, as "87.50% of the transactions are categorized (35 of 40)". Rust counts and computes the percentage (two decimals, half-up, CSD-000 CON-8), and the line follows every change of the transactions, the rules and the categories. While there are no transactions the line is not shown.
+The Categories tab shall show, centered in the header of the Categories panel between its title and the button "Add category", a line with the percentage of the transactions that have a category, so 100% is the best and the numbers behind it, as "87.50% of the transactions are categorized (35 of 40)". Rust counts and computes the percentage (two decimals, half-up, CSD-000 CON-8), and the line follows every change of the transactions, the rules and the categories. While there are no transactions the line is not shown.
 ```gherkin
 @AC-31.1
 Scenario: The share of categorized transactions
@@ -1230,7 +1230,7 @@ Scenario: The share of categorized transactions
 @AC-31.2
 Scenario: The Categories tab shows the line
   Given the summary 35 of 40 and "87.50%"
-  Then the Categories panel shows "87.50% of the transactions are categorized (35 of 40)" in its header
+  Then the Categories panel shows "87.50% of the transactions are categorized (35 of 40)" in its header, centered between the title and the button "Add category"
   And the line is not on the Yearly totals tab
   And the line is hidden while there are no transactions
 
@@ -1432,6 +1432,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.46 (19/11/2026): The categorized share in the header of the Categories panel is centered instead of right-aligned (REQ-31, AC-31.2). GitHub issue 79, owner request. Back to `draft` until re-approved.
 - 0.45 (19/11/2026): The categorized share moves from the header of the Yearly totals panel to the header of the Categories panel (REQ-31, AC-31.2, REQ-24, AC-24.15), and the income, spent and net in the header of a year are aligned to the right of the row (REQ-24, AC-24.15). GitHub issue 79, owner request. Back to `draft` until re-approved.
 - 0.44 (19/11/2026): The yearly totals become one collapsible block per year with Income, Spent and Net in the header and, when expanded, a grid of the net per category and month with a Total row and column (REQ-24, AC-24.1 to AC-24.15; payload of `yearly_transaction_totals` in section 5). GitHub issue 79 and the grill-me interview. Owner answers: Transactions page only; the cell is the net, not the spent amount; the newest year is open at first and the choice of the user is kept in memory only; the grid ignores the list filters. Back to `draft` until re-approved.
 - 0.43 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.

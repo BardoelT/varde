@@ -1,6 +1,8 @@
 // DOM tests of CSD-032 (the list, import, filters, totals, manual badge and the page itself). Rust computes every figure; the tests feed canned answers and check only what is displayed.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { openApp } from './harness.js';
 import { BANK, SAVINGS, GROCERIES, SHOPPING, transaction, readsWith, transactionsPage, rowCells, tableRows, bulkRows, bulkHandlers } from './transactions-helpers.js';
 
@@ -176,6 +178,8 @@ test('test_csd032_ac_31_2_the_categories_tab_shows_the_categorized_share', async
   assert.ok(app.isShown(note));
   assert.equal(note.closest('.panel').querySelector('.panel-title').textContent, 'Categories', 'in the header of the Categories panel');
   assert.ok(note.closest('.panel-header'));
+  const css = readFileSync(fileURLToPath(new URL('../styles/components.css', import.meta.url)), 'utf8');
+  assert.match(css, /\.summary-note \{ flex: 1; text-align: center;/, 'centered between the title and the button');
   assert.equal(app.$('transactions-totals').contains(note), false, 'not on the Yearly totals tab');
   assert.equal(app.$('transactions-rules').contains(note), false, 'not on the Rules tab');
   app.close();
