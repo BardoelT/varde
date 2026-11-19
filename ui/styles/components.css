@@ -376,6 +376,9 @@ dialog.wide form { display: flex; flex-direction: column; min-height: 0; flex: 1
 .year-chevron { width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .15s; flex-shrink: 0; }
 .year-toggle[aria-expanded="true"] .year-chevron { transform: rotate(45deg); }
 .year-title { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 40px; }
+/* Income, spent and net sit at the right of the row, each in a column of its own so the years line up. */
+.year-title + .year-figure { margin-left: auto; }
+.year-figure { min-width: 150px; justify-content: space-between; }
 .year-figure { display: inline-flex; gap: 8px; align-items: baseline; font-variant-numeric: tabular-nums; }
 .year-figure-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
 .year-figure.negative { color: var(--negative); }

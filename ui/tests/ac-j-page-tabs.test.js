@@ -78,9 +78,9 @@ test('test_csd035_ac_2_3_transactions_panels', async () => {
   const app = await openApp();
   await app.click(app.item('transactions'));
   const header = (id) => app.$(id).querySelector('.panel-header');
-  await app.click(app.$('transactions-tab-totals'));
-  assert.ok(app.isShown(app.$('transaction-categorisation')), 'the categorized share is in the totals');
-  assert.ok(header('transactions-totals').contains(app.$('transaction-categorisation')));
+  await app.click(app.$('transactions-tab-categories'));
+  assert.ok(app.isShown(app.$('transaction-categorisation')), 'the categorized share is in the categories');
+  assert.ok(header('transactions-categories').contains(app.$('transaction-categorisation')));
   await app.click(app.$('transactions-tab-transactions'));
   assert.ok(header('transactions-transactions').contains(app.$('transactions-bulk-toggle') ?? header('transactions-transactions').querySelector('button')));
   app.close();

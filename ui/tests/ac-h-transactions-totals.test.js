@@ -2,6 +2,8 @@
 // the net per category and month. Rust computes every figure; these tests feed canned answers and check what is shown.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { readsWith, transactionsPage, transaction, GROCERIES } from './transactions-helpers.js';
 
 /** Twelve months, `null` except the given ones: `months({ 9: '2500.00' })`. */
@@ -186,10 +188,13 @@ test('test_csd032_ac_24_14_the_month_names_are_dutch_when_the_language_is_dutch'
   app.close();
 });
 
-test('test_csd032_ac_24_15_the_categorized_share_stays_once_in_the_header_of_the_panel', async () => {
+test('test_csd032_ac_24_15_the_figures_sit_at_the_right_and_the_categorized_share_is_not_on_the_tab', async () => {
   const app = await totalsPage();
-  const note = app.$('transaction-categorisation');
-  assert.equal(note.closest('.panel-header') !== null, true);
-  assert.equal(app.$('transaction-totals-years').contains(note), false, 'not inside a block');
+  assert.equal(app.$('transactions-totals').contains(app.$('transaction-categorisation')), false);
+  // The first figure takes the free room (CSS `margin-left: auto`), so the three sit at the right of the row.
+  const css = readFileSync(fileURLToPath(new URL('../styles/components.css', import.meta.url)), 'utf8');
+  assert.match(css, /\.year-title \+ \.year-figure \{ margin-left: auto; \}/);
+  const figures = [...toggle(blocks(app)[0]).children].map((node) => node.className.split(' ')[0]);
+  assert.deepEqual(figures, ['year-chevron', 'year-title', 'year-figure', 'year-figure', 'year-figure']);
   app.close();
 });

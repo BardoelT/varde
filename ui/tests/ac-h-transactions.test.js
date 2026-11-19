@@ -165,16 +165,18 @@ test('test_csd032_ac_14_1_a_confirmed_deletion_sends_the_id', async () => {
   app.close();
 });
 
-test('test_csd032_ac_31_2_the_overview_shows_the_categorized_share_in_the_yearly_totals', async () => {
+test('test_csd032_ac_31_2_the_categories_tab_shows_the_categorized_share', async () => {
   const reads = readsWith({ rows: [], count: 0 });
   reads.get_transactions_overview.summary = { total: 40, categorized: 35, percent_label: '87.50%' };
   const app = await transactionsPage(reads);
   const note = app.$('transaction-categorisation');
   assert.equal(app.text(note), '87.50% of the transactions are categorized (35 of 40)');
   assert.equal(app.isShown(note), false, 'not on the Transactions tab');
-  await app.click(app.$('transactions-tab-totals'));
+  await app.click(app.$('transactions-tab-categories'));
   assert.ok(app.isShown(note));
-  assert.equal(note.closest('.panel').querySelector('.panel-title').textContent, 'Yearly totals', 'in the panel of the yearly totals');
+  assert.equal(note.closest('.panel').querySelector('.panel-title').textContent, 'Categories', 'in the header of the Categories panel');
+  assert.ok(note.closest('.panel-header'));
+  assert.equal(app.$('transactions-totals').contains(note), false, 'not on the Yearly totals tab');
   assert.equal(app.$('transactions-rules').contains(note), false, 'not on the Rules tab');
   app.close();
   const empty = readsWith({ rows: [], count: 0 });
