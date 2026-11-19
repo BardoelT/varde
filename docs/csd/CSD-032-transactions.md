@@ -1,10 +1,10 @@
 ---
 id: CSD-032
 title: Transactions
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.43
-last_updated: 18/11/2026
+version: 0.44
+last_updated: 19/11/2026
 related: [CSD-000, CSD-034, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033, CSD-035]
 ---
 
@@ -819,36 +819,100 @@ Scenario: Saving and cancelling
 ```
 
 **REQ-24: Yearly totals** *(ubiquitous)*
-The Overview tab shall show, above the list, a table "Yearly totals" with one row per calendar year that has at least one transaction, newest year first, with the income (the sum of the credits), the spent amount (the sum of the debits, as a positive amount) and the net (income minus spent) of that year. The totals cover every transaction, whatever the filters of the list are, and a year without transactions has no row. Rust computes the figures.
+The tab "Yearly totals" shall show, in its panel, one block per calendar year that has at least one transaction, newest year first, and no year without transactions. The header of a block is one full-width button that shows a chevron, the year and, with their labels, the income (the sum of the credits), the spent amount (the sum of the debits, as a positive amount) and the net (income minus spent) of that year. The button expands and collapses the block with a click, Enter and Space, and has `aria-expanded`. An expanded block shows a grid with one row per category that has at least one transaction, credit or debit, in that year, in the order of the Categories tab with "Uncategorized" last, and the columns Category, Jan to Dec (all twelve months, future months of the current year included, short month names in the chosen language) and Total. A cell is the net (credits minus debits, signed) of the category in the month; the Total column is the net of the category in the year. The last row, "Total", is the net of all categories per month, and its Total cell equals the net in the header. A month without a transaction in a category (or in any category, for the Total row) is an empty cell, shown as a dimmed "–"; a month whose credits and debits cancel out is shown as 0.00. A negative amount gets the negative style of the app. The grid scrolls horizontally inside its panel and keeps the Category column in view. The grid of a collapsed block is not in the tab order or the accessibility tree. The totals and the grid cover every transaction, whatever the filters of the list are. Rust computes every figure, including which cells are empty. The categorized share of REQ-31 stays once in the header of the panel.
+
+Which blocks are expanded: only the newest year at first. The app remembers, in memory for the session and nowhere else, the years the user expanded or collapsed; a year the user never touched is expanded when it is the newest year and collapsed otherwise, so a new newest year after an import opens, and a year the user chose stays as chosen after every change.
 
 ```gherkin
 @AC-24.1
-Scenario: Income, spent and net per year
+Scenario: Income, spent and net per year in the header
   Given the transactions of 30/10/2026 debit 23.97, 28/10/2026 credit 2,500.00, 30/12/2025 debit 100.00 and 15/12/2025 debit 50.00
-  Then the table shows, newest year first, the rows
+  Then the panel shows, newest year first, the blocks
     | Year | Income   | Spent  | Net      |
     | 2026 | 2,500.00 | 23.97  | 2,476.03 |
     | 2025 | 0.00     | 150.00 | -150.00  |
+  And the old table with the columns Year, Income, Spent and Net is gone
 
 @AC-24.2
 Scenario: No transactions, no totals
   Given no transactions
-  Then the table is hidden and the note "No totals yet. Totals appear once there is a transaction." is shown
+  Then no block is shown and the note "No totals yet. Totals appear once there is a transaction." is shown
 
 @AC-24.3
 Scenario: A filter does not change the totals
   Given the list is filtered on the category "Groceries"
-  Then the yearly totals still cover every transaction
+  Then the yearly totals and their grids still cover every transaction
 
 @AC-24.4
 Scenario: A change updates the totals
   Given the only transaction of 2025 is deleted
-  Then the row of 2025 is gone
+  Then the block of 2025 is gone
 
 @AC-24.5
 Scenario: Discrete mode hides the amounts
   Given Discrete mode is on
-  Then the income, spent and net of every year are hidden and the years are shown
+  Then the income, spent and net in every header and every amount in every grid are hidden, and the years, the categories, the month names and the "–" are shown
+
+@AC-24.6
+Scenario: Collapse and expand
+  Given the transactions of AC-24.1
+  Then the block of 2026 is expanded and the block of 2025 is collapsed
+  When the user chooses the header of 2025
+  Then its grid is shown and its button has aria-expanded "true"
+  When the user presses Enter or Space on the header of 2026
+  Then its grid is hidden, its button has aria-expanded "false" and the grid is not reachable with the Tab key
+
+@AC-24.7
+Scenario: The grid holds the net per category and month
+  Given the categories Salary and Groceries in that order, a credit of 2,500.00 on 28/10/2026 in Salary and a debit of 23.97 on 30/10/2026 in Groceries
+  Then the grid of 2026 shows
+    | Category  | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct       | Nov | Dec | Total     |
+    | Salary    | –   | –   | –   | –   | –   | –   | –   | –   | –   | 2,500.00  | –   | –   | 2,500.00  |
+    | Groceries | –   | –   | –   | –   | –   | –   | –   | –   | –   | -23.97    | –   | –   | -23.97    |
+    | Total     | –   | –   | –   | –   | –   | –   | –   | –   | –   | 2,476.03  | –   | –   | 2,476.03  |
+  And the Total cell equals the net in the header of 2026
+
+@AC-24.8
+Scenario: Which categories have a row
+  Given a year in which the category "Leisure" only has a credit (a refund) and the category "Taxes" has no transaction
+  Then the grid has a row "Leisure" and no row "Taxes"
+
+@AC-24.9
+Scenario: Uncategorized is last
+  Given a year with uncategorized transactions
+  Then the last category row is "Uncategorized"
+  And a year without uncategorized transactions has no such row
+
+@AC-24.10
+Scenario: Empty and zero
+  Given in a month a category has a credit of 10.00 and a debit of 10.00, and in another month it has no transaction
+  Then the first cell is shown as 0.00 and the second as a dimmed "–"
+
+@AC-24.11
+Scenario: All twelve months
+  Given the current year holds transactions only up to this month
+  Then the grid of the current year still has the twelve columns Jan to Dec, with "–" after this month
+
+@AC-24.12
+Scenario: The choice of the user stays
+  Given the user collapsed 2026 and expanded 2025
+  When a transaction is recategorized, imported or deleted
+  Then 2026 is still collapsed and 2025 is still expanded
+  And when an import adds the year 2027 that the user never touched, 2027 is expanded
+
+@AC-24.13
+Scenario: Wide grid
+  Then the grid scrolls horizontally inside the panel and the Category column stays in view while it scrolls
+
+@AC-24.14
+Scenario: Dutch month names
+  Given the language is Dutch
+  Then the month columns read Jan, Feb, Mrt, Apr, Mei, Jun, Jul, Aug, Sep, Okt, Nov, Dec
+
+@AC-24.15
+Scenario: The categorized share stays in the panel header
+  Then the line of REQ-31 is shown once in the header of the panel, above the blocks, and not in a block
+```
 
 **REQ-25: Delete all transactions** *(event-driven)*
 (Superseded by CSD-034 REQ-4: the transactions of one account are deleted on the Accounts page, and the Overview tab has no such button.) The Overview tab had a button "Delete all transactions". When the user confirms, the app shall remove every transaction, whatever the filters of the list are, and no other data: the categories and the rules shall stay. The deletion shall be one undo step "Delete Transactions" (CSD-027).
@@ -1333,7 +1397,7 @@ erDiagram
 Project file: three sections (REQ-17). `transactions` is an array, `transaction_categories` an array of `{ id, name }` (the built-in "Uncategorized" is not stored), `transaction_rules` an ordered array. Dates are ISO 8601, amounts decimal strings with at most two decimals (CSD-000 CON-8, CSD-002 REQ-19), ids are UUIDs.
 
 Commands (names and payloads are indicative; the final signatures belong to the implementation):
-`import_transactions()` → `{ added, skipped }`; `list_transactions(filters, limit)` → `{ rows, total, count }`; `get_transactions_overview()` → `{ categories, rules, summary, totals }` (the answers of `list_transaction_categories`, `list_transaction_rules`, `get_categorisation_summary` and `yearly_transaction_totals` in one); `yearly_transaction_totals()` → `[{ year, income, spent, net, transaction_count }]`; `set_transaction_category(id, category_id)`; `unset_transaction_manual(id)`; `delete_transaction(id)`; `list_transaction_categories()`; `add_`/`rename_`/`delete_transaction_category`; `list_transaction_rules()` (each rule with `text`, `category_id`, optional `from` and `to`, and its `transaction_count`); `add_`/`edit_`/`move_`/`delete_transaction_rule` (add and edit also take the typed days `from` and `to`); `reapply_transaction_rules(scope)` → `{ changed }`.
+`import_transactions()` → `{ added, skipped }`; `list_transactions(filters, limit)` → `{ rows, total, count }`; `get_transactions_overview()` → `{ categories, rules, summary, totals }` (the answers of `list_transaction_categories`, `list_transaction_rules`, `get_categorisation_summary` and `yearly_transaction_totals` in one); `yearly_transaction_totals()` → `[{ year, income, spent, net, transaction_count, categories: [{ id, name, months: [amount or null; 12], total }], months: [amount or null; 12], total }]` (`id` is the category id or `uncategorized`; `months` runs Jan to Dec, `null` for a month without a transaction; every amount is the signed net; `total` of the year equals `net`); `set_transaction_category(id, category_id)`; `unset_transaction_manual(id)`; `delete_transaction(id)`; `list_transaction_categories()`; `add_`/`rename_`/`delete_transaction_category`; `list_transaction_rules()` (each rule with `text`, `category_id`, optional `from` and `to`, and its `transaction_count`); `add_`/`edit_`/`move_`/`delete_transaction_rule` (add and edit also take the typed days `from` and `to`); `reapply_transaction_rules(scope)` → `{ changed }`.
 
 Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 text, or is larger than 50 MB), `TRANSACTION_IMPORT_FORMAT`, `_COLUMNS`, `_FIELD`, `_DATE`, `_DIRECTION`, `_AMOUNT`, `_REFERENCE`, `_CURRENCY`, `TRANSACTION_CATEGORY_NAME_REQUIRED`, `_NAME_TOO_LONG`, `_NAME_TAKEN`, `TRANSACTION_CATEGORY_PROTECTED`, `TRANSACTION_CATEGORY_NOT_FOUND`, `TRANSACTION_RULE_TEXT_REQUIRED`, `_TEXT_TOO_LONG`, `_TEXT_TAKEN`, `_CATEGORY_INVALID`, `TRANSACTION_RULE_NOT_FOUND`, `TRANSACTION_NOT_FOUND`, `TRANSACTION_DATA_INVALID`, `TRANSACTION_SUGGEST_MIN_COUNT` (the minimal count is 0). The built-in Uncategorized has no id: a transaction without a category holds `null`, and a filter, a rename and a delete name it `uncategorized`. The default categories and rules have fixed ids, so two new projects are equal.
 
@@ -1366,6 +1430,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
 
 ## 9. Changelog
+- 0.44 (19/11/2026): The yearly totals become one collapsible block per year with Income, Spent and Net in the header and, when expanded, a grid of the net per category and month with a Total row and column (REQ-24, AC-24.1 to AC-24.15; payload of `yearly_transaction_totals` in section 5). GitHub issue 79 and the grill-me interview. Owner answers: Transactions page only; the cell is the net, not the spent amount; the newest year is open at first and the choice of the user is kept in memory only; the grid ignores the list filters. Back to `draft` until re-approved.
 - 0.43 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 0.42 (17/11/2026): The accounts of CSD-034 are a tab "Accounts" of the Transactions page, left of "Categories", not a page of the left pane. Owner request. Back to `draft` until re-approved.
 - 0.41 (17/11/2026): The transactions belong to accounts (CSD-034): the import goes into an account chosen on the Accounts page (REQ-1), duplicates are checked within the account (REQ-5), the project file holds `transaction_accounts` and `account_id` with format version 4 (REQ-17), "Delete all transactions" becomes the deletion of the transactions of an account (REQ-25), and the Transactions page has an Account column and filter and no import button (REQ-15, REQ-16). Owner request. Back to `draft` until re-approved.
