@@ -15,6 +15,7 @@ mod insights;
 mod list;
 mod rules;
 mod suggest;
+mod totals;
 
 /// A day written as in the export, `dd-mm-yyyy`.
 fn day(text: &str) -> TransactionDate {

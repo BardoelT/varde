@@ -1,8 +1,10 @@
 // DOM tests of CSD-032 (the list, import, filters, totals, manual badge and the page itself). Rust computes every figure; the tests feed canned answers and check only what is displayed.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { openApp } from './harness.js';
-import { BANK, SAVINGS, GROCERIES, SHOPPING, transaction, readsWith, transactionsPage, rowCells, tableRows, bulkRows, bulkHandlers, totalsRows } from './transactions-helpers.js';
+import { BANK, SAVINGS, GROCERIES, SHOPPING, transaction, readsWith, transactionsPage, rowCells, tableRows, bulkRows, bulkHandlers } from './transactions-helpers.js';
 
 test('test_csd032_ac_16_1_transactions_is_in_the_left_pane_after_expenses_and_shows_the_transactions_tab', async () => {
   const app = await openApp();
@@ -165,16 +167,20 @@ test('test_csd032_ac_14_1_a_confirmed_deletion_sends_the_id', async () => {
   app.close();
 });
 
-test('test_csd032_ac_31_2_the_overview_shows_the_categorized_share_in_the_yearly_totals', async () => {
+test('test_csd032_ac_31_2_the_categories_tab_shows_the_categorized_share', async () => {
   const reads = readsWith({ rows: [], count: 0 });
   reads.get_transactions_overview.summary = { total: 40, categorized: 35, percent_label: '87.50%' };
   const app = await transactionsPage(reads);
   const note = app.$('transaction-categorisation');
   assert.equal(app.text(note), '87.50% of the transactions are categorized (35 of 40)');
   assert.equal(app.isShown(note), false, 'not on the Transactions tab');
-  await app.click(app.$('transactions-tab-totals'));
+  await app.click(app.$('transactions-tab-categories'));
   assert.ok(app.isShown(note));
-  assert.equal(note.closest('.panel').querySelector('.panel-title').textContent, 'Yearly totals', 'in the panel of the yearly totals');
+  assert.equal(note.closest('.panel').querySelector('.panel-title').textContent, 'Categories', 'in the header of the Categories panel');
+  assert.ok(note.closest('.panel-header'));
+  const css = readFileSync(fileURLToPath(new URL('../styles/components.css', import.meta.url)), 'utf8');
+  assert.match(css, /\.summary-note \{ flex: 1; text-align: center;/, 'centered between the title and the button');
+  assert.equal(app.$('transactions-totals').contains(note), false, 'not on the Yearly totals tab');
   assert.equal(app.$('transactions-rules').contains(note), false, 'not on the Rules tab');
   app.close();
   const empty = readsWith({ rows: [], count: 0 });
@@ -388,35 +394,6 @@ test('test_csd032_ac_11_4_manual_transactions_carry_a_badge', async () => {
   app.close();
 });
 
-test('test_csd032_ac_24_1_the_yearly_totals_are_shown_as_rust_returned_them_above_the_list', async () => {
-  const reads = readsWith({ rows: [transaction('t1', '2026-10-30', '-23.97', 'Example Shop')] });
-  reads.get_transactions_overview.totals = [
-    { year: 2026, income: '2500.00', spent: '23.97', net: '2476.03', transaction_count: 2 },
-    { year: 2025, income: '0.00', spent: '150.00', net: '-150.00', transaction_count: 2 },
-  ];
-  const app = await transactionsPage(reads);
-  await app.click(app.$('transactions-tab-totals'));
-  assert.deepEqual(totalsRows(app), [
-    ['2026', '2,500.00', '23.97', '2,476.03'],
-    ['2025', '0.00', '150.00', '-150.00'],
-  ]);
-  const headers = [...app.$('transaction-totals-table').querySelectorAll('thead th')].map((cell) => app.text(cell));
-  assert.deepEqual(headers, ['Year', 'Income', 'Spent', 'Net']);
-  assert.deepEqual(app.overviewTitles('transactions'), ['Accounts', 'Categories', 'Rules', 'Yearly totals', 'Transactions'], 'the totals come before the list');
-  app.close();
-});
-
-test('test_csd032_ac_24_2_no_transactions_no_totals', async () => {
-  const reads = readsWith({ rows: [], count: 0 });
-  reads.get_transactions_overview.totals = [];
-  const app = await transactionsPage(reads);
-  await app.click(app.$('transactions-tab-totals'));
-  assert.equal(app.isShown(app.$('transaction-totals-table')), false);
-  assert.equal(app.textOf('transaction-totals-empty'), 'No totals yet. Totals appear once there is a transaction.');
-  assert.ok(app.isShown(app.$('transaction-totals-empty')));
-  app.close();
-});
-
 test('test_csd032_ac_24_3_a_filter_does_not_ask_for_other_totals', async () => {
   const rows = [transaction('t1', '2026-10-30', '-1.00', 'Example Shop', GROCERIES)];
   const app = await transactionsPage(readsWith({ rows }));
@@ -438,16 +415,6 @@ test('test_csd032_ac_24_4_a_change_reloads_the_totals', async () => {
   await app.click(app.document.querySelector('[aria-label="Delete Example Shop"]'));
   await app.click(app.$('confirm-ok'));
   assert.ok(app.callsOf('get_transactions_overview').length > before);
-  app.close();
-});
-
-test('test_csd032_ac_24_5_discrete_mode_hides_the_yearly_amounts', async () => {
-  const reads = readsWith({ rows: [] });
-  reads.get_transactions_overview.totals = [{ year: 2026, income: '2500.00', spent: '23.97', net: '2476.03', transaction_count: 2 }];
-  reads.get_preferences = { theme: 'system', language: 'en', number_format: 'point_comma', discrete_mode: true };
-  const app = await transactionsPage(reads);
-  await app.click(app.$('transactions-tab-totals'));
-  assert.deepEqual(totalsRows(app), [['2026', '•••••', '•••••', '•••••']]);
   app.close();
 });
 
