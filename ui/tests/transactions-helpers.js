@@ -111,4 +111,3 @@ export const waitForRecount = async (app) => {
   await app.settle();
 };
 
-export const totalsRows = (app) => [...app.$('transaction-totals-rows').querySelectorAll('tr')].map((row) => rowCells(app, row));

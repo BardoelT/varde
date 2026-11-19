@@ -8,9 +8,10 @@ import { $, h, iconButton, confirmAction } from '../shared/dom.js';
 import { formatAmount, formatDate, formatLabel } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 import { initTransactionSuggest } from './transactions-suggest.js';
+import { renderYearlyTotals } from './transactions-totals.js';
 import { createStatementFilter, renderFilteredTable } from '../shared/statement-filter.js';
 import { deleteWithConfirm } from '../shared/crud.js';
-import { numCell, renderTable, rowHeader } from '../shared/list-rows.js';
+import { numCell, rowHeader } from '../shared/list-rows.js';
 import { state, accountName, categoryName, changed, connect, run, transactionLabel } from './transactions-shared.js';
 import { initBulk, isBulk, clearSelection, endBulk, selectBox, syncBulk, pruneSelection, renderBulkCategories } from './transactions-bulk.js';
 import { initTransactionAccounts, renderAccounts } from './transactions-accounts.js';
@@ -72,12 +73,6 @@ const transactionsFilter = createStatementFilter({
 });
 
 // ---- Yearly totals and the share of categorized transactions ----
-
-function renderTotals(totals) {
-  renderTable({ empty: 'transaction-totals-empty', table: 'transaction-totals-table', body: 'transaction-totals-rows' }, totals, (total) =>
-    h('tr', {}, rowHeader(String(total.year)), numCell(formatAmount(total.income)), numCell(formatAmount(total.spent)), numCell(formatAmount(total.net))),
-  );
-}
 
 /** The share of categorized transactions, as Rust labelled it; hidden while there are no transactions (CSD-032 REQ-31). */
 function renderCategorisation(summary) {
@@ -224,7 +219,7 @@ export async function reloadTransactionsOverview() {
   renderRules();
   renderCategorisation(overview.summary);
   await loadList();
-  renderTotals(overview.totals);
+  renderYearlyTotals(overview.totals);
 }
 
 export function initTransactionsOverview({ onChanged }) {

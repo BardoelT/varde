@@ -364,3 +364,24 @@ dialog.wide form { display: flex; flex-direction: column; min-height: 0; flex: 1
 .suggest-wrap input[type="text"] { width: 100%; font: inherit; }
 .row-error { display: block; margin-top: 3px; font-size: 12px; color: var(--negative); }
 .dialog-note { margin-right: auto; align-self: center; font-size: 13px; color: var(--muted); }
+
+/* The Yearly totals of Transactions: one collapsible block per year, a grid of the net per category and month when open (CSD-032 REQ-24). */
+.year-block + .year-block { border-top: 1px solid var(--border); }
+.year-toggle {
+  display: flex; align-items: center; gap: 24px; width: 100%; padding: 12px 20px;
+  font: inherit; font-size: 14px; color: var(--text); text-align: left; background: none; border: none; cursor: pointer;
+}
+.year-toggle:hover { background: var(--bg); }
+.year-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.year-chevron { width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .15s; flex-shrink: 0; }
+.year-toggle[aria-expanded="true"] .year-chevron { transform: rotate(45deg); }
+.year-title { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 40px; }
+.year-figure { display: inline-flex; gap: 8px; align-items: baseline; font-variant-numeric: tabular-nums; }
+.year-figure-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+.year-figure.negative { color: var(--negative); }
+/* The Category column stays in view while the twelve months scroll sideways. */
+.year-grid th:first-child, .year-grid td:first-child { position: sticky; left: 0; z-index: 1; background: var(--card-bg); }
+.year-grid tbody th { font-weight: 400; }
+.year-grid td.empty { color: var(--muted); opacity: .6; }
+.year-grid td.total-cell, .year-grid tr.total-row th, .year-grid tr.total-row td { font-weight: 600; }
+.year-grid tr.total-row th, .year-grid tr.total-row td { border-top: 1px solid var(--border); background: var(--bg); }
