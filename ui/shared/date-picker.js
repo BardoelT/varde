@@ -79,7 +79,8 @@ function closeCurrent() {
 /** The one picker of a field: the state of its view and the elements it draws. */
 function createPicker(input, options) {
   // The kind of a field can change after the picker is made: a statement period is a month, or a year for a yearly statement.
-  let kind = options.kind ?? kindOf(input);
+  const resolveKind = () => (typeof options.kind === 'function' ? options.kind() : (options.kind ?? kindOf(input)));
+  let kind = resolveKind();
   const popup = h('div', { class: 'date-picker', role: 'dialog', 'aria-modal': 'false' });
   const view = { level: kind === 'date' ? 'days' : kind === 'month' ? 'months' : 'years', year: 0, month: 0, focus: null };
   const self = { popup, input, close, open, isOpen: () => popup.isConnected };
@@ -92,16 +93,23 @@ function createPicker(input, options) {
 
   // A field that offers only some periods (CSD-036 REQ-12): the months as `yyyy-mm`, the years as numbers.
   const offered = () => options.offers?.() ?? null;
+  /** The first month or year of a field that offers everything from one period on, with no last one. */
+  const fromOf = () => offered()?.from ?? null;
+  const fromYear = () => Number(String(fromOf()).slice(0, 4));
   const offeredYears = () => {
     const offer = offered();
-    if (!offer) return [];
+    if (!offer || fromOf() !== null) return [];
     const years = kind === 'year' ? offer.years : offer.months.map((month) => Number(month.slice(0, 4)));
     return [...new Set(years.map(Number))].sort((a, b) => a - b);
   };
-  const monthOffered = (year, month) => !offered() || offered().months.includes(`${pad(year, 4)}-${pad(month + 1)}`);
-  const yearOffered = (year) => !offered() || offeredYears().includes(year);
-  const firstOffered = () => offeredYears()[0] ?? FIRST_YEAR;
-  const lastOffered = () => offeredYears().at(-1) ?? LAST_YEAR;
+  const monthOffered = (year, month) => {
+    if (!offered()) return true;
+    if (fromOf() !== null) return `${pad(year, 4)}-${pad(month + 1)}` >= String(fromOf());
+    return offered().months.includes(`${pad(year, 4)}-${pad(month + 1)}`);
+  };
+  const yearOffered = (year) => !offered() || (fromOf() !== null ? year >= fromYear() : offeredYears().includes(year));
+  const firstOffered = () => (fromOf() !== null ? fromYear() : (offeredYears()[0] ?? FIRST_YEAR));
+  const lastOffered = () => (fromOf() !== null ? LAST_YEAR : (offeredYears().at(-1) ?? LAST_YEAR));
   const container = () => input.closest('dialog, .filter-panel') ?? document.body;
 
   /** Moves the view to the date in the field when it is valid, else to today. */
@@ -114,7 +122,7 @@ function createPicker(input, options) {
   /** The latest period a limited field offers, for an empty field to open on. */
   function latestOffered() {
     const offer = offered();
-    if (!offer) return null;
+    if (!offer || fromOf() !== null) return null;
     const latest = kind === 'year' ? offer.years.map(String).sort().at(-1) : [...offer.months].sort().at(-1);
     return latest ? parse(kind, latest) : null;
   }
@@ -308,7 +316,7 @@ function createPicker(input, options) {
 
   function open({ focusGrid = false } = {}) {
     if (current && current !== self) closeCurrent();
-    kind = options.kind ?? kindOf(input);
+    kind = resolveKind();
     syncToField();
     view.level = kind === 'date' ? 'days' : kind === 'month' ? 'months' : 'years';
     if (!popup.id) popup.id = `date-picker-${++counter}`;
@@ -394,7 +402,7 @@ function createPicker(input, options) {
       input.focus();
     } else if (event.key === 'Tab') {
       close();
-    } else if (event.key === 'ArrowDown') {
+    } else if (event.key === 'ArrowDown' || ((event.key === 'Enter' || event.key === ' ') && input.tagName !== 'INPUT' && !self.isOpen())) {
       event.preventDefault();
       if (!self.isOpen()) open({ focusGrid: true });
       else {
@@ -409,7 +417,7 @@ function createPicker(input, options) {
   // Typing moves the picker to the text once it is a real date, month or year, and to today while it is not.
   input.addEventListener('input', () => {
     if (!self.isOpen()) return;
-    kind = options.kind ?? kindOf(input);
+    kind = resolveKind();
     syncToField();
     view.level = kind === 'date' ? 'days' : kind === 'month' ? 'months' : 'years';
     render();
@@ -474,7 +482,7 @@ export function attachDatePicker(input, options = {}) {
   input.setAttribute('aria-expanded', 'false');
   listenOnDocument();
   // A field that offers only some periods shows its period and cannot be typed in (CSD-036 REQ-12).
-  if (options.offers) input.readOnly = true;
+  if (options.offers && input.tagName === 'INPUT') input.readOnly = true;
   const picker = createPicker(input, options);
   const add = () => {
     if (input.parentNode && !input.parentNode.classList?.contains('date-field')) wrap(input, picker);
