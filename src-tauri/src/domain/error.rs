@@ -499,6 +499,9 @@ pub enum DomainError {
     /// Reported as: "Too many items in one request."
     #[error("Too many items in one request.")]
     TransactionInputTooLarge,
+    /// Reported as: "Choose a valid year or month."
+    #[error("Choose a valid year or month.")]
+    TransactionPeriodInvalid,
     /// Reported as: "Enter a name for the account."
     #[error("Enter a name for the account.")]
     TransactionAccountNameRequired,
@@ -683,6 +686,7 @@ impl DomainError {
             Self::TransactionRuleCategoryInvalid => "TRANSACTION_RULE_CATEGORY_INVALID",
             Self::TransactionRuleNotFound => "TRANSACTION_RULE_NOT_FOUND",
             Self::TransactionInputTooLarge => "TRANSACTION_INPUT_TOO_LARGE",
+            Self::TransactionPeriodInvalid => "TRANSACTION_PERIOD_INVALID",
             Self::TransactionAccountNameRequired => "TRANSACTION_ACCOUNT_NAME_REQUIRED",
             Self::TransactionAccountNameTooLong => "TRANSACTION_ACCOUNT_NAME_TOO_LONG",
             Self::TransactionAccountNameTaken => "TRANSACTION_ACCOUNT_NAME_TAKEN",

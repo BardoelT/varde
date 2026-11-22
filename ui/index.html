@@ -662,6 +662,30 @@
         </div>
 
         <div id="transactions-categories" role="tabpanel" aria-labelledby="transactions-tab-categories" hidden>
+          <div class="panel" id="transaction-spending">
+            <div class="panel-header">
+              <span class="panel-title">Spending per category</span>
+            </div>
+            <p class="empty-note" id="transaction-spending-empty" hidden>No spending yet. Import transactions to see where the money goes.</p>
+            <div class="donut-row" id="transaction-spending-donuts" hidden>
+              <section class="donut-card" id="transaction-donut-year" aria-labelledby="transaction-donut-year-title">
+                <div class="donut-head">
+                  <h2 class="donut-title" id="transaction-donut-year-title">Per year</h2>
+                  <select class="table-select" id="transaction-donut-year-select" aria-labelledby="transaction-donut-year-title"></select>
+                </div>
+                <div class="donut-chart" id="transaction-donut-year-chart"></div>
+                <ul class="legend donut-legend" id="transaction-donut-year-legend"></ul>
+              </section>
+              <section class="donut-card" id="transaction-donut-month" aria-labelledby="transaction-donut-month-title">
+                <div class="donut-head">
+                  <h2 class="donut-title" id="transaction-donut-month-title">Per month</h2>
+                  <select class="table-select" id="transaction-donut-month-select" aria-labelledby="transaction-donut-month-title"></select>
+                </div>
+                <div class="donut-chart" id="transaction-donut-month-chart"></div>
+                <ul class="legend donut-legend" id="transaction-donut-month-legend"></ul>
+              </section>
+            </div>
+          </div>
           <div class="panel">
             <div class="panel-header">
               <span class="panel-title">Categories</span>

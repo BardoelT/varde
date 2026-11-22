@@ -16,6 +16,7 @@ import { state, accountName, categoryName, changed, connect, run, transactionLab
 import { initBulk, isBulk, clearSelection, endBulk, selectBox, syncBulk, pruneSelection, renderBulkCategories } from './transactions-bulk.js';
 import { initTransactionAccounts, renderAccounts } from './transactions-accounts.js';
 import { initTransactionCategories, renderCategories } from './transactions-categories.js';
+import { initTransactionsSpending, reloadTransactionsSpending } from './transactions-spending.js';
 import { initTransactionRules, renderRules, openRuleFromTransaction } from './transactions-rules.js';
 
 /** How many rows one step of "Load more" adds, and the rows shown first (CSD-032 REQ-15). */
@@ -220,6 +221,7 @@ export async function reloadTransactionsOverview() {
   renderCategorisation(overview.summary);
   await loadList();
   renderYearlyTotals(overview.totals);
+  await reloadTransactionsSpending();
 }
 
 export function initTransactionsOverview({ onChanged }) {
@@ -227,6 +229,7 @@ export function initTransactionsOverview({ onChanged }) {
   initTransactionSuggest({ categories: () => state.categories, changed });
   initBulk({ args: filterArgs, reload: loadList });
   initTransactionAccounts();
+  initTransactionsSpending();
   initTransactionCategories();
   initTransactionRules();
   $('transaction-manual-only').addEventListener('click', () => {

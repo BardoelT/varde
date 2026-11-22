@@ -14,6 +14,7 @@ mod import;
 mod insights;
 mod list;
 mod rules;
+mod spending;
 mod suggest;
 mod totals;
 

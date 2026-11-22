@@ -148,6 +148,8 @@ fn configure_with<R: Runtime>(
             transactions::list_transactions,
             transactions::yearly_transaction_totals,
             transactions::get_transaction_insights,
+            transactions::transaction_spending_periods,
+            transactions::transaction_spending_shares,
             transactions::set_transaction_category,
             transactions::unset_transaction_manual,
             transactions::delete_transaction,

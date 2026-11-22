@@ -112,3 +112,20 @@
 @media (prefers-reduced-motion: reduce) {
   .chart-tooltip, .chart-tooltip.is-open, .chart-inner [data-legend], .legend li, .chart-tooltip dt { transition: none !important; }
 }
+
+/* The donut charts of the Categories tab (CSD-032 REQ-35). */
+.donut-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; padding: 8px 16px 16px; }
+.donut-card { display: flex; flex-direction: column; gap: 12px; align-items: center; min-width: 0; }
+.donut-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
+.donut-title { font-size: 13px; font-weight: 600; }
+.donut-inner { position: relative; width: 220px; max-width: 100%; }
+.donut-svg { width: 100%; height: auto; display: block; }
+.donut-slice { stroke: var(--card-bg); stroke-width: 1; transition: opacity 140ms ease-out; cursor: default; }
+.donut-slice.dim { opacity: .7; }
+.donut-slice:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.donut-centre { fill: var(--text); }
+.donut-total { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.donut-total-label { font-size: 9px; fill: var(--muted); }
+.donut-legend { justify-content: center; }
+@media (prefers-reduced-motion: reduce) { .donut-slice { transition: none !important; } }
+.chart-tooltip .tip-category { display: flex; align-items: center; gap: 6px; }

@@ -14,9 +14,10 @@ use tauri_plugin_dialog::DialogExt;
 use super::AppState;
 use crate::domain::transactions::{
     Account, AccountId, CategorisationSummary, Category, CategoryId, Granularity, ImportSummary,
-    ReapplyScope, Rule, RuleDraft, RuleId, RulePeriod, RuleSuggestions, TransactionDate,
-    TransactionFilter, TransactionFilterInput, TransactionId, TransactionInsights, TransactionList,
-    TransactionYearlyTotal, Transactions, UNCATEGORIZED_ENTITY,
+    ReapplyScope, Rule, RuleDraft, RuleId, RulePeriod, RuleSuggestions, SpendingPeriod,
+    SpendingPeriods, SpendingShares, TransactionDate, TransactionFilter, TransactionFilterInput,
+    TransactionId, TransactionInsights, TransactionList, TransactionYearlyTotal, Transactions,
+    UNCATEGORIZED_ENTITY,
 };
 use crate::domain::DomainError;
 use crate::error::AppError;
@@ -161,6 +162,28 @@ pub fn get_transaction_insights(
     Ok(project
         .transactions()
         .insights(granularity.unwrap_or_default(), today))
+}
+
+/// The years and months that have at least one debit, newest first, for the
+/// dropdowns of the donut charts (CSD-032 REQ-35).
+#[tauri::command]
+pub fn transaction_spending_periods(
+    state: State<'_, AppState>,
+) -> Result<SpendingPeriods, AppError> {
+    let project = state.project()?;
+    Ok(project.transactions().spending_periods())
+}
+
+/// What was spent per category in one year (`2026`) or month (`2026-11`), for
+/// a donut chart (CSD-032 REQ-35).
+#[tauri::command]
+pub fn transaction_spending_shares(
+    state: State<'_, AppState>,
+    period: String,
+) -> Result<SpendingShares, AppError> {
+    let period = SpendingPeriod::parse(&period)?;
+    let project = state.project()?;
+    Ok(project.transactions().spending_shares(period))
 }
 
 /// Sets the category of a transaction by hand; no category means

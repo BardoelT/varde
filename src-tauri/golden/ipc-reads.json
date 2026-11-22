@@ -4007,6 +4007,78 @@
     "undo_label": null,
     "unsaved_changes": false
   },
+  "transaction_spending_periods": {
+    "months": [
+      "2026-10"
+    ],
+    "years": [
+      2026
+    ]
+  },
+  "transaction_spending_shares_month": {
+    "slices": [
+      {
+        "amount": "45.10",
+        "colour_slot": 1,
+        "end": "0.033580",
+        "id": "id-20",
+        "name": "Groceries",
+        "percent_label": "3.36%",
+        "start": "0.000000"
+      },
+      {
+        "amount": "13.99",
+        "colour_slot": 2,
+        "end": "0.043997",
+        "id": "id-29",
+        "name": "Subscriptions",
+        "percent_label": "1.04%",
+        "start": "0.033580"
+      },
+      {
+        "amount": "1283.97",
+        "colour_slot": 7,
+        "end": "1.000000",
+        "id": "uncategorized",
+        "name": "Uncategorized",
+        "percent_label": "95.60%",
+        "start": "0.043997"
+      }
+    ],
+    "total": "1343.06"
+  },
+  "transaction_spending_shares_year": {
+    "slices": [
+      {
+        "amount": "45.10",
+        "colour_slot": 1,
+        "end": "0.033580",
+        "id": "id-20",
+        "name": "Groceries",
+        "percent_label": "3.36%",
+        "start": "0.000000"
+      },
+      {
+        "amount": "13.99",
+        "colour_slot": 2,
+        "end": "0.043997",
+        "id": "id-29",
+        "name": "Subscriptions",
+        "percent_label": "1.04%",
+        "start": "0.033580"
+      },
+      {
+        "amount": "1283.97",
+        "colour_slot": 7,
+        "end": "1.000000",
+        "id": "uncategorized",
+        "name": "Uncategorized",
+        "percent_label": "95.60%",
+        "start": "0.043997"
+      }
+    ],
+    "total": "1343.06"
+  },
   "yearly_bank_totals": [
     {
       "closing_balance": "1500.00",
