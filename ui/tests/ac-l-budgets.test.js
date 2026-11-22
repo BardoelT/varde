@@ -278,6 +278,8 @@ test('test_csd037_ac_18_1_the_tab_opens_on_the_month_view', async () => {
   const app = await budgetsPage();
   assert.equal(app.$('budgets-view-month').getAttribute('aria-pressed'), 'true');
   assert.equal(app.$('budgets-view-year').getAttribute('aria-pressed'), 'false');
+  assert.deepEqual([...app.$('budgets-view-year').parentElement.children].map((button) => app.text(button)), ['Year', 'Month'], 'the order of the choice, as Yearly | Monthly on the Insights tab');
+  assert.equal(app.$('budgets-view-year').closest('.panel-header').classList.contains('budgets-header'), true, 'with the space of the Insights header');
   assert.equal(app.textOf('budgets-month'), '2026-10 MTD');
   assert.equal(app.callsOf('get_budget_year').length, 0);
   assert.equal(app.isShown(app.$('budgets-year')), false);
