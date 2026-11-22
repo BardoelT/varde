@@ -1,11 +1,11 @@
 ---
 id: CSD-032
 title: Transactions
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.47
+version: 0.48
 last_updated: 22/11/2026
-related: [CSD-000, CSD-025, CSD-034, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033, CSD-035]
+related: [CSD-000, CSD-025, CSD-036, CSD-034, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033, CSD-035]
 ---
 
 # CSD-032: Transactions
@@ -1378,7 +1378,7 @@ Scenario: The fixture over the commands
 ```
 
 **REQ-35: Spending per category as donut charts** *(ubiquitous)*
-The Categories tab shall show, in a panel "Spending per category" above the Categories panel, two donut charts side by side (stacked on a narrow window): a yearly one with a year dropdown and a monthly one with a month dropdown. A donut shows the spending (the debits, never the credits) of one period as one slice per category that has spending in it, Uncategorized included, so a category without spending has no slice. The slices run clockwise from 12 o'clock in the order of the Categories tab with Uncategorized last, not by size, each in the colour slot of its category (CSD-033 REQ-6, CSD-025). The centre of the ring shows the total spent in the period, and the tooltip of a slice has the category as its title and two rows, the amount and the percentage of the total (in Discrete mode only the percentage). Each donut has a legend of its categories with swatches; hovering a slice or a legend item highlights that category as in CSD-025. The year dropdown lists the calendar years that have at least one debit, newest first. The month dropdown is one list of the months that have at least one debit, newest first, each shown as the month name and the year ("November 2026", in the chosen language). Both dropdowns start on their newest option and are independent: choosing a year does not change the month. While no transaction has a debit, the panel shows a short empty note instead of the donuts and the dropdowns. Every category with spending gets a slice: there is no "Other" group, and the eight colour slots repeat as in CSD-033. A period with one category is a full ring at 100.00%; a very small slice has no minimum width but keeps its legend entry and tooltip; each percentage is rounded on its own (two decimals, half-up, CSD-000 CON-8) and is not adjusted to add up to 100. While Discrete mode is on (CSD-030), the donuts are drawn but the amounts in the centre, the tooltip and the accessible names are hidden; the percentages stay. Rust delivers the periods, the amounts, the percentages and the colour slots; the frontend only draws the arcs (CSD-025 REQ-5, CSD-000 CON-1). The donuts cover every transaction, whatever the filters of the list are, and follow every change of the transactions and the categories. The percentage ban of CSD-033 NG-4 applies to the Insights tab only.
+The Categories tab shall show, in a panel "Spending per category" above the Categories panel, two donut charts side by side (stacked on a narrow window): a yearly one with a year field and a monthly one with a month field. A donut shows the spending (the debits, never the credits) of one period as one slice per category that has spending in it, Uncategorized included, so a category without spending has no slice. The slices run clockwise from 12 o'clock in the order of the Categories tab with Uncategorized last, not by size, each in the colour slot of its category (CSD-033 REQ-6, CSD-025). The centre of the ring shows the total spent in the period, and the tooltip of a slice has the category as its title and two rows, the amount and the percentage of the total (in Discrete mode only the percentage). Each donut has a legend of its categories with swatches; hovering a slice or a legend item highlights that category as in CSD-025. The year field and the month field are read-only fields with a calendar button that open the date picker of CSD-036 on the years (a decade overview, without months) and on the months, and show their period as "2026" and as the month name and the year ("November 2026", in the chosen language). Only a year or month that has at least one debit can be chosen; the other ones are grey and not selectable (CSD-036 REQ-12). Both fields start on the newest year and month with a debit and are independent: choosing a year does not change the month. While no transaction has a debit, the panel shows a short empty note instead of the donuts and the fields. Every category with spending gets a slice: there is no "Other" group, and the eight colour slots repeat as in CSD-033. A period with one category is a full ring at 100.00%; a very small slice has no minimum width but keeps its legend entry and tooltip; each percentage is rounded on its own (two decimals, half-up, CSD-000 CON-8) and is not adjusted to add up to 100. While Discrete mode is on (CSD-030), the donuts are drawn but the amounts in the centre, the tooltip and the accessible names are hidden; the percentages stay. Rust delivers the periods, the amounts, the percentages and the colour slots; the frontend only draws the arcs (CSD-025 REQ-5, CSD-000 CON-1). The donuts cover every transaction, whatever the filters of the list are, and follow every change of the transactions and the categories. The percentage ban of CSD-033 NG-4 applies to the Insights tab only.
 
 ```gherkin
 @AC-35.1
@@ -1397,15 +1397,17 @@ Scenario: Spending per category for a month
   And the periods offered are 2026-11 and 2026-10, newest first, and not 2026-12
 
 @AC-35.3
-Scenario: The dropdowns list only periods with spending
+Scenario: Only periods with spending can be chosen
   Given debits in 2025 and 2026 and a year 2024 with only credits
-  Then the year dropdown lists 2026 and 2025, and not 2024
-  And both donuts start on the newest option, and choosing 2025 leaves the month as it was
+  When the user opens the picker of the year field
+  Then 2025 and 2026 can be chosen and 2024 and every other year are grey and not selectable
+  And both donuts start on the newest year and month, and choosing 2025 leaves the month as it was
+  And the picker of the month field greys every month without a debit and opens on the latest month with one
 
 @AC-35.4
 Scenario: The month names follow the language
   Given the language Dutch and a debit in 2026-11
-  Then the month dropdown shows "november 2026"
+  Then the month field shows "november 2026"
   And with English it shows "November 2026"
 
 @AC-35.5
@@ -1437,7 +1439,7 @@ Scenario: A single category, a tiny slice, rounding
 @AC-35.9
 Scenario: No spending
   Given transactions with only credits, or none
-  Then the panel shows the empty note and no donuts and no dropdowns
+  Then the panel shows the empty note and no donuts and no fields
 
 @AC-35.10
 Scenario: Discrete mode
@@ -1453,7 +1455,7 @@ Scenario: The filters of the list do not matter
 @AC-35.12
 Scenario: The page follows changes
   When the user sets the category of a debit, adds a category or imports transactions
-  Then the donuts and the dropdowns show the new state
+  Then the donuts and the fields, with the periods they allow, show the new state
 ```
 
 ## 5. Interfaces and contracts
@@ -1518,6 +1520,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-6: Resolved (22/11/2026): CSD-035 REQ-2 gets one sentence for the second panel of the Categories tab (CSD-035 v0.3).
 
 ## 9. Changelog
+- 0.48 (22/11/2026): The year and month dropdowns of the donut charts become read-only fields with the date picker of CSD-036, where only the years and months with spending can be chosen and the others are grey (REQ-35, AC-35.3, AC-35.4, AC-35.9, AC-35.12; CSD-036 REQ-12). Owner request. Back to `draft` until re-approved.
 - 0.47 (22/11/2026): Two donut charts of the spending per category, yearly and monthly, each with a dropdown, in a panel above the Categories panel (new REQ-35, AC-35.1 to AC-35.12; NG-2; commands `transaction_spending_periods` and `transaction_spending_shares` in section 5). GitHub issue 78 and the grill-me interview. Owner answers: debits only; category-list order with Uncategorized last; percentages in the tooltip and the total in the centre; no "Other" group; Discrete mode hides the amounts but not the percentages; the month label is "November 2026" and CSD-035 gets a line for the second panel. Back to `draft` until re-approved.
 - 0.46 (19/11/2026): The categorized share in the header of the Categories panel is centered instead of right-aligned (REQ-31, AC-31.2). GitHub issue 79, owner request. Back to `draft` until re-approved.
 - 0.45 (19/11/2026): The categorized share moves from the header of the Yearly totals panel to the header of the Categories panel (REQ-31, AC-31.2, REQ-24, AC-24.15), and the income, spent and net in the header of a year are aligned to the right of the row (REQ-24, AC-24.15). GitHub issue 79, owner request. Back to `draft` until re-approved.

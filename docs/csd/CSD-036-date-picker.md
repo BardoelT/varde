@@ -1,9 +1,9 @@
 ---
 id: CSD-036
 title: Date picker
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.2
+version: 0.3
 last_updated: 22/11/2026
 related: [CSD-000, CSD-022, CSD-024, CSD-028, CSD-030, CSD-032]
 ---
@@ -16,11 +16,12 @@ Every date in the app is typed as `dd/mm/yyyy` and every month as `yyyy-mm`, wit
 ## 2. Scope
 ### 2.1 In scope
 - A picker for every full date field (`dd/mm/yyyy`) and month field (`yyyy-mm`) of the forms and of the table filters (CSD-028), and, where a field asks for only a year, a picker that opens on the decade overview.
+- A picker that offers only some periods, the other ones grey and not selectable (REQ-12), used by the year and month fields of the donut charts of CSD-032 REQ-35.
 - How the picker opens and closes, its three views and how the user moves between them, what a pick writes into the field, its keyboard use, its place on the screen, and its texts.
 
 ### 2.2 Non-goals
 - NG-1: Selecting a range of dates, a time of day, or several dates. A picker selects one date, one month or one year.
-- NG-2: Blocking or greying out dates, for example before a purchase date or in the future. The picker allows every real date; Rust judges (REQ-8).
+- NG-2: Blocking or greying out dates in the fields of forms and filters, for example before a purchase date or in the future. Those pickers allow every real date and Rust judges (REQ-8). Only a field that is given the periods it offers (REQ-12) greys out the others.
 - NG-3: The browser's own `<input type="date">`, and any change to the typed formats, the mask or the validation in Rust.
 - NG-4: A "Today" or "Clear" button, week numbers, a choice of the first weekday, and remembering the view between openings.
 - NG-5: A change to what a field means: which fields are required, their labels, and their errors stay as the owning CSD says.
@@ -231,7 +232,7 @@ Scenario: The picker follows what is typed
 ```
 
 **REQ-8: Every real date is allowed** *(ubiquitous)*
-The picker shall offer every real calendar date from 01/01/0001 to 31/12/9999 and shall not grey out or block any of them; whether a date is acceptable stays Rust's decision when the form is saved, with the error the owning CSD gives.
+Unless the field is given the periods it offers (REQ-12), the picker shall offer every real calendar date from 01/01/0001 to 31/12/9999 and shall not grey out or block any of them; whether a date is acceptable stays Rust's decision when the form is saved, with the error the owning CSD gives.
 
 ```gherkin
 @AC-8.1
@@ -240,6 +241,41 @@ Scenario: A sell date before the purchase date can be picked
   When the user picks 01/05/2026 as the sell date
   Then the field holds "01/05/2026" and no day is disabled
   And saving shows the error of CSD-019, not the picker
+```
+
+**REQ-12: A field may offer only some periods** *(optional)*
+Where a field is given the months or the years it offers, the picker shall show every other month or year grey and not selectable, in the months level and in the years level, with a name that says it is not available; its arrows shall not go past the earliest and the latest period offered; and it shall open on the period in the field, or on the latest period offered while the field is empty. Such a field is read-only and shows its period as the year ("2026") or as the month name and the year ("November 2026"); it has the calendar button and the keys of REQ-10, and no typing (REQ-7 does not apply).
+
+```gherkin
+@AC-12.1
+Scenario: Only the months with data can be chosen
+  Given a field that offers the months 2026-11, 2026-10 and 2025-03
+  When the user opens its picker on the months of 2026
+  Then "Oct" and "Nov" can be chosen and the other ten months are grey and disabled
+  When the user clicks the header "2026"
+  Then in the years level 2025 and 2026 can be chosen and the other years are grey and disabled
+
+@AC-12.2
+Scenario: The arrows stop at the ends of the data
+  Given a field that offers the years 2025 and 2026
+  When the user opens its picker on the years
+  Then the previous and the next arrow are disabled, as 2020 – 2029 holds the earliest and the latest year offered
+  And given the months 2026-11 and 2025-03 the previous arrow of the months level of 2025 is disabled
+
+@AC-12.3
+Scenario: Opening and choosing
+  Given a field that offers the years 2025 and 2026 and holds 2025
+  When the user opens its picker
+  Then 2025 is shown as selected
+  When the user chooses 2026
+  Then the field shows "2026" and the picker is closed
+  And a field that is empty opens on the latest period offered
+
+@AC-12.4
+Scenario: The field is read-only
+  Given such a field
+  When the user types in it
+  Then its text does not change
 ```
 
 **REQ-9: Place on the screen** *(ubiquitous)*
@@ -320,7 +356,7 @@ The picker is frontend only: there is no Rust command, no change to the project 
 ## 7. Verification
 | ACs | Proven by |
 |---|---|
-| AC-1 to AC-11 | `npm test`: DOM tests in `ui/tests/`, titled `test_csd036_ac_n_m_...`, with a fixed clock for today |
+| AC-1 to AC-12 | `npm test`: DOM tests in `ui/tests/`, titled `test_csd036_ac_n_m_...`, with a fixed clock for today |
 | CON-2 | The existing CSP test of `ui/tests/csp.test.js`, which also reads the new file |
 | Manual | Open the example project and the picker of a form in a dialog, a filter and a date near the bottom of the window |
 
@@ -328,5 +364,6 @@ The picker is frontend only: there is no Rust command, no change to the project 
 - OQ-1: Resolved (22/11/2026): year fields do exist, the period of a yearly statement (a month field whose length becomes 4), and they show only the years (REQ-1, AC-1.3).
 
 ## 9. Changelog
+- 0.3 (22/11/2026): A picker may be given the months or years it offers; the others are grey and not selectable (new REQ-12, AC-12.1 to AC-12.4; NG-2, REQ-8), for the year and month fields of the donut charts of CSD-032 REQ-35. Owner request. Back to `draft` until re-approved.
 - 0.2 (22/11/2026): A year field shows only the years level, never the months (REQ-1, AC-1.3), and the kind of a field is read when the picker opens, so the period of a yearly statement is a year field. Owner request. Back to `draft` until re-approved.
 - 0.1 (22/11/2026): First draft, from GitHub issue 83 and the grill-me interview. Owner answers: a picker on every date field, month field and filter field, each opening on its own level; click, calendar button or Down opens it, Escape, outside click, Tab or a pick closes it, and typing keeps working; days, months and years levels with arrows left and right of the centred header; Monday first, six rows, dimmed neighbouring days that can be chosen, today marked, no extra buttons; every real date allowed; keyboard and accessibility as a dialog with a grid; translated and never blurred; frontend only with no Rust and no new dependency; the picker lives in the dialog of its field and flips above when there is no room.
