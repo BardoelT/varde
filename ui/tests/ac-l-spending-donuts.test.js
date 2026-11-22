@@ -25,26 +25,40 @@ async function categoriesTab({ periods = PERIODS, shares = { 2026: SHARES, '2026
 }
 
 const slices = (app, stem) => [...app.$(`${stem}-chart`).querySelectorAll('.donut-slice')];
-const options = (app, id) => [...app.$(id).querySelectorAll('option')].map((option) => app.text(option));
+const field = (app, stem) => app.$(`transaction-donut-${stem}-field`);
+const picker = (app) => app.document.querySelector('.date-picker');
+const enabled = (app) => [...picker(app).querySelectorAll('.dp-choice:not(:disabled)')].map((cell) => app.text(cell));
 const legend = (app, stem) => [...app.$(`${stem}-legend`).querySelectorAll('li')].map((item) => app.text(item));
 
-test('test_csd032_ac_35_3_the_dropdowns_list_only_the_periods_with_spending_newest_first', async () => {
+test('test_csd032_ac_35_3_only_the_periods_with_spending_can_be_chosen_and_the_others_are_grey', async () => {
   const app = await categoriesTab();
-  assert.deepEqual(options(app, 'transaction-donut-year-select'), ['2026', '2025']);
-  assert.deepEqual(options(app, 'transaction-donut-month-select'), ['November 2026', 'October 2026']);
-  assert.equal(app.$('transaction-donut-year-select').value, '2026');
-  assert.equal(app.$('transaction-donut-month-select').value, '2026-11');
-  await app.choose(app.$('transaction-donut-year-select'), '2025');
-  assert.equal(app.$('transaction-donut-month-select').value, '2026-11', 'the month does not follow the year');
+  assert.equal(field(app, 'year').value, '2026');
+  assert.equal(field(app, 'month').value, 'November 2026');
+  assert.equal(field(app, 'year').readOnly, true);
+  await app.click(field(app, 'year'));
+  assert.deepEqual(enabled(app), ['2025', '2026'], 'only the years with a debit');
+  assert.equal(picker(app).querySelectorAll('.dp-choice:disabled').length, 8, 'the others are disabled');
+  await app.click(picker(app).querySelector('[data-choice="2025"]'));
+  assert.equal(field(app, 'year').value, '2025');
+  assert.equal(field(app, 'month').value, 'November 2026', 'the month does not follow the year');
   assert.deepEqual(app.callsOf('transaction_spending_shares').at(-1).args, { period: '2025' });
+  await app.click(field(app, 'month'));
+  assert.equal(app.text(picker(app).querySelector('.dp-title')), '2026', 'the month picker opens on the latest month with a debit');
+  assert.deepEqual(enabled(app), ['Oct', 'Nov'], 'only the months with a debit');
   app.close();
 });
 
-test('test_csd032_ac_35_4_the_month_names_follow_the_language', async () => {
+test('test_csd032_ac_35_4_the_month_names_follow_the_language_in_dutch', async () => {
   const reads = exampleReads();
   reads.get_preferences = { ...reads.get_preferences, language: 'nl' };
   const app = await categoriesTab({ reads });
-  assert.deepEqual(options(app, 'transaction-donut-month-select'), ['november 2026', 'oktober 2026']);
+  assert.equal(field(app, 'month').value, 'november 2026');
+  app.close();
+});
+
+test('test_csd032_ac_35_4_the_month_field_shows_the_month_name_in_english', async () => {
+  const app = await categoriesTab();
+  assert.equal(field(app, 'month').value, 'November 2026');
   app.close();
 });
 

@@ -77,9 +77,9 @@ function closeCurrent() {
 }
 
 /** The one picker of a field: the state of its view and the elements it draws. */
-function createPicker(input) {
+function createPicker(input, options) {
   // The kind of a field can change after the picker is made: a statement period is a month, or a year for a yearly statement.
-  let kind = kindOf(input);
+  let kind = options.kind ?? kindOf(input);
   const popup = h('div', { class: 'date-picker', role: 'dialog', 'aria-modal': 'false' });
   const view = { level: kind === 'date' ? 'days' : kind === 'month' ? 'months' : 'years', year: 0, month: 0, focus: null };
   const self = { popup, input, close, open, isOpen: () => popup.isConnected };
@@ -88,14 +88,35 @@ function createPicker(input) {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth(), day: now.getDate() };
   };
-  const selected = () => parse(kind, input.value);
+  const selected = () => parse(kind, options.current ? options.current() : input.value);
+
+  // A field that offers only some periods (CSD-036 REQ-12): the months as `yyyy-mm`, the years as numbers.
+  const offered = () => options.offers?.() ?? null;
+  const offeredYears = () => {
+    const offer = offered();
+    if (!offer) return [];
+    const years = kind === 'year' ? offer.years : offer.months.map((month) => Number(month.slice(0, 4)));
+    return [...new Set(years.map(Number))].sort((a, b) => a - b);
+  };
+  const monthOffered = (year, month) => !offered() || offered().months.includes(`${pad(year, 4)}-${pad(month + 1)}`);
+  const yearOffered = (year) => !offered() || offeredYears().includes(year);
+  const firstOffered = () => offeredYears()[0] ?? FIRST_YEAR;
+  const lastOffered = () => offeredYears().at(-1) ?? LAST_YEAR;
   const container = () => input.closest('dialog, .filter-panel') ?? document.body;
 
   /** Moves the view to the date in the field when it is valid, else to today. */
   function syncToField() {
-    const found = selected() ?? today();
+    const found = selected() ?? latestOffered() ?? today();
     view.year = found.year;
     view.month = found.month;
+  }
+
+  /** The latest period a limited field offers, for an empty field to open on. */
+  function latestOffered() {
+    const offer = offered();
+    if (!offer) return null;
+    const latest = kind === 'year' ? offer.years.map(String).sort().at(-1) : [...offer.months].sort().at(-1);
+    return latest ? parse(kind, latest) : null;
   }
 
   function place() {
@@ -113,8 +134,11 @@ function createPicker(input) {
 
   /** Writes a pick into the field, as typing would, and closes. */
   function pick(parts) {
-    input.value = write(kind, parts);
-    input.dispatchEvent(new Event('input', { bubbles: true }));
+    if (options.onPick) options.onPick(write(kind, parts));
+    else {
+      input.value = write(kind, parts);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
     close();
     input.focus();
   }
@@ -187,7 +211,7 @@ function createPicker(input) {
     const buttons = entries.map((entry) => {
       const button = h(
         'button',
-        { type: 'button', role: 'gridcell', class: `dp-cell dp-choice${entry.current ? ' today' : ''}${entry.selected ? ' selected' : ''}`, 'aria-selected': String(entry.selected), 'aria-current': entry.current ? 'date' : null, disabled: entry.disabled, tabindex: '-1', 'data-choice': String(entry.value) },
+        { type: 'button', role: 'gridcell', class: `dp-cell dp-choice${entry.current ? ' today' : ''}${entry.selected ? ' selected' : ''}`, 'aria-selected': String(entry.selected), 'aria-current': entry.current ? 'date' : null, 'aria-label': entry.disabled ? t('{name} (not available)', { name: entry.name ?? entry.label }) : null, disabled: entry.disabled, tabindex: '-1', 'data-choice': String(entry.value) },
         entry.label,
       );
       button.addEventListener('click', () => onPick(entry.value));
@@ -203,14 +227,15 @@ function createPicker(input) {
     const now = today();
     const entries = Array.from({ length: 12 }, (_, month) => ({
       label: shortMonthName(month),
+      name: `${monthName(month)} ${view.year}`,
       value: month,
       current: now.year === view.year && now.month === month,
       selected: Boolean(picked) && picked.year === view.year && picked.month === month,
-      disabled: false,
+      disabled: !monthOffered(view.year, month),
     }));
     const step = (delta) => () => { view.year += delta; render(); };
     return [
-      header(String(view.year), t('Choose a year'), () => { view.level = 'years'; render(); }, arrow(t('Previous year'), '‹', view.year <= FIRST_YEAR, step(-1)), arrow(t('Next year'), '›', view.year >= LAST_YEAR, step(1))),
+      header(String(view.year), t('Choose a year'), () => { view.level = 'years'; render(); }, arrow(t('Previous year'), '‹', view.year <= Math.max(FIRST_YEAR, firstOffered()), step(-1)), arrow(t('Next year'), '›', view.year >= Math.min(LAST_YEAR, lastOffered()), step(1))),
       renderChoices(entries, 4, (month) => {
         if (kind === 'month') {
           pick({ year: view.year, month, day: 1 });
@@ -231,11 +256,11 @@ function createPicker(input) {
       value: start + index,
       current: today().year === start + index,
       selected: Boolean(picked) && picked.year === start + index,
-      disabled: !inRange(start + index),
+      disabled: !inRange(start + index) || !yearOffered(start + index),
     }));
     const step = (delta) => () => { view.year += delta; render(); };
     return [
-      header(`${start} – ${start + 9}`, '', null, arrow(t('Previous decade'), '‹', start <= 0, step(-10)), arrow(t('Next decade'), '›', start + 10 > LAST_YEAR, step(10))),
+      header(`${start} – ${start + 9}`, '', null, arrow(t('Previous decade'), '‹', start <= 0 || (Boolean(offered()) && decadeOf(firstOffered()) >= start), step(-10)), arrow(t('Next decade'), '›', start + 10 > LAST_YEAR || (Boolean(offered()) && decadeOf(lastOffered()) <= start), step(10))),
       renderChoices(entries, 5, (year) => {
         view.year = year;
         if (kind === 'year') {
@@ -270,7 +295,7 @@ function createPicker(input) {
 
   function open({ focusGrid = false } = {}) {
     if (current && current !== self) closeCurrent();
-    kind = kindOf(input);
+    kind = options.kind ?? kindOf(input);
     syncToField();
     view.level = kind === 'date' ? 'days' : kind === 'month' ? 'months' : 'years';
     if (!popup.id) popup.id = `date-picker-${++counter}`;
@@ -371,7 +396,7 @@ function createPicker(input) {
   // Typing moves the picker to the text once it is a real date, month or year, and to today while it is not.
   input.addEventListener('input', () => {
     if (!self.isOpen()) return;
-    kind = kindOf(input);
+    kind = options.kind ?? kindOf(input);
     syncToField();
     view.level = kind === 'date' ? 'days' : kind === 'month' ? 'months' : 'years';
     render();
@@ -429,13 +454,15 @@ function wrap(input, picker) {
  * Gives a masked field its picker and calendar button (CSD-036 REQ-1). A field made in script is not in the page
  * yet, so its button is added once the script that built it has finished.
  */
-export function attachDatePicker(input) {
+export function attachDatePicker(input, options = {}) {
   if (input.dataset.picker) return;
   input.dataset.picker = 'on';
   input.setAttribute('aria-haspopup', 'dialog');
   input.setAttribute('aria-expanded', 'false');
   listenOnDocument();
-  const picker = createPicker(input);
+  // A field that offers only some periods shows its period and cannot be typed in (CSD-036 REQ-12).
+  if (options.offers) input.readOnly = true;
+  const picker = createPicker(input, options);
   const add = () => {
     if (input.parentNode && !input.parentNode.classList?.contains('date-field')) wrap(input, picker);
   };

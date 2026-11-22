@@ -424,3 +424,8 @@ button.dp-title:hover { background: var(--bg); }
 .dp-cell:disabled { opacity: .3; cursor: default; }
 .dp-cell:focus-visible, .dp-arrow:focus-visible, button.dp-title:focus-visible, .date-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 @media (prefers-reduced-motion: reduce) { .date-picker * { transition: none !important; } }
+
+/* The period fields of the donut charts: read-only, opened like a date field (CSD-032 REQ-35). */
+.donut-field { width: 11.5em; cursor: pointer; }
+.donut-head .date-field { width: 11.5em; }
+.donut-head .date-field input { width: 100%; }

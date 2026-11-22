@@ -417,3 +417,72 @@ test('test_csd036_ac_11_2_discrete_mode_does_not_blur_the_picker', async () => {
   assert.equal(picker(app).querySelector('.hidden-amount'), null);
   app.close();
 });
+
+// ---- REQ-12: a field that offers only some periods (the donut fields of CSD-032 REQ-35) ----
+
+const SPENDING = { years: [2026, 2025], months: ['2026-11', '2026-10', '2025-03'] };
+const SHARES = { total: '10.00', slices: [{ id: 'uncategorized', name: 'Uncategorized', colour_slot: 7, amount: '10.00', percent_label: '100.00%', start: '0.000000', end: '1.000000' }] };
+
+async function donutFields() {
+  const app = await openApp({ handlers: { transaction_spending_periods: SPENDING, transaction_spending_shares: SHARES } });
+  await app.click(app.item('transactions'));
+  await app.click(app.$('transactions-tab-categories'));
+  return app;
+}
+const monthField2 = (app) => app.$('transaction-donut-month-field');
+const yearField2 = (app) => app.$('transaction-donut-year-field');
+const choiceCells = (app) => [...picker(app).querySelectorAll('.dp-choice')];
+const available = (app) => choiceCells(app).filter((cell) => !cell.disabled).map((cell) => app.text(cell));
+
+test('test_csd036_ac_12_1_only_the_months_with_data_can_be_chosen', async () => {
+  await withClock(async () => {
+    const app = await donutFields();
+    await click(app, monthField2(app));
+    assert.equal(title(app), '2026');
+    assert.deepEqual(available(app), ['Oct', 'Nov']);
+    assert.equal(choiceCells(app).filter((cell) => cell.disabled).length, 10, 'the other ten months are grey and disabled');
+    assert.match(choiceCells(app)[0].getAttribute('aria-label'), /\(not available\)/);
+    await click(app, picker(app).querySelector('button.dp-title'));
+    assert.deepEqual(available(app), ['2025', '2026'], 'the years with data');
+    assert.equal(choiceCells(app).filter((cell) => cell.disabled).length, 8);
+    app.close();
+  });
+});
+
+test('test_csd036_ac_12_2_the_arrows_stop_at_the_ends_of_the_data', async () => {
+  await withClock(async () => {
+    const app = await donutFields();
+    await click(app, yearField2(app));
+    assert.equal(title(app), '2020 – 2029');
+    assert.deepEqual(arrows(app).map((arrow) => arrow.disabled), [true, true], 'the decade holds the earliest and the latest year');
+    key(app, yearField2(app), 'Escape');
+    await click(app, monthField2(app));
+    assert.deepEqual(arrows(app).map((arrow) => arrow.disabled), [false, true], 'at 2026 only the previous year is offered');
+    await click(app, arrows(app)[0]);
+    assert.equal(title(app), '2025');
+    assert.deepEqual(arrows(app).map((arrow) => arrow.disabled), [true, false], 'the previous arrow of 2025 is disabled');
+    app.close();
+  });
+});
+
+test('test_csd036_ac_12_3_opening_and_choosing', async () => {
+  await withClock(async () => {
+    const app = await donutFields();
+    await click(app, yearField2(app));
+    assert.ok(choiceCells(app).find((cell) => app.text(cell) === '2026').classList.contains('selected'), 'the year of the field is selected');
+    await click(app, picker(app).querySelector('[data-choice="2025"]'));
+    assert.equal(yearField2(app).value, '2025');
+    assert.equal(picker(app), null);
+    app.close();
+  });
+});
+
+test('test_csd036_ac_12_4_the_field_is_read_only', async () => {
+  const app = await donutFields();
+  assert.equal(yearField2(app).readOnly, true);
+  assert.equal(monthField2(app).readOnly, true);
+  // The browser refuses typing in a read-only field, so the attribute is what the test can prove.
+  assert.equal(monthField2(app).getAttribute('readonly'), '');
+  assert.equal(picker(app), null, 'focusing it does not open the picker');
+  app.close();
+});

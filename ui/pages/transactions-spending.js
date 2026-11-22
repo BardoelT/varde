@@ -8,6 +8,7 @@ import { t } from '../shared/i18n.js';
 import { monthName } from '../shared/month-names.js';
 import { svg, swatch, legendLabel, noSwatch, legendItem, bindHighlight, tooltipRow, createTooltip } from '../shared/chart.js';
 import { isDiscrete } from '../shared/discrete-mode.js';
+import { attachDatePicker } from '../shared/date-picker.js';
 
 /** The ring in a 200 x 200 box. */
 const CENTRE = 100;
@@ -110,13 +111,14 @@ async function load(donut) {
   if (request === donut.request && period === donut.period) draw(donut, shares);
 }
 
-/** Fills the dropdown with the periods, keeping the choice while it is still there, else the newest. */
-function fillSelect(donut, periods) {
-  const select = $(`${donut.stem}-select`);
+/** The periods Rust offered last: the years and the months with at least one debit, newest first. */
+let offered = { years: [], months: [] };
+
+/** Shows the period of the donut in its field: the choice is kept while it is still offered, else the newest. */
+function fillField(donut, periods) {
   const values = periods.map(String);
   donut.period = values.includes(donut.period) ? donut.period : values[0];
-  select.replaceChildren(...values.map((value) => h('option', { value, selected: value === donut.period }, donut.label(value))));
-  select.value = donut.period;
+  $(`${donut.stem}-field`).value = donut.label(donut.period);
 }
 
 /** Reloads both donuts from Rust, or shows the empty note while nothing was spent. */
@@ -130,20 +132,28 @@ export async function reloadTransactionsSpending() {
     donuts.month.period = null;
     return;
   }
-  fillSelect(donuts.year, periods.years);
-  fillSelect(donuts.month, periods.months);
+  offered = periods;
+  fillField(donuts.year, periods.years);
+  fillField(donuts.month, periods.months);
   await Promise.all([load(donuts.year), load(donuts.month)]);
 }
 
 export function initTransactionsSpending() {
-  for (const donut of Object.values(donuts)) {
-    $(`${donut.stem}-select`).addEventListener('change', async (event) => {
-      donut.period = event.target.value;
-      try {
-        await load(donut);
-      } catch (error) {
-        showToast(errorText(error));
-      }
+  for (const [donut, kind] of [[donuts.year, 'year'], [donuts.month, 'month']]) {
+    // Only the years and months with spending can be chosen; the picker greys out the others (CSD-036 REQ-12).
+    attachDatePicker($(`${donut.stem}-field`), {
+      kind,
+      offers: () => offered,
+      current: () => donut.period ?? '',
+      async onPick(text) {
+        donut.period = text;
+        $(`${donut.stem}-field`).value = donut.label(text);
+        try {
+          await load(donut);
+        } catch (error) {
+          showToast(errorText(error));
+        }
+      },
     });
   }
 }
