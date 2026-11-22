@@ -1,7 +1,7 @@
 ---
 id: CSD-036
 title: Date picker
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 0.1
 last_updated: 22/11/2026
