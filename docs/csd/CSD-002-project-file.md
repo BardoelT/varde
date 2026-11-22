@@ -3,9 +3,9 @@ id: CSD-002
 title: Project file (save, open, new)
 status: approved
 owner: Thijs Bardoel
-version: 3.3
-last_updated: 18/11/2026
-related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-024, CSD-026, CSD-027, CSD-032]
+version: 3.4
+last_updated: 22/11/2026
+related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-024, CSD-026, CSD-027, CSD-032, CSD-036]
 ---
 
 # CSD-002: Project file (save, open, new)
@@ -31,7 +31,7 @@ The app keeps all of the user's data in one local project file instead of a data
 - NG-4: Cloud sync or sharing of the file.
 - NG-5: Buttons for these actions inside the app window, and an Open Recent list.
 - NG-6: Remembering more than one file, and opening a file by double-clicking it in Finder.
-- NG-7: Migrating project files of an older or newer format inside the app. There is no migration framework or migration code in the app. The one exception is a one-off script outside the app that upgrades a file by hand (REQ-20), because the first changes of the schema after the release (the opening of a debt, CSD-011 REQ-30, and the origin of a settlement, CSD-026 v3.0) make older files with debts invalid.
+- NG-7: Migrating project files of an older or newer format inside the app. There is no migration framework in the app. The one exception inside the app is the upgrade of a version 4 file to version 5 on opening, which only adds an empty section (REQ-30, owner decision of 22/11/2026, after the first release). The one exception outside the app is a one-off script outside the app that upgrades a file by hand (REQ-20), because the first changes of the schema after the release (the opening of a debt, CSD-011 REQ-30, and the origin of a settlement, CSD-026 v3.0) make older files with debts invalid.
 - NG-8: An "Open example project" item or any other way to reach the example file from inside the app (GitHub issue 30 follow-up). The example is a file in the repository.
 
 ## 3. Definitions
@@ -346,7 +346,7 @@ Scenario Outline: The file cannot be opened
     | on a drive that is not mounted                       | PROJECT_OPEN_FAILED  |
     | in a folder that no longer exists                    | PROJECT_OPEN_FAILED  |
     | not a valid project file                             | PROJECT_INVALID_FILE |
-    | from a newer version of the app (format_version 5)   | PROJECT_FILE_NEWER   |
+    | from a newer version of the app (format_version 6)   | PROJECT_FILE_NEWER   |
 
 # @AC-11.2 (removed in v1.0): the notice is not repeated once the path is forgotten, see AC-12.2.
 ```
@@ -400,7 +400,7 @@ Scenario Outline: A file that exists but cannot be used keeps its path
   Examples:
     | problem                                            | code                 |
     | not a valid project file                           | PROJECT_INVALID_FILE |
-    | from a newer version of the app (format_version 5) | PROJECT_FILE_NEWER   |
+    | from a newer version of the app (format_version 6) | PROJECT_FILE_NEWER   |
 
 @AC-13.4
 Scenario Outline: A parent folder that is missing or unreadable keeps the path
@@ -465,15 +465,15 @@ Scenario: A name that exists only after appending asks first
 ```
 
 **REQ-16: Sections of the project file** *(ubiquitous)*
-The project file shall hold a `format_version` and the sections `income`, `investments`, `bank_accounts`, `debts`, `expenses`, `houses`, `settings`, `transactions`, `transaction_accounts`, `transaction_categories` and `transaction_rules`, and every section shall be present in every file the app writes.
+The project file shall hold a `format_version` and the sections `income`, `investments`, `bank_accounts`, `debts`, `expenses`, `houses`, `settings`, `transactions`, `transaction_accounts`, `transaction_categories`, `transaction_rules` and `budgets`, and every section shall be present in every file the app writes.
 
 ```gherkin
 @AC-16.1
 Scenario: A saved empty project has every section
   Given a new project
   When the user saves it to "example-a.varde"
-  Then the file has "format_version" 4
-  And the file has the sections "income", "investments", "bank_accounts", "debts", "expenses", "houses", "settings", "transactions", "transaction_accounts", "transaction_categories" and "transaction_rules"
+  Then the file has "format_version" 5
+  And the file has the sections "income", "investments", "bank_accounts", "debts", "expenses", "houses", "settings", "transactions", "transaction_accounts", "transaction_categories", "transaction_rules" and "budgets"
 ```
 
 **REQ-17: Strict schema** *(unwanted behaviour)*
@@ -504,7 +504,7 @@ If the `format_version` of a project file is higher than the version the app und
 ```gherkin
 @AC-18.1
 Scenario: File from a newer app version is rejected with its own message
-  Given a project file with "format_version" 5 and the app understands version 4
+  Given a project file with "format_version" 6 and the app understands version 5
   And the app holds 1 job in memory
   When the user opens it
   Then an error with code "PROJECT_FILE_NEWER" is shown
@@ -887,12 +887,12 @@ Scenario: The copy fails
 ```
 
 **REQ-29: An older file has its own error** *(unwanted behaviour)*
-If the `format_version` of a project file is at least 1 and lower than the version the app understands, then the app shall reject the file with the error code `PROJECT_FILE_OLDER`, whose message says that the file was made by an older version of the app and has to be upgraded first, and leave the in-memory project unchanged. A missing or zero version stays `PROJECT_INVALID_FILE` (REQ-18).
+If the `format_version` of a project file is at least 1, lower than the version the app understands and not 4 (REQ-30), then the app shall reject the file with the error code `PROJECT_FILE_OLDER`, whose message says that the file was made by an older version of the app and has to be upgraded first, and leave the in-memory project unchanged. A missing or zero version stays `PROJECT_INVALID_FILE` (REQ-18).
 
 ```gherkin
 @AC-29.1
 Scenario Outline: An older file is refused with its own message
-  Given a project file with "format_version" <version> and the app understands version 4
+  Given a project file with "format_version" <version> and the app understands version 5
   And the app holds 1 job in memory
   When the user opens it
   Then an error with code "PROJECT_FILE_OLDER" is shown
@@ -906,13 +906,44 @@ Scenario Outline: An older file is refused with its own message
     | 3       |
 ```
 
+**REQ-30: A version 4 file is upgraded on opening** *(event-driven)*
+When the user opens a project file with `format_version` 4, the app shall open it as a version 5 project with an empty `budgets` section (CSD-036 REQ-12), without changing the file on disk and without marking the project unsaved, and the next save shall write it as version 5 after the backup copy of REQ-28. A file with `format_version` 4 that already holds a `budgets` section is invalid (REQ-17).
+
+```gherkin
+@AC-30.1
+Scenario: A version 4 file opens
+  Given a valid project file "old.varde" with "format_version" 4 and a job "Example Employer"
+  When the user opens it
+  Then the project opens with the job "Example Employer" and no budgets
+  And "old.varde" is unchanged and the unsaved indicator is not shown
+
+@AC-30.2
+Scenario: The first save writes version 5
+  Given the project of AC-30.1 is open
+  When the user saves it
+  Then "old.varde.bak" is the original version 4 file
+  And "old.varde" has "format_version" 5 and the section "budgets"
+
+@AC-30.3
+Scenario: A version 4 file with a budgets section
+  Given a project file with "format_version" 4 and a "budgets" section
+  When the user opens it
+  Then it is rejected with error code "PROJECT_INVALID_FILE"
+
+@AC-30.4
+Scenario: Older versions are still refused
+  Given a project file with "format_version" 3
+  When the user opens it
+  Then it is rejected with error code "PROJECT_FILE_OLDER"
+```
+
 ## 5. Interfaces and contracts
 
 Menu: Rust builds the File menu items `project-new`, `project-open`, `project-save` and `project-save-as`. Choosing one emits the event `menu-action` with the item id to the frontend, which runs the flow of the action, including the confirmations of REQ-7.
 
 Commands: `take_startup_notice()` (returns the REQ-11 notice once, then nothing), `new_project()`, `open_project()`, `save_project()`, `save_project_as()`, `project_status()` (returns whether there are unsaved changes and whether a path is set) and `quit_app()` (quits without asking: the frontend has already confirmed, REQ-4). The save and open commands show the native dialog themselves and take no path from the frontend.
 
-Project file: JSON with the extension `.varde`, a top-level integer `format_version` (currently 3) and amounts as decimal strings with at most two decimals (CSD-000 CON-8, REQ-19). Each capability owns one section, and all sections are required (REQ-16):
+Project file: JSON with the extension `.varde`, a top-level integer `format_version` (currently 5) and amounts as decimal strings with at most two decimals (CSD-000 CON-8, REQ-19). Each capability owns one section, and all sections are required (REQ-16):
 
 | Section | Capability |
 |---|---|
@@ -926,10 +957,11 @@ Project file: JSON with the extension `.varde`, a top-level integer `format_vers
 | `transactions` | Bank transactions (CSD-032) |
 | `transaction_categories` | Categories of transactions (CSD-032) |
 | `transaction_rules` | Categorisation rules (CSD-032) |
+| `budgets` | Budgets per category and month (CSD-036) |
 
 Every period field in a section is called `period` (the pay period of a job, which was `pay_period` and now holds the same Monthly or Yearly value under the name `period`, and the period of an investment account, bank account, debt or house), so the names `pay_period`, `entry_period`, `statement_period` and `valuation_period` do not exist. The preferences of the person (theme, language) are not in the file (CSD-008, CSD-022). A house keeps its purchase as `purchase_date` and `purchase_amount` and its optional sale as `sell_date` and `sell_amount` (CSD-015, CSD-019).
 
-Since `format_version` 3 the file also holds the sections of CSD-032 (`transactions`, `transaction_categories`, `transaction_rules`). A version 2 file is invalid in this app until the script of REQ-20 has upgraded it, and an older app that opens a version 3 file shows `PROJECT_FILE_NEWER`. Transactions can make the file several MB, and it is still saved as one file (CSD-032 CON-5).
+Since `format_version` 3 the file also holds the sections of CSD-032 (`transactions`, `transaction_categories`, `transaction_rules`). A version 2 file is invalid in this app until the script of REQ-20 has upgraded it, and an older app that opens a version 3 file shows `PROJECT_FILE_NEWER`. Transactions can make the file several MB, and it is still saved as one file (CSD-032 CON-5). Since `format_version` 5 the file also holds the section `budgets` (CSD-036 REQ-12); a version 4 file is opened and upgraded in memory with an empty section (REQ-30), and written as version 5 on the next save.
 
 A debt keeps its opening as `opening_date` and `opening_amount`, both required (CSD-011 REQ-30); its closing is the existing `settlement` (CSD-026), which since `format_version` 2 also holds a required `origin`, `Sale` or `Manual`.
 
@@ -962,6 +994,7 @@ The unsaved flag and the project state live in Rust, so they are proven by `carg
 | Autosave (REQ-23, REQ-25, REQ-26, AC-3.3, AC-3.4, AC-4.3, AC-4.4) | `cargo test test_csd002_ac_23_` and so on, on a project in a temporary directory with a counting writer for AC-23.2, a read-only folder for AC-26.1 and the Tauri mock runtime for the window title. Synthetic data only |
 | Autosave preference (REQ-24) | `cargo test test_csd002_ac_24_` (default, missing or invalid key, remembered, read-only config folder) and a DOM test in `ui/tests/` for the switch, its Dutch label and the message of AC-26.1 and AC-24.4 (`test_csd002_ac_24_...`), with canned answers from the fake bridge |
 | Size limit, backup, older file (REQ-27 to REQ-29) | `cargo test test_csd002_ac_27_`, `test_csd002_ac_28_` and `test_csd002_ac_29_` (`storage/project/safety_tests.rs`, and `ipc_transactions_tests.rs` for AC-27.2). The limit is injected in the tests, so no test builds a 50 MiB project |
+| Version 4 file upgraded on opening (REQ-30) | `cargo test test_csd002_ac_30_` (`storage/project/`) |
 | Example project (REQ-21, REQ-22) | `cargo test example_project` (`src-tauri/src/example_project_tests.rs`: `test_csd002_ac_21_1_...` to `test_csd002_ac_21_4_...` and `test_csd002_ac_22_1_...`). After a deliberate change of the generator or of the format: `EXAMPLE_UPDATE=1 cargo test example`, then review the diff of `examples/` |
 | Manual checklist (native parts only) | The real File menu items and shortcuts (AC-9.1 to AC-9.4), the native save dialog, and a real window close without unsaved changes (AC-4.2: the mock runtime has no event loop to send it) |
 
@@ -978,6 +1011,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-6: (resolved 18/11/2026) Should the app give an older file its own message instead of the generic `PROJECT_INVALID_FILE`? Yes: `PROJECT_FILE_OLDER` (REQ-29).
 
 ## 9. Changelog
+- 3.4 (22/11/2026): The project file holds the section `budgets` and has `format_version` 5 (CSD-036 REQ-12, GitHub issue 82); the example of a newer file is version 6 and a version 4 file is upgraded in the app on opening (new REQ-30, AC-30.1 to AC-30.4; NG-7 and REQ-29 give way for it), by owner decision. Back to `draft` until re-approved.
 - 3.3 (18/11/2026): Pre-release audit, owner decisions. New REQ-27 (a project is never saved larger than the app opens: `PROJECT_TOO_LARGE`, import included), REQ-28 (one `.bak` copy per file per session; NG-2 narrowed) and REQ-29 (an older file gets `PROJECT_FILE_OLDER`; AC-18.3 now expects it). Error codes in section 5 extended. Back to `draft` until re-approved.
 - 3.2 (18/11/2026): Autosave (GitHub issue 71). NG-2 no longer excludes it (backup and recovery copies stay excluded). New section 4.1 with REQ-23 (write after every step, once per step, undo and redo included, project data only, no write without a path), REQ-24 (the "Autosave" preference, on by default), REQ-25 (switching on writes pending changes) and REQ-26 (a failed write keeps the change, shows `PROJECT_SAVE_FAILED` and retries on the next step); new AC-3.3, AC-3.4, AC-4.3, AC-4.4. New definitions "Autosave" and "Step", and scenarios elsewhere describe autosave off unless they say otherwise. Amends CSD-008 (NG-5), CSD-024 (REQ-9) and CSD-027 (NG-2, REQ-9). Owner decisions from the grill-me interview of 18/11/2026. Back to `draft` until re-approved.
 - 3.1 (17/11/2026): The project file holds the section `transaction_accounts` and has `format_version` 4 (CSD-034 REQ-7); the example of a newer file is version 5.

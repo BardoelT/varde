@@ -3,9 +3,9 @@ id: CSD-003
 title: Project settings
 status: approved
 owner: Thijs Bardoel
-version: 1.3
-last_updated: 12/11/2026
-related: [CSD-001, CSD-002, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-019, CSD-032]
+version: 1.4
+last_updated: 22/11/2026
+related: [CSD-001, CSD-002, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-019, CSD-032, CSD-036]
 ---
 
 # CSD-003: Project settings
@@ -135,7 +135,7 @@ Scenario: Choosing the current currency changes nothing
 ```
 
 **REQ-5: Confirm when amounts exist** *(event-driven)*
-While the project has entries (paychecks, annual statements, investment statements, bank entries, debt statements, expenses, house valuations or transactions), when the user chooses another currency, the app shall ask for confirmation before changing the currency, with the text "Existing amounts keep their values and only the currency changes. Amounts are not converted.", without stating a number of entries.
+While the project has entries (paychecks, annual statements, investment statements, bank entries, debt statements, expenses, house valuations, transactions or budgets), when the user chooses another currency, the app shall ask for confirmation before changing the currency, with the text "Existing amounts keep their values and only the currency changes. Amounts are not converted.", without stating a number of entries.
 
 ```gherkin
 @AC-5.1
@@ -305,7 +305,7 @@ Scenario: Other views show no currency
 
 ## 5. Interfaces and contracts
 
-Commands: `get_settings()` returns `{ currency, entry_count }` (the frontend reads the currency only for the Settings page), and `set_currency(currency)` returns the same. `entry_count` (paychecks, annual statements, investment statements, bank entries, debt statements, expenses, house valuations and transactions) lets the frontend decide whether REQ-5 applies; the number is not displayed.
+Commands: `get_settings()` returns `{ currency, entry_count }` (the frontend reads the currency only for the Settings page), and `set_currency(currency)` returns the same. `entry_count` (paychecks, annual statements, investment statements, bank entries, debt statements, expenses, house valuations, transactions and budgets) lets the frontend decide whether REQ-5 applies; the number is not displayed.
 
 Menu: the item `open-settings` is added to the app menu, below About, with the accelerator ⌘,. Choosing it emits the event `menu-action` with that id, as the File menu items do (CSD-002 REQ-9).
 
@@ -338,6 +338,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
+- 1.4 (22/11/2026): Budgets (CSD-036) also count as entries for the currency confirmation: REQ-5 and the `entry_count` wording (CSD-036 AC-13.1, GitHub issue 82). Back to `draft` until re-approved.
 - 1.3 (12/11/2026): Transactions (CSD-032) also count as entries for the currency confirmation: REQ-5 and the `entry_count` wording (CSD-032 AC-18.1). Back to `draft` until re-approved.
 - 1.2 (09/11/2026): REQ-1 and AC-1.1 no longer mention the project status indicator, which left the left pane (CSD-024 v0.5, GitHub issue 20). No behaviour change for Settings. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.

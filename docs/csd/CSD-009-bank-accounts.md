@@ -3,8 +3,8 @@ id: CSD-009
 title: Bank accounts
 status: approved
 owner: Thijs Bardoel
-version: 2.3
-last_updated: 18/11/2026
+version: 2.4
+last_updated: 22/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-005, CSD-010, CSD-025, CSD-035]
 ---
 
@@ -28,7 +28,7 @@ The app tracks wealth, but has no view of the money the user keeps in bank accou
 - Bank account data is part of the project file (CSD-002). Entries count for the currency confirmation of CSD-003 (REQ-24).
 
 ### 2.2 Non-goals
-- NG-1: Individual transactions in this capability, categories, budgets and standing orders. (Importing and categorising bank transactions is the separate capability CSD-032, which does not change any balance recorded here. Changed in v2.2.)
+- NG-1: Individual transactions in this capability, categories, budgets and standing orders. (Importing and categorising bank transactions is the separate capability CSD-032, which does not change any balance recorded here. Changed in v2.2. Budgets of bank transactions are CSD-036 and never change a balance either. Changed in v2.4.)
 - NG-2: Live or imported data: bank connections, PSD2, any data fetched from the network.
 - NG-3: Import of statements (CSV, PDF, bank export).
 - NG-4: Bank identifiers and other account details: IBAN, account number, institution name, account type, an overdraft limit, and a note on the account itself.
@@ -975,6 +975,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-2: Whether `docs/architecture.md` and the layout line of `CLAUDE.md` ("money, income, investments") get a bank accounts mention when this CSD is implemented. Owner: Thijs. Blocks: none.
 
 ## 9. Changelog
+- 2.4 (22/11/2026): NG-1 points to CSD-036 for budgets of bank transactions, which change no balance (GitHub issue 82). No behaviour change. Back to `draft` until re-approved.
 - 2.3 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 2.2 (12/11/2026): NG-1 points to CSD-032 for bank transactions, which stand apart from the balances recorded here (GitHub issue 70). Back to `draft` until re-approved.
 - 2.1 (04/11/2026): Wording follows the UI; no behaviour change: period field label and placeholder (AC-16.1, AC-16.2), amounts grouped as in CSD-022 AC-10.1 and the dash written as "—" (AC-20.2, AC-21.2). Back to `draft` until re-approved.

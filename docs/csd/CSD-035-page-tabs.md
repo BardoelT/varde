@@ -3,9 +3,9 @@ id: CSD-035
 title: Page tabs
 status: approved
 owner: Thijs Bardoel
-version: 0.3
+version: 0.4
 last_updated: 22/11/2026
-related: [CSD-000, CSD-001, CSD-005, CSD-009, CSD-011, CSD-013, CSD-015, CSD-022, CSD-024, CSD-025, CSD-028, CSD-032, CSD-034]
+related: [CSD-000, CSD-001, CSD-005, CSD-009, CSD-011, CSD-013, CSD-015, CSD-022, CSD-024, CSD-025, CSD-028, CSD-032, CSD-034, CSD-037]
 ---
 
 # CSD-035: Page tabs
@@ -58,7 +58,7 @@ Each of the pages below shall have exactly the tabs listed, left to right, each 
 | Houses | Houses, Yearly values, Valuations, Insights |
 | Debts | Debts, Yearly totals, Statements, Insights |
 | Expenses | Yearly totals, Expenses, Insights |
-| Transactions | Accounts, Categories, Rules, Yearly totals, Transactions, Insights |
+| Transactions | Accounts, Categories, Rules, Yearly totals, Transactions, Insights, Budgets |
 
 ```gherkin
 @AC-1.1
@@ -76,7 +76,7 @@ Scenario Outline: The tabs of a page
     | Houses        | "Houses", "Yearly values", "Valuations", "Insights"                     |
     | Debts         | "Debts", "Yearly totals", "Statements", "Insights"                      |
     | Expenses      | "Yearly totals", "Expenses", "Insights"                                 |
-    | Transactions  | "Accounts", "Categories", "Rules", "Yearly totals", "Transactions", "Insights" |
+    | Transactions  | "Accounts", "Categories", "Rules", "Yearly totals", "Transactions", "Insights", "Budgets" |
 
 @AC-1.2
 Scenario: One panel per tab
@@ -187,7 +187,7 @@ Scenario: Expenses and Transactions always have tabs
   Given a new project
   When the user opens Expenses and Transactions
   Then Expenses shows the tabs "Yearly totals", "Expenses" and "Insights"
-  And Transactions shows its six tabs
+  And Transactions shows its seven tabs
 ```
 
 **REQ-6: Selecting a tab** *(event-driven)*
@@ -246,6 +246,7 @@ No Rust command, IPC payload or project file field changes (NG-1, NG-3); Rust st
 - None.
 
 ## 9. Changelog
+- 0.4 (22/11/2026): The Transactions page has a seventh tab "Budgets", right of "Insights" (REQ-1, AC-1.1, AC-5.3; CSD-037 REQ-1, GitHub issue 82). Back to `draft` until re-approved.
 - 0.3 (22/11/2026): The tab "Categories" of Transactions also holds the panel "Spending per category" of CSD-032 REQ-35 above the Categories panel (REQ-2, AC-2.3), following CSD-032 v0.47. GitHub issue 78, owner request. Back to `draft` until re-approved.
 - 0.2 (19/11/2026): The categorized share of CSD-032 is in the header of the Categories panel, not of the Yearly totals panel (REQ-2, AC-2.3), following CSD-032 v0.45. Owner request. Back to `draft` until re-approved.
 - 0.1 (18/11/2026): First draft, from GitHub issue 73 and the grill-me interview. Owner answers: one tab per panel; all seven pages with an Overview of more than one panel; no "Overview" tab, the page opens on its first tab, Transactions on the transaction list; empty states unchanged; the selected tab is remembered for the session only; tab labels are the panel titles; one new CSD with pointer notes in the CSDs that name the Overview tab.

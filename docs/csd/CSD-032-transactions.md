@@ -3,9 +3,9 @@ id: CSD-032
 title: Transactions
 status: approved
 owner: Thijs Bardoel
-version: 0.48
+version: 0.49
 last_updated: 22/11/2026
-related: [CSD-000, CSD-025, CSD-036, CSD-034, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033, CSD-035]
+related: [CSD-000, CSD-025, CSD-036, CSD-034, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033, CSD-035, CSD-037]
 ---
 
 # CSD-032: Transactions
@@ -31,7 +31,7 @@ The app tracks what the user owns, owes and has spent on notable purchases, but 
 - NG-3: A link to the bank accounts of CSD-009, to expenses (CSD-013), to net worth or to the dashboard. Importing never changes a balance or creates an expense. Detecting or netting transfers between own accounts.
 - NG-4: Adding a transaction by hand, and editing its date, amount, counterparty, description or any field other than the category.
 - NG-5: Regular expressions, amount or date conditions, and any learning in the rules. A rule is a text pattern with `*` as its only wildcard.
-- NG-6: Several categories per transaction, tags, sub-categories, splitting a transaction, and budgets.
+- NG-6: Several categories per transaction, tags, sub-categories and splitting a transaction. (Budgets are no longer excluded: they are the separate capability CSD-036, a tab of this page. Changed in v0.47.)
 - NG-7: A currency per transaction, and conversion. All amounts are in the project currency (CSD-003).
 - NG-8: Importing from a folder, importing several files at once, a preview step before the import, and a partial import.
 - NG-9: Hiding counterparty names, descriptions and IBANs in Discrete mode (CSD-030 NG-1 stays).
@@ -550,7 +550,7 @@ Scenario: Including manually set asks first
 ```
 
 **REQ-13: Deleting a category** *(event-driven)*
-When the user confirms deleting a category, the app shall move its transactions to "Uncategorized" (keeping their manual flag) and delete the rules that name it, in one change.
+When the user confirms deleting a category, the app shall move its transactions to "Uncategorized" (keeping their manual flag) and delete the rules that name it and its budgets (CSD-036 REQ-10), in one change.
 
 ```gherkin
 @AC-13.1
@@ -693,7 +693,7 @@ Scenario: A re-apply message is a notification
 ### 4.4 Project file and neighbouring capabilities
 
 **REQ-17: The project file** *(ubiquitous)*
-The project file shall hold the required sections `transactions`, `transaction_categories` and `transaction_rules` in addition to the sections of CSD-002 REQ-16, with `format_version` 3 (4 since CSD-034 REQ-7, which adds the section `transaction_accounts` and the `account_id` of every transaction), and the strict schema of CSD-002 REQ-17 shall apply to them. The script of CSD-002 REQ-20 shall upgrade a version 2 file by adding the three sections (the default categories and rules, and no transactions) and setting the version to 3, after writing its `.bak`.
+The project file shall hold the required sections `transactions`, `transaction_categories` and `transaction_rules` in addition to the sections of CSD-002 REQ-16, with `format_version` 3 (4 since CSD-034 REQ-7, which adds the section `transaction_accounts` and the `account_id` of every transaction, and 5 since CSD-036 REQ-12, which adds the section `budgets`), and the strict schema of CSD-002 REQ-17 shall apply to them. The script of CSD-002 REQ-20 shall upgrade a version 2 file by adding the three sections (the default categories and rules, and no transactions) and setting the version to 3, after writing its `.bak`.
 
 ```gherkin
 @AC-17.1
@@ -1520,6 +1520,7 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-6: Resolved (22/11/2026): CSD-035 REQ-2 gets one sentence for the second panel of the Categories tab (CSD-035 v0.3).
 
 ## 9. Changelog
+- 0.49 (22/11/2026): Budgets are no longer a non-goal (NG-6): CSD-037 adds the tab "Budgets" to this page; deleting a category also deletes its budgets (REQ-13); the project file has `format_version` 5 with the section `budgets` (REQ-17). GitHub issue 82, owner request. Back to `draft` until re-approved.
 - 0.48 (22/11/2026): The year and month dropdowns of the donut charts become read-only fields with the date picker of CSD-036, where only the years and months with spending can be chosen and the others are grey (REQ-35, AC-35.3, AC-35.4, AC-35.9, AC-35.12; CSD-036 REQ-12). Owner request. Back to `draft` until re-approved.
 - 0.47 (22/11/2026): Two donut charts of the spending per category, yearly and monthly, each with a dropdown, in a panel above the Categories panel (new REQ-35, AC-35.1 to AC-35.12; NG-2; commands `transaction_spending_periods` and `transaction_spending_shares` in section 5). GitHub issue 78 and the grill-me interview. Owner answers: debits only; category-list order with Uncategorized last; percentages in the tooltip and the total in the centre; no "Other" group; Discrete mode hides the amounts but not the percentages; the month label is "November 2026" and CSD-035 gets a line for the second panel. Back to `draft` until re-approved.
 - 0.46 (19/11/2026): The categorized share in the header of the Categories panel is centered instead of right-aligned (REQ-31, AC-31.2). GitHub issue 79, owner request. Back to `draft` until re-approved.
