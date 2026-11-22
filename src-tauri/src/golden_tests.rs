@@ -378,7 +378,6 @@ pub(crate) fn read_everything(app: &Harness) -> Value {
         "list_transaction_categories",
         "list_transaction_rules",
         "get_categorisation_summary",
-        "get_budgets",
         "get_net_worth_insights",
         "get_ratios",
         "get_dashboard",

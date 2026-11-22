@@ -434,3 +434,17 @@ button.dp-title:hover { background: var(--bg); }
 .dp-today { padding: 4px 14px; font: inherit; font-size: 12.5px; color: var(--accent); background: none; border: 0; border-radius: 6px; cursor: pointer; }
 .dp-today:hover { background: var(--bg); }
 .dp-today:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Budgets tab of Transactions (CSD-036). The width of a bar is set through the CSSOM by the page. */
+.month-nav { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.month-label { min-width: 96px; text-align: center; font-weight: 600; }
+.budgets-table .budget-bar-cell { width: 140px; }
+.budget-bar { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
+.budget-bar-fill { display: block; height: 100%; background: var(--accent); }
+.budget-bar.over .budget-bar-fill { background: var(--negative); }
+.single-month-label { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
+.budget-total-row th, .budget-total-row td { font-weight: 600; border-top: 1px solid var(--border); }
+.scope-group { border: 0; padding: 0; margin: 14px 0 0; }
+.scope-group legend { padding: 0; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
+.scope-option { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.budget-context { margin: 0 0 12px; font-size: 13px; color: var(--muted); }

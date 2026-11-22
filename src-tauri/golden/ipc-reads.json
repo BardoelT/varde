@@ -564,159 +564,6 @@
       }
     ]
   },
-  "get_budgets": {
-    "earliest_month": "2026-09",
-    "is_partial": true,
-    "month": "2026-09",
-    "not_budgeted": "0.00",
-    "rows": [
-      {
-        "bar_percent": null,
-        "budget": null,
-        "category": "id-3",
-        "name": "Salary",
-        "over": false,
-        "remaining": null,
-        "single_month": false,
-        "spent": "0.00"
-      },
-      {
-        "bar_percent": "0.00",
-        "budget": "40.00",
-        "category": "id-4",
-        "name": "Groceries",
-        "over": false,
-        "remaining": "40.00",
-        "single_month": false,
-        "spent": "0.00"
-      },
-      {
-        "bar_percent": null,
-        "budget": null,
-        "category": "id-5",
-        "name": "Housing",
-        "over": false,
-        "remaining": null,
-        "single_month": false,
-        "spent": "0.00"
-      },
-      {
-        "bar_percent": null,
-        "budget": null,
-        "category": "id-6",
-        "name": "Utilities",
-        "over": false,
-        "remaining": null,
-        "single_month": false,
-        "spent": "0.00"
-      },
-      {
-        "bar_percent": null,
-        "budget": null,
-        "category": "id-7",
-        "name": "Insurance",
-        "over": false,
-        "remaining": null,
-        "single_month": false,
-        "spent": "0.00"
-      },
-      {
-        "bar_percent": null,
-        "budget": null,
-        "category": "id-8",
-        "name": "Transport",
-        "over": false,
-        "remaining": null,
-        "single_month": false,
-        "spent": "0.00"
-      },
-      {
-        "bar_percent": null,
-        "budget": null,
-        "category": "id-9",
-        "name": "Eating out",
-        "over": false,
-        "remaining": null,
-        "single_month": false,
-        "spent": "0.00"
-      },
-      {
-        "bar_percent": null,
-        "budget": null,
-        "category": "id-10",
-        "name": "Shopping",
-        "over": false,
-        "remaining": null,
-        "single_month": false,
-        "spent": "0.00"
-      },
-      {
-        "bar_percent": null,
-        "budget": null,
-        "category": "id-11",
-        "name": "Health",
-        "over": false,
-        "remaining": null,
-        "single_month": false,
-        "spent": "0.00"
-      },
-      {
-        "bar_percent": null,
-        "budget": null,
-        "category": "id-12",
-        "name": "Leisure",
-        "over": false,
-        "remaining": null,
-        "single_month": false,
-        "spent": "0.00"
-      },
-      {
-        "bar_percent": "0.00",
-        "budget": "15.00",
-        "category": "id-13",
-        "name": "Subscriptions",
-        "over": false,
-        "remaining": "15.00",
-        "single_month": false,
-        "spent": "0.00"
-      },
-      {
-        "bar_percent": null,
-        "budget": null,
-        "category": "id-14",
-        "name": "Savings & transfers",
-        "over": false,
-        "remaining": null,
-        "single_month": false,
-        "spent": "0.00"
-      },
-      {
-        "bar_percent": null,
-        "budget": null,
-        "category": "id-15",
-        "name": "Taxes",
-        "over": false,
-        "remaining": null,
-        "single_month": false,
-        "spent": "0.00"
-      },
-      {
-        "bar_percent": null,
-        "budget": null,
-        "category": "id-16",
-        "name": "Other",
-        "over": false,
-        "remaining": null,
-        "single_month": false,
-        "spent": "0.00"
-      }
-    ],
-    "total": {
-      "budget": "55.00",
-      "remaining": "55.00",
-      "spent": "0.00"
-    }
-  },
   "get_categorisation_summary": {
     "categorized": 3,
     "percent_label": "37.50%",
@@ -814,17 +661,17 @@
     "debts": [
       {
         "colour_slot": 0,
-        "id": "id-17",
+        "id": "id-3",
         "name": "Example Mortgage"
       },
       {
         "colour_slot": 1,
-        "id": "id-18",
+        "id": "id-4",
         "name": "Example Home Loan"
       },
       {
         "colour_slot": 2,
-        "id": "id-19",
+        "id": "id-5",
         "name": "Example Student Loan"
       }
     ],
@@ -842,25 +689,25 @@
             "high": "150000.00",
             "low": "0.00",
             "rounding": "none",
-            "series": "debt-id-17"
+            "series": "debt-id-3"
           },
           {
             "hangs": false,
             "high": "158000.00",
             "low": "150000.00",
             "rounding": "top",
-            "series": "debt-id-19"
+            "series": "debt-id-5"
           }
         ],
         "repaid": "0.00",
         "segments": [
           {
             "balance": "150000.00",
-            "debt_id": "id-17"
+            "debt_id": "id-3"
           },
           {
             "balance": "8000.00",
-            "debt_id": "id-19"
+            "debt_id": "id-5"
           }
         ],
         "statement_count": 2,
@@ -879,22 +726,22 @@
             "high": "7000.00",
             "low": "0.00",
             "rounding": "top",
-            "series": "debt-id-19"
+            "series": "debt-id-5"
           }
         ],
         "repaid": "151000.00",
         "segments": [
           {
             "balance": "0.00",
-            "debt_id": "id-17"
+            "debt_id": "id-3"
           },
           {
             "balance": "0.00",
-            "debt_id": "id-18"
+            "debt_id": "id-4"
           },
           {
             "balance": "7000.00",
-            "debt_id": "id-19"
+            "debt_id": "id-5"
           }
         ],
         "statement_count": 5,
@@ -1490,12 +1337,12 @@
     "houses": [
       {
         "colour_slot": 0,
-        "id": "id-20",
+        "id": "id-6",
         "name": "Example House"
       },
       {
         "colour_slot": 1,
-        "id": "id-21",
+        "id": "id-7",
         "name": "Example Lodge"
       }
     ],
@@ -1514,23 +1361,23 @@
             "high": "260000.00",
             "low": "0.00",
             "rounding": "none",
-            "series": "house-id-20"
+            "series": "house-id-6"
           },
           {
             "hangs": false,
             "high": "365000.00",
             "low": "260000.00",
             "rounding": "top",
-            "series": "house-id-21"
+            "series": "house-id-7"
           }
         ],
         "segments": [
           {
-            "house_id": "id-20",
+            "house_id": "id-6",
             "value": "260000.00"
           },
           {
-            "house_id": "id-21",
+            "house_id": "id-7",
             "value": "105000.00"
           }
         ],
@@ -1551,12 +1398,12 @@
             "high": "110000.00",
             "low": "0.00",
             "rounding": "top",
-            "series": "house-id-21"
+            "series": "house-id-7"
           }
         ],
         "segments": [
           {
-            "house_id": "id-21",
+            "house_id": "id-7",
             "value": "110000.00"
           }
         ],
@@ -3319,7 +3166,7 @@
       {
         "colour_slot": 2,
         "entry_count": 1,
-        "id": "id-22",
+        "id": "id-8",
         "latest_balance": "100.00",
         "latest_period": "1950",
         "name": "Example Old Bank",
@@ -3374,7 +3221,7 @@
       "period": "2024"
     },
     {
-      "account_id": "id-22",
+      "account_id": "id-8",
       "account_name": "Example Old Bank",
       "balance": "100.00",
       "note": "Very old entry",
@@ -3385,7 +3232,7 @@
     {
       "balance": "7000.00",
       "change": "1000.00",
-      "debt_id": "id-19",
+      "debt_id": "id-5",
       "debt_name": "Example Student Loan",
       "locked": false,
       "note": "",
@@ -3397,7 +3244,7 @@
     {
       "balance": "0.00",
       "change": "20000.00",
-      "debt_id": "id-18",
+      "debt_id": "id-4",
       "debt_name": "Example Home Loan",
       "locked": true,
       "note": "Cancelled on sale of Example House",
@@ -3409,7 +3256,7 @@
     {
       "balance": "0.00",
       "change": "148000.50",
-      "debt_id": "id-17",
+      "debt_id": "id-3",
       "debt_name": "Example Mortgage",
       "locked": true,
       "note": "Repaid on sale of Example House",
@@ -3421,7 +3268,7 @@
     {
       "balance": "20000.00",
       "change": "0.00",
-      "debt_id": "id-18",
+      "debt_id": "id-4",
       "debt_name": "Example Home Loan",
       "locked": false,
       "note": "",
@@ -3433,7 +3280,7 @@
     {
       "balance": "148000.50",
       "change": "1999.50",
-      "debt_id": "id-17",
+      "debt_id": "id-3",
       "debt_name": "Example Mortgage",
       "locked": false,
       "note": "",
@@ -3445,7 +3292,7 @@
     {
       "balance": "150000.00",
       "change": "0.00",
-      "debt_id": "id-17",
+      "debt_id": "id-3",
       "debt_name": "Example Mortgage",
       "locked": false,
       "note": "",
@@ -3457,7 +3304,7 @@
     {
       "balance": "8000.00",
       "change": "0.00",
-      "debt_id": "id-19",
+      "debt_id": "id-5",
       "debt_name": "Example Student Loan",
       "locked": false,
       "note": "",
@@ -3469,7 +3316,7 @@
     {
       "balance": "8000.00",
       "change": null,
-      "debt_id": "id-19",
+      "debt_id": "id-5",
       "debt_name": "Example Student Loan",
       "locked": true,
       "note": "",
@@ -3481,7 +3328,7 @@
     {
       "balance": "20000.00",
       "change": null,
-      "debt_id": "id-18",
+      "debt_id": "id-4",
       "debt_name": "Example Home Loan",
       "locked": true,
       "note": "",
@@ -3493,7 +3340,7 @@
     {
       "balance": "150000.00",
       "change": null,
-      "debt_id": "id-17",
+      "debt_id": "id-3",
       "debt_name": "Example Mortgage",
       "locked": true,
       "note": "",
@@ -3508,9 +3355,9 @@
       {
         "category": "Loan",
         "colour_slot": 1,
-        "house_id": "id-20",
+        "house_id": "id-6",
         "house_name": "Example House",
-        "id": "id-18",
+        "id": "id-4",
         "latest_balance": "0.00",
         "latest_period": "2026-06",
         "name": "Example Home Loan",
@@ -3529,9 +3376,9 @@
       {
         "category": "Mortgage",
         "colour_slot": 0,
-        "house_id": "id-20",
+        "house_id": "id-6",
         "house_name": "Example House",
-        "id": "id-17",
+        "id": "id-3",
         "latest_balance": "0.00",
         "latest_period": "2026-06",
         "name": "Example Mortgage",
@@ -3551,7 +3398,7 @@
         "category": "Other",
         "colour_slot": 2,
         "house_name": null,
-        "id": "id-19",
+        "id": "id-5",
         "latest_balance": "7000.00",
         "latest_period": "2026",
         "name": "Example Student Loan",
@@ -3570,7 +3417,7 @@
       "employer": "Example Employer",
       "gross_salary": "3300.00",
       "holiday_pay": "0.00",
-      "job_id": "id-23",
+      "job_id": "id-9",
       "kind": "paycheck",
       "period": "2026-08",
       "total_gross": "3300.00"
@@ -3580,7 +3427,7 @@
       "employer": "Example Employer",
       "gross_salary": "3300.00",
       "holiday_pay": "0.00",
-      "job_id": "id-23",
+      "job_id": "id-9",
       "kind": "paycheck",
       "period": "2026-03",
       "total_gross": "4300.00"
@@ -3590,7 +3437,7 @@
       "employer": "Example Consultancy",
       "gross_salary": "40000.00",
       "holiday_pay": "0.00",
-      "job_id": "id-24",
+      "job_id": "id-10",
       "kind": "statement",
       "period": "2025",
       "total_gross": "42000.00"
@@ -3600,7 +3447,7 @@
       "employer": "Example Employer",
       "gross_salary": "3200.00",
       "holiday_pay": "2400.00",
-      "job_id": "id-23",
+      "job_id": "id-9",
       "kind": "paycheck",
       "period": "2025-06",
       "total_gross": "6100.00"
@@ -3610,7 +3457,7 @@
       "employer": "Example Consultancy",
       "gross_salary": "38000.00",
       "holiday_pay": "0.00",
-      "job_id": "id-24",
+      "job_id": "id-10",
       "kind": "statement",
       "period": "2024",
       "total_gross": "40000.00"
@@ -3620,7 +3467,7 @@
       "employer": "Example Employer",
       "gross_salary": "3000.00",
       "holiday_pay": "0.00",
-      "job_id": "id-23",
+      "job_id": "id-9",
       "kind": "paycheck",
       "period": "2024-06",
       "total_gross": "3000.00"
@@ -3630,7 +3477,7 @@
       "employer": "Example Consultancy",
       "gross_salary": "36000.00",
       "holiday_pay": "0.00",
-      "job_id": "id-24",
+      "job_id": "id-10",
       "kind": "statement",
       "period": "2023",
       "total_gross": "38000.00"
@@ -3642,7 +3489,7 @@
         "amount": "120.00",
         "category": "Study",
         "date": "2026-09-02",
-        "id": "id-25",
+        "id": "id-11",
         "name": "Example Class",
         "note": ""
       },
@@ -3650,7 +3497,7 @@
         "amount": "800.00",
         "category": "Home",
         "date": "2026-02-11",
-        "id": "id-26",
+        "id": "id-12",
         "name": "Example Sofa",
         "note": ""
       },
@@ -3658,7 +3505,7 @@
         "amount": "1250.50",
         "category": "Holiday",
         "date": "2025-07-20",
-        "id": "id-27",
+        "id": "id-13",
         "name": "Example Trip",
         "note": ""
       },
@@ -3666,7 +3513,7 @@
         "amount": "500.00",
         "category": "Vehicle",
         "date": "2025-03-05",
-        "id": "id-28",
+        "id": "id-14",
         "name": "Example Bike",
         "note": ""
       },
@@ -3674,7 +3521,7 @@
         "amount": "100.00",
         "category": "Other",
         "date": "1950-01-01",
-        "id": "id-29",
+        "id": "id-15",
         "name": "Example Heirloom",
         "note": ""
       }
@@ -3684,7 +3531,7 @@
   "list_house_valuations": [
     {
       "change": "5000.00",
-      "house_id": "id-21",
+      "house_id": "id-7",
       "house_name": "Example Lodge",
       "note": "",
       "period": "2026",
@@ -3692,7 +3539,7 @@
     },
     {
       "change": "10000.00",
-      "house_id": "id-20",
+      "house_id": "id-6",
       "house_name": "Example House",
       "note": "Valued by an example agent",
       "period": "2026-04",
@@ -3700,7 +3547,7 @@
     },
     {
       "change": null,
-      "house_id": "id-20",
+      "house_id": "id-6",
       "house_name": "Example House",
       "note": "",
       "period": "2025-12",
@@ -3708,7 +3555,7 @@
     },
     {
       "change": null,
-      "house_id": "id-21",
+      "house_id": "id-7",
       "house_name": "Example Lodge",
       "note": "",
       "period": "2025",
@@ -3720,13 +3567,13 @@
       {
         "colour_slot": 0,
         "held": false,
-        "id": "id-20",
+        "id": "id-6",
         "latest_period": "2026-04",
         "latest_value": "270000.00",
         "linked_debts": [
           {
             "category": "Loan",
-            "debt_id": "id-18",
+            "debt_id": "id-4",
             "debt_name": "Example Home Loan",
             "latest_balance": "0.00",
             "settlement": {
@@ -3738,7 +3585,7 @@
           },
           {
             "category": "Mortgage",
-            "debt_id": "id-17",
+            "debt_id": "id-3",
             "debt_name": "Example Mortgage",
             "latest_balance": "0.00",
             "settlement": {
@@ -3761,7 +3608,7 @@
       {
         "colour_slot": 1,
         "held": true,
-        "id": "id-21",
+        "id": "id-7",
         "latest_period": "2026",
         "latest_value": "110000.00",
         "linked_debts": [],
@@ -3780,7 +3627,7 @@
   "list_investment_accounts": {
     "accounts": [
       {
-        "id": "id-30",
+        "id": "id-16",
         "latest_balance": "12000.00",
         "latest_period": "2026-08",
         "name": "Example Brokerage",
@@ -3788,7 +3635,7 @@
         "statement_count": 3
       },
       {
-        "id": "id-31",
+        "id": "id-17",
         "latest_balance": "6000.00",
         "latest_period": "2025",
         "name": "Example Pension",
@@ -3800,7 +3647,7 @@
   },
   "list_investment_statements": [
     {
-      "account_id": "id-30",
+      "account_id": "id-16",
       "account_name": "Example Brokerage",
       "balance": "12000.00",
       "capital_growth": "-500.50",
@@ -3809,7 +3656,7 @@
       "period": "2026-08"
     },
     {
-      "account_id": "id-30",
+      "account_id": "id-16",
       "account_name": "Example Brokerage",
       "balance": "12500.50",
       "capital_growth": "2500.50",
@@ -3818,7 +3665,7 @@
       "period": "2026-06"
     },
     {
-      "account_id": "id-30",
+      "account_id": "id-16",
       "account_name": "Example Brokerage",
       "balance": "10000.00",
       "capital_growth": "10000.00",
@@ -3827,7 +3674,7 @@
       "period": "2025-12"
     },
     {
-      "account_id": "id-31",
+      "account_id": "id-17",
       "account_name": "Example Pension",
       "balance": "6000.00",
       "capital_growth": "1000.00",
@@ -3836,7 +3683,7 @@
       "period": "2025"
     },
     {
-      "account_id": "id-31",
+      "account_id": "id-17",
       "account_name": "Example Pension",
       "balance": "5000.00",
       "capital_growth": "5000.00",
@@ -3850,7 +3697,7 @@
       "employer": "Example Employer",
       "end_date": null,
       "entry_count": 4,
-      "id": "id-23",
+      "id": "id-9",
       "period": "Monthly",
       "start_date": "2024-01-01",
       "title": "Engineer"
@@ -3859,7 +3706,7 @@
       "employer": "Example Consultancy",
       "end_date": "2025-12-31",
       "entry_count": 3,
-      "id": "id-24",
+      "id": "id-10",
       "period": "Yearly",
       "start_date": "2023-01-01",
       "title": null
@@ -3867,170 +3714,170 @@
   ],
   "list_transaction_accounts": [
     {
-      "id": "id-32",
+      "id": "id-18",
       "name": "Example Bank",
       "transaction_count": 8
     }
   ],
   "list_transaction_categories": [
     {
-      "id": "id-3",
+      "id": "id-19",
       "name": "Salary",
       "transaction_count": 0
     },
     {
-      "id": "id-4",
+      "id": "id-20",
       "name": "Groceries",
       "transaction_count": 1
     },
     {
-      "id": "id-5",
+      "id": "id-21",
       "name": "Housing",
       "transaction_count": 0
     },
     {
-      "id": "id-6",
+      "id": "id-22",
       "name": "Utilities",
       "transaction_count": 0
     },
     {
-      "id": "id-7",
+      "id": "id-23",
       "name": "Insurance",
       "transaction_count": 0
     },
     {
-      "id": "id-8",
+      "id": "id-24",
       "name": "Transport",
       "transaction_count": 0
     },
     {
-      "id": "id-9",
+      "id": "id-25",
       "name": "Eating out",
       "transaction_count": 0
     },
     {
-      "id": "id-10",
+      "id": "id-26",
       "name": "Shopping",
       "transaction_count": 0
     },
     {
-      "id": "id-11",
+      "id": "id-27",
       "name": "Health",
       "transaction_count": 0
     },
     {
-      "id": "id-12",
+      "id": "id-28",
       "name": "Leisure",
       "transaction_count": 0
     },
     {
-      "id": "id-13",
+      "id": "id-29",
       "name": "Subscriptions",
       "transaction_count": 1
     },
     {
-      "id": "id-14",
+      "id": "id-30",
       "name": "Savings & transfers",
       "transaction_count": 0
     },
     {
-      "id": "id-15",
+      "id": "id-31",
       "name": "Taxes",
       "transaction_count": 0
     },
     {
-      "id": "id-16",
+      "id": "id-32",
       "name": "Other",
       "transaction_count": 1
     }
   ],
   "list_transaction_rules": [
     {
-      "category_id": "id-4",
+      "category_id": "id-20",
       "id": "id-33",
       "text": "Albert Heijn*",
       "transaction_count": 1
     },
     {
-      "category_id": "id-4",
+      "category_id": "id-20",
       "id": "id-34",
       "text": "Jumbo*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-4",
+      "category_id": "id-20",
       "id": "id-35",
       "text": "Lidl*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-4",
+      "category_id": "id-20",
       "id": "id-36",
       "text": "Aldi*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-4",
+      "category_id": "id-20",
       "id": "id-37",
       "text": "Dirk van den Broek*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-10",
+      "category_id": "id-26",
       "id": "id-38",
       "text": "HEMA*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-10",
+      "category_id": "id-26",
       "id": "id-39",
       "text": "bol.com*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-10",
+      "category_id": "id-26",
       "id": "id-40",
       "text": "Coolblue*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-11",
+      "category_id": "id-27",
       "id": "id-41",
       "text": "Kruidvat*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-8",
+      "category_id": "id-24",
       "id": "id-42",
       "text": "NS Reizigers*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-8",
+      "category_id": "id-24",
       "id": "id-43",
       "text": "Shell*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-9",
+      "category_id": "id-25",
       "id": "id-44",
       "text": "Thuisbezorgd*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-13",
+      "category_id": "id-29",
       "id": "id-45",
       "text": "Netflix*",
       "transaction_count": 1
     },
     {
-      "category_id": "id-13",
+      "category_id": "id-29",
       "id": "id-46",
       "text": "Spotify*",
       "transaction_count": 0
     },
     {
-      "category_id": "id-7",
+      "category_id": "id-23",
       "id": "id-47",
       "text": "Zilveren Kruis*",
       "transaction_count": 0
@@ -4040,7 +3887,7 @@
     "count": 8,
     "rows": [
       {
-        "account_id": "id-32",
+        "account_id": "id-18",
         "amount": "-23.97",
         "category_id": null,
         "counterparty_iban": "",
@@ -4054,9 +3901,9 @@
         "reference": "REF0000001"
       },
       {
-        "account_id": "id-32",
+        "account_id": "id-18",
         "amount": "-45.10",
-        "category_id": "id-4",
+        "category_id": "id-20",
         "counterparty_iban": "NL00EXAM0000000002",
         "counterparty_name": "Albert Heijn Example",
         "date": "2026-10-29",
@@ -4068,7 +3915,7 @@
         "reference": "REF0000002"
       },
       {
-        "account_id": "id-32",
+        "account_id": "id-18",
         "amount": "2500.00",
         "category_id": null,
         "counterparty_iban": "NL00EXAM0000000003",
@@ -4082,9 +3929,9 @@
         "reference": "REF0000003"
       },
       {
-        "account_id": "id-32",
+        "account_id": "id-18",
         "amount": "-13.99",
-        "category_id": "id-13",
+        "category_id": "id-29",
         "counterparty_iban": "NL00EXAM0000000004",
         "counterparty_name": "Netflix Example",
         "date": "2026-10-27",
@@ -4096,7 +3943,7 @@
         "reference": "REF0000004"
       },
       {
-        "account_id": "id-32",
+        "account_id": "id-18",
         "amount": "-200.00",
         "category_id": null,
         "counterparty_iban": "NL00EXAM0000000006",
@@ -4110,7 +3957,7 @@
         "reference": "REF0000006"
       },
       {
-        "account_id": "id-32",
+        "account_id": "id-18",
         "amount": "-1000.00",
         "category_id": null,
         "counterparty_iban": "NL00EXAM0000000005",
@@ -4124,9 +3971,9 @@
         "reference": "REF0000005"
       },
       {
-        "account_id": "id-32",
+        "account_id": "id-18",
         "amount": "15.50",
-        "category_id": "id-16",
+        "category_id": "id-32",
         "counterparty_iban": "NL00EXAM0000000007",
         "counterparty_name": "Example Friend",
         "date": "2026-10-25",
@@ -4138,7 +3985,7 @@
         "reference": "REF0000007"
       },
       {
-        "account_id": "id-32",
+        "account_id": "id-18",
         "amount": "-60.00",
         "category_id": null,
         "counterparty_iban": "",
@@ -4368,7 +4215,7 @@
     {
       "categories": [
         {
-          "id": "id-4",
+          "id": "id-20",
           "months": [
             null,
             null,
@@ -4387,7 +4234,7 @@
           "total": "-45.10"
         },
         {
-          "id": "id-13",
+          "id": "id-29",
           "months": [
             null,
             null,
@@ -4406,7 +4253,7 @@
           "total": "-13.99"
         },
         {
-          "id": "id-16",
+          "id": "id-32",
           "months": [
             null,
             null,

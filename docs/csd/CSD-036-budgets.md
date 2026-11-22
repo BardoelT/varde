@@ -447,6 +447,7 @@ Commands (indicative names; the owner of the code may rename them):
 - CON-1: The figures are computed in Rust (`domain/transactions/budgets.rs`); the frontend only draws what it receives (`CLAUDE.md` layout rule). Rationale: the frontend never computes financial figures.
 - CON-2: Amounts are `Money` (2 decimals, half-up, CSD-000 CON-8), never floats. Rationale: `CLAUDE.md` money rules.
 - CON-3: No new dependency, Tauri permission or network access, and no `style=` attributes in `ui/`. Rationale: `CLAUDE.md` Tauri security.
+- CON-5: The golden files do not hold `get_budgets` (the project file holds the budgets), because the ids of its categories would renumber the ids of the other areas in `ipc-reads.json`; the IPC and DOM tests cover it. Rationale: the numbering follows the first appearance of an id, as for CSD-033 CON-3.
 - CON-4: Budgets are never part of net worth or the dashboard, and no budget ever changes a transaction. Rationale: transactions stand apart from the rest of the app (CSD-032 NG-3).
 
 ## 7. Verification

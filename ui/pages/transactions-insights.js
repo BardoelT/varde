@@ -10,6 +10,7 @@ import { fillLegend, markerDecorator } from '../shared/insights-page.js';
 import { initPageTabs } from '../shared/tabs.js';
 import { t, tn } from '../shared/i18n.js';
 import { errorText } from '../shared/ipc.js';
+import { reloadBudgets } from './transactions-budgets.js';
 
 /** `yearly` or `monthly`; the page opens on the years and does not remember the choice. */
 let granularity = 'yearly';
@@ -155,7 +156,7 @@ export const reloadTransactionsInsightsIfOpen = async () => {
 export function initTransactionsInsights() {
   chart.init();
   // The page opens on the Transactions tab; the Insights tab recomputes the chart each time it opens (CSD-035 REQ-3, CSD-033 REQ-13).
-  initPageTabs('transactions', { initial: 'transactions-transactions', onOpen: { 'transactions-insights': chart.reload } });
+  initPageTabs('transactions', { initial: 'transactions-transactions', onOpen: { 'transactions-insights': chart.reload, 'transactions-budgets': reloadBudgets } });
   $('transactions-insights-yearly').addEventListener('click', () => choose('yearly'));
   $('transactions-insights-monthly').addEventListener('click', () => choose('monthly'));
   syncToggle();

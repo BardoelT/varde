@@ -22,6 +22,15 @@ const startup = {
   },
   // The donut charts ask for one period; the golden file holds one year and one month (CSD-032 REQ-35).
   transaction_spending_shares: ({ period }) => (period.length === 4 ? golden.transaction_spending_shares_year : golden.transaction_spending_shares_month),
+  // The budgets are not part of the golden files either (CSD-036 CON-5): a month without any budget.
+  get_budgets: {
+    month: '2026-10',
+    is_partial: true,
+    earliest_month: '2026-10',
+    rows: golden.list_transaction_categories.map(({ id, name }) => ({ category: id, name, budget: null, single_month: false, spent: '0.00', remaining: null, bar_percent: null, over: false })),
+    not_budgeted: '0.00',
+    total: { budget: '0.00', spent: '0.00', remaining: '0.00' },
+  },
   // Writes that only echo what was sent, as Rust does when the save succeeds (CSD-008, CSD-022).
   set_language: ({ language }) => ({ language }),
   set_theme: ({ theme }) => ({ theme }),
