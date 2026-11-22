@@ -1,9 +1,9 @@
 ---
 id: CSD-036
 title: Date picker
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.1
+version: 0.2
 last_updated: 22/11/2026
 related: [CSD-000, CSD-022, CSD-024, CSD-028, CSD-030, CSD-032]
 ---
@@ -55,7 +55,7 @@ stateDiagram-v2
 ```
 
 **REQ-1: Which fields have a picker** *(ubiquitous)*
-Every date field, every month field and every year field of the app, in forms and in the filters of the statement tables, shall have a picker that opens on its own level: the days for a date field, the months for a month field and the years for a year field, and a pick in the lowest level that field needs fills it.
+Every date field, every month field and every year field of the app, in forms and in the filters of the statement tables, shall have a picker that opens on its own level: the days for a date field, the months for a month field and the years for a year field, and a pick in the lowest level that field needs fills it. A year field shows only the years level, the decades, and never the days or the months; a field that is a month field or a year field by what the form asks, such as the period of a statement, follows the kind it has when the picker opens.
 
 ```gherkin
 @AC-1.1
@@ -72,6 +72,16 @@ Scenario Outline: Every field has a picker on its own level
     | the period of a paycheck                 | months |
     | the "from" month of a statement filter   | months |
     | a field that asks for only a year        | years  |
+
+@AC-1.3
+Scenario: A year field shows only the decades
+  Given the period field of a yearly statement, which asks for a year
+  When the user opens its picker
+  Then the picker shows "2020 – 2029" and its header is not a button
+  And the arrows go ten years at a time
+  When the user chooses 2031
+  Then the field holds "2031" and no month is ever shown
+  And the same field of a monthly statement opens on the months
 
 @AC-1.2
 Scenario: No field is left without a picker
@@ -315,7 +325,8 @@ The picker is frontend only: there is no Rust command, no change to the project 
 | Manual | Open the example project and the picker of a form in a dialog, a filter and a date near the bottom of the window |
 
 ## 8. Open questions
-- OQ-1: No field of the app asks for only a year today, although the mask knows the layout. REQ-1 still gives such a field the years level, so a later field gets it for free. Should REQ-1 and AC-1.1 drop the year field until one exists? Proposed: keep, as the rule costs nothing. Owner: Thijs. Blocks: REQ-1.
+- OQ-1: Resolved (22/11/2026): year fields do exist, the period of a yearly statement (a month field whose length becomes 4), and they show only the years (REQ-1, AC-1.3).
 
 ## 9. Changelog
+- 0.2 (22/11/2026): A year field shows only the years level, never the months (REQ-1, AC-1.3), and the kind of a field is read when the picker opens, so the period of a yearly statement is a year field. Owner request. Back to `draft` until re-approved.
 - 0.1 (22/11/2026): First draft, from GitHub issue 83 and the grill-me interview. Owner answers: a picker on every date field, month field and filter field, each opening on its own level; click, calendar button or Down opens it, Escape, outside click, Tab or a pick closes it, and typing keeps working; days, months and years levels with arrows left and right of the centred header; Monday first, six rows, dimmed neighbouring days that can be chosen, today marked, no extra buttons; every real date allowed; keyboard and accessibility as a dialog with a grid; translated and never blurred; frontend only with no Rust and no new dependency; the picker lives in the dialog of its field and flips above when there is no room.
