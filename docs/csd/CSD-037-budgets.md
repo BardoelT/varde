@@ -3,7 +3,7 @@ id: CSD-037
 title: Budgets
 status: approved
 owner: Thijs Bardoel
-version: 0.5
+version: 0.6
 last_updated: 22/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-022, CSD-027, CSD-029, CSD-030, CSD-032, CSD-033, CSD-035]
 ---
@@ -433,7 +433,7 @@ Scenario: The example project has budgets
 ```
 
 **REQ-18: Month or Year** *(event-driven)*
-When the user opens the tab "Budgets", the app shall show a choice "Month | Year" at the top of the panel in which "Month" is pressed and the Month view is shown; when the user chooses "Year", the app shall show the Year view of the year of the month that was shown, and when the user chooses "Month", the app shall show the month that was shown before, whatever year the user went to in the Year view. Choosing the option that is already shown shall change nothing. The choice and the period of each view stay while the user goes to another tab and comes back, and are not remembered after another project is opened (NG-10).
+When the user opens the tab "Budgets", the app shall show a choice "Year | Month" at the top of the panel, next to the title with the same space as the choice "Yearly | Monthly" of the Insights tab (CSD-033 REQ-1), in which "Month" is pressed and the Month view is shown; when the user chooses "Year", the app shall show the Year view of the year of the month that was shown, and when the user chooses "Month", the app shall show the month that was shown before, whatever year the user went to in the Year view. Choosing the option that is already shown shall change nothing. The choice and the period of each view stay while the user goes to another tab and comes back, and are not remembered after another project is opened (NG-10).
 
 ```gherkin
 @AC-18.1
@@ -653,6 +653,7 @@ Commands (indicative names; the owner of the code may rename them):
 - OQ-3 (resolved 22/11/2026): Is a single-month amount that equals its neighbours still labelled? Answer: yes, the label follows how the amount was set, not its value (REQ-8).
 
 ## 9. Changelog
+- 0.6 (22/11/2026): The choice at the top of the Budgets tab reads "Year | Month", as "Yearly | Monthly" does on the Insights tab, and has the same space after the title (REQ-18). "Month" stays the pressed one when the tab opens. Owner request. Back to `draft` until re-approved.
 - 0.5 (22/11/2026): OQ-4 resolved by the owner: the drafted answer stands, a button "Remove budget" in the dialog of a cell (REQ-21). No other change.
 - 0.4 (22/11/2026): A Year view next to the Month view: a choice "Month | Year" at the top of the Budgets tab (REQ-18), one year at a time with the same previous and next buttons (REQ-19), a grid of the budget of every category in every month with totals and three figures (REQ-20), cells that open the dialog of REQ-6 and REQ-7 (REQ-21), and the year computed by Rust (REQ-22, `get_budget_year`, `BUDGET_YEAR_INVALID`); REQ-2, REQ-14 and REQ-16 name the Month view or both views, NG-10 and NG-11 added. GitHub issue 82, owner request. Back to `draft` until re-approved.
 - 0.3 (22/11/2026): OQ-2 and OQ-3 resolved by the owner: the drafted answers stand (REQ-3, REQ-8). No other change.
