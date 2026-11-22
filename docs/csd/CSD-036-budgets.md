@@ -432,8 +432,8 @@ Commands (indicative names; the owner of the code may rename them):
 ```json
 {
   "month": "2026-10", "is_partial": true, "earliest_month": "2026-08",
-  "rows": [{ "category": "…", "budget": "400.00", "single_month": false, "spent": "150.00", "remaining": "250.00", "ratio": "37.50", "over": false },
-           { "category": "…", "budget": null, "single_month": false, "spent": "45.00", "remaining": null, "ratio": null, "over": false }],
+  "rows": [{ "category": "…", "budget": "400.00", "single_month": false, "spent": "150.00", "remaining": "250.00", "bar_percent": "37.50", "over": false },
+           { "category": "…", "budget": null, "single_month": false, "spent": "45.00", "remaining": null, "bar_percent": null, "over": false }],
   "not_budgeted": "30.00",
   "total": { "budget": "500.00", "spent": "270.00", "remaining": "230.00" }
 }

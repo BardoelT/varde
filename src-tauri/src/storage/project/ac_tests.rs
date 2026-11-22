@@ -30,7 +30,7 @@ fn test_csd002_ac_16_1_a_saved_empty_project_has_every_section() {
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
     let object = value.as_object().unwrap();
-    assert_eq!(object["format_version"], 4);
+    assert_eq!(object["format_version"], 5);
     for section in [
         "income",
         "investments",
@@ -43,11 +43,12 @@ fn test_csd002_ac_16_1_a_saved_empty_project_has_every_section() {
         "transaction_accounts",
         "transaction_categories",
         "transaction_rules",
+        "budgets",
     ] {
         assert!(object.contains_key(section), "section {section} is missing");
     }
-    // Only the version and the eleven sections are in the file.
-    assert_eq!(object.len(), 12);
+    // Only the version and the twelve sections are in the file.
+    assert_eq!(object.len(), 13);
 }
 
 #[test]

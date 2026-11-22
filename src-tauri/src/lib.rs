@@ -150,6 +150,9 @@ fn configure_with<R: Runtime>(
             transactions::get_transaction_insights,
             transactions::transaction_spending_periods,
             transactions::transaction_spending_shares,
+            transactions::get_budgets,
+            transactions::set_budget,
+            transactions::remove_budget,
             transactions::set_transaction_category,
             transactions::unset_transaction_manual,
             transactions::delete_transaction,
@@ -288,6 +291,8 @@ mod ipc_ac_tests_c2;
 mod ipc_ac_tests_d;
 #[cfg(test)]
 mod ipc_autosave_tests;
+#[cfg(test)]
+mod ipc_budgets_tests;
 #[cfg(test)]
 mod ipc_discrete_mode_tests;
 #[cfg(test)]

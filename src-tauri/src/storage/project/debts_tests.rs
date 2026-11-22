@@ -47,7 +47,7 @@ fn test_csd011_ac_23_1_debts_survive_save_and_open_including_notes_and_slots() {
     // The section sits next to the others; the version stays 1.
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
-    assert_eq!(value["format_version"], 4);
+    assert_eq!(value["format_version"], 5);
     assert_eq!(value["debts"]["debts"][1]["name"], "Example Student Loan");
     assert_eq!(value["debts"]["debts"][1]["colour_slot"], 1);
     assert_eq!(value["debts"]["statements"][0]["balance"], "8000.00");

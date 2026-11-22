@@ -8,6 +8,7 @@ use crate::domain::NumberFormat;
 
 mod abn;
 mod accounts;
+mod budgets;
 mod categories;
 mod data;
 mod import;

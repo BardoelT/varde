@@ -11,12 +11,13 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Runtime, State};
 use tauri_plugin_dialog::DialogExt;
 
-use super::AppState;
+use super::{typed_amount, AppState};
 use crate::domain::transactions::{
-    Account, AccountId, CategorisationSummary, Category, CategoryId, Granularity, ImportSummary,
-    ReapplyScope, Rule, RuleDraft, RuleId, RulePeriod, RuleSuggestions, SpendingPeriod,
-    SpendingPeriods, SpendingShares, TransactionDate, TransactionFilter, TransactionFilterInput,
-    TransactionId, TransactionInsights, TransactionList, TransactionYearlyTotal, Transactions,
+    parse_budget_amount, parse_budget_month, Account, AccountId, BudgetScope, BudgetsView,
+    CategorisationSummary, Category, CategoryId, Granularity, ImportSummary, ReapplyScope, Rule,
+    RuleDraft, RuleId, RulePeriod, RuleSuggestions, SpendingPeriod, SpendingPeriods,
+    SpendingShares, TransactionDate, TransactionFilter, TransactionFilterInput, TransactionId,
+    TransactionInsights, TransactionList, TransactionYearlyTotal, Transactions,
     UNCATEGORIZED_ENTITY,
 };
 use crate::domain::DomainError;
@@ -699,4 +700,73 @@ pub fn reapply_transaction_rules(
     let mut project = state.edit(StepLabel::reapply(Record::TransactionRule))?;
     let changed = project.transactions_mut().reapply_rules(scope);
     Ok(ReapplyResult { changed })
+}
+
+/// The category of a budget as typed. The built-in Uncategorized cannot have
+/// one, and text that is no category id names no category (CSD-036 REQ-9).
+fn budget_category(text: &str) -> Result<CategoryId, DomainError> {
+    if text.trim().eq_ignore_ascii_case(UNCATEGORIZED_ENTITY) {
+        return Err(DomainError::BudgetCategoryProtected);
+    }
+    CategoryId::parse(text).map_err(|_| DomainError::BudgetCategoryUnknown)
+}
+
+/// The month the Budgets tab shows: the one asked for, else the current one
+/// (CSD-036 REQ-2).
+#[tauri::command]
+pub fn get_budgets(
+    state: State<'_, AppState>,
+    month: Option<String>,
+) -> Result<BudgetsView, AppError> {
+    let today = state.today();
+    let month = month
+        .as_deref()
+        .map(parse_budget_month)
+        .transpose()?
+        .unwrap_or(today);
+    let project = state.project()?;
+    Ok(project.transactions().budgets_view(month, today))
+}
+
+/// Sets the budget of a category for the month with a scope, as one undo step,
+/// and returns the month again (CSD-036 REQ-6, REQ-11).
+#[tauri::command]
+pub fn set_budget(
+    state: State<'_, AppState>,
+    category_id: String,
+    month: String,
+    amount: String,
+    scope: String,
+    preferences: State<'_, Preferences>,
+) -> Result<BudgetsView, AppError> {
+    let category = budget_category(&category_id)?;
+    let month = parse_budget_month(&month)?;
+    let amount = parse_budget_amount(&typed_amount(preferences.load_number_format(), &amount))?;
+    let scope = BudgetScope::parse(&scope)?;
+    let today = state.today();
+    let mut project = state.edit(StepLabel::edit(Record::Budget))?;
+    project
+        .transactions_mut()
+        .set_budget(category, month, amount, scope)?;
+    Ok(project.transactions().budgets_view(month, today))
+}
+
+/// Removes the budget of a category for the month with a scope, as one undo
+/// step, and returns the month again (CSD-036 REQ-7, REQ-11).
+#[tauri::command]
+pub fn remove_budget(
+    state: State<'_, AppState>,
+    category_id: String,
+    month: String,
+    scope: String,
+) -> Result<BudgetsView, AppError> {
+    let category = budget_category(&category_id)?;
+    let month = parse_budget_month(&month)?;
+    let scope = BudgetScope::parse(&scope)?;
+    let today = state.today();
+    let mut project = state.edit(StepLabel::delete(Record::Budget))?;
+    project
+        .transactions_mut()
+        .remove_budget(category, month, scope)?;
+    Ok(project.transactions().budgets_view(month, today))
 }

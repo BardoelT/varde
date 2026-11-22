@@ -72,6 +72,7 @@ fn test_csd032_ac_17_2_a_version_2_file_is_refused_as_older_until_upgraded() {
         "transaction_accounts",
         "transaction_categories",
         "transaction_rules",
+        "budgets",
     ] {
         value.as_object_mut().unwrap().remove(section);
     }
@@ -204,6 +205,7 @@ fn test_csd032_ac_17_3_the_script_gives_a_version_2_file_the_default_sections() 
         "transaction_accounts",
         "transaction_categories",
         "transaction_rules",
+        "budgets",
     ] {
         value.as_object_mut().unwrap().remove(section);
     }
@@ -228,7 +230,7 @@ fn test_csd034_ac_7_1_accounts_and_the_account_of_every_transaction_are_saved() 
         .add_account("Example Savings")
         .unwrap();
     let (path, value) = saved_value(&mut project, &dir);
-    assert_eq!(value["format_version"], 4);
+    assert_eq!(value["format_version"], 5);
     let accounts = value["transaction_accounts"].as_array().unwrap();
     assert_eq!(accounts.len(), 2);
     assert_eq!(accounts[0]["name"], "Example Bank");
