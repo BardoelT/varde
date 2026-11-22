@@ -486,3 +486,81 @@ test('test_csd036_ac_12_4_the_field_is_read_only', async () => {
   assert.equal(picker(app), null, 'focusing it does not open the picker');
   app.close();
 });
+
+// ---- REQ-13: the Today button ----
+
+const todayButton = (app) => picker(app).querySelector('.dp-today');
+
+test('test_csd036_ac_13_1_today_on_the_days_level', async () => {
+  await withClock(async () => {
+    const app = await jobDialog();
+    startDate(app).value = '15/03/2025';
+    await click(app, startDate(app));
+    assert.equal(title(app), 'March 2025');
+    await click(app, todayButton(app));
+    assert.equal(title(app), 'November 2026');
+    assert.ok(cellOf(app, '2026-11-22').classList.contains('today'));
+    assert.equal(app.document.activeElement, cellOf(app, '2026-11-22'), 'the focus moves to today');
+    assert.ok(picker(app), 'the picker is still open');
+    assert.equal(startDate(app).value, '15/03/2025', 'the field is unchanged');
+    app.close();
+  });
+});
+
+test('test_csd036_ac_13_2_today_on_the_months_and_years_levels', async () => {
+  await withClock(async () => {
+    const filter = await bankPeriodFilter();
+    monthField(filter).value = '2019-05';
+    await click(filter, monthField(filter));
+    assert.equal(title(filter), '2019');
+    await click(filter, todayButton(filter));
+    assert.equal(title(filter), '2026');
+    assert.equal(monthField(filter).value, '2019-05', 'the field is unchanged');
+    await click(filter, picker(filter).querySelector('button.dp-title'));
+    await click(filter, arrows(filter)[0]);
+    assert.equal(title(filter), '2010 – 2019');
+    await click(filter, todayButton(filter));
+    assert.equal(title(filter), '2020 – 2029');
+    assert.ok(picker(filter), 'still open');
+    filter.close();
+
+    const app = await jobDialog();
+    const { maskInput } = await app.load('shared/date-mask.js');
+    const year = app.document.createElement('input');
+    year.dataset.mask = 'month';
+    year.maxLength = 4;
+    year.value = '2005';
+    app.$('job-form').append(year);
+    maskInput(year);
+    await app.click(year);
+    assert.equal(title(app), '2000 – 2009');
+    await click(app, todayButton(app));
+    assert.equal(title(app), '2020 – 2029');
+    assert.equal(year.value, '2005', 'nothing is written');
+    app.close();
+  });
+});
+
+test('test_csd036_ac_13_3_today_in_a_limited_field', async () => {
+  await withClock(async () => {
+    const app = await openApp({ handlers: { transaction_spending_periods: { years: [2025], months: ['2025-03'] }, transaction_spending_shares: SHARES } });
+    await app.click(app.item('transactions'));
+    await app.click(app.$('transactions-tab-categories'));
+    await click(app, monthField2(app));
+    assert.equal(title(app), '2025');
+    await click(app, todayButton(app));
+    assert.equal(title(app), '2026');
+    assert.equal(choiceCells(app).every((cell) => cell.disabled), true, 'all grey');
+    assert.ok(picker(app));
+    app.close();
+  });
+});
+
+test('test_csd036_ac_13_4_the_button_is_translated', async () => {
+  const reads = exampleReads();
+  reads.get_preferences = { ...reads.get_preferences, language: 'nl' };
+  const app = await jobDialog({ reads });
+  await click(app, startDate(app));
+  assert.equal(app.text(todayButton(app)), 'Vandaag');
+  app.close();
+});

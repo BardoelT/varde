@@ -429,3 +429,8 @@ button.dp-title:hover { background: var(--bg); }
 .donut-field { width: 11.5em; cursor: pointer; }
 .donut-head .date-field { width: 11.5em; }
 .donut-head .date-field input { width: 100%; }
+
+.dp-footer { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); text-align: center; }
+.dp-today { padding: 4px 14px; font: inherit; font-size: 12.5px; color: var(--accent); background: none; border: 0; border-radius: 6px; cursor: pointer; }
+.dp-today:hover { background: var(--bg); }
+.dp-today:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

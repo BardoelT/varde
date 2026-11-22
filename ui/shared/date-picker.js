@@ -273,10 +273,23 @@ function createPicker(input, options) {
     ];
   }
 
+  /** The button "Today": moves the view to today on this level and keeps the picker open; it writes nothing (CSD-036 REQ-13). */
+  function todayButton() {
+    const button = h('button', { type: 'button', class: 'dp-today' }, t('Today'));
+    button.addEventListener('click', () => {
+      const now = today();
+      view.year = now.year;
+      view.month = now.month;
+      if (view.level === 'days') view.focus = `${pad(now.year, 4)}-${pad(now.month + 1)}-${pad(now.day)}`;
+      render();
+    });
+    return h('div', { class: 'dp-footer' }, button);
+  }
+
   /** Draws the level of the view; focus stays where it was unless a cell asks for it. */
   function render() {
     popup.setAttribute('aria-labelledby', `${popup.id}-title`);
-    popup.replaceChildren(...(view.level === 'days' ? renderDays() : view.level === 'months' ? renderMonths() : renderYears()));
+    popup.replaceChildren(...(view.level === 'days' ? renderDays() : view.level === 'months' ? renderMonths() : renderYears()), todayButton());
     if (popup.isConnected) place();
     if (view.focus) {
       const target = view.focus;

@@ -47,6 +47,7 @@ export default {
   'Previous decade': 'Vorig decennium',
   'Next decade': 'Volgend decennium',
   'Date picker': 'Datumkiezer',
+  'Today': 'Vandaag',
   '{name} (not available)': '{name} (niet beschikbaar)',
   'Per year': 'Per jaar',
   'Per month': 'Per maand',
