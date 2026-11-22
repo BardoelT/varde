@@ -22,7 +22,7 @@ test('test_csd034_ac_1_3_accounts_is_the_first_tab_of_transactions_and_not_in_th
   assert.ok(!items.includes('Accounts'), 'no item in the left pane');
   await app.click(app.item('transactions'));
   const tabs = [...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab));
-  assert.deepEqual(tabs, ['Accounts', 'Categories', 'Rules', 'Yearly totals', 'Transactions', 'Insights']);
+  assert.deepEqual(tabs, ['Accounts', 'Categories', 'Rules', 'Yearly totals', 'Transactions', 'Insights', 'Budgets']);
   assert.equal(app.$('transactions-tab-transactions').getAttribute('aria-selected'), 'true', 'the Transactions tab stays the one shown first');
   assert.equal(app.isShown(app.$('transactions-accounts')), false);
   await app.click(app.$('transactions-tab-accounts'));

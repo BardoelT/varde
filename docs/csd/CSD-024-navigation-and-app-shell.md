@@ -3,8 +3,8 @@ id: CSD-024
 title: Navigation and app shell
 status: approved
 owner: Thijs Bardoel
-version: 0.10
-last_updated: 18/11/2026
+version: 0.11
+last_updated: 22/11/2026
 related: [CSD-002, CSD-003, CSD-004, CSD-022, CSD-025, CSD-027, CSD-031]
 ---
 
@@ -23,7 +23,7 @@ The app has one window with a left pane that opens the pages, and a native macOS
 
 ### 2.2 Non-goals
 - NG-1: Any page in the Insights group other than the Net worth page of CSD-017 and the Ratios page of CSD-018 (moved from CSD-004 NG-5).
-- NG-2: Pages that have no function yet: Accounts and Budget. (Transactions has a function from CSD-032 and is no longer in this list. Changed in v0.7.)
+- NG-2: Pages that have no function yet: Accounts and Budget. (Transactions has a function from CSD-032 and is no longer in this list. Changed in v0.7. Budgeting is a tab "Budgets" on the Transactions page, CSD-037, so there is still no page "Budget" in the left pane. Changed in v0.11.)
 - NG-3: Collapsible groups, and a user-defined order of the items.
 - NG-4: Keyboard shortcuts that open a page, other than ⌘, for Settings (CSD-003 REQ-2). Decided for the first release (OQ-1).
 - NG-5: The content of a page, its tabs (such as Overview and Insights) and the actions behind the menu items (the owning CSDs). Keeping the title and the tabs in view is shell behaviour and is specified here (REQ-10).
@@ -492,6 +492,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-3: (resolved 03/11/2026) The native menu is specified only as the standard menus (app, File, Edit, View, Window) plus the items already named; it is not listed item by item (REQ-5).
 
 ## 9. Changelog
+- 0.11 (22/11/2026): NG-2 notes that budgeting is a tab of the Transactions page (CSD-037), not a page of the left pane (GitHub issue 82). No behaviour change. Back to `draft` until re-approved.
 - 0.10 (18/11/2026): The header collapse follows the scroll movement continuously over 80 px (REQ-11, REQ-12) instead of switching at 32 px, with intermediate sizes; no transition (REQ-16). Owner request after trying 0.9.
 - 0.9 (18/11/2026): The page header stays in view (GitHub issue 74): new REQ-10 to REQ-16 (AC-10.1 to AC-16.2), the definitions Page header and Compressed, NG-10, NG-11, CON-5, CON-6, and the interface and verification notes. The title and the tabs of every page stay at the top while the page scrolls; the title compresses (20 px to 16 px, 30/22 px to 10/10 px of space) after 32 px of scrolling and expands again at the top, not on pages that overflow too little; charts keep their size (CSD-025 rule unchanged); focus, layers and reduced motion follow. NG-5 now excludes the pinned header. Owner decisions from the grill-me interview of 18/11/2026. Back to `draft` until re-approved.
 - 0.8 (18/11/2026): Autosave (CSD-002 v3.2, GitHub issue 71): new AC-9.6 to AC-9.8 (the dot with autosave on: gone after the write, kept without a path, kept after a failed write); AC-9.1 to AC-9.5 describe autosave off. REQ-9 itself is unchanged. Back to `draft` until re-approved.

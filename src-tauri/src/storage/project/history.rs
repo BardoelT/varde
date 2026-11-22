@@ -48,6 +48,7 @@ pub enum Record {
     TransactionAccount,
     TransactionCategory,
     TransactionRule,
+    Budget,
 }
 
 /// The English name of a step, such as "Delete Bank Account". It labels the
@@ -123,6 +124,7 @@ impl fmt::Display for StepLabel {
             Record::TransactionAccount => "Transaction Account",
             Record::TransactionCategory => "Transaction Category",
             Record::TransactionRule => "Transaction Rule",
+            Record::Budget => "Budget",
         };
         write!(f, "{action} {record}")
     }

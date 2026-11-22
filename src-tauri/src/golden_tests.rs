@@ -132,6 +132,33 @@ pub(crate) fn add_transactions(app: &Harness) {
         "set_transaction_category",
         json!({ "transactionId": id_of(friend), "categoryId": id_of(other) }),
     );
+    add_budgets(app, &categories);
+}
+
+/// A few budgets (CSD-037 REQ-17): one for all months, one from a month on and
+/// one for a single month.
+fn add_budgets(app: &Harness, categories: &Value) {
+    let id_named = |name: &str| {
+        id_of(
+            categories
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|category| category["name"] == name)
+                .unwrap(),
+        )
+    };
+    for (name, month, amount, scope) in [
+        ("Groceries", "2026-10", "40.00", "all"),
+        ("Subscriptions", "2026-01", "15.00", "all"),
+        ("Subscriptions", "2026-10", "20.00", "month"),
+        ("Housing", "2026-10", "1000.00", "from"),
+    ] {
+        app.ok(
+            "set_budget",
+            json!({ "categoryId": id_named(name), "month": month, "amount": amount, "scope": scope }),
+        );
+    }
 }
 
 /// A monthly and a yearly job.

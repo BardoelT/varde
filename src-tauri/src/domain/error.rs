@@ -520,6 +520,26 @@ pub enum DomainError {
     /// Reported as: "The transaction data is not consistent."
     #[error("The transaction data is not consistent.")]
     TransactionDataInvalid,
+    /// Reported as: "Enter a budget of 0.00 or more."
+    #[error("Enter a budget of 0.00 or more.")]
+    BudgetAmountInvalid,
+    /// Reported as: "This category does not exist."
+    #[error("This category does not exist.")]
+    BudgetCategoryUnknown,
+    /// Reported as: "Uncategorized cannot have a budget."
+    #[error("Uncategorized cannot have a budget.")]
+    BudgetCategoryProtected,
+    /// Reported as: "Choose a month as YYYY-MM."
+    #[error("Choose a month as YYYY-MM.")]
+    BudgetMonthInvalid,
+    /// Reported as: "Choose a year as YYYY."
+    #[error("Choose a year as YYYY.")]
+    BudgetYearInvalid,
+    /// Reported as: "Choose whether the budget applies to this month, from this month on or to all months."
+    #[error(
+        "Choose whether the budget applies to this month, from this month on or to all months."
+    )]
+    BudgetScopeInvalid,
 }
 
 impl DomainError {
@@ -693,6 +713,12 @@ impl DomainError {
             Self::TransactionAccountNotFound => "TRANSACTION_ACCOUNT_NOT_FOUND",
             Self::TransactionNotFound => "TRANSACTION_NOT_FOUND",
             Self::TransactionDataInvalid => "TRANSACTION_DATA_INVALID",
+            Self::BudgetAmountInvalid => "BUDGET_AMOUNT_INVALID",
+            Self::BudgetCategoryUnknown => "BUDGET_CATEGORY_UNKNOWN",
+            Self::BudgetCategoryProtected => "BUDGET_CATEGORY_PROTECTED",
+            Self::BudgetMonthInvalid => "BUDGET_MONTH_INVALID",
+            Self::BudgetScopeInvalid => "BUDGET_SCOPE_INVALID",
+            Self::BudgetYearInvalid => "BUDGET_YEAR_INVALID",
         }
     }
 }

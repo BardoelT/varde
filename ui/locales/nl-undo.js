@@ -18,6 +18,7 @@ const RECORDS = {
   'Transaction Account': 'Transactierekening',
   'Transaction Category': 'Transactiecategorie',
   'Transaction Rule': 'Transactieregel',
+  Budget: 'Budget',
 };
 const ACTIONS = { Add: 'toevoegen', Edit: 'bewerken', Delete: 'verwijderen', Import: 'importeren', 'Re-apply': 'opnieuw toepassen' };
 

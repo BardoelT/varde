@@ -14,7 +14,7 @@ test('test_csd032_ac_16_1_transactions_is_in_the_left_pane_after_expenses_and_sh
   assert.ok(app.isShown(app.$('transactions')));
   assert.equal(app.textOf('transactions-tab-transactions'), 'Transactions');
   assert.equal(app.$('transactions-tab-transactions').getAttribute('aria-selected'), 'true', 'the page opens on the Transactions tab');
-  assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Accounts', 'Categories', 'Rules', 'Yearly totals', 'Transactions', 'Insights']);
+  assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Accounts', 'Categories', 'Rules', 'Yearly totals', 'Transactions', 'Insights', 'Budgets']);
   app.close();
 });
 

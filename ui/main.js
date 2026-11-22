@@ -24,6 +24,7 @@ import { initExpensesInsights, reloadExpensesInsightsIfOpen } from './pages/expe
 import { initExpensesOverview, reloadExpensesOverview } from './pages/expenses-overview.js';
 import { initTransactionsOverview, reloadTransactionsOverview, resetTransactionsManualFilter } from './pages/transactions-overview.js';
 import { initTransactionsInsights, reloadTransactionsInsightsIfOpen } from './pages/transactions-insights.js';
+import { initTransactionsBudgets, reloadBudgetsIfOpen, resetBudgets } from './pages/transactions-budgets.js';
 import { initSettings, loadPreferences, reloadSettings, toggleDiscreteMode } from './pages/settings.js';
 import { initUpdates } from './pages/settings-updates.js';
 import { reloadDashboard } from './pages/dashboard.js';
@@ -116,6 +117,10 @@ async function start() {
     onChanged: refreshStatusAndSettings,
   });
   initTransactionsInsights();
+  // Budgets count for the currency confirmation and change the unsaved state (CSD-037 REQ-11, REQ-13).
+  initTransactionsBudgets({
+    onChanged: refreshStatusAndSettings,
+  });
   initNetWorth();
   initRatios();
   initSettings({
@@ -146,6 +151,7 @@ async function start() {
         reloadExpensesInsightsIfOpen,
         reloadTransactionsOverview,
         reloadTransactionsInsightsIfOpen,
+        reloadBudgetsIfOpen,
         reloadNetWorthIfOpen,
         reloadRatiosIfOpen,
         reloadDashboard,
@@ -154,6 +160,7 @@ async function start() {
   await initProject({ onReplaced: reloadEverything, onSwitched: () => {
       resetAllFilters();
       resetTransactionsManualFilter();
+      resetBudgets();
       resetTabs();
     },
   });

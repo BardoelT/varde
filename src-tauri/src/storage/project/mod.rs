@@ -485,6 +485,8 @@ mod ac_tests_csd013;
 #[cfg(test)]
 mod bank_accounts_tests;
 #[cfg(test)]
+mod budgets_tests;
+#[cfg(test)]
 mod debts_tests;
 #[cfg(test)]
 mod expenses_tests;

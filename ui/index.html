@@ -646,6 +646,7 @@
           <button type="button" class="tab" role="tab" id="transactions-tab-totals" aria-controls="transactions-totals" aria-selected="false" tabindex="-1">Yearly totals</button>
           <button type="button" class="tab" role="tab" id="transactions-tab-transactions" aria-controls="transactions-transactions" aria-selected="true">Transactions</button>
           <button type="button" class="tab" role="tab" id="transactions-tab-insights" aria-controls="transactions-insights" aria-selected="false" tabindex="-1">Insights</button>
+          <button type="button" class="tab" role="tab" id="transactions-tab-budgets" aria-controls="transactions-budgets" aria-selected="false" tabindex="-1">Budgets</button>
         </div>
 
         <div id="transactions-accounts" role="tabpanel" aria-labelledby="transactions-tab-accounts" hidden>
@@ -785,6 +786,43 @@
             <p class="empty-note" id="transactions-insights-empty" hidden>No transactions yet. The chart appears once there is a transaction.</p>
             <div class="chart-scroll" id="transactions-insights-scroll" hidden>
               <div class="chart-inner" id="transactions-insights-chart"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="transactions-budgets" role="tabpanel" aria-labelledby="transactions-tab-budgets" hidden>
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Budgets</span>
+              <div class="segmented" role="group" aria-label="Budget period">
+                <button type="button" class="segment" id="budgets-view-month" aria-pressed="true">Month</button>
+                <button type="button" class="segment" id="budgets-view-year" aria-pressed="false">Year</button>
+              </div>
+              <div class="month-nav">
+                <button type="button" class="btn" id="budgets-previous">Previous month</button>
+                <span class="month-label" id="budgets-month" aria-live="polite"></span>
+                <button type="button" class="btn" id="budgets-next">Next month</button>
+              </div>
+            </div>
+            <p class="empty-note" id="budgets-empty" hidden>No categories yet. Add a category on the tab Categories to set a budget.</p>
+            <div id="budgets-year" hidden>
+              <div class="budget-year-figures" id="budgets-year-figures"></div>
+              <div class="table-wrap year-grid-wrap" id="budgets-year-grid"></div>
+            </div>
+            <div class="table-wrap" id="budgets-content">
+              <table class="data-table budgets-table" id="budgets-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Category</th>
+                    <th scope="col" class="num">Budget</th>
+                    <th scope="col" class="num">Spent</th>
+                    <th scope="col" class="num">Remaining</th>
+                    <th scope="col"><span class="visually-hidden">Progress</span></th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody id="budgets-rows"></tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -1340,6 +1378,28 @@
       <div class="dialog-actions">
         <button type="button" class="btn" data-cancel>Cancel</button>
         <button type="submit" class="btn primary">Save statement</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="budget-dialog" aria-labelledby="budget-dialog-title">
+    <form method="dialog" id="budget-form" novalidate>
+      <h2 id="budget-dialog-title">Set budget</h2>
+      <p class="budget-context" id="budget-context"></p>
+      <label class="field" id="budget-amount-field">Amount
+        <input type="text" name="amount" inputmode="decimal" placeholder="0.00" autocomplete="off" required>
+      </label>
+      <fieldset class="scope-group">
+        <legend>Applies to</legend>
+        <label class="scope-option"><input type="radio" name="scope" value="month"> Only this month</label>
+        <label class="scope-option"><input type="radio" name="scope" value="from" checked> From this month on</label>
+        <label class="scope-option"><input type="radio" name="scope" value="all"> All months</label>
+      </fieldset>
+      <p class="form-error" id="budget-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn danger" id="budget-remove" hidden>Remove budget</button>
+        <button type="button" class="btn" data-cancel>Cancel</button>
+        <button type="submit" class="btn primary" id="budget-submit" name="save">Save budget</button>
       </div>
     </form>
   </dialog>

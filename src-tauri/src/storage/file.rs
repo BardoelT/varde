@@ -6,13 +6,17 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::StorageError;
-use crate::domain::transactions::{Account, Category, Rule, Transaction};
+use crate::domain::transactions::{Account, Budget, Category, Rule, Transaction};
 use crate::domain::{
     BankAccounts, Debts, Expenses, Houses, Income, Investments, ProjectData, Settings, Transactions,
 };
 
 /// Version of the project file format this app writes and understands.
-pub const FORMAT_VERSION: u32 = 4;
+pub const FORMAT_VERSION: u32 = 5;
+
+/// The oldest version the app opens: it adds the sections the newer versions
+/// hold, empty, while reading (CSD-002 REQ-30).
+const OLDEST_OPENABLE_VERSION: u64 = 4;
 
 /// Largest project file the app will read and the largest it will write, so a
 /// file it saved can always be opened again (CSD-002 REQ-27).
@@ -32,6 +36,7 @@ struct FileRef<'a> {
     transaction_accounts: &'a [Account],
     transaction_categories: &'a [Category],
     transaction_rules: &'a [Rule],
+    budgets: &'a [Budget],
 }
 
 /// Every section is required and unknown fields are rejected, so a misspelled
@@ -53,6 +58,7 @@ struct FileOwned {
     transaction_accounts: Vec<Account>,
     transaction_categories: Vec<Category>,
     transaction_rules: Vec<Rule>,
+    budgets: Vec<Budget>,
 }
 
 /// Renders the project file: JSON with a `format_version` and decimal strings.
@@ -70,6 +76,7 @@ pub(super) fn to_json(data: &ProjectData) -> Result<String, StorageError> {
         transaction_accounts: data.transactions.accounts(),
         transaction_categories: data.transactions.categories(),
         transaction_rules: data.transactions.rules(),
+        budgets: data.transactions.budgets(),
     })
     .map_err(|error| StorageError::SaveFailed(io::Error::other(error)))
 }
@@ -78,9 +85,10 @@ pub(super) fn to_json(data: &ProjectData) -> Result<String, StorageError> {
 ///
 /// Files with a missing, zero, older or newer `format_version` are rejected. An
 /// older one has its own error, and is upgraded outside the app first (CSD-002
-/// REQ-20, REQ-29).
+/// REQ-20, REQ-29), except a version 4 file, which opens with an empty
+/// `budgets` section (CSD-002 REQ-30).
 pub(super) fn from_json(text: &str) -> Result<ProjectData, StorageError> {
-    let value: serde_json::Value =
+    let mut value: serde_json::Value =
         serde_json::from_str(text).map_err(|_| StorageError::InvalidFile)?;
     let version = value
         .get("format_version")
@@ -89,11 +97,19 @@ pub(super) fn from_json(text: &str) -> Result<ProjectData, StorageError> {
     if version == 0 {
         return Err(StorageError::InvalidFile);
     }
-    if version < u64::from(FORMAT_VERSION) {
+    if version < OLDEST_OPENABLE_VERSION {
         return Err(StorageError::FileOlder);
     }
     if version > u64::from(FORMAT_VERSION) {
         return Err(StorageError::FileNewer);
+    }
+    if version < u64::from(FORMAT_VERSION) {
+        // A version 4 file has no budgets; one that names the section is invalid.
+        let object = value.as_object_mut().ok_or(StorageError::InvalidFile)?;
+        if object.contains_key("budgets") {
+            return Err(StorageError::InvalidFile);
+        }
+        object.insert("budgets".to_owned(), serde_json::Value::Array(Vec::new()));
     }
     let file: FileOwned = serde_json::from_value(value).map_err(|_| StorageError::InvalidFile)?;
     file.income
@@ -123,6 +139,7 @@ pub(super) fn from_json(text: &str) -> Result<ProjectData, StorageError> {
         file.transaction_categories,
         file.transaction_rules,
     )
+    .and_then(|transactions| transactions.with_budgets(file.budgets))
     .map_err(|_| StorageError::InvalidFile)?;
     Ok(ProjectData {
         income: file.income,

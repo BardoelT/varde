@@ -1,5 +1,5 @@
 {
-  "format_version": 4,
+  "format_version": 5,
   "income": {
     "jobs": [
       {
@@ -625,6 +625,43 @@
       "id": "id-55",
       "text": "Zilveren Kruis*",
       "category_id": "id-33"
+    }
+  ],
+  "budgets": [
+    {
+      "category_id": "id-21",
+      "from": [
+        {
+          "month": null,
+          "amount": "40.00"
+        }
+      ],
+      "only": []
+    },
+    {
+      "category_id": "id-24",
+      "from": [
+        {
+          "month": null,
+          "amount": "15.00"
+        }
+      ],
+      "only": [
+        {
+          "month": "2026-10",
+          "amount": "20.00"
+        }
+      ]
+    },
+    {
+      "category_id": "id-31",
+      "from": [
+        {
+          "month": "2026-10",
+          "amount": "1000.00"
+        }
+      ],
+      "only": []
     }
   ]
 }

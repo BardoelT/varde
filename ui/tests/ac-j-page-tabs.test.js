@@ -16,8 +16,8 @@ const PAGES = [
   [
     'transactions',
     'Transactions',
-    ['Accounts', 'Categories', 'Rules', 'Yearly totals', 'Transactions', 'Insights'],
-    ['accounts', 'categories', 'rules', 'totals', 'transactions', 'insights'],
+    ['Accounts', 'Categories', 'Rules', 'Yearly totals', 'Transactions', 'Insights', 'Budgets'],
+    ['accounts', 'categories', 'rules', 'totals', 'transactions', 'insights', 'budgets'],
     'transactions',
   ],
 ];
@@ -35,7 +35,7 @@ test('test_csd035_ac_1_1_the_tabs_of_a_page', async () => {
     assert.deepEqual(tabsOf(app, page).map((tab) => tab.id), slugs.map((slug) => `${page}-tab-${slug}`));
     assert.ok(!tabsOf(app, page).some((tab) => app.text(tab) === 'Overview'), 'no tab "Overview"');
     // The label of a tab is the title of its panel (REQ-7).
-    for (const tab of tabsOf(app, page).slice(0, -1)) {
+    for (const tab of tabsOf(app, page).filter((candidate) => !candidate.id.endsWith('-tab-insights'))) {
       const panel = app.$(tab.getAttribute('aria-controls'));
       // The tab Categories also holds the panel "Spending per category" (CSD-035 REQ-2); the tab is named after the other.
       const titles = [...panel.querySelectorAll('.panel-title')].map((title) => app.text(title));
@@ -150,7 +150,7 @@ test('test_csd035_ac_5_1_no_tabs_while_empty_and_expenses_and_transactions_alway
     assert.equal(app.isShown(app.$(`${page}-tab-insights`)), true, `${page} shows its tabs`);
   }
   assert.equal(tabsOf(app, 'expenses').length, 3);
-  assert.equal(tabsOf(app, 'transactions').length, 6);
+  assert.equal(tabsOf(app, 'transactions').length, 7);
   app.close();
 });
 

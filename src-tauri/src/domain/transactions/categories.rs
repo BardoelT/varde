@@ -46,7 +46,8 @@ impl Transactions {
     }
 
     /// Deletes a category: its transactions become Uncategorized, keeping
-    /// their manual flag, and the rules that name it are deleted (REQ-13).
+    /// their manual flag, and the rules that name it and its budgets are deleted
+    /// (REQ-13, CSD-037 REQ-10).
     ///
     /// # Errors
     /// Returns `TransactionCategoryNotFound`.
@@ -56,6 +57,7 @@ impl Transactions {
         }
         self.categories.retain(|category| category.id != id);
         self.rules.retain(|rule| rule.category_id != id);
+        self.budgets.retain(|budget| budget.category_id != id);
         if self
             .list
             .iter()

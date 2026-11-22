@@ -7,6 +7,7 @@
 
 mod abn;
 mod accounts;
+mod budgets;
 mod bulk;
 mod categories;
 mod category;
@@ -33,6 +34,12 @@ use crate::domain::error::DomainError;
 use crate::domain::money::Currency;
 
 pub use accounts::{Account, AccountId};
+pub use budgets::{
+    parse_amount as parse_budget_amount, parse_month as parse_budget_month,
+    parse_year as parse_budget_year, Budget, BudgetScope, BudgetYear, BudgetsView,
+};
+#[cfg(test)]
+pub use budgets::{BudgetRow, BudgetYearRow, FromEntry, OnlyEntry};
 pub use category::{Category, CategoryId, Rule, RuleId, RulePeriod, UNCATEGORIZED_ENTITY};
 pub use filter::{TransactionFilter, TransactionFilterInput};
 pub use insights::{Granularity, TransactionInsights};
@@ -78,6 +85,7 @@ pub struct Transactions {
     accounts: Vec<Account>,
     categories: Vec<Category>,
     rules: Vec<Rule>,
+    budgets: Vec<Budget>,
 }
 
 impl Default for Transactions {
@@ -90,6 +98,7 @@ impl Default for Transactions {
             accounts: Vec::new(),
             categories,
             rules,
+            budgets: Vec::new(),
         }
     }
 }
@@ -111,6 +120,7 @@ impl Transactions {
             accounts,
             categories,
             rules,
+            budgets: Vec::new(),
         };
         data.validate()?;
         Ok(data)
