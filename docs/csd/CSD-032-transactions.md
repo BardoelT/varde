@@ -1,7 +1,7 @@
 ---
 id: CSD-032
 title: Transactions
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 0.48
 last_updated: 22/11/2026
