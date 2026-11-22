@@ -3,9 +3,9 @@ id: CSD-036
 title: Date picker
 status: approved
 owner: Thijs Bardoel
-version: 0.4
+version: 0.5
 last_updated: 22/11/2026
-related: [CSD-000, CSD-022, CSD-024, CSD-028, CSD-030, CSD-032]
+related: [CSD-000, CSD-022, CSD-024, CSD-028, CSD-030, CSD-032, CSD-037]
 ---
 
 # CSD-036: Date picker
@@ -244,7 +244,7 @@ Scenario: A sell date before the purchase date can be picked
 ```
 
 **REQ-12: A field may offer only some periods** *(optional)*
-Where a field is given the months or the years it offers, the picker shall show every other month or year grey and not selectable, in the months level and in the years level, with a name that says it is not available; its arrows shall not go past the earliest and the latest period offered; and it shall open on the period in the field, or on the latest period offered while the field is empty. Such a field is read-only and shows its period as the year ("2026") or as the month name and the year ("November 2026"); it has the calendar button and the keys of REQ-10, and no typing (REQ-7 does not apply).
+Where a field is given the months or the years it offers, or the first month or year it offers with no last one, the picker shall show every other month or year grey and not selectable, in the months level and in the years level, with a name that says it is not available; its arrows shall not go past the earliest period offered, nor past the latest one when there is a last one; and it shall open on the period in the field, or on the latest period offered (the current one when there is no last one) while the field is empty. Such a field is read-only and shows its period as the year ("2026") or as the month name and the year ("November 2026"); it has the calendar button and the keys of REQ-10, and no typing (REQ-7 does not apply).
 
 ```gherkin
 @AC-12.1
@@ -276,6 +276,14 @@ Scenario: The field is read-only
   Given such a field
   When the user types in it
   Then its text does not change
+
+@AC-12.5
+Scenario: Only a first period, no last one
+  Given a field that offers the months from 2026-08 on and today is 15/10/2026
+  When the user opens its picker on the months of 2026
+  Then "Aug" to "Dec" can be chosen and "Jan" to "Jul" are grey and disabled
+  And the next arrow is enabled and the months of 2030 can be chosen
+  And the previous arrow of 2026 is disabled and the years level greys 2025 and every earlier year
 ```
 
 **REQ-13: The Today button** *(event-driven)*
@@ -397,6 +405,7 @@ The picker is frontend only: there is no Rust command, no change to the project 
 - OQ-1: Resolved (22/11/2026): year fields do exist, the period of a yearly statement (a month field whose length becomes 4), and they show only the years (REQ-1, AC-1.3).
 
 ## 9. Changelog
+- 0.5 (22/11/2026): A picker may be given only the first period it offers, with no last one (REQ-12, AC-12.5), for the month and year of the Budgets tab (CSD-037 REQ-2, REQ-19). Owner request. Back to `draft` until re-approved.
 - 0.4 (22/11/2026): A button "Today" at the bottom of the picker moves it to today on the level it shows, without writing into the field and without closing it (new REQ-13, AC-13.1 to AC-13.4; NG-4). Owner request. In a month or year field the button only shows the current year, nothing is written into the field (owner answer, OQ-2).
 - 0.3 (22/11/2026): A picker may be given the months or years it offers; the others are grey and not selectable (new REQ-12, AC-12.1 to AC-12.4; NG-2, REQ-8), for the year and month fields of the donut charts of CSD-032 REQ-35. Owner request. Back to `draft` until re-approved.
 - 0.2 (22/11/2026): A year field shows only the years level, never the months (REQ-1, AC-1.3), and the kind of a field is read when the picker opens, so the period of a yearly statement is a year field. Owner request. Back to `draft` until re-approved.

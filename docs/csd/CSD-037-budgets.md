@@ -3,9 +3,9 @@ id: CSD-037
 title: Budgets
 status: approved
 owner: Thijs Bardoel
-version: 0.6
+version: 0.7
 last_updated: 22/11/2026
-related: [CSD-000, CSD-002, CSD-003, CSD-022, CSD-027, CSD-029, CSD-030, CSD-032, CSD-033, CSD-035]
+related: [CSD-000, CSD-002, CSD-036, CSD-003, CSD-022, CSD-027, CSD-029, CSD-030, CSD-032, CSD-033, CSD-035]
 ---
 
 # CSD-037: Budgets
@@ -88,7 +88,7 @@ Scenario: No Budget page in the left pane
 ```
 
 **REQ-2: One month at a time** *(state-driven)*
-While the tab "Budgets" shows the Month view, the app shall show one budget month, which is the current month when the tab is first opened for a project, with buttons "Previous month" and "Next month" that move it by one month. Back shall stop at the earliest month that holds a transaction or a budget entry (the current month when there is none), and forward shall have no limit. The month is written `YYYY-MM`, and while it is the current month the panel says that it is partial ("MTD", as CSD-033 REQ-3).
+While the tab "Budgets" shows the Month view, the app shall show one budget month, which is the current month when the tab is first opened for a project, with buttons "Previous month" and "Next month" that move it by one month. Back shall stop at the earliest month that holds a transaction or a budget entry (the current month when there is none), and forward shall have no limit. The month is written `YYYY-MM`, and while it is the current month the panel says that it is partial ("MTD", as CSD-033 REQ-3). The label of the month is also a control with a calendar button that opens the date picker of CSD-036 on the months of the year shown, where the months before the earliest one are grey and not selectable and every later month can be chosen (CSD-036 REQ-12); choosing a month shows it, as the buttons do, and the label keeps its text.
 
 ```gherkin
 @AC-2.1
@@ -104,6 +104,15 @@ Scenario: Moving between months
   Then the month "2026-08" is shown and "Previous month" is disabled
   When the user chooses "Next month" four times
   Then the month "2026-12" is shown and "Next month" is still enabled
+
+@AC-2.5
+Scenario: The label opens the date picker
+  Given the earliest transaction is dated 12/08/2026 and today is 15/10/2026
+  When the user chooses the label "2026-10 MTD"
+  Then the date picker shows the months of 2026 with "Aug" to "Dec" selectable and "Jan" to "Jul" grey
+  When the user chooses "Dec"
+  Then the picker closes, the month "2026-12" is shown and Rust was asked for it
+  And the label still reads "2026-12"
 
 @AC-2.3
 Scenario: Nothing to go back to
@@ -466,7 +475,7 @@ Scenario: Choosing the shown option again
 ```
 
 **REQ-19: One year at a time** *(state-driven)*
-While the tab "Budgets" shows the Year view, the app shall show one calendar year, which is the current year when the Year view is first shown for a project, with the buttons in the same place as those of the Month view, reading "Previous year" and "Next year", that move it by one year. Back shall stop at the year of the earliest month that holds a transaction or a budget entry (the current year when there is none), and forward shall have no limit. The year is written `YYYY`, and while it is the current year the panel says that it is partial ("YTD", as CSD-033 REQ-3).
+While the tab "Budgets" shows the Year view, the app shall show one calendar year, which is the current year when the Year view is first shown for a project, with the buttons in the same place as those of the Month view, reading "Previous year" and "Next year", that move it by one year. Back shall stop at the year of the earliest month that holds a transaction or a budget entry (the current year when there is none), and forward shall have no limit. The year is written `YYYY`, and while it is the current year the panel says that it is partial ("YTD", as CSD-033 REQ-3). The label of the year is also a control that opens the date picker of CSD-036 on the years (the decade, without months), where the years before the earliest one are grey and not selectable and every later year can be chosen (CSD-036 REQ-12); choosing a year shows it and the label keeps its text.
 
 ```gherkin
 @AC-19.1
@@ -482,6 +491,14 @@ Scenario: Moving between years
   Then the year "2024" is shown and "Previous year" is disabled
   When the user chooses "Next year" four times
   Then the year "2028" is shown and "Next year" is still enabled
+
+@AC-19.5
+Scenario: The label opens the date picker on the years
+  Given the earliest transaction is dated 12/08/2024 and today is 15/10/2026
+  When the user chooses the label "2026 YTD" in the Year view
+  Then the date picker shows "2020 – 2029" with 2024 to 2029 selectable and 2020 to 2023 grey
+  When the user chooses 2028
+  Then the picker closes and the year "2028" is shown and Rust was asked for it
 
 @AC-19.3
 Scenario: Nothing to go back to
@@ -653,6 +670,7 @@ Commands (indicative names; the owner of the code may rename them):
 - OQ-3 (resolved 22/11/2026): Is a single-month amount that equals its neighbours still labelled? Answer: yes, the label follows how the amount was set, not its value (REQ-8).
 
 ## 9. Changelog
+- 0.7 (22/11/2026): The label of the month and of the year opens the date picker of CSD-036, with the periods before the earliest one grey and none after it (REQ-2, AC-2.5; REQ-19, AC-19.5). Owner request. Back to `draft` until re-approved.
 - 0.6 (22/11/2026): The choice at the top of the Budgets tab reads "Year | Month", as "Yearly | Monthly" does on the Insights tab, and has the same space after the title (REQ-18). "Month" stays the pressed one when the tab opens. Owner request. Back to `draft` until re-approved.
 - 0.5 (22/11/2026): OQ-4 resolved by the owner: the drafted answer stands, a button "Remove budget" in the dialog of a cell (REQ-21). No other change.
 - 0.4 (22/11/2026): A Year view next to the Month view: a choice "Month | Year" at the top of the Budgets tab (REQ-18), one year at a time with the same previous and next buttons (REQ-19), a grid of the budget of every category in every month with totals and three figures (REQ-20), cells that open the dialog of REQ-6 and REQ-7 (REQ-21), and the year computed by Rust (REQ-22, `get_budget_year`, `BUDGET_YEAR_INVALID`); REQ-2, REQ-14 and REQ-16 name the Month view or both views, NG-10 and NG-11 added. GitHub issue 82, owner request. Back to `draft` until re-approved.
