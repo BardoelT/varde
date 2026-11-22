@@ -3,7 +3,7 @@ id: CSD-036
 title: Date picker
 status: approved
 owner: Thijs Bardoel
-version: 0.3
+version: 0.4
 last_updated: 22/11/2026
 related: [CSD-000, CSD-022, CSD-024, CSD-028, CSD-030, CSD-032]
 ---
@@ -23,7 +23,7 @@ Every date in the app is typed as `dd/mm/yyyy` and every month as `yyyy-mm`, wit
 - NG-1: Selecting a range of dates, a time of day, or several dates. A picker selects one date, one month or one year.
 - NG-2: Blocking or greying out dates in the fields of forms and filters, for example before a purchase date or in the future. Those pickers allow every real date and Rust judges (REQ-8). Only a field that is given the periods it offers (REQ-12) greys out the others.
 - NG-3: The browser's own `<input type="date">`, and any change to the typed formats, the mask or the validation in Rust.
-- NG-4: A "Today" or "Clear" button, week numbers, a choice of the first weekday, and remembering the view between openings.
+- NG-4: A "Clear" button, week numbers, a choice of the first weekday, and remembering the view between openings.
 - NG-5: A change to what a field means: which fields are required, their labels, and their errors stay as the owning CSD says.
 
 ## 3. Definitions
@@ -278,6 +278,38 @@ Scenario: The field is read-only
   Then its text does not change
 ```
 
+**REQ-13: The Today button** *(event-driven)*
+When the user presses the button "Today" at the bottom of the picker, the app shall move the picker to today on the level it shows, the days of the current month on the days level, the months of the current year on the months level and the decade of the current year on the years level, and shall keep the picker open; it shall not write anything into the field. On the days level the focus moves to today's day cell. A field that offers only some periods (REQ-12) moves the same way, and a period it does not offer stays grey.
+
+```gherkin
+@AC-13.1
+Scenario: Today on the days level
+  Given today is 22/11/2026 and the picker shows the days of March 2025
+  When the user presses "Today"
+  Then the picker shows the days of November 2026 with the 22nd marked as today
+  And the picker is still open and the field is unchanged
+
+@AC-13.2
+Scenario: Today on the months and years levels
+  Given a month field whose picker shows the months of 2019
+  When the user presses "Today"
+  Then the picker shows the months of 2026 and is still open
+  When the user opens the years level and moves to 2010 – 2019 and presses "Today"
+  Then the picker shows 2020 – 2029 and is still open
+  And in a year field the picker shows 2020 – 2029 and the field is unchanged
+
+@AC-13.3
+Scenario: Today in a limited field
+  Given a field that offers only 2025 and the picker shows the months of 2025
+  When the user presses "Today"
+  Then the months of 2026 are shown, all grey, and the picker is still open
+
+@AC-13.4
+Scenario: The button is translated
+  Given the language is Dutch
+  Then the button reads "Vandaag"
+```
+
 **REQ-9: Place on the screen** *(ubiquitous)*
 The picker shall be a child of the dialog or panel of its field, so a modal dialog does not hide it, shall open below the field and shall open above the field when there is not enough room below, and shall stay in the window.
 
@@ -356,14 +388,16 @@ The picker is frontend only: there is no Rust command, no change to the project 
 ## 7. Verification
 | ACs | Proven by |
 |---|---|
-| AC-1 to AC-12 | `npm test`: DOM tests in `ui/tests/`, titled `test_csd036_ac_n_m_...`, with a fixed clock for today |
+| AC-1 to AC-13 | `npm test`: DOM tests in `ui/tests/`, titled `test_csd036_ac_n_m_...`, with a fixed clock for today |
 | CON-2 | The existing CSP test of `ui/tests/csp.test.js`, which also reads the new file |
 | Manual | Open the example project and the picker of a form in a dialog, a filter and a date near the bottom of the window |
 
 ## 8. Open questions
+- OQ-2: Resolved (22/11/2026): in a month or year field "Today" only shows the current year, it does not write into the field (REQ-13, AC-13.2).
 - OQ-1: Resolved (22/11/2026): year fields do exist, the period of a yearly statement (a month field whose length becomes 4), and they show only the years (REQ-1, AC-1.3).
 
 ## 9. Changelog
+- 0.4 (22/11/2026): A button "Today" at the bottom of the picker moves it to today on the level it shows, without writing into the field and without closing it (new REQ-13, AC-13.1 to AC-13.4; NG-4). Owner request. In a month or year field the button only shows the current year, nothing is written into the field (owner answer, OQ-2).
 - 0.3 (22/11/2026): A picker may be given the months or years it offers; the others are grey and not selectable (new REQ-12, AC-12.1 to AC-12.4; NG-2, REQ-8), for the year and month fields of the donut charts of CSD-032 REQ-35. Owner request. Back to `draft` until re-approved.
 - 0.2 (22/11/2026): A year field shows only the years level, never the months (REQ-1, AC-1.3), and the kind of a field is read when the picker opens, so the period of a yearly statement is a year field. Owner request. Back to `draft` until re-approved.
 - 0.1 (22/11/2026): First draft, from GitHub issue 83 and the grill-me interview. Owner answers: a picker on every date field, month field and filter field, each opening on its own level; click, calendar button or Down opens it, Escape, outside click, Tab or a pick closes it, and typing keeps working; days, months and years levels with arrows left and right of the centred header; Monday first, six rows, dimmed neighbouring days that can be chosen, today marked, no extra buttons; every real date allowed; keyboard and accessibility as a dialog with a grid; translated and never blurred; frontend only with no Rust and no new dependency; the picker lives in the dialog of its field and flips above when there is no room.
