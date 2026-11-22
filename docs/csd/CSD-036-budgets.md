@@ -3,7 +3,7 @@ id: CSD-036
 title: Budgets
 status: approved
 owner: Thijs Bardoel
-version: 0.3
+version: 0.5
 last_updated: 22/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-022, CSD-027, CSD-029, CSD-030, CSD-032, CSD-033, CSD-035]
 ---
@@ -17,7 +17,7 @@ The Transactions page (CSD-032, CSD-033) shows what was spent per category, but 
 
 ## 2. Scope
 ### 2.1 In scope
-- The tab "Budgets" on the Transactions page: one month at a time, a row per category with its budget, the spending, what remains and a bar, a row "Not budgeted" and a total.
+- The tab "Budgets" on the Transactions page: a choice between a Month view and a Year view; the Month view shows one month at a time, a row per category with its budget, the spending, what remains and a bar, a row "Not budgeted" and a total; the Year view shows one year at a time as a grid of the budget of every category in every month (REQ-18 to REQ-22).
 - Setting and removing the budget of a category for this month only, from this month on, or for all months.
 - Storage of the budgets as a section of the project file (CSD-002), and the consequences for category changes (CSD-032), undo (CSD-027), the currency confirmation (CSD-003), Discrete mode (CSD-030), the language (CSD-022) and the example project.
 
@@ -31,7 +31,8 @@ The Transactions page (CSD-032, CSD-033) shows what was spent per category, but 
 - NG-7: A budget for a group of categories, a separate overall budget, and a budget for "Uncategorized".
 - NG-8: Copying a budget from another month, a range of months other than the three scopes of REQ-6, and a history list or timeline of the changes.
 - NG-9: Budgets for expenses (CSD-013), bank accounts (CSD-009) or any figure other than the debits of transactions.
-- NG-10: Exporting budgets, and remembering the month shown between sessions.
+- NG-10: Exporting budgets, and remembering the month, the year or the choice between Month and Year between sessions.
+- NG-11: Spent amounts, bars and a "Not budgeted" row in the grid of the Year view, and a collapsible block per year.
 
 ## 3. Definitions
 | Term | Meaning |
@@ -44,6 +45,8 @@ The Transactions page (CSD-032, CSD-033) shows what was spent per category, but 
 | **Over budget** | Spent is more than the budget. A budget of 0.00 with any spending is over budget. |
 | **Scope** | What a change of a budget covers: "Only this month", "From this month on" or "All months" (REQ-6). |
 | **Single-month amount** | A budget set with the scope "Only this month". |
+| **Month view** | The view of REQ-2 to REQ-4: one budget month with a row per category, the spent amount and a bar. |
+| **Year view** | The view of REQ-19 and REQ-20: one calendar year as a grid of the budget of every category in each of its 12 months. |
 | **Budgetable category** | A category of CSD-032 other than "Uncategorized". |
 
 ## 4. Requirements
@@ -85,7 +88,7 @@ Scenario: No Budget page in the left pane
 ```
 
 **REQ-2: One month at a time** *(state-driven)*
-While the tab "Budgets" is shown, the app shall show one budget month, which is the current month when the tab is first opened for a project, with buttons "Previous month" and "Next month" that move it by one month. Back shall stop at the earliest month that holds a transaction or a budget entry (the current month when there is none), and forward shall have no limit. The month is written `YYYY-MM`, and while it is the current month the panel says that it is partial ("MTD", as CSD-033 REQ-3).
+While the tab "Budgets" shows the Month view, the app shall show one budget month, which is the current month when the tab is first opened for a project, with buttons "Previous month" and "Next month" that move it by one month. Back shall stop at the earliest month that holds a transaction or a budget entry (the current month when there is none), and forward shall have no limit. The month is written `YYYY-MM`, and while it is the current month the panel says that it is partial ("MTD", as CSD-033 REQ-3).
 
 ```gherkin
 @AC-2.1
@@ -378,7 +381,7 @@ Scenario: Budgets count as entries
 ```
 
 **REQ-14: Discrete mode** *(state-driven)*
-While Discrete mode is on (CSD-030), the panel shall hide the budget, spent and remaining amounts and the total, and blur the amount in the dialog (CSD-030 REQ-9), and the bars and the over-budget mark stay visible.
+While Discrete mode is on (CSD-030), the panel shall hide the budget, spent and remaining amounts and the totals in the Month view and in the Year view, and blur the amount in the dialog (CSD-030 REQ-9), and the bars and the over-budget mark stay visible.
 
 ```gherkin
 @AC-14.1
@@ -386,6 +389,11 @@ Scenario: Amounts are hidden, bars are not
   Given Discrete mode is on and Groceries with a budget of 400.00 and spent 150.00
   Then the budget, spent and remaining show "•••••"
   And the bar is drawn and the page text and accessible names hold no digit of the amounts
+
+@AC-14.2
+Scenario: The Year view hides its amounts
+  Given Discrete mode is on and the Year view of 2026 is shown
+  Then every cell, the totals and the three figures show "•••••" and no digit of an amount is in the page text or the accessible names
 ```
 
 **REQ-15: Language and number format** *(ubiquitous)*
@@ -399,13 +407,13 @@ Scenario: Dutch
 ```
 
 **REQ-16: No categories and fresh figures** *(state-driven)*
-While the project has no budgetable category, the panel shall show the note "No categories yet. Add a category on the tab Categories to set a budget." and no table. When the user opens the tab, and after a project is opened, the language changes or a change is applied, the app shall compute the figures from the project as it is now, saved or not.
+While the project has no budgetable category, the panel shall show the note "No categories yet. Add a category on the tab Categories to set a budget." and no table or grid, in the Month view and in the Year view. When the user opens the tab, and after a project is opened, the language changes or a change is applied, the app shall compute the figures from the project as it is now, saved or not.
 
 ```gherkin
 @AC-16.1
 Scenario: No categories
   Given every user-defined category was deleted
-  Then the note is shown and the table is not
+  Then the note is shown and the table is not, in the Month view and, after choosing "Year", the grid is not either
 
 @AC-16.2
 Scenario: Reopening the tab
@@ -424,6 +432,171 @@ Scenario: The example project has budgets
   Then it holds budgets for at least three categories and a single-month amount
 ```
 
+**REQ-18: Month or Year** *(event-driven)*
+When the user opens the tab "Budgets", the app shall show a choice "Month | Year" at the top of the panel in which "Month" is pressed and the Month view is shown; when the user chooses "Year", the app shall show the Year view of the year of the month that was shown, and when the user chooses "Month", the app shall show the month that was shown before, whatever year the user went to in the Year view. Choosing the option that is already shown shall change nothing. The choice and the period of each view stay while the user goes to another tab and comes back, and are not remembered after another project is opened (NG-10).
+
+```gherkin
+@AC-18.1
+Scenario: The tab opens on the Month view
+  When the user opens the tab "Budgets"
+  Then "Month" is pressed, the month "2026-10 MTD" is shown and Rust was asked for the month
+
+@AC-18.2
+Scenario: Year opens on the year of the month shown
+  Given the month "2026-03" is shown
+  When the user chooses "Year"
+  Then "Year" is pressed and the year "2026" is shown
+
+@AC-18.3
+Scenario: Month returns to the month it was on
+  Given the user chose "Year" from the month "2026-03" and moved to the year 2024
+  When the user chooses "Month"
+  Then the month "2026-03" is shown
+
+@AC-18.4
+Scenario: The choice is kept while the tab is reopened
+  Given the user chose "Year"
+  When the user goes to the tab "Insights" and back to "Budgets"
+  Then the Year view is shown, and after another project is opened the Month view is shown
+
+@AC-18.5
+Scenario: Choosing the shown option again
+  When the user chooses "Month" while the Month view is shown
+  Then Rust is not asked again
+```
+
+**REQ-19: One year at a time** *(state-driven)*
+While the tab "Budgets" shows the Year view, the app shall show one calendar year, which is the current year when the Year view is first shown for a project, with the buttons in the same place as those of the Month view, reading "Previous year" and "Next year", that move it by one year. Back shall stop at the year of the earliest month that holds a transaction or a budget entry (the current year when there is none), and forward shall have no limit. The year is written `YYYY`, and while it is the current year the panel says that it is partial ("YTD", as CSD-033 REQ-3).
+
+```gherkin
+@AC-19.1
+Scenario: Opens on the current year
+  Given today is 15/10/2026
+  When the user chooses "Year" with no month moved to
+  Then the year "2026 YTD" is shown
+
+@AC-19.2
+Scenario: Moving between years
+  Given the earliest transaction is dated 12/08/2024 and today is 15/10/2026
+  When the user chooses "Previous year" twice
+  Then the year "2024" is shown and "Previous year" is disabled
+  When the user chooses "Next year" four times
+  Then the year "2028" is shown and "Next year" is still enabled
+
+@AC-19.3
+Scenario: Nothing to go back to
+  Given no transactions and no budgets, and today is 15/10/2026
+  Then "Previous year" is disabled in the year "2026 YTD"
+
+@AC-19.4
+Scenario: The buttons are the same buttons
+  Then the buttons "Previous month" and "Next month" of the Month view and "Previous year" and "Next year" of the Year view are in the same place in the panel header
+```
+
+**REQ-20: What the Year view shows** *(ubiquitous)*
+For the year shown, the panel shall show a line with the figures "Budget", "Spent" and "Remaining", and below it an always-open grid with a row per budgetable category in the order of the category list, a column per month from Jan to Dec, a column "Total" and a row "Total". A cell shall hold the budget of the category in that month, or a dash when there is no budget (it is a budget of 0.00 only when the amount is 0.00), and the cell of a single-month amount shall be marked. The "Total" column shall hold the sum of the budgets of the category over the year, the "Total" row the sum of the budgets of the month, and the cell where they meet the sum of the budgets of the year, a total with no budget behind it being a dash. "Budget" shall be the sum of the budgets of the year, "Spent" the sum of the debits of the year that fall in a category in a month in which it has a budget, and "Remaining" the budget minus spent. The grid shall hold no spent amount, no bar and no row for "Not budgeted", and every month of the year, also one still to come, shall show its budget. Rust computes every figure and the frontend draws what it receives.
+
+```gherkin
+@AC-20.1
+Scenario: A year with budgets
+  Given Groceries has 400.00 in every month and Leisure has 100.00 from 2026-10 on
+  And in 2026 the debits Groceries 20.00 in Jan, Groceries 150.00 in Oct, Leisure 120.00 in Oct and Shopping 45.00 (no budget)
+  When the year 2026 is shown
+  Then the row Groceries shows 400.00 in every month and the Total 4,800.00
+  And the row Leisure shows a dash from Jan to Sep, 100.00 in Oct, Nov and Dec and the Total 300.00
+  And the row Total shows 400.00 from Jan to Sep, 500.00 in Oct, Nov and Dec and 5,100.00 in the corner
+  And the figures read Budget 5,100.00, Spent 290.00 and Remaining 4,810.00
+
+@AC-20.2
+Scenario: Months to come show their budget
+  Given today is 15/10/2026 and Groceries has 400.00 in every month
+  Then in the year 2026 the cells of Nov and Dec show 400.00
+
+@AC-20.3
+Scenario: A single-month amount is marked
+  Given Groceries has 400.00 in every month and 500.00 for 2026-10 set with "Only this month"
+  Then the cell of Oct is marked "This month only" and the other cells are not
+
+@AC-20.4
+Scenario: Nothing but budgets in the grid
+  Then the grid has no bar, no spent amount and no row "Not budgeted"
+  And "Uncategorized" is not a row
+
+@AC-20.5
+Scenario: A budget of 0.00 is not a dash
+  Given Leisure has 0.00 in 2026-10 and no budget in the other months
+  Then its cell in Oct shows 0.00 and the others show a dash, and its Total is 0.00
+
+@AC-20.6
+Scenario: A year without a budget
+  Given no budget in 2026
+  Then every cell, the Total column and the Total row show a dash, and the figures read Budget 0.00, Spent 0.00 and Remaining 0.00
+```
+
+**REQ-21: Change a budget from the Year view** *(event-driven)*
+When the user chooses a cell of the grid, the app shall open the dialog of REQ-6 for that category and the month of that cell, with the amount filled in when the cell has a budget, and when that cell has a budget the dialog shall also have a button "Remove budget" that turns it into the removal of REQ-7, and after saving or removing the app shall show the year again with the change.
+
+```gherkin
+@AC-21.1
+Scenario: An empty cell opens the dialog for its month
+  Given the year 2026 is shown and Shopping has no budget in Mar
+  When the user chooses the cell of Shopping in Mar
+  Then the dialog "Set budget" opens for "Shopping, 2026-03" with the scopes "Only this month", "From this month on" (selected) and "All months", and no "Remove budget" button
+
+@AC-21.2
+Scenario: Saving applies the scope to the month of the cell
+  When the user enters 75.00 and confirms
+  Then Rust is asked to set 75.00 for Shopping in 2026-03 with the scope "from"
+  And the year is shown again with the change and the dialog is closed
+
+@AC-21.3
+Scenario: A cell with a budget offers to remove it
+  Given Groceries has 400.00 in every month
+  When the user chooses the cell of Groceries in Jun
+  Then the dialog shows the amount 400.00 and a button "Remove budget"
+  When the user chooses "Remove budget" and confirms with the scope "Only this month"
+  Then Rust is asked to remove the budget of Groceries in 2026-06 with the scope "month"
+  And the cell of Jun shows a dash
+
+@AC-21.4
+Scenario: A rejected amount stays in the dialog
+  When the user enters "-5" for a cell and confirms
+  Then the dialog stays open and shows the message of "BUDGET_AMOUNT_INVALID" (REQ-9)
+
+@AC-21.5
+Scenario: The change is one undo step
+  When the user sets a budget from a cell and chooses Edit > Undo
+  Then the budget is as before (REQ-11)
+```
+
+**REQ-22: The year comes from Rust** *(ubiquitous)*
+The app shall ask Rust for the year shown each time the Year view is opened, the user chooses "Year", the year changes, or a change is applied, and the command shall reject a year that is not four digits with the error code `BUDGET_YEAR_INVALID`, storing nothing.
+
+```gherkin
+@AC-22.1
+Scenario: Fresh figures
+  Given a transaction was recategorized on the tab "Transactions"
+  When the user selects the tab "Budgets" with the Year view chosen
+  Then Rust is asked for the year again and the figures show the change
+
+@AC-22.2
+Scenario: Rust is asked for the year shown
+  When the user chooses "Year" and then "Previous year"
+  Then Rust was asked for 2026 and then for 2025
+
+@AC-22.3
+Scenario Outline: An invalid year is rejected
+  When Rust is asked for the year "<year>"
+  Then it is rejected with error code "BUDGET_YEAR_INVALID"
+
+  Examples:
+    | year  |
+    | 26    |
+    | 20266 |
+    | abcd  |
+    | 0000  |
+```
+
 ## 5. Interfaces and contracts
 Commands (indicative names; the owner of the code may rename them):
 
@@ -439,15 +612,28 @@ Commands (indicative names; the owner of the code may rename them):
 }
 ```
 
+- `get_budget_year(year?)` where `year` is `YYYY` (default: the current year) returns:
+
+```json
+{
+  "year": 2026, "is_partial": true, "earliest_year": 2024,
+  "figures": { "budget": "5100.00", "spent": "290.00", "remaining": "4810.00" },
+  "rows": [{ "category": "…", "name": "Groceries", "total": "4800.00",
+             "months": [{ "budget": "400.00", "single_month": false }, { "budget": null, "single_month": false }] }],
+  "months": ["400.00", null], "total": "5100.00"
+}
+```
+
+  `months` of a row holds 12 cells, January first; the list `months` holds the total of each of the 12 months, `null` when no category has a budget in it, and `total` is `null` when no month has one.
 - `set_budget(category, month, amount, scope)` and `remove_budget(category, month, scope)` with `scope` `"month"`, `"from"` or `"all"`; both return the month as `get_budgets` does.
-- Error codes: `BUDGET_AMOUNT_INVALID`, `BUDGET_CATEGORY_UNKNOWN`, `BUDGET_CATEGORY_PROTECTED`, `BUDGET_MONTH_INVALID`, `BUDGET_SCOPE_INVALID`.
+- Error codes: `BUDGET_AMOUNT_INVALID`, `BUDGET_CATEGORY_UNKNOWN`, `BUDGET_CATEGORY_PROTECTED`, `BUDGET_MONTH_INVALID`, `BUDGET_SCOPE_INVALID`, `BUDGET_YEAR_INVALID`.
 - Project file section `budgets`, one entry per category that has any: `{ category_id, from: [{ month, amount }], only: [{ month, amount }] }`. In `from` a `month` of `null` means "since the first month" (the scope "All months") and an `amount` of `null` means "no budget"; the entry with the latest `month` at or before the budget month applies, and an `only` entry for the month wins over `from`. The scopes of REQ-6 replace entries as follows: "All months" clears both lists and sets `from` to one entry with month `null`; "From this month on" removes the `from` and `only` entries of M and later and adds a `from` entry at M; "Only this month" sets the `only` entry of M.
 
 ## 6. Constraints
 - CON-1: The figures are computed in Rust (`domain/transactions/budgets.rs`); the frontend only draws what it receives (`CLAUDE.md` layout rule). Rationale: the frontend never computes financial figures.
 - CON-2: Amounts are `Money` (2 decimals, half-up, CSD-000 CON-8), never floats. Rationale: `CLAUDE.md` money rules.
 - CON-3: No new dependency, Tauri permission or network access, and no `style=` attributes in `ui/`. Rationale: `CLAUDE.md` Tauri security.
-- CON-5: The golden files do not hold `get_budgets` (the project file holds the budgets), because the ids of its categories would renumber the ids of the other areas in `ipc-reads.json`; the IPC and DOM tests cover it. Rationale: the numbering follows the first appearance of an id, as for CSD-033 CON-3.
+- CON-5: The golden files do not hold `get_budgets` or `get_budget_year` (the project file holds the budgets), because the ids of its categories would renumber the ids of the other areas in `ipc-reads.json`; the IPC and DOM tests cover it. Rationale: the numbering follows the first appearance of an id, as for CSD-033 CON-3.
 - CON-4: Budgets are never part of net worth or the dashboard, and no budget ever changes a transaction. Rationale: transactions stand apart from the rest of the app (CSD-032 NG-3).
 
 ## 7. Verification
@@ -455,15 +641,20 @@ Commands (indicative names; the owner of the code may rename them):
 |---|---|
 | AC-2.1 to AC-2.3 (month range), AC-3.1 to AC-3.4, AC-4.1, AC-4.2, AC-5.1, AC-5.2, AC-6.2 to AC-6.6, AC-7.1 to AC-7.5, AC-9.1, AC-9.2, AC-10.1, AC-10.2, AC-11.1, AC-12.1 to AC-12.5, AC-13.1, AC-17.1 | `cargo test test_csd036_` (Rust, `domain/transactions` and `storage/project`, with IPC tests) |
 | AC-1.1, AC-1.2, AC-2.1 to AC-2.4, AC-3.1 to AC-3.3, AC-6.1, AC-8.1, AC-8.2, AC-14.1, AC-15.1, AC-16.1, AC-16.2 | `npm test` (`ui/tests/`, titled `test_csd036_ac_n_m_...`) |
+| AC-19.2 (year range), AC-20.1, AC-20.2, AC-20.5, AC-20.6, AC-22.3, and the scopes of AC-21.2 to AC-21.3 | `cargo test test_csd036_` (Rust: `domain/transactions` and the IPC tests) |
+| AC-14.2, AC-18.1 to AC-18.5, AC-19.1 to AC-19.4, AC-20.1 to AC-20.4, AC-21.1 to AC-21.5, AC-22.1, AC-22.2 | `npm test` (`ui/tests/`, titled `test_csd036_ac_n_m_...`) |
 | Golden files | `GOLDEN_UPDATE=1 cargo test golden` once, then the diff reviewed by the owner |
 | Manual | open `examples/example.varde`, visit the tab "Budgets", set and remove a budget with each scope |
 
 ## 8. Open questions
 - OQ-1 (resolved 22/11/2026): Does a version 4 file need the upgrade script? Answer: no. The first release is out, so the app opens a version 4 file, adds the empty section in memory and writes version 5 on the next save (REQ-12, CSD-002 REQ-30). The section is still required in every file the app writes.
 - OQ-2 (resolved 22/11/2026): Does "Not budgeted" hold the spending of categories without a budget? Answer: no. Every budgetable category is its own row, and "Not budgeted" holds only the spending of "Uncategorized" (REQ-3), so nothing is counted twice.
+- OQ-4 (resolved 22/11/2026): How does the user remove a budget from the grid? Answer: a button "Remove budget" in the dialog of a cell that has a budget (REQ-21).
 - OQ-3 (resolved 22/11/2026): Is a single-month amount that equals its neighbours still labelled? Answer: yes, the label follows how the amount was set, not its value (REQ-8).
 
 ## 9. Changelog
+- 0.5 (22/11/2026): OQ-4 resolved by the owner: the drafted answer stands, a button "Remove budget" in the dialog of a cell (REQ-21). No other change.
+- 0.4 (22/11/2026): A Year view next to the Month view: a choice "Month | Year" at the top of the Budgets tab (REQ-18), one year at a time with the same previous and next buttons (REQ-19), a grid of the budget of every category in every month with totals and three figures (REQ-20), cells that open the dialog of REQ-6 and REQ-7 (REQ-21), and the year computed by Rust (REQ-22, `get_budget_year`, `BUDGET_YEAR_INVALID`); REQ-2, REQ-14 and REQ-16 name the Month view or both views, NG-10 and NG-11 added. GitHub issue 82, owner request. Back to `draft` until re-approved.
 - 0.3 (22/11/2026): OQ-2 and OQ-3 resolved by the owner: the drafted answers stand (REQ-3, REQ-8). No other change.
 - 0.2 (22/11/2026): A version 4 file is opened and upgraded in the app instead of through the script (REQ-12, AC-12.2, AC-12.3; CSD-002 REQ-30). OQ-1 resolved. Owner decision.
 - 0.1 (22/11/2026): First draft, from GitHub issue 82 and the grill-me interview. Owner answers: a new CSD and a tab "Budgets" on the Transactions page (last tab), a monthly amount per category, scopes "Only this month", "From this month on" and "All months" with a dialog that preselects "From this month on", debits only, no budget for "Uncategorized", no separate total, the budget follows a rename and goes with a deleted category in one undo step, Discrete mode hides amounts and keeps the bars.
