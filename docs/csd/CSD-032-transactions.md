@@ -1,11 +1,11 @@
 ---
 id: CSD-032
 title: Transactions
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.46
-last_updated: 19/11/2026
-related: [CSD-000, CSD-034, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033, CSD-035]
+version: 0.47
+last_updated: 22/11/2026
+related: [CSD-000, CSD-025, CSD-034, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022, CSD-024, CSD-027, CSD-028, CSD-030, CSD-033, CSD-035]
 ---
 
 # CSD-032: Transactions
@@ -25,7 +25,7 @@ The app tracks what the user owns, owes and has spent on notable purchases, but 
 
 ### 2.2 Non-goals
 - NG-1: Banks and formats other than the Knab CSV and the ABN AMRO TAB file, and PDF statements and the ABN AMRO Excel (`.xls`) export, which holds the same lines in a binary format that needs a spreadsheet reader. A parser per format is a follow-up.
-- NG-2: Charts and the Insights tab: they are CSD-033. The yearly totals of REQ-24 are a table, not Insights.
+- NG-2: Charts and the Insights tab: they are CSD-033, except the two donut charts of REQ-35 on the Categories tab. The yearly totals of REQ-24 are a table, not Insights.
 - NG-3: A link to the bank accounts of CSD-009, to expenses (CSD-013), to net worth or to the dashboard. Importing never changes a balance or creates an expense. Detecting or netting transfers between own accounts.
 - NG-4: Adding a transaction by hand, and editing its date, amount, counterparty, description or any field other than the category.
 - NG-5: Regular expressions, amount or date conditions, and any learning in the rules. A rule is a text pattern with `*` as its only wildcard.
@@ -89,6 +89,7 @@ The app tracks what the user owns, owes and has spent on notable purchases, but 
 - REQ-32: Rules for a period
 - REQ-33: The page loads from one state
 - REQ-34: Import an ABN AMRO TAB file
+- REQ-35: Spending per category as donut charts
 
 ### 4.0 Overview flow
 ```mermaid
@@ -1374,6 +1375,85 @@ Scenario: The fixture over the commands
   Then 6 are added and then 0 are added and 6 skipped, the seed rules categorise "Albert Heijn 1234 Example Town" and the mandate and creditor id are not stored
 ```
 
+**REQ-35: Spending per category as donut charts** *(ubiquitous)*
+The Categories tab shall show, in a panel "Spending per category" above the Categories panel, two donut charts side by side (stacked on a narrow window): a yearly one with a year dropdown and a monthly one with a month dropdown. A donut shows the spending (the debits, never the credits) of one period as one slice per category that has spending in it, Uncategorized included, so a category without spending has no slice. The slices run clockwise from 12 o'clock in the order of the Categories tab with Uncategorized last, not by size, each in the colour slot of its category (CSD-033 REQ-6, CSD-025). The centre of the ring shows the total spent in the period, and the tooltip of a slice shows the category, its amount and its percentage of the total. Each donut has a legend of its categories with swatches; hovering a slice or a legend item highlights that category as in CSD-025. The year dropdown lists the calendar years that have at least one debit, newest first. The month dropdown is one list of the months that have at least one debit, newest first, each shown as the month name and the year ("November 2026", in the chosen language). Both dropdowns start on their newest option and are independent: choosing a year does not change the month. While no transaction has a debit, the panel shows a short empty note instead of the donuts and the dropdowns. Every category with spending gets a slice: there is no "Other" group, and the eight colour slots repeat as in CSD-033. A period with one category is a full ring at 100.00%; a very small slice has no minimum width but keeps its legend entry and tooltip; each percentage is rounded on its own (two decimals, half-up, CSD-000 CON-8) and is not adjusted to add up to 100. While Discrete mode is on (CSD-030), the donuts are drawn but the amounts in the centre, the tooltip and the accessible names are hidden; the percentages stay. Rust delivers the periods, the amounts, the percentages and the colour slots; the frontend only draws the arcs (CSD-025 REQ-5, CSD-000 CON-1). The donuts cover every transaction, whatever the filters of the list are, and follow every change of the transactions and the categories. The percentage ban of CSD-033 NG-4 applies to the Insights tab only.
+
+```gherkin
+@AC-35.1
+Scenario: Spending per category for a year
+  Given in 2026 the spending Groceries 15.00 and Uncategorized 7.50 and the income Salary 100.00
+  When the frontend asks for the shares of the year 2026
+  Then the total is 22.50
+  And the slices are Groceries 15.00 with "66.67%" and Uncategorized 7.50 with "33.33%", in that order
+  And the income is not in the answer
+
+@AC-35.2
+Scenario: Spending per category for a month
+  Given spending in 2026-10 and 2026-11 and none in 2026-12
+  When the frontend asks for the shares of 2026-11
+  Then only the debits of 2026-11 count
+  And the periods offered are 2026-11 and 2026-10, newest first, and not 2026-12
+
+@AC-35.3
+Scenario: The dropdowns list only periods with spending
+  Given debits in 2025 and 2026 and a year 2024 with only credits
+  Then the year dropdown lists 2026 and 2025, and not 2024
+  And both donuts start on the newest option, and choosing 2025 leaves the month as it was
+
+@AC-35.4
+Scenario: The month names follow the language
+  Given the language Dutch and a debit in 2026-11
+  Then the month dropdown shows "november 2026"
+  And with English it shows "November 2026"
+
+@AC-35.5
+Scenario: The donut shows the slices as received
+  Given the shares Groceries 15.00 slot 0 and Uncategorized 7.50 slot 7
+  Then the yearly donut has two slices in that order, clockwise from 12 o'clock, in the colours of slots 0 and 7
+  And the centre shows the total 22.50 and the legend lists both categories
+
+@AC-35.6
+Scenario: Tooltip and highlight
+  When the user hovers the Groceries slice
+  Then the tooltip shows "Groceries", its amount and "66.67%"
+  And Groceries is highlighted in the donut and in its legend
+  And hovering its legend item does the same
+
+@AC-35.7
+Scenario: Colours stay with the category
+  Given the 14 default categories
+  Then each slice has the colour slot of CSD-033 REQ-6 and Uncategorized has slot 7
+  And a new category does not change the colours of the others
+
+@AC-35.8
+Scenario: A single category, a tiny slice, rounding
+  Given one category with spending
+  Then the donut is a full ring at "100.00%"
+  And given three equal categories the percentages are each "33.33%" and are not adjusted to 100
+  And a slice of 0.10% still has a legend entry and a tooltip
+
+@AC-35.9
+Scenario: No spending
+  Given transactions with only credits, or none
+  Then the panel shows the empty note and no donuts and no dropdowns
+
+@AC-35.10
+Scenario: Discrete mode
+  Given Discrete mode is on
+  Then the donuts are drawn with the percentages
+  And the centre total, the amounts in the tooltip and the accessible names are hidden
+
+@AC-35.11
+Scenario: The filters of the list do not matter
+  Given a category filter on the list
+  Then the donuts still cover every transaction
+
+@AC-35.12
+Scenario: The page follows changes
+  When the user sets the category of a debit, adds a category or imports transactions
+  Then the donuts and the dropdowns show the new state
+```
+
 ## 5. Interfaces and contracts
 ```mermaid
 erDiagram
@@ -1399,7 +1479,7 @@ erDiagram
 Project file: three sections (REQ-17). `transactions` is an array, `transaction_categories` an array of `{ id, name }` (the built-in "Uncategorized" is not stored), `transaction_rules` an ordered array. Dates are ISO 8601, amounts decimal strings with at most two decimals (CSD-000 CON-8, CSD-002 REQ-19), ids are UUIDs.
 
 Commands (names and payloads are indicative; the final signatures belong to the implementation):
-`import_transactions()` → `{ added, skipped }`; `list_transactions(filters, limit)` → `{ rows, total, count }`; `get_transactions_overview()` → `{ categories, rules, summary, totals }` (the answers of `list_transaction_categories`, `list_transaction_rules`, `get_categorisation_summary` and `yearly_transaction_totals` in one); `yearly_transaction_totals()` → `[{ year, income, spent, net, transaction_count, categories: [{ id, name, months: [amount or null; 12], total }], months: [amount or null; 12], total }]` (`id` is the category id or `uncategorized`; `months` runs Jan to Dec, `null` for a month without a transaction; every amount is the signed net; `total` of the year equals `net`); `set_transaction_category(id, category_id)`; `unset_transaction_manual(id)`; `delete_transaction(id)`; `list_transaction_categories()`; `add_`/`rename_`/`delete_transaction_category`; `list_transaction_rules()` (each rule with `text`, `category_id`, optional `from` and `to`, and its `transaction_count`); `add_`/`edit_`/`move_`/`delete_transaction_rule` (add and edit also take the typed days `from` and `to`); `reapply_transaction_rules(scope)` → `{ changed }`.
+`import_transactions()` → `{ added, skipped }`; `list_transactions(filters, limit)` → `{ rows, total, count }`; `get_transactions_overview()` → `{ categories, rules, summary, totals }` (the answers of `list_transaction_categories`, `list_transaction_rules`, `get_categorisation_summary` and `yearly_transaction_totals` in one); `yearly_transaction_totals()` → `[{ year, income, spent, net, transaction_count, categories: [{ id, name, months: [amount or null; 12], total }], months: [amount or null; 12], total }]` (`id` is the category id or `uncategorized`; `months` runs Jan to Dec, `null` for a month without a transaction; every amount is the signed net; `total` of the year equals `net`); `set_transaction_category(id, category_id)`; `unset_transaction_manual(id)`; `delete_transaction(id)`; `list_transaction_categories()`; `add_`/`rename_`/`delete_transaction_category`; `list_transaction_rules()` (each rule with `text`, `category_id`, optional `from` and `to`, and its `transaction_count`); `add_`/`edit_`/`move_`/`delete_transaction_rule` (add and edit also take the typed days `from` and `to`); `reapply_transaction_rules(scope)` → `{ changed }`; `transaction_spending_periods()` → `{ years: [year], months: ["YYYY-MM"] }` (only periods with a debit, newest first); `transaction_spending_shares(period)` → `{ total, slices: [{ id, name, colour_slot, amount, percentage }] }` (`period` is a year or a `YYYY-MM`; `id` is the category id or `uncategorized`; slices in the order of REQ-35; spending only).
 
 Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 text, or is larger than 50 MB), `TRANSACTION_IMPORT_FORMAT`, `_COLUMNS`, `_FIELD`, `_DATE`, `_DIRECTION`, `_AMOUNT`, `_REFERENCE`, `_CURRENCY`, `TRANSACTION_CATEGORY_NAME_REQUIRED`, `_NAME_TOO_LONG`, `_NAME_TAKEN`, `TRANSACTION_CATEGORY_PROTECTED`, `TRANSACTION_CATEGORY_NOT_FOUND`, `TRANSACTION_RULE_TEXT_REQUIRED`, `_TEXT_TOO_LONG`, `_TEXT_TAKEN`, `_CATEGORY_INVALID`, `TRANSACTION_RULE_NOT_FOUND`, `TRANSACTION_NOT_FOUND`, `TRANSACTION_DATA_INVALID`, `TRANSACTION_SUGGEST_MIN_COUNT` (the minimal count is 0). The built-in Uncategorized has no id: a transaction without a category holds `null`, and a filter, a rename and a delete name it `uncategorized`. The default categories and rules have fixed ids, so two new projects are equal.
 
@@ -1423,6 +1503,8 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 | AC-17.3 | `node --test scripts/tests/` |
 | AC-22.1 | `EXAMPLE_UPDATE=1 cargo test example` and review of the diff |
 | AC-22.2 | `git check-ignore` run by hand |
+| AC-35.1 to AC-35.3, AC-35.7, AC-35.8 | `cargo test test_csd032_ac_35_` (Rust) and `GOLDEN_UPDATE=1 cargo test golden` for the new read commands |
+| AC-35.4 to AC-35.6, AC-35.9 to AC-35.12 | `npm test` (DOM tests in `ui/tests/`, titles `test_csd032_ac_35_…`) |
 | Golden files | `GOLDEN_UPDATE=1 cargo test golden` for the new read commands, diff reviewed |
 
 ## 8. Open questions
@@ -1430,8 +1512,11 @@ Error codes: `TRANSACTION_IMPORT_UNREADABLE` (the file cannot be read as UTF-8 t
 - OQ-2: Can a Knab export legitimately contain a 0,00 line? REQ-3 rejects it. Owner: Thijs. Blocks: REQ-3.
 - OQ-3: Which exact chain names go into the seed rules (REQ-9)? Owner: Thijs. Blocks: REQ-9, AC-9.4.
 - OQ-4: Is "Uncategorized" a valid filter value in the category filter of CSD-028? Proposed: yes. Owner: Thijs. Blocks: REQ-15.
+- OQ-5: Resolved (22/11/2026): a month in the dropdown is shown as the month name and the year ("November 2026"), not `YYYY-MM`, as it is a dropdown label.
+- OQ-6: Resolved (22/11/2026): CSD-035 REQ-2 gets one sentence for the second panel of the Categories tab (CSD-035 v0.3).
 
 ## 9. Changelog
+- 0.47 (22/11/2026): Two donut charts of the spending per category, yearly and monthly, each with a dropdown, in a panel above the Categories panel (new REQ-35, AC-35.1 to AC-35.12; NG-2; commands `transaction_spending_periods` and `transaction_spending_shares` in section 5). GitHub issue 78 and the grill-me interview. Owner answers: debits only; category-list order with Uncategorized last; percentages in the tooltip and the total in the centre; no "Other" group; Discrete mode hides the amounts but not the percentages; the month label is "November 2026" and CSD-035 gets a line for the second panel. Back to `draft` until re-approved.
 - 0.46 (19/11/2026): The categorized share in the header of the Categories panel is centered instead of right-aligned (REQ-31, AC-31.2). GitHub issue 79, owner request. Back to `draft` until re-approved.
 - 0.45 (19/11/2026): The categorized share moves from the header of the Yearly totals panel to the header of the Categories panel (REQ-31, AC-31.2, REQ-24, AC-24.15), and the income, spent and net in the header of a year are aligned to the right of the row (REQ-24, AC-24.15). GitHub issue 79, owner request. Back to `draft` until re-approved.
 - 0.44 (19/11/2026): The yearly totals become one collapsible block per year with Income, Spent and Net in the header and, when expanded, a grid of the net per category and month with a Total row and column (REQ-24, AC-24.1 to AC-24.15; payload of `yearly_transaction_totals` in section 5). GitHub issue 79 and the grill-me interview. Owner answers: Transactions page only; the cell is the net, not the spent amount; the newest year is open at first and the choice of the user is kept in memory only; the grid ignores the list filters. Back to `draft` until re-approved.
