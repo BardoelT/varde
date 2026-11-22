@@ -794,6 +794,10 @@
           <div class="panel">
             <div class="panel-header">
               <span class="panel-title">Budgets</span>
+              <div class="segmented" role="group" aria-label="Budget period">
+                <button type="button" class="segment" id="budgets-view-month" aria-pressed="true">Month</button>
+                <button type="button" class="segment" id="budgets-view-year" aria-pressed="false">Year</button>
+              </div>
               <div class="month-nav">
                 <button type="button" class="btn" id="budgets-previous">Previous month</button>
                 <span class="month-label" id="budgets-month" aria-live="polite"></span>
@@ -801,6 +805,10 @@
               </div>
             </div>
             <p class="empty-note" id="budgets-empty" hidden>No categories yet. Add a category on the tab Categories to set a budget.</p>
+            <div id="budgets-year" hidden>
+              <div class="budget-year-figures" id="budgets-year-figures"></div>
+              <div class="table-wrap year-grid-wrap" id="budgets-year-grid"></div>
+            </div>
             <div class="table-wrap" id="budgets-content">
               <table class="data-table budgets-table" id="budgets-table">
                 <thead>
@@ -1389,6 +1397,7 @@
       </fieldset>
       <p class="form-error" id="budget-error" role="alert" hidden></p>
       <div class="dialog-actions">
+        <button type="button" class="btn danger" id="budget-remove" hidden>Remove budget</button>
         <button type="button" class="btn" data-cancel>Cancel</button>
         <button type="submit" class="btn primary" id="budget-submit" name="save">Save budget</button>
       </div>

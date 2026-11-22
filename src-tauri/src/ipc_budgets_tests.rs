@@ -166,3 +166,52 @@ fn test_csd036_ac_13_1_budgets_count_as_entries_for_the_currency_confirmation() 
     set(&app, "Groceries", "2026-10", "400.00", "all");
     assert_eq!(app.ok("get_settings", json!({}))["entry_count"], 1);
 }
+
+#[test]
+fn test_csd036_ac_22_the_year_is_asked_from_rust_and_an_invalid_year_is_rejected() {
+    let app = harness();
+    set(&app, "Groceries", "2026-01", "400.00", "all");
+    let year = app.ok("get_budget_year", json!({ "year": "2026" }));
+    assert_eq!(year["year"], 2026);
+    assert_eq!(year["total"], "4800.00");
+    assert_eq!(year["figures"]["budget"], "4800.00");
+    let groceries = year["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["name"] == "Groceries")
+        .unwrap();
+    assert_eq!(groceries["months"].as_array().unwrap().len(), 12);
+    assert_eq!(groceries["months"][0]["budget"], "400.00");
+    let current = app.ok("get_budget_year", json!({}));
+    assert!(current["year"].as_i64().unwrap() > 2000);
+    for bad in ["26", "20266", "abcd", "0000"] {
+        let error = app.err("get_budget_year", json!({ "year": bad }));
+        assert_eq!(error["code"], "BUDGET_YEAR_INVALID", "{bad}");
+    }
+}
+
+#[test]
+fn test_csd036_ac_21_5_a_change_made_from_a_cell_is_one_undo_step_and_the_year_follows() {
+    let app = harness();
+    set(&app, "Groceries", "2026-01", "400.00", "all");
+    set(&app, "Groceries", "2026-03", "450.00", "month");
+    let year = app.ok("get_budget_year", json!({ "year": "2026" }));
+    let groceries = year["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["name"] == "Groceries")
+        .unwrap();
+    assert_eq!(groceries["months"][2]["budget"], "450.00");
+    assert_eq!(groceries["months"][2]["single_month"], true);
+    app.ok("undo", json!({}));
+    let year = app.ok("get_budget_year", json!({ "year": "2026" }));
+    let groceries = year["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["name"] == "Groceries")
+        .unwrap();
+    assert_eq!(groceries["months"][2]["budget"], "400.00");
+}

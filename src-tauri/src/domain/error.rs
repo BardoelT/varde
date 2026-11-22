@@ -532,6 +532,9 @@ pub enum DomainError {
     /// Reported as: "Choose a month as YYYY-MM."
     #[error("Choose a month as YYYY-MM.")]
     BudgetMonthInvalid,
+    /// Reported as: "Choose a year as YYYY."
+    #[error("Choose a year as YYYY.")]
+    BudgetYearInvalid,
     /// Reported as: "Choose whether the budget applies to this month, from this month on or to all months."
     #[error(
         "Choose whether the budget applies to this month, from this month on or to all months."
@@ -715,6 +718,7 @@ impl DomainError {
             Self::BudgetCategoryProtected => "BUDGET_CATEGORY_PROTECTED",
             Self::BudgetMonthInvalid => "BUDGET_MONTH_INVALID",
             Self::BudgetScopeInvalid => "BUDGET_SCOPE_INVALID",
+            Self::BudgetYearInvalid => "BUDGET_YEAR_INVALID",
         }
     }
 }

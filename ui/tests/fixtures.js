@@ -31,6 +31,15 @@ const startup = {
     not_budgeted: '0.00',
     total: { budget: '0.00', spent: '0.00', remaining: '0.00' },
   },
+  get_budget_year: {
+    year: 2026,
+    is_partial: true,
+    earliest_year: 2026,
+    figures: { budget: '0.00', spent: '0.00', remaining: '0.00' },
+    rows: golden.list_transaction_categories.map(({ id, name }) => ({ category: id, name, months: Array.from({ length: 12 }, () => ({ budget: null, single_month: false })), total: null })),
+    months: Array.from({ length: 12 }, () => null),
+    total: null,
+  },
   // Writes that only echo what was sent, as Rust does when the save succeeds (CSD-008, CSD-022).
   set_language: ({ language }) => ({ language }),
   set_theme: ({ theme }) => ({ theme }),

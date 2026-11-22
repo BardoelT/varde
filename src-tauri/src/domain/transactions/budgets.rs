@@ -54,6 +54,20 @@ pub fn parse_month(text: &str) -> Result<YearMonth, DomainError> {
     YearMonth::parse(text).map_err(|_| DomainError::BudgetMonthInvalid)
 }
 
+/// Reads a year as `YYYY`, 0001 to 9999 (CSD-036 REQ-22).
+///
+/// # Errors
+/// Returns `BudgetYearInvalid` for any other text.
+pub fn parse_year(text: &str) -> Result<i32, DomainError> {
+    let invalid = || DomainError::BudgetYearInvalid;
+    let text = text.trim();
+    if text.len() != 4 || !text.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(invalid());
+    }
+    let year: i32 = text.parse().map_err(|_| invalid())?;
+    YearMonth::new(year, 1).map(|_| year).ok_or_else(invalid)
+}
+
 /// Reads a typed budget amount: a plain number, rounded half-up to 2 decimals
 /// (CSD-000 CON-8), of 0.00 up to [`MAX_BUDGET`] (CSD-036 REQ-9).
 ///
@@ -337,6 +351,18 @@ impl Transactions {
         Ok(())
     }
 
+    /// The earliest month the user can go back to: the earliest month with a
+    /// transaction or a budget entry, never later than the current month
+    /// (CSD-036 REQ-2, REQ-19).
+    fn earliest_budget_month(&self, today: YearMonth) -> YearMonth {
+        self.transactions()
+            .iter()
+            .map(|transaction| transaction.date.year_month())
+            .chain(self.budgets.iter().filter_map(Budget::earliest_month))
+            .min()
+            .map_or(today, |earliest| earliest.min(today))
+    }
+
     /// The month as the Budgets tab shows it (CSD-036 REQ-2 to REQ-4, REQ-8).
     #[must_use]
     pub fn budgets_view(&self, month: YearMonth, today: YearMonth) -> BudgetsView {
@@ -373,13 +399,7 @@ impl Transactions {
         let budgeted = rows.iter().filter(|row| row.budget.is_some());
         let budget = Money::saturating_sum(budgeted.clone().filter_map(|row| row.budget));
         let spent_total = Money::saturating_sum(budgeted.map(|row| row.spent));
-        let earliest = self
-            .transactions()
-            .iter()
-            .map(|transaction| transaction.date.year_month())
-            .chain(self.budgets.iter().filter_map(Budget::earliest_month))
-            .min()
-            .map_or(today, |earliest| earliest.min(today));
+        let earliest = self.earliest_budget_month(today);
         BudgetsView {
             month,
             is_partial: month == today,
@@ -405,5 +425,149 @@ fn bar_percent(spent: Money, budget: Money) -> String {
     match percent_of(spent, budget) {
         Some(share) if share < Decimal::ONE_HUNDRED => share.to_string(),
         _ => FULL.to_owned(),
+    }
+}
+
+/// One cell of the grid of the Year view: the budget of a category in a month
+/// (CSD-036 REQ-20).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub struct BudgetCell {
+    /// The budget, or `None` for no budget.
+    pub budget: Option<Money>,
+    /// Whether the budget is a single-month amount.
+    pub single_month: bool,
+}
+
+/// A category in the grid of the Year view.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct BudgetYearRow {
+    /// The id of the category.
+    pub category: String,
+    /// The name of the category.
+    pub name: String,
+    /// The 12 months, January first.
+    pub months: Vec<BudgetCell>,
+    /// The sum of the budgets of the year, or `None` without any.
+    pub total: Option<Money>,
+}
+
+/// The three figures above the grid (CSD-036 REQ-20).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct BudgetYearFigures {
+    /// The sum of the budgets of the year.
+    pub budget: Money,
+    /// The debits that fall in a category in a month in which it has a budget.
+    pub spent: Money,
+    /// The budget minus what was spent.
+    pub remaining: Money,
+}
+
+/// The payload of `get_budget_year` (CSD-036 section 5).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct BudgetYear {
+    /// The year shown.
+    pub year: i32,
+    /// Whether the year is the current year, which is not over yet.
+    pub is_partial: bool,
+    /// The earliest year the user can go back to (REQ-19).
+    pub earliest_year: i32,
+    /// The three figures above the grid.
+    pub figures: BudgetYearFigures,
+    /// A row per budgetable category, in the order of the category list.
+    pub rows: Vec<BudgetYearRow>,
+    /// The sum of the budgets of each of the 12 months, `None` without any.
+    pub months: Vec<Option<Money>>,
+    /// The sum of the budgets of the year, `None` without any.
+    pub total: Option<Money>,
+}
+
+/// The sum of the amounts, or `None` when there is none.
+fn sum_of(amounts: impl IntoIterator<Item = Option<Money>>) -> Option<Money> {
+    let mut found = false;
+    let mut sum = Money::ZERO;
+    for amount in amounts.into_iter().flatten() {
+        found = true;
+        sum = sum.saturating_add(amount);
+    }
+    found.then_some(sum)
+}
+
+impl Transactions {
+    /// The year as the Year view shows it: the budget of every category in each
+    /// of its 12 months, the totals and three figures (CSD-036 REQ-19, REQ-20).
+    #[must_use]
+    pub fn budget_year(&self, year: i32, today: YearMonth) -> BudgetYear {
+        let months: Vec<Option<YearMonth>> =
+            (1..=12).map(|month| YearMonth::new(year, month)).collect();
+        let mut spent: HashMap<(Option<CategoryId>, YearMonth), Money> = HashMap::new();
+        for transaction in self.transactions() {
+            let at = transaction.date.year_month();
+            if transaction.amount.is_negative() && at.year() == year {
+                let sum = spent
+                    .entry((transaction.category_id, at))
+                    .or_insert(Money::ZERO);
+                *sum = sum.saturating_add(transaction.amount.abs());
+            }
+        }
+        let mut spent_budgeted = Money::ZERO;
+        let rows: Vec<BudgetYearRow> = self
+            .categories()
+            .iter()
+            .map(|category| {
+                let budget = self
+                    .budgets
+                    .iter()
+                    .find(|budget| budget.category_id == category.id);
+                let cells: Vec<BudgetCell> = months
+                    .iter()
+                    .map(|at| {
+                        let amount =
+                            at.and_then(|at| budget.and_then(|budget| budget.amount_in(at)));
+                        if let (Some(at), Some(_)) = (at, amount) {
+                            let spent_here = spent
+                                .get(&(Some(category.id), *at))
+                                .copied()
+                                .unwrap_or(Money::ZERO);
+                            spent_budgeted = spent_budgeted.saturating_add(spent_here);
+                        }
+                        BudgetCell {
+                            budget: amount,
+                            single_month: at
+                                .zip(budget)
+                                .is_some_and(|(at, budget)| budget.is_single_month(at)),
+                        }
+                    })
+                    .collect();
+                BudgetYearRow {
+                    category: category.id.to_string(),
+                    name: category.name.clone(),
+                    total: sum_of(cells.iter().map(|cell| cell.budget)),
+                    months: cells,
+                }
+            })
+            .collect();
+        let month_totals: Vec<Option<Money>> = (0..12)
+            .map(|index| {
+                sum_of(
+                    rows.iter()
+                        .map(|row| row.months.get(index).and_then(|cell| cell.budget)),
+                )
+            })
+            .collect();
+        let total = sum_of(month_totals.iter().copied());
+        let budget = total.unwrap_or(Money::ZERO);
+        BudgetYear {
+            year,
+            is_partial: year == today.year(),
+            earliest_year: self.earliest_budget_month(today).year(),
+            figures: BudgetYearFigures {
+                budget,
+                spent: spent_budgeted,
+                remaining: budget.saturating_sub(spent_budgeted),
+            },
+            rows,
+            months: month_totals,
+            total,
+        }
     }
 }

@@ -151,6 +151,7 @@ fn configure_with<R: Runtime>(
             transactions::transaction_spending_periods,
             transactions::transaction_spending_shares,
             transactions::get_budgets,
+            transactions::get_budget_year,
             transactions::set_budget,
             transactions::remove_budget,
             transactions::set_transaction_category,

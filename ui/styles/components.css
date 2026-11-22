@@ -448,3 +448,10 @@ button.dp-title:hover { background: var(--bg); }
 .scope-group legend { padding: 0; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
 .scope-option { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
 .budget-context { margin: 0 0 12px; font-size: 13px; color: var(--muted); }
+.budget-year-figures { display: flex; flex-wrap: wrap; gap: 24px; padding: 12px 20px; border-bottom: 1px solid var(--border); }
+.budget-year-figures .year-figure { min-width: 0; }
+.year-grid button.cell-button { font: inherit; color: inherit; background: none; border: 0; padding: 2px 4px; cursor: pointer; text-align: right; font-variant-numeric: tabular-nums; }
+.year-grid button.cell-button:hover { background: var(--bg); }
+.year-grid button.cell-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.year-grid td.single-month-cell button.cell-button { border-bottom: 2px dotted var(--accent); }
+#budget-remove { margin-right: auto; }

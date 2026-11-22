@@ -35,11 +35,11 @@ use crate::domain::money::Currency;
 
 pub use accounts::{Account, AccountId};
 pub use budgets::{
-    parse_amount as parse_budget_amount, parse_month as parse_budget_month, Budget, BudgetScope,
-    BudgetsView,
+    parse_amount as parse_budget_amount, parse_month as parse_budget_month,
+    parse_year as parse_budget_year, Budget, BudgetScope, BudgetYear, BudgetsView,
 };
 #[cfg(test)]
-pub use budgets::{BudgetRow, FromEntry, OnlyEntry};
+pub use budgets::{BudgetRow, BudgetYearRow, FromEntry, OnlyEntry};
 pub use category::{Category, CategoryId, Rule, RuleId, RulePeriod, UNCATEGORIZED_ENTITY};
 pub use filter::{TransactionFilter, TransactionFilterInput};
 pub use insights::{Granularity, TransactionInsights};
