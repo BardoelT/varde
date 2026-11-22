@@ -4,7 +4,8 @@
 import { $, h, showToast } from '../shared/dom.js';
 import { formatAmount, formatLabel } from '../shared/format.js';
 import { invoke, errorText } from '../shared/ipc.js';
-import { t, currentLanguage } from '../shared/i18n.js';
+import { t } from '../shared/i18n.js';
+import { monthName } from '../shared/month-names.js';
 import { svg, swatch, legendLabel, noSwatch, legendItem, bindHighlight, tooltipRow, createTooltip } from '../shared/chart.js';
 import { isDiscrete } from '../shared/discrete-mode.js';
 
@@ -13,13 +14,10 @@ const CENTRE = 100;
 const OUTER = 90;
 const INNER = 58;
 
-const MONTHS = () => [t('January'), t('February'), t('March'), t('April'), t('May'), t('June'), t('July'), t('August'), t('September'), t('October'), t('November'), t('December')];
-
-/** "November 2026" for `2026-11`; Dutch writes month names in lower case ("november 2026"), and the key "May" is shared with the short name, which is capitalised. */
+/** "November 2026" for `2026-11`. */
 const monthLabel = (period) => {
   const [year, month] = period.split('-');
-  const name = MONTHS()[Number(month) - 1];
-  return `${currentLanguage() === 'en' ? name : name.toLocaleLowerCase(currentLanguage())} ${year}`;
+  return `${monthName(Number(month) - 1)} ${year}`;
 };
 
 /** The two donuts: the id stem of their elements, the period shown now and the numbers of the latest requests. */

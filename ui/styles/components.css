@@ -388,3 +388,39 @@ dialog.wide form { display: flex; flex-direction: column; min-height: 0; flex: 1
 .year-grid td.empty { color: var(--muted); opacity: .6; }
 .year-grid td.total-cell, .year-grid tr.total-row th, .year-grid tr.total-row td { font-weight: 600; }
 .year-grid tr.total-row th, .year-grid tr.total-row td { border-top: 1px solid var(--border); background: var(--bg); }
+
+/* ── Date picker (CSD-036) ── */
+.date-field { position: relative; display: block; }
+.date-field input { padding-right: 32px; }
+/* Wide enough for dd/mm/yyyy beside the calendar button: the 100 px of a plain filter field left no room for the last digits. */
+.filter-field .date-field { width: 136px; }
+.filter-field .date-field input { width: 100%; }
+.date-open { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); display: flex; padding: 3px; color: var(--muted); background: none; border: 0; border-radius: 4px; cursor: pointer; }
+.field .date-field .date-open { top: calc(50% + 2px); }
+.date-open:hover { color: var(--text); }
+/* Placed by the script next to the field, in the dialog or panel of the field. */
+.date-picker {
+  position: fixed; z-index: 40; width: 264px; padding: 10px; font-size: 13px; font-weight: 400; color: var(--text);
+  text-align: left; text-transform: none; letter-spacing: normal; white-space: normal;
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.18);
+}
+.dp-header { display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; margin-bottom: 8px; }
+.dp-title { justify-self: center; padding: 4px 10px; font: inherit; font-weight: 600; color: var(--text); background: none; border: 0; border-radius: 6px; }
+button.dp-title { cursor: pointer; }
+button.dp-title:hover { background: var(--bg); }
+.dp-arrow { width: 28px; height: 28px; font: inherit; font-size: 18px; line-height: 1; color: var(--text); background: none; border: 0; border-radius: 6px; cursor: pointer; }
+.dp-arrow:hover:not(:disabled) { background: var(--bg); }
+.dp-arrow:disabled { opacity: .35; cursor: default; }
+.dp-weekdays, .dp-row { display: grid; grid-template-columns: repeat(7, 1fr); }
+.dp-weekdays { margin-bottom: 4px; font-size: 11px; color: var(--muted); text-align: center; }
+.dp-choices .dp-row { grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 4px; }
+.dp-choices.cols-5 .dp-row { grid-template-columns: repeat(5, 1fr); }
+.dp-cell { height: 30px; font: inherit; color: var(--text); background: none; border: 1px solid transparent; border-radius: 6px; cursor: pointer; }
+.dp-choice { height: 40px; }
+.dp-cell:hover:not(:disabled) { background: var(--bg); }
+.dp-cell.outside { color: var(--muted); opacity: .6; }
+.dp-cell.today { border-color: var(--accent); }
+.dp-cell.selected { color: #fff; background: var(--accent); opacity: 1; }
+.dp-cell:disabled { opacity: .3; cursor: default; }
+.dp-cell:focus-visible, .dp-arrow:focus-visible, button.dp-title:focus-visible, .date-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+@media (prefers-reduced-motion: reduce) { .date-picker * { transition: none !important; } }
