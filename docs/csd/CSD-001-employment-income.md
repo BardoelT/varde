@@ -12,6 +12,8 @@ related: [CSD-000, CSD-002, CSD-003, CSD-006, CSD-035]
 
 > Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
+> Date picker: every date and month field of this capability has the picker of CSD-036 (Date picker) next to the typed text. It changes what the user can do to fill a field, not what a field accepts: the typed formats and Rust's validation stay as this CSD says.
+
 ## 1. Intent
 The app tracks wealth but has no view of what comes in. This capability lets the user record employment income over time: any number of jobs, each recorded either monthly, with one paycheck per month, or yearly, with one annual statement per year. Both are made up of gross salary, holiday pay and bonus. It is for a single person keeping a private, local history of their employment earnings. Scope is employment only. The result is a record per job, by month or by year, and yearly totals, which the dashboard (CSD-004) and the Insights chart (CSD-006) build on.
 

@@ -12,6 +12,8 @@ related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-014, CSD-035]
 
 > Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
+> Date picker: every date and month field of this capability has the picker of CSD-036 (Date picker) next to the typed text. It changes what the user can do to fill a field, not what a field accepts: the typed formats and Rust's validation stay as this CSD says.
+
 ## 1. Intent
 The app tracks what the user owns and owes, but has no view of what the user spends money on: a new roof, a car, a holiday, a washing machine. This capability lets the user log expenses, each on a specific date, with an amount, a category and an optional note. From these the app derives, per calendar year, the total spent and the largest expense, and lists all expenses with their total. It is for a single person keeping a private, local history of their purchases. It is a log of what was spent: it has no budgets, no recurrence and no link to bank accounts. The result is a dated history of expenses that the Insights chart of CSD-014 builds on. It follows the structure of Debts (CSD-011), but an expense is one dated record on its own and does not belong to a parent item such as a debt.
 

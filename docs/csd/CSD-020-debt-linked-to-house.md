@@ -10,6 +10,8 @@ related: [CSD-000, CSD-002, CSD-011, CSD-015, CSD-019, CSD-026]
 
 # CSD-020: Debt linked to a house
 
+> Date picker: every date and month field of this capability has the picker of CSD-036 (Date picker) next to the typed text. It changes what the user can do to fill a field, not what a field accepts: the typed formats and Rust's validation stay as this CSD says.
+
 ## 1. Intent
 Houses (CSD-015) and debts (CSD-011) are kept apart, yet a mortgage or a loan often belongs to one house. This capability lets the user give each debt a category (Mortgage, Loan, Scholarship or Other) and link a Mortgage or Loan to a house, in the Add and Edit debt form, also to a house that is already sold. The link changes no figure by itself. What a sale of the house does to its linked debts (Repaid or Cancelled, the settlement) is CSD-026, and the purchase and sale of a house are CSD-019. It is for a single person keeping a private, local history. It follows GitHub issues 27 and 31 and the grill-me interviews. The former CSD-020 (v1.1, house purchase, sale and linked debts) is split into CSD-019, this CSD and CSD-026, and the moved items are listed in section 4.3.
 

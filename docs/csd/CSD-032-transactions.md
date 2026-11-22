@@ -12,6 +12,8 @@ related: [CSD-000, CSD-025, CSD-034, CSD-002, CSD-003, CSD-009, CSD-013, CSD-022
 
 > Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
+> Date picker: every date and month field of this capability has the picker of CSD-036 (Date picker) next to the typed text. It changes what the user can do to fill a field, not what a field accepts: the typed formats and Rust's validation stay as this CSD says.
+
 ## 1. Intent
 The app tracks what the user owns, owes and has spent on notable purchases, but not what the bank account itself shows: the daily stream of payments, incomes and direct debits. Typing those in is not realistic. This capability lets the user import the transactions of a bank export into the project, have each one categorised automatically by simple rules, and browse, filter and correct them on a new Transactions page. It is for a single person keeping a private, local history. It comes from GitHub issue 70, and it deliberately reverses the earlier decision that the app has no transaction model (`CLAUDE.md`, CSD-009 NG-1, CSD-013 NG-9, CSD-024 NG-2). Transactions stand on their own: they feed no balance, no net worth figure and no expense.
 
