@@ -1,4 +1,4 @@
-// The Budgets tab of Transactions (CSD-036): the Month view (one month at a time, a row per category with its
+// The Budgets tab of Transactions (CSD-037): the Month view (one month at a time, a row per category with its
 // budget, what was spent, what remains and a bar) and the Year view (one year at a time, a grid of the budget
 // of every category in each month), and the dialog that sets or removes a budget for this month only, from
 // this month on, or for all months. Rust holds every budget and computes every figure, including the bar and
@@ -11,7 +11,7 @@ import { t } from '../shared/i18n.js';
 import { openDialog, saveDialog } from '../shared/crud.js';
 import { isNegative } from '../shared/yearly-chart.js';
 
-/** `month` or `year`: the view the tab shows. It opens on the Month view and does not remember the choice (CSD-036 REQ-18). */
+/** `month` or `year`: the view the tab shows. It opens on the Month view and does not remember the choice (CSD-037 REQ-18). */
 let mode = 'month';
 /** The month shown (`YYYY-MM`), or `null` until Rust has named the current month for this project. */
 let shownMonth = null;
@@ -30,7 +30,7 @@ function shiftMonth(month, step) {
   return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`;
 }
 
-/** "2026-10" or, for the current month, "2026-10 MTD" (CSD-036 REQ-2). */
+/** "2026-10" or, for the current month, "2026-10 MTD" (CSD-037 REQ-2). */
 const monthLabel = (data) => (data.is_partial ? t('{month} MTD', { month: data.month }) : data.month);
 
 /** The short month names, January first, in the chosen language. */
@@ -114,7 +114,7 @@ function render(data) {
   $('budgets-rows').replaceChildren(...data.rows.map(rowOf), notBudgeted, total);
 }
 
-/** "2026" or, for the current year, "2026 YTD" (CSD-036 REQ-19). */
+/** "2026" or, for the current year, "2026 YTD" (CSD-037 REQ-19). */
 const yearLabel = (data) => (data.is_partial ? t('{year} YTD', { year: data.year }) : String(data.year));
 
 /** One amount of the grid: the budget in a button that opens the dialog for its month, or a dash. */
@@ -169,7 +169,7 @@ export async function reloadBudgetsIfOpen() {
   if (!$('transactions-budgets').hidden) await reloadBudgets();
 }
 
-/** A new project starts on the current month again (CSD-036 REQ-2). */
+/** A new project starts on the current month again (CSD-037 REQ-2). */
 export function resetBudgets() {
   mode = 'month';
   shownMonth = null;
@@ -181,7 +181,7 @@ export function resetBudgets() {
 /** What the dialog is for: `target` is `{ category, name, month, budget }` and `kind` is `set` or `remove`. */
 let editing = null;
 
-/** Shows the dialog as the form that sets a budget or the one that removes it (CSD-036 REQ-6, REQ-7, REQ-21). */
+/** Shows the dialog as the form that sets a budget or the one that removes it (CSD-037 REQ-6, REQ-7, REQ-21). */
 function showKind(kind, canRemove) {
   const setting = kind === 'set';
   editing.kind = kind;

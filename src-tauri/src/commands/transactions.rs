@@ -703,7 +703,7 @@ pub fn reapply_transaction_rules(
 }
 
 /// The category of a budget as typed. The built-in Uncategorized cannot have
-/// one, and text that is no category id names no category (CSD-036 REQ-9).
+/// one, and text that is no category id names no category (CSD-037 REQ-9).
 fn budget_category(text: &str) -> Result<CategoryId, DomainError> {
     if text.trim().eq_ignore_ascii_case(UNCATEGORIZED_ENTITY) {
         return Err(DomainError::BudgetCategoryProtected);
@@ -712,7 +712,7 @@ fn budget_category(text: &str) -> Result<CategoryId, DomainError> {
 }
 
 /// The month the Budgets tab shows: the one asked for, else the current one
-/// (CSD-036 REQ-2).
+/// (CSD-037 REQ-2).
 #[tauri::command]
 pub fn get_budgets(
     state: State<'_, AppState>,
@@ -729,7 +729,7 @@ pub fn get_budgets(
 }
 
 /// The year the Year view shows: the one asked for, else the current one
-/// (CSD-036 REQ-19, REQ-22).
+/// (CSD-037 REQ-19, REQ-22).
 #[tauri::command]
 pub fn get_budget_year(
     state: State<'_, AppState>,
@@ -746,7 +746,7 @@ pub fn get_budget_year(
 }
 
 /// Sets the budget of a category for the month with a scope, as one undo step,
-/// and returns the month again (CSD-036 REQ-6, REQ-11).
+/// and returns the month again (CSD-037 REQ-6, REQ-11).
 #[tauri::command]
 pub fn set_budget(
     state: State<'_, AppState>,
@@ -769,7 +769,7 @@ pub fn set_budget(
 }
 
 /// Removes the budget of a category for the month with a scope, as one undo
-/// step, and returns the month again (CSD-036 REQ-7, REQ-11).
+/// step, and returns the month again (CSD-037 REQ-7, REQ-11).
 #[tauri::command]
 pub fn remove_budget(
     state: State<'_, AppState>,

@@ -435,7 +435,7 @@ button.dp-title:hover { background: var(--bg); }
 .dp-today:hover { background: var(--bg); }
 .dp-today:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-/* Budgets tab of Transactions (CSD-036). The width of a bar is set through the CSSOM by the page. */
+/* Budgets tab of Transactions (CSD-037). The width of a bar is set through the CSSOM by the page. */
 .month-nav { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 .month-label { min-width: 96px; text-align: center; font-weight: 600; }
 .budgets-table .budget-bar-cell { width: 140px; }

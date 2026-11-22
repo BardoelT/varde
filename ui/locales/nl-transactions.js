@@ -204,7 +204,7 @@ export default {
   'code:TRANSACTION_INPUT_TOO_LARGE': 'Te veel items in één verzoek.',
   'code:TRANSACTION_NOT_FOUND': 'Deze transactie bestaat niet.',
   'code:TRANSACTION_DATA_INVALID': 'De transactiegegevens zijn niet consistent.',
-  // Budgets (CSD-036)
+  // Budgets (CSD-037)
   'Budgets': 'Budgetten',
   'Budget': 'Budget',
   'Remaining': 'Resterend',

@@ -1,4 +1,4 @@
-//! Budgets per category and month (CSD-036).
+//! Budgets per category and month (CSD-037).
 //!
 //! A budget of a category is a list of "from this month" amounts and a list of
 //! single-month amounts. The month looks first for a single-month amount and
@@ -17,10 +17,10 @@ use crate::domain::money::{percent_of, Money, MoneyError};
 use super::category::CategoryId;
 use super::Transactions;
 
-/// The largest budget of one category in one month (CSD-036 REQ-9).
+/// The largest budget of one category in one month (CSD-037 REQ-9).
 pub const MAX_BUDGET: Money = Money::MAX_BALANCE;
 
-/// What a change of a budget covers (CSD-036 REQ-6, REQ-7).
+/// What a change of a budget covers (CSD-037 REQ-6, REQ-7).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BudgetScope {
     /// Only the month shown.
@@ -46,7 +46,7 @@ impl BudgetScope {
     }
 }
 
-/// Reads a month as typed or stored, `YYYY-MM` (CSD-036 REQ-9).
+/// Reads a month as typed or stored, `YYYY-MM` (CSD-037 REQ-9).
 ///
 /// # Errors
 /// Returns `BudgetMonthInvalid` for any other text.
@@ -54,7 +54,7 @@ pub fn parse_month(text: &str) -> Result<YearMonth, DomainError> {
     YearMonth::parse(text).map_err(|_| DomainError::BudgetMonthInvalid)
 }
 
-/// Reads a year as `YYYY`, 0001 to 9999 (CSD-036 REQ-22).
+/// Reads a year as `YYYY`, 0001 to 9999 (CSD-037 REQ-22).
 ///
 /// # Errors
 /// Returns `BudgetYearInvalid` for any other text.
@@ -69,7 +69,7 @@ pub fn parse_year(text: &str) -> Result<i32, DomainError> {
 }
 
 /// Reads a typed budget amount: a plain number, rounded half-up to 2 decimals
-/// (CSD-000 CON-8), of 0.00 up to [`MAX_BUDGET`] (CSD-036 REQ-9).
+/// (CSD-000 CON-8), of 0.00 up to [`MAX_BUDGET`] (CSD-037 REQ-9).
 ///
 /// # Errors
 /// Returns `BudgetAmountInvalid`.
@@ -109,7 +109,7 @@ pub struct OnlyEntry {
     pub amount: Option<Money>,
 }
 
-/// The budgets of one category (CSD-036 section 5).
+/// The budgets of one category (CSD-037 section 5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Budget {
@@ -131,7 +131,7 @@ impl Budget {
     }
 
     /// The budget of the month: a single-month entry wins, else the latest
-    /// "from" entry at or before the month (CSD-036 REQ-5).
+    /// "from" entry at or before the month (CSD-037 REQ-5).
     #[must_use]
     pub fn amount_in(&self, month: YearMonth) -> Option<Money> {
         if let Some(entry) = self.only.iter().find(|entry| entry.month == month) {
@@ -196,7 +196,7 @@ impl Budget {
             .min()
     }
 
-    /// Whether the entries follow the rules of the file (CSD-036 REQ-12): no
+    /// Whether the entries follow the rules of the file (CSD-037 REQ-12): no
     /// amount below 0.00 or above the limit, and one entry per month.
     fn is_consistent(&self) -> bool {
         let amounts_fit = self
@@ -220,7 +220,7 @@ impl Budget {
     }
 }
 
-/// One category in the month shown (CSD-036 REQ-3).
+/// One category in the month shown (CSD-037 REQ-3).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct BudgetRow {
     /// The id of the category.
@@ -241,7 +241,7 @@ pub struct BudgetRow {
     pub over: bool,
 }
 
-/// The sums of the categories that have a budget (CSD-036 REQ-3).
+/// The sums of the categories that have a budget (CSD-037 REQ-3).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct BudgetTotal {
     /// The sum of the budgets.
@@ -252,7 +252,7 @@ pub struct BudgetTotal {
     pub remaining: Money,
 }
 
-/// The payload of `get_budgets` (CSD-036 section 5).
+/// The payload of `get_budgets` (CSD-037 section 5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct BudgetsView {
     /// The month shown, `YYYY-MM`.
@@ -277,7 +277,7 @@ impl Transactions {
     }
 
     /// Replaces the budgets with those of a project file and checks them
-    /// (CSD-036 REQ-12).
+    /// (CSD-037 REQ-12).
     ///
     /// # Errors
     /// Returns `TransactionDataInvalid` for a budget of an unknown category,
@@ -353,7 +353,7 @@ impl Transactions {
 
     /// The earliest month the user can go back to: the earliest month with a
     /// transaction or a budget entry, never later than the current month
-    /// (CSD-036 REQ-2, REQ-19).
+    /// (CSD-037 REQ-2, REQ-19).
     fn earliest_budget_month(&self, today: YearMonth) -> YearMonth {
         self.transactions()
             .iter()
@@ -363,7 +363,7 @@ impl Transactions {
             .map_or(today, |earliest| earliest.min(today))
     }
 
-    /// The month as the Budgets tab shows it (CSD-036 REQ-2 to REQ-4, REQ-8).
+    /// The month as the Budgets tab shows it (CSD-037 REQ-2 to REQ-4, REQ-8).
     #[must_use]
     pub fn budgets_view(&self, month: YearMonth, today: YearMonth) -> BudgetsView {
         let mut spent: HashMap<Option<CategoryId>, Money> = HashMap::new();
@@ -429,7 +429,7 @@ fn bar_percent(spent: Money, budget: Money) -> String {
 }
 
 /// One cell of the grid of the Year view: the budget of a category in a month
-/// (CSD-036 REQ-20).
+/// (CSD-037 REQ-20).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub struct BudgetCell {
     /// The budget, or `None` for no budget.
@@ -451,7 +451,7 @@ pub struct BudgetYearRow {
     pub total: Option<Money>,
 }
 
-/// The three figures above the grid (CSD-036 REQ-20).
+/// The three figures above the grid (CSD-037 REQ-20).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct BudgetYearFigures {
     /// The sum of the budgets of the year.
@@ -462,7 +462,7 @@ pub struct BudgetYearFigures {
     pub remaining: Money,
 }
 
-/// The payload of `get_budget_year` (CSD-036 section 5).
+/// The payload of `get_budget_year` (CSD-037 section 5).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct BudgetYear {
     /// The year shown.
@@ -494,7 +494,7 @@ fn sum_of(amounts: impl IntoIterator<Item = Option<Money>>) -> Option<Money> {
 
 impl Transactions {
     /// The year as the Year view shows it: the budget of every category in each
-    /// of its 12 months, the totals and three figures (CSD-036 REQ-19, REQ-20).
+    /// of its 12 months, the totals and three figures (CSD-037 REQ-19, REQ-20).
     #[must_use]
     pub fn budget_year(&self, year: i32, today: YearMonth) -> BudgetYear {
         let months: Vec<Option<YearMonth>> =

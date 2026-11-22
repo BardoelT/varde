@@ -1,4 +1,4 @@
-//! Tests of CSD-036 REQ-12 and CSD-002 REQ-30 for the project file: the
+//! Tests of CSD-037 REQ-12 and CSD-002 REQ-30 for the project file: the
 //! `budgets` section and the upgrade of a version 4 file on opening.
 //! Synthetic data only.
 
@@ -37,7 +37,7 @@ fn groceries(project: &Project) -> crate::domain::transactions::CategoryId {
 }
 
 #[test]
-fn test_csd036_ac_12_1_a_saved_new_project_has_an_empty_budgets_section() {
+fn test_csd037_ac_12_1_a_saved_new_project_has_an_empty_budgets_section() {
     let dir = TempDir::new().unwrap();
     let (_, value) = saved_value(&mut Project::new(), &dir, "example-a.varde");
     assert_eq!(value["format_version"], 5);
@@ -45,7 +45,7 @@ fn test_csd036_ac_12_1_a_saved_new_project_has_an_empty_budgets_section() {
 }
 
 #[test]
-fn test_csd036_ac_12_5_budgets_survive_saving_and_opening() {
+fn test_csd037_ac_12_5_budgets_survive_saving_and_opening() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
     let id = groceries(&project);
@@ -78,7 +78,7 @@ fn test_csd036_ac_12_5_budgets_survive_saving_and_opening() {
 }
 
 #[test]
-fn test_csd036_ac_12_4_invalid_budgets_in_the_file_are_rejected() {
+fn test_csd037_ac_12_4_invalid_budgets_in_the_file_are_rejected() {
     let dir = TempDir::new().unwrap();
     let mut project = Project::new();
     let (_, good) = saved_value(&mut project, &dir, "example-a.varde");

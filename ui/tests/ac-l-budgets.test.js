@@ -1,4 +1,4 @@
-// Display ACs of CSD-036 (budgets): the tab, one month at a time, the rows with the bar, the dialog with its
+// Display ACs of CSD-037 (budgets): the tab, one month at a time, the rows with the bar, the dialog with its
 // three scopes, the label of a single-month amount, Discrete mode, the Dutch texts, the empty state. The
 // answers are small months made for one AC (what Rust returns for them is proven by `cargo test`).
 import test from 'node:test';
@@ -32,7 +32,7 @@ async function budgetsPage(handlers = {}, reads = exampleReads()) {
 const rowOf = (app, name) => [...app.$('budgets-rows').querySelectorAll('tr')].find((tr) => app.text(tr.querySelector('th')) === name);
 const cells = (app, name) => [...rowOf(app, name).querySelectorAll('td')].map((cell) => app.text(cell));
 
-test('test_csd036_ac_1_1_the_budgets_tab_is_the_last_tab_and_opens_the_panel', async () => {
+test('test_csd037_ac_1_1_the_budgets_tab_is_the_last_tab_and_opens_the_panel', async () => {
   const app = await openApp({ handlers: { get_budgets: OCTOBER } });
   await app.click(app.item('transactions'));
   assert.deepEqual([...app.document.querySelectorAll('#transactions [role="tab"]')].map((tab) => app.text(tab)), ['Accounts', 'Categories', 'Rules', 'Yearly totals', 'Transactions', 'Insights', 'Budgets']);
@@ -44,21 +44,21 @@ test('test_csd036_ac_1_1_the_budgets_tab_is_the_last_tab_and_opens_the_panel', a
   app.close();
 });
 
-test('test_csd036_ac_1_2_there_is_no_budget_page_in_the_left_pane', async () => {
+test('test_csd037_ac_1_2_there_is_no_budget_page_in_the_left_pane', async () => {
   const app = await openApp();
   const texts = [...app.document.querySelectorAll('.nav-item')].map((item) => app.text(item));
   assert.ok(!texts.includes('Budget') && !texts.includes('Budgets'));
   app.close();
 });
 
-test('test_csd036_ac_2_1_the_tab_opens_on_the_current_month', async () => {
+test('test_csd037_ac_2_1_the_tab_opens_on_the_current_month', async () => {
   const app = await budgetsPage();
   assert.equal(app.textOf('budgets-month'), '2026-10 MTD');
   assert.deepEqual(app.callsOf('get_budgets').at(-1).args, {});
   app.close();
 });
 
-test('test_csd036_ac_2_2_the_buttons_move_by_one_month_and_back_stops_at_the_earliest', async () => {
+test('test_csd037_ac_2_2_the_buttons_move_by_one_month_and_back_stops_at_the_earliest', async () => {
   const app = await budgetsPage({
     get_budgets: ({ month: asked }) => (asked === undefined ? OCTOBER() : month(asked, [row('Groceries')], { earliest: '2026-08', partial: false })),
   });
@@ -76,7 +76,7 @@ test('test_csd036_ac_2_2_the_buttons_move_by_one_month_and_back_stops_at_the_ear
   app.close();
 });
 
-test('test_csd036_ac_2_2_the_year_changes_between_december_and_january', async () => {
+test('test_csd037_ac_2_2_the_year_changes_between_december_and_january', async () => {
   const app = await budgetsPage({
     get_budgets: ({ month: asked }) => (asked === undefined ? month('2026-12', [row('Groceries')], { partial: true }) : month(asked, [row('Groceries')], { earliest: '2026-01' })),
   });
@@ -87,13 +87,13 @@ test('test_csd036_ac_2_2_the_year_changes_between_december_and_january', async (
   app.close();
 });
 
-test('test_csd036_ac_2_3_nothing_to_go_back_to', async () => {
+test('test_csd037_ac_2_3_nothing_to_go_back_to', async () => {
   const app = await budgetsPage({ get_budgets: () => month('2026-10', [row('Groceries')], { partial: true, earliest: '2026-10' }) });
   assert.equal(app.$('budgets-previous').disabled, true);
   app.close();
 });
 
-test('test_csd036_ac_2_4_the_month_stays_while_the_tab_is_reopened_and_resets_for_another_project', async () => {
+test('test_csd037_ac_2_4_the_month_stays_while_the_tab_is_reopened_and_resets_for_another_project', async () => {
   const app = await budgetsPage({ get_budgets: ({ month: asked }) => month(asked ?? '2026-10', [row('Groceries')], { partial: asked === undefined }) });
   await app.click(app.$('budgets-previous'));
   assert.equal(app.textOf('budgets-month'), '2026-09');
@@ -104,7 +104,7 @@ test('test_csd036_ac_2_4_the_month_stays_while_the_tab_is_reopened_and_resets_fo
   app.close();
 });
 
-test('test_csd036_ac_3_1_a_month_shows_budget_spent_remaining_and_a_bar_per_category', async () => {
+test('test_csd037_ac_3_1_a_month_shows_budget_spent_remaining_and_a_bar_per_category', async () => {
   const app = await budgetsPage();
   assert.deepEqual(cells(app, 'Groceries').slice(0, 3), ['400.00', '150.00', '250.00']);
   const leisure = cells(app, 'Leisure');
@@ -122,14 +122,14 @@ test('test_csd036_ac_3_1_a_month_shows_budget_spent_remaining_and_a_bar_per_cate
   app.close();
 });
 
-test('test_csd036_ac_8_1_a_single_month_amount_is_labelled', async () => {
+test('test_csd037_ac_8_1_a_single_month_amount_is_labelled', async () => {
   const app = await budgetsPage();
   assert.match(cells(app, 'Leisure')[0], /This month only/);
   assert.doesNotMatch(cells(app, 'Groceries')[0], /This month only/);
   app.close();
 });
 
-test('test_csd036_ac_6_1_the_dialog_asks_for_the_amount_and_a_scope_and_changes_nothing_until_confirmed', async () => {
+test('test_csd037_ac_6_1_the_dialog_asks_for_the_amount_and_a_scope_and_changes_nothing_until_confirmed', async () => {
   const app = await budgetsPage();
   await app.click(rowOf(app, 'Shopping').querySelector('button'));
   assert.ok(app.isShown(app.$('budget-dialog')));
@@ -143,7 +143,7 @@ test('test_csd036_ac_6_1_the_dialog_asks_for_the_amount_and_a_scope_and_changes_
   app.close();
 });
 
-test('test_csd036_ac_6_2_confirming_sends_the_amount_the_month_and_the_chosen_scope', async () => {
+test('test_csd037_ac_6_2_confirming_sends_the_amount_the_month_and_the_chosen_scope', async () => {
   const app = await budgetsPage({ set_budget: () => OCTOBER() });
   await app.click(rowOf(app, 'Shopping').querySelector('button'));
   app.$('budget-form').elements.amount.value = '75.00';
@@ -155,7 +155,7 @@ test('test_csd036_ac_6_2_confirming_sends_the_amount_the_month_and_the_chosen_sc
   app.close();
 });
 
-test('test_csd036_ac_6_3_the_default_scope_is_from_this_month_on', async () => {
+test('test_csd037_ac_6_3_the_default_scope_is_from_this_month_on', async () => {
   const app = await budgetsPage({ set_budget: () => OCTOBER() });
   await app.click(rowOf(app, 'Shopping').querySelector('button'));
   app.$('budget-form').elements.amount.value = '75.00';
@@ -165,7 +165,7 @@ test('test_csd036_ac_6_3_the_default_scope_is_from_this_month_on', async () => {
   app.close();
 });
 
-test('test_csd036_ac_7_1_removing_asks_for_a_scope_without_an_amount', async () => {
+test('test_csd037_ac_7_1_removing_asks_for_a_scope_without_an_amount', async () => {
   const app = await budgetsPage({ remove_budget: () => OCTOBER() });
   await app.click(rowOf(app, 'Groceries').querySelector('button[aria-label="Remove budget of Groceries"]'));
   assert.equal(app.textOf('budget-dialog-title'), 'Remove budget');
@@ -177,14 +177,14 @@ test('test_csd036_ac_7_1_removing_asks_for_a_scope_without_an_amount', async () 
   app.close();
 });
 
-test('test_csd036_ac_7_5_a_row_without_a_budget_has_no_remove_button', async () => {
+test('test_csd037_ac_7_5_a_row_without_a_budget_has_no_remove_button', async () => {
   const app = await budgetsPage();
   assert.equal(rowOf(app, 'Shopping').querySelector('button[aria-label^="Remove budget"]'), null);
   assert.ok(rowOf(app, 'Groceries').querySelector('button[aria-label^="Remove budget"]'));
   app.close();
 });
 
-test('test_csd036_ac_9_1_a_rejected_amount_shows_its_message_in_the_dialog', async () => {
+test('test_csd037_ac_9_1_a_rejected_amount_shows_its_message_in_the_dialog', async () => {
   const app = await budgetsPage({
     set_budget: () => {
       throw commandError('BUDGET_AMOUNT_INVALID', 'Enter a budget of 0.00 or more.');
@@ -199,7 +199,7 @@ test('test_csd036_ac_9_1_a_rejected_amount_shows_its_message_in_the_dialog', asy
   app.close();
 });
 
-test('test_csd036_ac_14_1_amounts_are_hidden_in_discrete_mode_and_the_bars_stay', async () => {
+test('test_csd037_ac_14_1_amounts_are_hidden_in_discrete_mode_and_the_bars_stay', async () => {
   const reads = exampleReads();
   reads.get_preferences = { ...reads.get_preferences, discrete_mode: true };
   const app = await budgetsPage({}, reads);
@@ -212,7 +212,7 @@ test('test_csd036_ac_14_1_amounts_are_hidden_in_discrete_mode_and_the_bars_stay'
   app.close();
 });
 
-test('test_csd036_ac_15_1_dutch', async () => {
+test('test_csd037_ac_15_1_dutch', async () => {
   const reads = exampleReads();
   reads.get_preferences = { ...reads.get_preferences, language: 'nl' };
   const app = await budgetsPage({}, reads);
@@ -223,7 +223,7 @@ test('test_csd036_ac_15_1_dutch', async () => {
   app.close();
 });
 
-test('test_csd036_ac_16_1_no_categories_shows_a_note_and_no_table', async () => {
+test('test_csd037_ac_16_1_no_categories_shows_a_note_and_no_table', async () => {
   const app = await budgetsPage({ get_budgets: () => month('2026-10', [], { partial: true }) });
   assert.ok(app.isShown(app.$('budgets-empty')));
   assert.equal(app.textOf('budgets-empty'), 'No categories yet. Add a category on the tab Categories to set a budget.');
@@ -231,7 +231,7 @@ test('test_csd036_ac_16_1_no_categories_shows_a_note_and_no_table', async () => 
   app.close();
 });
 
-test('test_csd036_ac_16_2_the_tab_asks_rust_again_each_time_it_opens', async () => {
+test('test_csd037_ac_16_2_the_tab_asks_rust_again_each_time_it_opens', async () => {
   const app = await budgetsPage();
   const before = app.callsOf('get_budgets').length;
   await app.click(app.$('transactions-tab-transactions'));
@@ -240,7 +240,7 @@ test('test_csd036_ac_16_2_the_tab_asks_rust_again_each_time_it_opens', async () 
   app.close();
 });
 
-// ── The Year view (CSD-036 REQ-18 to REQ-22) ──
+// ── The Year view (CSD-037 REQ-18 to REQ-22) ──
 
 const none = () => ({ budget: null, single_month: false });
 const has = (amount, single = false) => ({ budget: amount, single_month: single });
@@ -274,7 +274,7 @@ async function yearPage(handlers = {}, reads = exampleReads()) {
 const gridRow = (app, name) => [...app.$('budgets-year-grid').querySelectorAll('tbody tr')].find((tr) => app.text(tr.querySelector('th')) === name);
 const gridCells = (app, name) => [...gridRow(app, name).querySelectorAll('td')].map((cell) => app.text(cell));
 
-test('test_csd036_ac_18_1_the_tab_opens_on_the_month_view', async () => {
+test('test_csd037_ac_18_1_the_tab_opens_on_the_month_view', async () => {
   const app = await budgetsPage();
   assert.equal(app.$('budgets-view-month').getAttribute('aria-pressed'), 'true');
   assert.equal(app.$('budgets-view-year').getAttribute('aria-pressed'), 'false');
@@ -284,7 +284,7 @@ test('test_csd036_ac_18_1_the_tab_opens_on_the_month_view', async () => {
   app.close();
 });
 
-test('test_csd036_ac_18_2_year_opens_on_the_year_of_the_month_shown', async () => {
+test('test_csd037_ac_18_2_year_opens_on_the_year_of_the_month_shown', async () => {
   const app = await budgetsPage({ ...yearHandlers(), get_budgets: ({ month: asked } = {}) => month(asked ?? '2026-10', [row('Groceries')], { partial: asked === undefined, earliest: '2024-01' }) });
   await app.click(app.$('budgets-previous'));
   for (let step = 0; step < 6; step += 1) await app.click(app.$('budgets-previous'));
@@ -296,7 +296,7 @@ test('test_csd036_ac_18_2_year_opens_on_the_year_of_the_month_shown', async () =
   app.close();
 });
 
-test('test_csd036_ac_18_3_month_returns_to_the_month_it_was_on', async () => {
+test('test_csd037_ac_18_3_month_returns_to_the_month_it_was_on', async () => {
   const app = await budgetsPage({ ...yearHandlers(), get_budgets: ({ month: asked } = {}) => month(asked ?? '2026-10', [row('Groceries')], { partial: asked === undefined, earliest: '2024-01' }) });
   for (let step = 0; step < 7; step += 1) await app.click(app.$('budgets-previous'));
   assert.equal(app.textOf('budgets-month'), '2026-03');
@@ -310,7 +310,7 @@ test('test_csd036_ac_18_3_month_returns_to_the_month_it_was_on', async () => {
   app.close();
 });
 
-test('test_csd036_ac_18_4_the_choice_is_kept_while_the_tab_is_reopened', async () => {
+test('test_csd037_ac_18_4_the_choice_is_kept_while_the_tab_is_reopened', async () => {
   const app = await yearPage();
   await app.click(app.$('transactions-tab-insights'));
   await app.click(app.$('transactions-tab-budgets'));
@@ -320,7 +320,7 @@ test('test_csd036_ac_18_4_the_choice_is_kept_while_the_tab_is_reopened', async (
   app.close();
 });
 
-test('test_csd036_ac_18_5_choosing_the_shown_option_again_asks_nothing', async () => {
+test('test_csd037_ac_18_5_choosing_the_shown_option_again_asks_nothing', async () => {
   const app = await budgetsPage();
   const before = app.callsOf('get_budgets').length;
   await app.click(app.$('budgets-view-month'));
@@ -332,7 +332,7 @@ test('test_csd036_ac_18_5_choosing_the_shown_option_again_asks_nothing', async (
   yearApp.close();
 });
 
-test('test_csd036_ac_19_1_the_year_view_opens_on_the_current_year', async () => {
+test('test_csd037_ac_19_1_the_year_view_opens_on_the_current_year', async () => {
   const app = await yearPage();
   assert.equal(app.textOf('budgets-month'), '2026 YTD');
   assert.equal(app.textOf('budgets-previous'), 'Previous year');
@@ -340,7 +340,7 @@ test('test_csd036_ac_19_1_the_year_view_opens_on_the_current_year', async () => 
   app.close();
 });
 
-test('test_csd036_ac_19_2_the_buttons_move_by_one_year_and_back_stops_at_the_earliest', async () => {
+test('test_csd037_ac_19_2_the_buttons_move_by_one_year_and_back_stops_at_the_earliest', async () => {
   const app = await yearPage();
   assert.equal(app.$('budgets-previous').disabled, false);
   await app.click(app.$('budgets-previous'));
@@ -354,13 +354,13 @@ test('test_csd036_ac_19_2_the_buttons_move_by_one_year_and_back_stops_at_the_ear
   app.close();
 });
 
-test('test_csd036_ac_19_3_nothing_to_go_back_to', async () => {
+test('test_csd037_ac_19_3_nothing_to_go_back_to', async () => {
   const app = await yearPage({ get_budget_year: () => year(2026, { partial: true, earliest: 2026 }) });
   assert.equal(app.$('budgets-previous').disabled, true);
   app.close();
 });
 
-test('test_csd036_ac_19_4_the_buttons_are_the_same_buttons_in_the_same_place', async () => {
+test('test_csd037_ac_19_4_the_buttons_are_the_same_buttons_in_the_same_place', async () => {
   const app = await budgetsPage(yearHandlers());
   const [previous, next, month] = [app.$('budgets-previous'), app.$('budgets-next'), app.$('budgets-month')];
   await app.click(app.$('budgets-view-year'));
@@ -374,7 +374,7 @@ test('test_csd036_ac_19_4_the_buttons_are_the_same_buttons_in_the_same_place', a
   app.close();
 });
 
-test('test_csd036_ac_20_1_a_year_with_budgets', async () => {
+test('test_csd037_ac_20_1_a_year_with_budgets', async () => {
   const app = await yearPage();
   assert.deepEqual([...app.$('budgets-year-grid').querySelectorAll('thead th')].map((th) => app.text(th)), ['Category', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Total']);
   assert.deepEqual(gridCells(app, 'Groceries'), [...Array(12).fill('400.00'), '4,800.00']);
@@ -385,7 +385,7 @@ test('test_csd036_ac_20_1_a_year_with_budgets', async () => {
   app.close();
 });
 
-test('test_csd036_ac_20_3_a_single_month_cell_is_marked', async () => {
+test('test_csd037_ac_20_3_a_single_month_cell_is_marked', async () => {
   const app = await yearPage({ get_budget_year: () => year(2026, { partial: true, single: 9 }) });
   const marked = [...gridRow(app, 'Groceries').querySelectorAll('td.single-month-cell')];
   assert.equal(marked.length, 1);
@@ -394,7 +394,7 @@ test('test_csd036_ac_20_3_a_single_month_cell_is_marked', async () => {
   app.close();
 });
 
-test('test_csd036_ac_20_4_nothing_but_budgets_in_the_grid', async () => {
+test('test_csd037_ac_20_4_nothing_but_budgets_in_the_grid', async () => {
   const app = await yearPage();
   assert.equal(app.$('budgets-year-grid').querySelector('.budget-bar'), null);
   const names = [...app.$('budgets-year-grid').querySelectorAll('tbody th')].map((th) => app.text(th));
@@ -402,7 +402,7 @@ test('test_csd036_ac_20_4_nothing_but_budgets_in_the_grid', async () => {
   app.close();
 });
 
-test('test_csd036_ac_20_6_a_year_without_a_budget_is_all_dashes', async () => {
+test('test_csd037_ac_20_6_a_year_without_a_budget_is_all_dashes', async () => {
   const empty = Array.from({ length: 12 }, none);
   const app = await yearPage({ get_budget_year: () => ({ ...year(2026, { partial: true, rows: [yearRow('Groceries', empty, null)] }), figures: { budget: '0.00', spent: '0.00', remaining: '0.00' }, months: Array(12).fill(null), total: null }) });
   assert.deepEqual(gridCells(app, 'Groceries'), Array(13).fill('–'));
@@ -411,7 +411,7 @@ test('test_csd036_ac_20_6_a_year_without_a_budget_is_all_dashes', async () => {
   app.close();
 });
 
-test('test_csd036_ac_21_1_an_empty_cell_opens_the_dialog_for_its_month', async () => {
+test('test_csd037_ac_21_1_an_empty_cell_opens_the_dialog_for_its_month', async () => {
   const app = await yearPage();
   await app.click(gridRow(app, 'Shopping').querySelectorAll('button.cell-button')[2]);
   assert.ok(app.isShown(app.$('budget-dialog')));
@@ -423,7 +423,7 @@ test('test_csd036_ac_21_1_an_empty_cell_opens_the_dialog_for_its_month', async (
   app.close();
 });
 
-test('test_csd036_ac_21_2_saving_applies_the_scope_to_the_month_of_the_cell_and_shows_the_year_again', async () => {
+test('test_csd037_ac_21_2_saving_applies_the_scope_to_the_month_of_the_cell_and_shows_the_year_again', async () => {
   const app = await yearPage({ set_budget: () => OCTOBER() });
   await app.click(gridRow(app, 'Shopping').querySelectorAll('button.cell-button')[2]);
   app.$('budget-form').elements.amount.value = '75.00';
@@ -436,7 +436,7 @@ test('test_csd036_ac_21_2_saving_applies_the_scope_to_the_month_of_the_cell_and_
   app.close();
 });
 
-test('test_csd036_ac_21_3_a_cell_with_a_budget_offers_to_remove_it', async () => {
+test('test_csd037_ac_21_3_a_cell_with_a_budget_offers_to_remove_it', async () => {
   const app = await yearPage({ remove_budget: () => OCTOBER() });
   await app.click(gridRow(app, 'Groceries').querySelectorAll('button.cell-button')[5]);
   assert.equal(app.$('budget-form').elements.amount.value, '400.00');
@@ -452,7 +452,7 @@ test('test_csd036_ac_21_3_a_cell_with_a_budget_offers_to_remove_it', async () =>
   app.close();
 });
 
-test('test_csd036_ac_21_4_a_rejected_amount_stays_in_the_dialog', async () => {
+test('test_csd037_ac_21_4_a_rejected_amount_stays_in_the_dialog', async () => {
   const app = await yearPage({
     set_budget: () => {
       throw commandError('BUDGET_AMOUNT_INVALID', 'Enter a budget of 0.00 or more.');
@@ -467,14 +467,14 @@ test('test_csd036_ac_21_4_a_rejected_amount_stays_in_the_dialog', async () => {
   app.close();
 });
 
-test('test_csd036_ac_21_the_month_view_never_offers_the_remove_button_in_the_dialog', async () => {
+test('test_csd037_ac_21_the_month_view_never_offers_the_remove_button_in_the_dialog', async () => {
   const app = await budgetsPage();
   await app.click(rowOf(app, 'Groceries').querySelector('button[aria-label^="Edit budget"]'));
   assert.equal(app.isShown(app.$('budget-remove')), false);
   app.close();
 });
 
-test('test_csd036_ac_22_1_and_22_2_rust_is_asked_for_the_year_shown', async () => {
+test('test_csd037_ac_22_1_and_22_2_rust_is_asked_for_the_year_shown', async () => {
   const app = await yearPage();
   await app.click(app.$('budgets-previous'));
   assert.deepEqual(app.callsOf('get_budget_year').map((call) => call.args), [{ year: '2026' }, { year: '2025' }]);
@@ -484,7 +484,7 @@ test('test_csd036_ac_22_1_and_22_2_rust_is_asked_for_the_year_shown', async () =
   app.close();
 });
 
-test('test_csd036_ac_14_2_the_year_view_hides_its_amounts_in_discrete_mode', async () => {
+test('test_csd037_ac_14_2_the_year_view_hides_its_amounts_in_discrete_mode', async () => {
   const reads = exampleReads();
   reads.get_preferences = { ...reads.get_preferences, discrete_mode: true };
   const app = await yearPage({}, reads);
@@ -495,7 +495,7 @@ test('test_csd036_ac_14_2_the_year_view_hides_its_amounts_in_discrete_mode', asy
   app.close();
 });
 
-test('test_csd036_ac_15_1_the_toggle_and_the_year_buttons_in_dutch', async () => {
+test('test_csd037_ac_15_1_the_toggle_and_the_year_buttons_in_dutch', async () => {
   const reads = exampleReads();
   reads.get_preferences = { ...reads.get_preferences, language: 'nl' };
   const app = await yearPage({}, reads);
@@ -506,7 +506,7 @@ test('test_csd036_ac_15_1_the_toggle_and_the_year_buttons_in_dutch', async () =>
   app.close();
 });
 
-test('test_csd036_ac_16_3_no_categories_shows_the_note_and_no_grid_in_the_year_view', async () => {
+test('test_csd037_ac_16_3_no_categories_shows_the_note_and_no_grid_in_the_year_view', async () => {
   const app = await yearPage({ get_budget_year: () => ({ ...year(2026, { partial: true, rows: [] }), months: Array(12).fill(null), total: null }) });
   assert.ok(app.isShown(app.$('budgets-empty')));
   assert.equal(app.isShown(app.$('budgets-year')), false);

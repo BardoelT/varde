@@ -27,7 +27,7 @@ The app tracks what the user owns and owes, but has no view of what the user spe
 - Expense data is part of the project file (CSD-002). Expenses count for the currency confirmation of CSD-003 (REQ-17).
 
 ### 2.2 Non-goals
-- NG-1: Budgets, spending limits, and a comparison with income or any other figure. (Budgets of bank transactions are the separate capability CSD-036 and never apply to expenses. Changed in v2.4.)
+- NG-1: Budgets, spending limits, and a comparison with income or any other figure. (Budgets of bank transactions are the separate capability CSD-037 and never apply to expenses. Changed in v2.4.)
 - NG-2: Recurring expenses, instalments and spreading one expense over several months or years.
 - NG-3: A link to bank accounts, so recording an expense never changes a balance, and integration with the dashboard (CSD-004). Expenses are not part of the net worth (CSD-017 NG-6).
 - NG-4: A threshold or any other rule that limits which expenses can be recorded, such as a minimum amount. The user decides what to record.
@@ -699,7 +699,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
-- 2.4 (22/11/2026): NG-1 points to CSD-036 for budgets of bank transactions, which do not apply to expenses (GitHub issue 82). No behaviour change. Back to `draft` until re-approved.
+- 2.4 (22/11/2026): NG-1 points to CSD-037 for budgets of bank transactions, which do not apply to expenses (GitHub issue 82). No behaviour change. Back to `draft` until re-approved.
 - 2.3 (18/11/2026): The Overview tab is split into one tab per panel and removed; CSD-035 (Page tabs) governs the tabs of this page (GitHub issue 73). No other change. Back to `draft` until re-approved.
 - 2.2 (12/11/2026): NG-9 points to CSD-032 for bank transactions, which never create or change an expense (GitHub issue 70). Back to `draft` until re-approved.
 - 2.1 (04/11/2026): Wording follows the UI; no behaviour change: the amount shown in a list row is grouped as in CSD-022 AC-10.1 (AC-13.3). Back to `draft` until re-approved.

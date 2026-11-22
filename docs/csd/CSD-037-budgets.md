@@ -1,5 +1,5 @@
 ---
-id: CSD-036
+id: CSD-037
 title: Budgets
 status: approved
 owner: Thijs Bardoel
@@ -8,7 +8,7 @@ last_updated: 22/11/2026
 related: [CSD-000, CSD-002, CSD-003, CSD-022, CSD-027, CSD-029, CSD-030, CSD-032, CSD-033, CSD-035]
 ---
 
-# CSD-036: Budgets
+# CSD-037: Budgets
 
 > Tabs: the tabs of the Transactions page are set by CSD-035 (Page tabs). This CSD adds the tab "Budgets" there (REQ-1).
 
@@ -639,10 +639,10 @@ Commands (indicative names; the owner of the code may rename them):
 ## 7. Verification
 | ACs | Proven by |
 |---|---|
-| AC-2.1 to AC-2.3 (month range), AC-3.1 to AC-3.4, AC-4.1, AC-4.2, AC-5.1, AC-5.2, AC-6.2 to AC-6.6, AC-7.1 to AC-7.5, AC-9.1, AC-9.2, AC-10.1, AC-10.2, AC-11.1, AC-12.1 to AC-12.5, AC-13.1, AC-17.1 | `cargo test test_csd036_` (Rust, `domain/transactions` and `storage/project`, with IPC tests) |
-| AC-1.1, AC-1.2, AC-2.1 to AC-2.4, AC-3.1 to AC-3.3, AC-6.1, AC-8.1, AC-8.2, AC-14.1, AC-15.1, AC-16.1, AC-16.2 | `npm test` (`ui/tests/`, titled `test_csd036_ac_n_m_...`) |
-| AC-19.2 (year range), AC-20.1, AC-20.2, AC-20.5, AC-20.6, AC-22.3, and the scopes of AC-21.2 to AC-21.3 | `cargo test test_csd036_` (Rust: `domain/transactions` and the IPC tests) |
-| AC-14.2, AC-18.1 to AC-18.5, AC-19.1 to AC-19.4, AC-20.1 to AC-20.4, AC-21.1 to AC-21.5, AC-22.1, AC-22.2 | `npm test` (`ui/tests/`, titled `test_csd036_ac_n_m_...`) |
+| AC-2.1 to AC-2.3 (month range), AC-3.1 to AC-3.4, AC-4.1, AC-4.2, AC-5.1, AC-5.2, AC-6.2 to AC-6.6, AC-7.1 to AC-7.5, AC-9.1, AC-9.2, AC-10.1, AC-10.2, AC-11.1, AC-12.1 to AC-12.5, AC-13.1, AC-17.1 | `cargo test test_csd037_` (Rust, `domain/transactions` and `storage/project`, with IPC tests) |
+| AC-1.1, AC-1.2, AC-2.1 to AC-2.4, AC-3.1 to AC-3.3, AC-6.1, AC-8.1, AC-8.2, AC-14.1, AC-15.1, AC-16.1, AC-16.2 | `npm test` (`ui/tests/`, titled `test_csd037_ac_n_m_...`) |
+| AC-19.2 (year range), AC-20.1, AC-20.2, AC-20.5, AC-20.6, AC-22.3, and the scopes of AC-21.2 to AC-21.3 | `cargo test test_csd037_` (Rust: `domain/transactions` and the IPC tests) |
+| AC-14.2, AC-18.1 to AC-18.5, AC-19.1 to AC-19.4, AC-20.1 to AC-20.4, AC-21.1 to AC-21.5, AC-22.1, AC-22.2 | `npm test` (`ui/tests/`, titled `test_csd037_ac_n_m_...`) |
 | Golden files | `GOLDEN_UPDATE=1 cargo test golden` once, then the diff reviewed by the owner |
 | Manual | open `examples/example.varde`, visit the tab "Budgets", set and remove a budget with each scope |
 

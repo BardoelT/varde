@@ -31,7 +31,7 @@ The app tracks what the user owns, owes and has spent on notable purchases, but 
 - NG-3: A link to the bank accounts of CSD-009, to expenses (CSD-013), to net worth or to the dashboard. Importing never changes a balance or creates an expense. Detecting or netting transfers between own accounts.
 - NG-4: Adding a transaction by hand, and editing its date, amount, counterparty, description or any field other than the category.
 - NG-5: Regular expressions, amount or date conditions, and any learning in the rules. A rule is a text pattern with `*` as its only wildcard.
-- NG-6: Several categories per transaction, tags, sub-categories and splitting a transaction. (Budgets are no longer excluded: they are the separate capability CSD-036, a tab of this page. Changed in v0.47.)
+- NG-6: Several categories per transaction, tags, sub-categories and splitting a transaction. (Budgets are no longer excluded: they are the separate capability CSD-037, a tab of this page. Changed in v0.47.)
 - NG-7: A currency per transaction, and conversion. All amounts are in the project currency (CSD-003).
 - NG-8: Importing from a folder, importing several files at once, a preview step before the import, and a partial import.
 - NG-9: Hiding counterparty names, descriptions and IBANs in Discrete mode (CSD-030 NG-1 stays).
@@ -550,7 +550,7 @@ Scenario: Including manually set asks first
 ```
 
 **REQ-13: Deleting a category** *(event-driven)*
-When the user confirms deleting a category, the app shall move its transactions to "Uncategorized" (keeping their manual flag) and delete the rules that name it and its budgets (CSD-036 REQ-10), in one change.
+When the user confirms deleting a category, the app shall move its transactions to "Uncategorized" (keeping their manual flag) and delete the rules that name it and its budgets (CSD-037 REQ-10), in one change.
 
 ```gherkin
 @AC-13.1
@@ -693,7 +693,7 @@ Scenario: A re-apply message is a notification
 ### 4.4 Project file and neighbouring capabilities
 
 **REQ-17: The project file** *(ubiquitous)*
-The project file shall hold the required sections `transactions`, `transaction_categories` and `transaction_rules` in addition to the sections of CSD-002 REQ-16, with `format_version` 3 (4 since CSD-034 REQ-7, which adds the section `transaction_accounts` and the `account_id` of every transaction, and 5 since CSD-036 REQ-12, which adds the section `budgets`), and the strict schema of CSD-002 REQ-17 shall apply to them. The script of CSD-002 REQ-20 shall upgrade a version 2 file by adding the three sections (the default categories and rules, and no transactions) and setting the version to 3, after writing its `.bak`.
+The project file shall hold the required sections `transactions`, `transaction_categories` and `transaction_rules` in addition to the sections of CSD-002 REQ-16, with `format_version` 3 (4 since CSD-034 REQ-7, which adds the section `transaction_accounts` and the `account_id` of every transaction, and 5 since CSD-037 REQ-12, which adds the section `budgets`), and the strict schema of CSD-002 REQ-17 shall apply to them. The script of CSD-002 REQ-20 shall upgrade a version 2 file by adding the three sections (the default categories and rules, and no transactions) and setting the version to 3, after writing its `.bak`.
 
 ```gherkin
 @AC-17.1

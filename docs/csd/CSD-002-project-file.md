@@ -5,7 +5,7 @@ status: approved
 owner: Thijs Bardoel
 version: 3.4
 last_updated: 22/11/2026
-related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-024, CSD-026, CSD-027, CSD-032, CSD-036]
+related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-024, CSD-026, CSD-027, CSD-032, CSD-037]
 ---
 
 # CSD-002: Project file (save, open, new)
@@ -907,7 +907,7 @@ Scenario Outline: An older file is refused with its own message
 ```
 
 **REQ-30: A version 4 file is upgraded on opening** *(event-driven)*
-When the user opens a project file with `format_version` 4, the app shall open it as a version 5 project with an empty `budgets` section (CSD-036 REQ-12), without changing the file on disk and without marking the project unsaved, and the next save shall write it as version 5 after the backup copy of REQ-28. A file with `format_version` 4 that already holds a `budgets` section is invalid (REQ-17).
+When the user opens a project file with `format_version` 4, the app shall open it as a version 5 project with an empty `budgets` section (CSD-037 REQ-12), without changing the file on disk and without marking the project unsaved, and the next save shall write it as version 5 after the backup copy of REQ-28. A file with `format_version` 4 that already holds a `budgets` section is invalid (REQ-17).
 
 ```gherkin
 @AC-30.1
@@ -957,11 +957,11 @@ Project file: JSON with the extension `.varde`, a top-level integer `format_vers
 | `transactions` | Bank transactions (CSD-032) |
 | `transaction_categories` | Categories of transactions (CSD-032) |
 | `transaction_rules` | Categorisation rules (CSD-032) |
-| `budgets` | Budgets per category and month (CSD-036) |
+| `budgets` | Budgets per category and month (CSD-037) |
 
 Every period field in a section is called `period` (the pay period of a job, which was `pay_period` and now holds the same Monthly or Yearly value under the name `period`, and the period of an investment account, bank account, debt or house), so the names `pay_period`, `entry_period`, `statement_period` and `valuation_period` do not exist. The preferences of the person (theme, language) are not in the file (CSD-008, CSD-022). A house keeps its purchase as `purchase_date` and `purchase_amount` and its optional sale as `sell_date` and `sell_amount` (CSD-015, CSD-019).
 
-Since `format_version` 3 the file also holds the sections of CSD-032 (`transactions`, `transaction_categories`, `transaction_rules`). A version 2 file is invalid in this app until the script of REQ-20 has upgraded it, and an older app that opens a version 3 file shows `PROJECT_FILE_NEWER`. Transactions can make the file several MB, and it is still saved as one file (CSD-032 CON-5). Since `format_version` 5 the file also holds the section `budgets` (CSD-036 REQ-12); a version 4 file is opened and upgraded in memory with an empty section (REQ-30), and written as version 5 on the next save.
+Since `format_version` 3 the file also holds the sections of CSD-032 (`transactions`, `transaction_categories`, `transaction_rules`). A version 2 file is invalid in this app until the script of REQ-20 has upgraded it, and an older app that opens a version 3 file shows `PROJECT_FILE_NEWER`. Transactions can make the file several MB, and it is still saved as one file (CSD-032 CON-5). Since `format_version` 5 the file also holds the section `budgets` (CSD-037 REQ-12); a version 4 file is opened and upgraded in memory with an empty section (REQ-30), and written as version 5 on the next save.
 
 A debt keeps its opening as `opening_date` and `opening_amount`, both required (CSD-011 REQ-30); its closing is the existing `settlement` (CSD-026), which since `format_version` 2 also holds a required `origin`, `Sale` or `Manual`.
 
@@ -1011,7 +1011,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-6: (resolved 18/11/2026) Should the app give an older file its own message instead of the generic `PROJECT_INVALID_FILE`? Yes: `PROJECT_FILE_OLDER` (REQ-29).
 
 ## 9. Changelog
-- 3.4 (22/11/2026): The project file holds the section `budgets` and has `format_version` 5 (CSD-036 REQ-12, GitHub issue 82); the example of a newer file is version 6 and a version 4 file is upgraded in the app on opening (new REQ-30, AC-30.1 to AC-30.4; NG-7 and REQ-29 give way for it), by owner decision. Back to `draft` until re-approved.
+- 3.4 (22/11/2026): The project file holds the section `budgets` and has `format_version` 5 (CSD-037 REQ-12, GitHub issue 82); the example of a newer file is version 6 and a version 4 file is upgraded in the app on opening (new REQ-30, AC-30.1 to AC-30.4; NG-7 and REQ-29 give way for it), by owner decision. Back to `draft` until re-approved.
 - 3.3 (18/11/2026): Pre-release audit, owner decisions. New REQ-27 (a project is never saved larger than the app opens: `PROJECT_TOO_LARGE`, import included), REQ-28 (one `.bak` copy per file per session; NG-2 narrowed) and REQ-29 (an older file gets `PROJECT_FILE_OLDER`; AC-18.3 now expects it). Error codes in section 5 extended. Back to `draft` until re-approved.
 - 3.2 (18/11/2026): Autosave (GitHub issue 71). NG-2 no longer excludes it (backup and recovery copies stay excluded). New section 4.1 with REQ-23 (write after every step, once per step, undo and redo included, project data only, no write without a path), REQ-24 (the "Autosave" preference, on by default), REQ-25 (switching on writes pending changes) and REQ-26 (a failed write keeps the change, shows `PROJECT_SAVE_FAILED` and retries on the next step); new AC-3.3, AC-3.4, AC-4.3, AC-4.4. New definitions "Autosave" and "Step", and scenarios elsewhere describe autosave off unless they say otherwise. Amends CSD-008 (NG-5), CSD-024 (REQ-9) and CSD-027 (NG-2, REQ-9). Owner decisions from the grill-me interview of 18/11/2026. Back to `draft` until re-approved.
 - 3.1 (17/11/2026): The project file holds the section `transaction_accounts` and has `format_version` 4 (CSD-034 REQ-7); the example of a newer file is version 5.

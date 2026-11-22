@@ -47,7 +47,7 @@ impl Transactions {
 
     /// Deletes a category: its transactions become Uncategorized, keeping
     /// their manual flag, and the rules that name it and its budgets are deleted
-    /// (REQ-13, CSD-036 REQ-10).
+    /// (REQ-13, CSD-037 REQ-10).
     ///
     /// # Errors
     /// Returns `TransactionCategoryNotFound`.

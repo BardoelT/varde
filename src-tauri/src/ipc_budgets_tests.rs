@@ -1,4 +1,4 @@
-//! Acceptance tests of CSD-036 (budgets) through the real commands: the names,
+//! Acceptance tests of CSD-037 (budgets) through the real commands: the names,
 //! the argument names and the shapes the frontend relies on. Synthetic data only.
 
 use serde_json::{json, Value};
@@ -34,7 +34,7 @@ fn row<'a>(view: &'a Value, name: &str) -> &'a Value {
 }
 
 #[test]
-fn test_csd036_ac_6_2_a_budget_is_set_and_the_month_is_returned() {
+fn test_csd037_ac_6_2_a_budget_is_set_and_the_month_is_returned() {
     let app = harness();
     let view = set(&app, "Groceries", "2026-10", "400.00", "all");
     assert_eq!(view["month"], "2026-10");
@@ -45,7 +45,7 @@ fn test_csd036_ac_6_2_a_budget_is_set_and_the_month_is_returned() {
 }
 
 #[test]
-fn test_csd036_ac_11_1_any_scope_is_one_undo_step() {
+fn test_csd037_ac_11_1_any_scope_is_one_undo_step() {
     let app = harness();
     set(&app, "Groceries", "2026-01", "400.00", "all");
     set(&app, "Groceries", "2026-10", "450.00", "from");
@@ -60,7 +60,7 @@ fn test_csd036_ac_11_1_any_scope_is_one_undo_step() {
 }
 
 #[test]
-fn test_csd036_ac_7_1_a_budget_is_removed_with_a_scope() {
+fn test_csd037_ac_7_1_a_budget_is_removed_with_a_scope() {
     let app = harness();
     set(&app, "Groceries", "2026-01", "400.00", "all");
     let view = app.ok(
@@ -77,7 +77,7 @@ fn test_csd036_ac_7_1_a_budget_is_removed_with_a_scope() {
 }
 
 #[test]
-fn test_csd036_ac_9_1_invalid_changes_are_rejected_and_record_no_step() {
+fn test_csd037_ac_9_1_invalid_changes_are_rejected_and_record_no_step() {
     let app = harness();
     let groceries = category_id(&app, "Groceries");
     let call = |category: &str, month: &str, amount: &str, scope: &str| {
@@ -133,14 +133,14 @@ fn test_csd036_ac_9_1_invalid_changes_are_rejected_and_record_no_step() {
 }
 
 #[test]
-fn test_csd036_ac_6_6_a_typed_amount_is_read_in_the_number_format() {
+fn test_csd037_ac_6_6_a_typed_amount_is_read_in_the_number_format() {
     let app = harness();
     let view = set(&app, "Groceries", "2026-10", "400.505", "all");
     assert_eq!(row(&view, "Groceries")["budget"], "400.51");
 }
 
 #[test]
-fn test_csd036_ac_10_2_deleting_a_category_removes_its_budget_and_undo_restores_both() {
+fn test_csd037_ac_10_2_deleting_a_category_removes_its_budget_and_undo_restores_both() {
     let app = harness();
     let groceries = category_id(&app, "Groceries");
     set(&app, "Groceries", "2026-01", "400.00", "all");
@@ -160,7 +160,7 @@ fn test_csd036_ac_10_2_deleting_a_category_removes_its_budget_and_undo_restores_
 }
 
 #[test]
-fn test_csd036_ac_13_1_budgets_count_as_entries_for_the_currency_confirmation() {
+fn test_csd037_ac_13_1_budgets_count_as_entries_for_the_currency_confirmation() {
     let app = harness();
     assert_eq!(app.ok("get_settings", json!({}))["entry_count"], 0);
     set(&app, "Groceries", "2026-10", "400.00", "all");
@@ -168,7 +168,7 @@ fn test_csd036_ac_13_1_budgets_count_as_entries_for_the_currency_confirmation() 
 }
 
 #[test]
-fn test_csd036_ac_22_the_year_is_asked_from_rust_and_an_invalid_year_is_rejected() {
+fn test_csd037_ac_22_the_year_is_asked_from_rust_and_an_invalid_year_is_rejected() {
     let app = harness();
     set(&app, "Groceries", "2026-01", "400.00", "all");
     let year = app.ok("get_budget_year", json!({ "year": "2026" }));
@@ -192,7 +192,7 @@ fn test_csd036_ac_22_the_year_is_asked_from_rust_and_an_invalid_year_is_rejected
 }
 
 #[test]
-fn test_csd036_ac_21_5_a_change_made_from_a_cell_is_one_undo_step_and_the_year_follows() {
+fn test_csd037_ac_21_5_a_change_made_from_a_cell_is_one_undo_step_and_the_year_follows() {
     let app = harness();
     set(&app, "Groceries", "2026-01", "400.00", "all");
     set(&app, "Groceries", "2026-03", "450.00", "month");

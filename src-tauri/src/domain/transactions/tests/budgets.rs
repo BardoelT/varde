@@ -94,7 +94,7 @@ fn row<'a>(view: &'a BudgetsView, name: &str) -> &'a BudgetRow {
 }
 
 #[test]
-fn test_csd036_ac_3_1_a_month_with_budgets() {
+fn test_csd037_ac_3_1_a_month_with_budgets() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -143,7 +143,7 @@ fn test_csd036_ac_3_1_a_month_with_budgets() {
 }
 
 #[test]
-fn test_csd036_ac_3_1_every_budgetable_category_is_a_row_in_list_order() {
+fn test_csd037_ac_3_1_every_budgetable_category_is_a_row_in_list_order() {
     let data = spending_fixture();
     let view = data.budgets_view(month(2026, 10), month(2026, 10));
     let names: Vec<&str> = view.rows.iter().map(|row| row.name.as_str()).collect();
@@ -157,7 +157,7 @@ fn test_csd036_ac_3_1_every_budgetable_category_is_a_row_in_list_order() {
 }
 
 #[test]
-fn test_csd036_ac_3_2_the_bar_is_the_share_spent_and_stops_at_full() {
+fn test_csd037_ac_3_2_the_bar_is_the_share_spent_and_stops_at_full() {
     let mut data = spending_fixture();
     let id = find(&data, "Example Grocer").id;
     data.delete_transaction(id).unwrap();
@@ -210,7 +210,7 @@ fn test_csd036_ac_3_2_the_bar_is_the_share_spent_and_stops_at_full() {
 }
 
 #[test]
-fn test_csd036_ac_3_3_a_budget_of_zero() {
+fn test_csd037_ac_3_3_a_budget_of_zero() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -234,7 +234,7 @@ fn test_csd036_ac_3_3_a_budget_of_zero() {
 }
 
 #[test]
-fn test_csd036_ac_3_4_a_month_without_transactions() {
+fn test_csd037_ac_3_4_a_month_without_transactions() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -253,14 +253,14 @@ fn test_csd036_ac_3_4_a_month_without_transactions() {
 }
 
 #[test]
-fn test_csd036_ac_4_1_credits_are_ignored() {
+fn test_csd037_ac_4_1_credits_are_ignored() {
     let data = spending_fixture();
     let view = data.budgets_view(month(2026, 10), month(2026, 10));
     assert_eq!(row(&view, "Groceries").spent, money("160.00"));
 }
 
 #[test]
-fn test_csd036_ac_4_2_the_month_comes_from_the_date() {
+fn test_csd037_ac_4_2_the_month_comes_from_the_date() {
     let data = spending_fixture();
     let october = data.budgets_view(month(2026, 10), month(2026, 10));
     let november = data.budgets_view(month(2026, 11), month(2026, 10));
@@ -270,7 +270,7 @@ fn test_csd036_ac_4_2_the_month_comes_from_the_date() {
 }
 
 #[test]
-fn test_csd036_ac_5_1_later_changes_win() {
+fn test_csd037_ac_5_1_later_changes_win() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -301,14 +301,14 @@ fn test_csd036_ac_5_1_later_changes_win() {
 }
 
 #[test]
-fn test_csd036_ac_5_2_no_budget_until_one_is_set() {
+fn test_csd037_ac_5_2_no_budget_until_one_is_set() {
     let data = spending_fixture();
     assert_eq!(budget_of(&data, "Groceries", month(2026, 10)), None);
     assert_eq!(data.budgets().len(), 0);
 }
 
 #[test]
-fn test_csd036_ac_6_2_only_this_month() {
+fn test_csd037_ac_6_2_only_this_month() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -339,7 +339,7 @@ fn test_csd036_ac_6_2_only_this_month() {
 }
 
 #[test]
-fn test_csd036_ac_6_3_from_this_month_on_replaces_later_amounts() {
+fn test_csd037_ac_6_3_from_this_month_on_replaces_later_amounts() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -370,7 +370,7 @@ fn test_csd036_ac_6_3_from_this_month_on_replaces_later_amounts() {
 }
 
 #[test]
-fn test_csd036_ac_6_4_all_months_replaces_everything() {
+fn test_csd037_ac_6_4_all_months_replaces_everything() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -415,7 +415,7 @@ fn test_csd036_ac_6_4_all_months_replaces_everything() {
 }
 
 #[test]
-fn test_csd036_ac_6_5_only_this_month_does_not_touch_what_follows() {
+fn test_csd037_ac_6_5_only_this_month_does_not_touch_what_follows() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -444,14 +444,14 @@ fn test_csd036_ac_6_5_only_this_month_does_not_touch_what_follows() {
 }
 
 #[test]
-fn test_csd036_ac_6_6_and_9_2_the_amount_is_rounded() {
+fn test_csd037_ac_6_6_and_9_2_the_amount_is_rounded() {
     assert_eq!(parse_budget_amount("400.505").unwrap(), money("400.51"));
     assert_eq!(parse_budget_amount("0.004").unwrap(), money("0.00"));
     assert_eq!(parse_budget_amount(" 12.5 ").unwrap(), money("12.50"));
 }
 
 #[test]
-fn test_csd036_ac_7_1_remove_from_this_month_on() {
+fn test_csd037_ac_7_1_remove_from_this_month_on() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -470,7 +470,7 @@ fn test_csd036_ac_7_1_remove_from_this_month_on() {
 }
 
 #[test]
-fn test_csd036_ac_7_2_remove_for_this_month_only() {
+fn test_csd037_ac_7_2_remove_for_this_month_only() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -494,7 +494,7 @@ fn test_csd036_ac_7_2_remove_for_this_month_only() {
 }
 
 #[test]
-fn test_csd036_ac_7_3_remove_for_all_months() {
+fn test_csd037_ac_7_3_remove_for_all_months() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -516,7 +516,7 @@ fn test_csd036_ac_7_3_remove_for_all_months() {
 }
 
 #[test]
-fn test_csd036_ac_7_4_zero_is_not_no_budget() {
+fn test_csd037_ac_7_4_zero_is_not_no_budget() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -534,7 +534,7 @@ fn test_csd036_ac_7_4_zero_is_not_no_budget() {
 }
 
 #[test]
-fn test_csd036_ac_8_1_a_single_month_amount_is_labelled() {
+fn test_csd037_ac_8_1_a_single_month_amount_is_labelled() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -562,7 +562,7 @@ fn test_csd036_ac_8_1_a_single_month_amount_is_labelled() {
 }
 
 #[test]
-fn test_csd036_ac_8_2_a_later_scope_replaces_the_label() {
+fn test_csd037_ac_8_2_a_later_scope_replaces_the_label() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -583,7 +583,7 @@ fn test_csd036_ac_8_2_a_later_scope_replaces_the_label() {
 }
 
 #[test]
-fn test_csd036_ac_8_a_single_month_amount_equal_to_its_neighbours_keeps_the_label() {
+fn test_csd037_ac_8_a_single_month_amount_equal_to_its_neighbours_keeps_the_label() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -604,7 +604,7 @@ fn test_csd036_ac_8_a_single_month_amount_equal_to_its_neighbours_keeps_the_labe
 }
 
 #[test]
-fn test_csd036_ac_9_1_invalid_changes_are_rejected() {
+fn test_csd037_ac_9_1_invalid_changes_are_rejected() {
     let code = |error: DomainError| error.code();
     assert_eq!(
         code(parse_budget_amount("abc").unwrap_err()),
@@ -641,7 +641,7 @@ fn test_csd036_ac_9_1_invalid_changes_are_rejected() {
 }
 
 #[test]
-fn test_csd036_ac_10_1_a_rename_keeps_the_budget() {
+fn test_csd037_ac_10_1_a_rename_keeps_the_budget() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -659,7 +659,7 @@ fn test_csd036_ac_10_1_a_rename_keeps_the_budget() {
 }
 
 #[test]
-fn test_csd036_ac_10_2_deleting_a_category_deletes_its_budgets() {
+fn test_csd037_ac_10_2_deleting_a_category_deletes_its_budgets() {
     let mut data = spending_fixture();
     set(
         &mut data,
@@ -683,7 +683,7 @@ fn test_csd036_ac_10_2_deleting_a_category_deletes_its_budgets() {
 }
 
 #[test]
-fn test_csd036_ac_2_earliest_month_is_the_earliest_transaction_or_budget() {
+fn test_csd037_ac_2_earliest_month_is_the_earliest_transaction_or_budget() {
     let mut data = spending_fixture();
     assert_eq!(
         data.budgets_view(month(2026, 10), month(2026, 10))
@@ -728,7 +728,7 @@ fn test_csd036_ac_2_earliest_month_is_the_earliest_transaction_or_budget() {
 }
 
 #[test]
-fn test_csd036_ac_12_4_invalid_budgets_in_the_file() {
+fn test_csd037_ac_12_4_invalid_budgets_in_the_file() {
     let data = spending_fixture();
     let groceries = category(&data, "Groceries");
     let entry = |amount: Option<&str>| FromEntry {
@@ -858,7 +858,7 @@ fn cells_of(row: &BudgetYearRow) -> Vec<Option<Money>> {
 }
 
 #[test]
-fn test_csd036_ac_20_1_a_year_with_budgets() {
+fn test_csd037_ac_20_1_a_year_with_budgets() {
     let data = year_fixture();
     let view = data.budget_year(2026, month(2026, 10));
     assert_eq!(view.year, 2026);
@@ -885,7 +885,7 @@ fn test_csd036_ac_20_1_a_year_with_budgets() {
 }
 
 #[test]
-fn test_csd036_ac_20_2_months_to_come_show_their_budget() {
+fn test_csd037_ac_20_2_months_to_come_show_their_budget() {
     let data = year_fixture();
     let view = data.budget_year(2026, month(2026, 10));
     let groceries = year_row(&view, "Groceries");
@@ -903,7 +903,7 @@ fn test_csd036_ac_20_2_months_to_come_show_their_budget() {
 }
 
 #[test]
-fn test_csd036_ac_20_3_a_single_month_cell_is_marked() {
+fn test_csd037_ac_20_3_a_single_month_cell_is_marked() {
     let mut data = year_fixture();
     set(
         &mut data,
@@ -924,7 +924,7 @@ fn test_csd036_ac_20_3_a_single_month_cell_is_marked() {
 }
 
 #[test]
-fn test_csd036_ac_20_4_uncategorized_is_not_a_row() {
+fn test_csd037_ac_20_4_uncategorized_is_not_a_row() {
     let data = year_fixture();
     let view = data.budget_year(2026, month(2026, 10));
     assert!(view.rows.iter().all(|row| row.name != "Uncategorized"));
@@ -932,7 +932,7 @@ fn test_csd036_ac_20_4_uncategorized_is_not_a_row() {
 }
 
 #[test]
-fn test_csd036_ac_20_5_a_budget_of_zero_is_not_a_dash() {
+fn test_csd037_ac_20_5_a_budget_of_zero_is_not_a_dash() {
     let mut data = Transactions::default();
     set(
         &mut data,
@@ -949,7 +949,7 @@ fn test_csd036_ac_20_5_a_budget_of_zero_is_not_a_dash() {
 }
 
 #[test]
-fn test_csd036_ac_20_6_a_year_without_a_budget() {
+fn test_csd037_ac_20_6_a_year_without_a_budget() {
     // No budget at all, though the year has debits.
     let data = spending_fixture();
     let view = data.budget_year(2026, month(2026, 10));
@@ -970,7 +970,7 @@ fn test_csd036_ac_20_6_a_year_without_a_budget() {
 }
 
 #[test]
-fn test_csd036_ac_19_2_the_earliest_year_is_the_year_of_the_earliest_month() {
+fn test_csd037_ac_19_2_the_earliest_year_is_the_year_of_the_earliest_month() {
     let data = year_fixture();
     assert_eq!(data.budget_year(2026, month(2026, 10)).earliest_year, 2024);
     let empty = Transactions::default();
@@ -978,7 +978,7 @@ fn test_csd036_ac_19_2_the_earliest_year_is_the_year_of_the_earliest_month() {
 }
 
 #[test]
-fn test_csd036_ac_22_3_an_invalid_year_is_rejected() {
+fn test_csd037_ac_22_3_an_invalid_year_is_rejected() {
     for year in ["26", "20266", "abcd", "0000", "", "-123"] {
         assert_eq!(
             parse_budget_year(year).unwrap_err().code(),

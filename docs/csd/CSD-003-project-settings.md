@@ -5,7 +5,7 @@ status: approved
 owner: Thijs Bardoel
 version: 1.4
 last_updated: 22/11/2026
-related: [CSD-001, CSD-002, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-019, CSD-032, CSD-036]
+related: [CSD-001, CSD-002, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-019, CSD-032, CSD-037]
 ---
 
 # CSD-003: Project settings
@@ -338,7 +338,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 None.
 
 ## 9. Changelog
-- 1.4 (22/11/2026): Budgets (CSD-036) also count as entries for the currency confirmation: REQ-5 and the `entry_count` wording (CSD-036 AC-13.1, GitHub issue 82). Back to `draft` until re-approved.
+- 1.4 (22/11/2026): Budgets (CSD-037) also count as entries for the currency confirmation: REQ-5 and the `entry_count` wording (CSD-037 AC-13.1, GitHub issue 82). Back to `draft` until re-approved.
 - 1.3 (12/11/2026): Transactions (CSD-032) also count as entries for the currency confirmation: REQ-5 and the `entry_count` wording (CSD-032 AC-18.1). Back to `draft` until re-approved.
 - 1.2 (09/11/2026): REQ-1 and AC-1.1 no longer mention the project status indicator, which left the left pane (CSD-024 v0.5, GitHub issue 20). No behaviour change for Settings. Back to `draft` until re-approved.
 - 1.1 (03/11/2026): Verification (section 7) lists the real test filters and the ACs that no named test covers yet; claims of tests that do not exist are removed.

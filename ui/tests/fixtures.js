@@ -22,7 +22,7 @@ const startup = {
   },
   // The donut charts ask for one period; the golden file holds one year and one month (CSD-032 REQ-35).
   transaction_spending_shares: ({ period }) => (period.length === 4 ? golden.transaction_spending_shares_year : golden.transaction_spending_shares_month),
-  // The budgets are not part of the golden files either (CSD-036 CON-5): a month without any budget.
+  // The budgets are not part of the golden files either (CSD-037 CON-5): a month without any budget.
   get_budgets: {
     month: '2026-10',
     is_partial: true,

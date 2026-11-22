@@ -135,7 +135,7 @@ pub(crate) fn add_transactions(app: &Harness) {
     add_budgets(app, &categories);
 }
 
-/// A few budgets (CSD-036 REQ-17): one for all months, one from a month on and
+/// A few budgets (CSD-037 REQ-17): one for all months, one from a month on and
 /// one for a single month.
 fn add_budgets(app: &Harness, categories: &Value) {
     let id_named = |name: &str| {

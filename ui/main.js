@@ -117,7 +117,7 @@ async function start() {
     onChanged: refreshStatusAndSettings,
   });
   initTransactionsInsights();
-  // Budgets count for the currency confirmation and change the unsaved state (CSD-036 REQ-11, REQ-13).
+  // Budgets count for the currency confirmation and change the unsaved state (CSD-037 REQ-11, REQ-13).
   initTransactionsBudgets({
     onChanged: refreshStatusAndSettings,
   });
