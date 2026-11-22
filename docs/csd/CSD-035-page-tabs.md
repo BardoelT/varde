@@ -1,7 +1,7 @@
 ---
 id: CSD-035
 title: Page tabs
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 0.3
 last_updated: 22/11/2026
