@@ -346,6 +346,7 @@ pub(crate) fn read_everything(app: &Harness) -> Value {
         "get_expense_insights",
         "list_transactions",
         "yearly_transaction_totals",
+        "transaction_spending_periods",
         "list_transaction_accounts",
         "list_transaction_categories",
         "list_transaction_rules",
@@ -357,6 +358,16 @@ pub(crate) fn read_everything(app: &Harness) -> Value {
     let mut out = Map::new();
     for command in reads {
         out.insert(command.to_owned(), app.ok(command, json!({})));
+    }
+    // The donut charts of the Categories tab: one year and one month (CSD-032 REQ-35).
+    for (key, period) in [
+        ("transaction_spending_shares_year", "2026"),
+        ("transaction_spending_shares_month", "2026-10"),
+    ] {
+        out.insert(
+            key.to_owned(),
+            app.ok("transaction_spending_shares", json!({ "period": period })),
+        );
     }
     Value::Object(out)
 }

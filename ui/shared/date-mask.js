@@ -1,3 +1,5 @@
+import { attachDatePicker } from './date-picker.js';
+
 // Types the separators of a date or month for the user. Display only: whether the
 // text is a valid date is decided in Rust.
 
@@ -58,11 +60,10 @@ function onInput(event) {
 /** Masks one input made after the page was loaded, like the month fields of a filter. */
 export function maskInput(input) {
   input.addEventListener('input', onInput);
+  attachDatePicker(input);
 }
 
 /** Masks every `<input data-mask="date|month">` on the page. */
 export function initDateMasks() {
-  document.querySelectorAll('input[data-mask]').forEach((input) => {
-    input.addEventListener('input', onInput);
-  });
+  document.querySelectorAll('input[data-mask]').forEach(maskInput);
 }

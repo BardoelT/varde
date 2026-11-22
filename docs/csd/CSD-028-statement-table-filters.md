@@ -10,6 +10,8 @@ related: [CSD-001, CSD-005, CSD-009, CSD-011, CSD-013, CSD-015, CSD-022, CSD-024
 
 # CSD-028: Filters in the statement tables
 
+> Date picker: every date and month field of this capability has the picker of CSD-036 (Date picker) next to the typed text. It changes what the user can do to fill a field, not what a field accepts: the typed formats and Rust's validation stay as this CSD says.
+
 ## 1. Intent
 Every area keeps a growing table of records: paychecks, investment statements, bank entries, debt statements, house valuations and expenses. After a few years these tables are long, and finding the entries of one account, one category or one period means scrolling. This capability lets the user narrow each of these tables by period and by the entity the rows belong to (job, account, debt, house or category). It comes from GitHub issue 55. Filtering only changes what a table shows. It never changes project data, the yearly totals, the charts or the insights.
 

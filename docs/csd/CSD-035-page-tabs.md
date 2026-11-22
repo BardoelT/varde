@@ -3,8 +3,8 @@ id: CSD-035
 title: Page tabs
 status: approved
 owner: Thijs Bardoel
-version: 0.2
-last_updated: 18/11/2026
+version: 0.3
+last_updated: 22/11/2026
 related: [CSD-000, CSD-001, CSD-005, CSD-009, CSD-011, CSD-013, CSD-015, CSD-022, CSD-024, CSD-025, CSD-028, CSD-032, CSD-034]
 ---
 
@@ -91,7 +91,7 @@ Scenario: Pages without tabs stay as they are
 ```
 
 **REQ-2: The panels move unchanged** *(ubiquitous)*
-Each panel shall keep its title, header button, empty notes, columns, filters and behaviour from the owning CSD; the only change is that it sits on its own tab. The categorized share of CSD-032 is in the header of the panel "Categories", and the buttons "Bulk select" and "Manual only" stay in the header of the panel "Transactions".
+Each panel shall keep its title, header button, empty notes, columns, filters and behaviour from the owning CSD; the only change is that it sits on its own tab. The categorized share of CSD-032 is in the header of the panel "Categories"; the tab "Categories" also holds the panel "Spending per category" of CSD-032 REQ-35 above it, the one tab with two panels; and the buttons "Bulk select" and "Manual only" stay in the header of the panel "Transactions".
 
 ```gherkin
 @AC-2.1
@@ -111,6 +111,7 @@ Scenario: Filters stay with their table
 Scenario: Transactions panels
   When the user opens the tab "Categories" of Transactions
   Then its header shows the categorized share, for example "87.50% of the transactions are categorized (35 of 40)"
+  And the panel "Spending per category" with the two donut charts of CSD-032 REQ-35 is shown above it
   When the user opens the tab "Transactions"
   Then its header shows the buttons "Bulk select" and "Manual only"
 ```
@@ -245,5 +246,6 @@ No Rust command, IPC payload or project file field changes (NG-1, NG-3); Rust st
 - None.
 
 ## 9. Changelog
+- 0.3 (22/11/2026): The tab "Categories" of Transactions also holds the panel "Spending per category" of CSD-032 REQ-35 above the Categories panel (REQ-2, AC-2.3), following CSD-032 v0.47. GitHub issue 78, owner request. Back to `draft` until re-approved.
 - 0.2 (19/11/2026): The categorized share of CSD-032 is in the header of the Categories panel, not of the Yearly totals panel (REQ-2, AC-2.3), following CSD-032 v0.45. Owner request. Back to `draft` until re-approved.
 - 0.1 (18/11/2026): First draft, from GitHub issue 73 and the grill-me interview. Owner answers: one tab per panel; all seven pages with an Overview of more than one panel; no "Overview" tab, the page opens on its first tab, Transactions on the transaction list; empty states unchanged; the selected tab is remembered for the session only; tab labels are the panel titles; one new CSD with pointer notes in the CSDs that name the Overview tab.

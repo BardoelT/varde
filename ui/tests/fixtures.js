@@ -20,6 +20,8 @@ const startup = {
     axis: { ticks: [{ value: '0.00', label: '0' }, { value: '1.00', label: '1' }] },
     years: [],
   },
+  // The donut charts ask for one period; the golden file holds one year and one month (CSD-032 REQ-35).
+  transaction_spending_shares: ({ period }) => (period.length === 4 ? golden.transaction_spending_shares_year : golden.transaction_spending_shares_month),
   // Writes that only echo what was sent, as Rust does when the save succeeds (CSD-008, CSD-022).
   set_language: ({ language }) => ({ language }),
   set_theme: ({ theme }) => ({ theme }),

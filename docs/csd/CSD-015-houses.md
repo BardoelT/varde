@@ -12,6 +12,8 @@ related: [CSD-000, CSD-002, CSD-003, CSD-009, CSD-011, CSD-016, CSD-019, CSD-020
 
 > Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
+> Date picker: every date and month field of this capability has the picker of CSD-036 (Date picker) next to the typed text. It changes what the user can do to fill a field, not what a field accepts: the typed formats and Rust's validation stay as this CSD says.
+
 ## 1. Intent
 The app tracks bank accounts, investments and debts, but has no view of the houses the user owns. This capability, which replaces the former Assets capability (the app tracks houses only), lets the user record houses, each with its purchase, and, per house, one value per month or per year, with an optional note. From these the app derives, per valuation, how much the value changed since the previous one and, per calendar year, the yearly values with the closing value and the change. It is for a single person keeping a private, local history of what their houses are worth. It records values as the user estimates or reads them, such as a valuation report. It does not model the house: no depreciation, no address. The purchase and the sale of a house are specified in CSD-019. The result is a value history per house, which the Insights chart of CSD-016 and the Net worth page of CSD-017 build on. It follows the structure of Debts (CSD-011), with a value that cannot be negative and with the change counted as growth.
 

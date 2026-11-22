@@ -10,6 +10,8 @@ related: [CSD-000, CSD-002, CSD-003, CSD-015, CSD-016, CSD-017, CSD-018, CSD-020
 
 # CSD-019: House purchase and sale
 
+> Date picker: every date and month field of this capability has the picker of CSD-036 (Date picker) next to the typed text. It changes what the user can do to fill a field, not what a field accepts: the typed formats and Rust's validation stay as this CSD says.
+
 ## 1. Intent
 Houses (CSD-015) are a value history. A house needs to say when it was bought, for how much and whether it was sold, because a sold house must stop counting in the yearly values, the net worth and the ratios. This capability gives every house one purchase (date and amount) and at most one sale (date and amount). The purchase and sale amounts are a record: they change neither net worth nor cash. The debts linked to a house and what a sale does to them are CSD-020 and CSD-026. It is for a single person keeping a private, local history. It follows GitHub issues 27 and 31 and the grill-me interviews. It was split off from the former CSD-020 (v1.1), which also held the debt link and the settlement.
 

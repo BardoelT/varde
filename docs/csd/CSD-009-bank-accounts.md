@@ -12,6 +12,8 @@ related: [CSD-000, CSD-002, CSD-003, CSD-005, CSD-010, CSD-025, CSD-035]
 
 > Tabs: the tabs of this page are set by CSD-035 (Page tabs). Where this CSD says "Overview tab", lists the Overview sections, or selects the Overview tab in an AC, CSD-035 REQ-1 to REQ-3 govern instead.
 
+> Date picker: every date and month field of this capability has the picker of CSD-036 (Date picker) next to the typed text. It changes what the user can do to fill a field, not what a field accepts: the typed formats and Rust's validation stay as this CSD says.
+
 ## 1. Intent
 The app tracks wealth, but has no view of the money the user keeps in bank accounts (a current account, a savings account). This capability lets the user record bank accounts and, per account, one closing balance per month or per year, with an optional note. From these the app derives, per calendar year, the yearly totals, and a total of the latest balances. It is for a single person keeping a private, local history of their bank balances. It records balances as the user reads them off a statement. It does not track individual transactions. The result is a balance history per account that the Insights chart of CSD-010 and the Net worth page of CSD-017 build on. It follows the structure of Investments (CSD-005), without net deposits and capital growth, because a bank balance is not an investment return.
 

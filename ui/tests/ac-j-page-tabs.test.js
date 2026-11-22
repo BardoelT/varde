@@ -37,7 +37,9 @@ test('test_csd035_ac_1_1_the_tabs_of_a_page', async () => {
     // The label of a tab is the title of its panel (REQ-7).
     for (const tab of tabsOf(app, page).slice(0, -1)) {
       const panel = app.$(tab.getAttribute('aria-controls'));
-      assert.equal(app.text(panel.querySelector('.panel-title')), app.text(tab), `${tab.id}: label equals panel title`);
+      // The tab Categories also holds the panel "Spending per category" (CSD-035 REQ-2); the tab is named after the other.
+      const titles = [...panel.querySelectorAll('.panel-title')].map((title) => app.text(title));
+      assert.ok(titles.includes(app.text(tab)), `${tab.id}: label equals a panel title`);
     }
   }
   app.close();
@@ -80,7 +82,11 @@ test('test_csd035_ac_2_3_transactions_panels', async () => {
   const header = (id) => app.$(id).querySelector('.panel-header');
   await app.click(app.$('transactions-tab-categories'));
   assert.ok(app.isShown(app.$('transaction-categorisation')), 'the categorized share is in the categories');
-  assert.ok(header('transactions-categories').contains(app.$('transaction-categorisation')));
+  const categoriesHeader = app.$('transaction-categorisation').closest('.panel-header');
+  assert.ok(app.$('transactions-categories').contains(categoriesHeader));
+  assert.equal(app.text(categoriesHeader.querySelector('.panel-title')), 'Categories');
+  const panels = [...app.$('transactions-categories').querySelectorAll('.panel')];
+  assert.deepEqual(panels.map((panel) => app.text(panel.querySelector('.panel-title'))), ['Spending per category', 'Categories'], 'the donut panel is above the categories');
   await app.click(app.$('transactions-tab-transactions'));
   assert.ok(header('transactions-transactions').contains(app.$('transactions-bulk-toggle') ?? header('transactions-transactions').querySelector('button')));
   app.close();

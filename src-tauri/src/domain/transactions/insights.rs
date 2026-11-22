@@ -114,7 +114,7 @@ fn series_months(record_months: impl IntoIterator<Item = i32>, current: i32) -> 
 impl Transactions {
     /// The legend: the categories in their order with the colour slots 0, 1, 2
     /// and so on, repeating after eight, and Uncategorized last (REQ-6, REQ-7).
-    fn insights_categories(&self) -> Vec<InsightsCategory> {
+    pub(super) fn insights_categories(&self) -> Vec<InsightsCategory> {
         let slots: Vec<ColourSlot> = ColourSlot::all().collect();
         self.categories()
             .iter()
