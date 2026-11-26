@@ -53,6 +53,7 @@ fn test_csd029_ac_9_2_unsupported_formats_are_rejected_over_ipc() {
     );
 }
 
+#[cfg(unix)]
 #[test]
 fn test_csd029_ac_10_1_a_failed_save_keeps_the_format_over_ipc() {
     use std::os::unix::fs::PermissionsExt;
