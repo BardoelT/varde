@@ -28,7 +28,7 @@ All insights charts look and behave alike: hovering a legend item highlights tha
 ## Principles
 
 - **Local only.** All data lives in one project file you choose. There is no cloud sync, no backend server and no telemetry. The app makes one network call, and only when you ask: **Check for updates** on the Settings page reads a static file from this repository's GitHub releases and sends nothing about you or your project.
-- **macOS only** (Apple Silicon and Intel).
+- **macOS and Windows.** macOS on Apple Silicon and Intel, Windows 10 and 11 (x64).
 - **Exact money math.** Amounts use `rust_decimal`, never floats, and are in the one currency of the project.
 - **Safe saving.** Files are written to a temporary file and renamed over the target, so a failed save never damages an existing project.
 
@@ -41,6 +41,8 @@ The frontend only displays what Rust returns. It never computes financial figure
 
 ## Installing a release
 
+### macOS
+
 Download the `.dmg` of the latest version from the [Releases](../../releases) page, open it and drag Varde to Applications. It works on Apple Silicon and Intel Macs.
 
 The app is not signed or notarized yet, so macOS blocks it the first time you open it. To allow it:
@@ -50,6 +52,14 @@ The app is not signed or notarized yet, so macOS blocks it the first time you op
 3. Confirm with your password or Touch ID. macOS remembers the choice.
 
 On macOS 14 and older you can instead right-click the app and choose **Open**.
+
+### Windows
+
+Download `Varde_<version>_x64-setup.exe` of the latest version from the [Releases](../../releases) page and run it. It installs for your own user, so it needs no administrator rights, and it works on Windows 10 and 11 (x64; on Windows on ARM it runs by emulation). The setup file also installs Microsoft's WebView2 runtime if your PC does not have it yet.
+
+The app is not signed yet, so Windows SmartScreen warns about it the first time you run the setup file. To allow it, choose **More info** and then **Run anyway**.
+
+Uninstalling removes the app but keeps your project files and the app's own settings (theme, language, last project).
 
 ### Opening an older project file
 
@@ -85,8 +95,8 @@ The app has no frontend build step and no runtime npm dependency. `ui/` is serve
 
 ## Using the app
 
-- **Project actions** live in the native macOS **File** menu: New (⌘N), Open… (⌘O), Save (⌘S) and Save As… (⇧⌘S). An indicator at the bottom of the left pane shows unsaved changes, and the app asks before you quit or replace a project with unsaved edits. On start, the app reopens the last project you used.
-- **Settings** open from the Settings item at the bottom of the left pane, or from the app menu with ⌘,.
+- **Project actions** live in the native **File** menu: New (⌘N), Open… (⌘O), Save (⌘S) and Save As… (⇧⌘S); on Windows the shortcuts use Ctrl instead of ⌘ (Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S). An indicator at the bottom of the left pane shows unsaved changes, and the app asks before you quit or replace a project with unsaved edits. On start, the app reopens the last project you used.
+- **Settings** open from the Settings item at the bottom of the left pane, or from the app menu with ⌘, (on Windows from File > Settings… with Ctrl+,). On Windows, Ctrl+Y also redoes, and About Varde is in the Help menu.
 - **Dates** are shown and typed as `dd/mm/yyyy`, and months as `YYYY-MM`.
 - **Try it:** open [`examples/example.varde`](examples/example.varde) with File > Open… to see every page filled with synthetic data (income, investments, bank accounts, expenses, houses, debts, net worth and ratios). Save it under another name before you edit it.
 
@@ -121,7 +131,7 @@ ui/                 frontend (HTML, CSS, JS; no build step)
   tests/            DOM tests (node:test + jsdom) and their harness; not part of the app
 src-tauri/
   src/lib.rs        app setup, command registration
-  src/menu.rs       native macOS menu bar (File menu, Settings…)
+  src/menu.rs       native menu bar (macOS and Windows layouts)
   src/commands/     thin #[tauri::command] handlers
   src/domain/       pure business logic (income, expenses, bank accounts, investments, houses, debts, transactions, net worth, ratios, the shared series core, charts and money, preferences, settings, updates), unit-tested
   src/storage/      project file persistence (JSON, atomic write), last project, preferences
