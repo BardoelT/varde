@@ -1,11 +1,12 @@
-//! The native macOS menu bar. The project actions live in the File menu
+//! The native menu bar. The project actions live in the File menu
 //! (CSD-002 REQ-9), Undo and Redo in the Edit menu (CSD-027 REQ-10) and
-//! Settings… in the app menu (CSD-003 REQ-2); everything else is Tauri's
+//! Settings… in the app menu on macOS (CSD-003 REQ-2) or in the File menu on
+//! Windows, which has no app menu (CSD-038 REQ-7); everything else is Tauri's
 //! standard menu, which keeps copy and paste working in text fields.
 
 use tauri::menu::{
     AboutMetadata, CheckMenuItem, CheckMenuItemBuilder, IsMenuItem, Menu, MenuItem,
-    MenuItemBuilder, MenuItemKind, PredefinedMenuItem,
+    MenuItemBuilder, MenuItemKind, PredefinedMenuItem, Submenu,
 };
 use tauri::{AppHandle, Manager, Runtime};
 
@@ -142,6 +143,35 @@ pub fn sync_discrete_mode<R: Runtime>(app: &AppHandle<R>, on: bool) {
 const FILE_MENU: &str = "File";
 const VIEW_MENU: &str = "View";
 const EDIT_MENU: &str = "Edit";
+const HELP_MENU: &str = "Help";
+
+/// Where the menu follows the conventions of the platform (CSD-038 REQ-7).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Platform {
+    MacOs,
+    Windows,
+}
+
+impl Platform {
+    /// The platform this build runs on. Every platform but macOS gets the
+    /// Windows layout; Linux is not supported (CSD-038 NG-6).
+    #[must_use]
+    pub const fn current() -> Self {
+        if cfg!(target_os = "macos") {
+            Self::MacOs
+        } else {
+            Self::Windows
+        }
+    }
+
+    /// Whether the platform has an app menu. Where it has, Settings… and About
+    /// live there; where it has not, Settings… goes in File above Exit and
+    /// About in Help (CSD-038 REQ-7).
+    #[must_use]
+    pub const fn has_app_menu(self) -> bool {
+        matches!(self, Self::MacOs)
+    }
+}
 
 /// In the default macOS app menu: About, separator, then the rest. Settings…
 /// goes right below About and that separator, as in other macOS apps.
@@ -165,61 +195,79 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     }
     let separator = PredefinedMenuItem::separator(app)?;
 
-    let file = menu
-        .items()?
-        .into_iter()
-        .find_map(|item| match item {
-            MenuItemKind::Submenu(submenu) if submenu.text().is_ok_and(|t| t == FILE_MENU) => {
-                Some(submenu)
-            }
-            _ => None,
-        })
-        .ok_or(tauri::Error::InvalidWindowHandle)?;
+    let file = find_submenu(&menu, |text| text == FILE_MENU)?;
     let mut entries: Vec<&dyn IsMenuItem<R>> = items.iter().map(|i| i as _).collect();
     entries.push(&separator);
     file.insert_items(&entries, 0)?;
 
-    // The app menu is the first one, named after the program.
-    let app_menu = menu
-        .items()?
-        .into_iter()
-        .find_map(|item| match item {
-            MenuItemKind::Submenu(submenu) => Some(submenu),
-            _ => None,
-        })
-        .ok_or(tauri::Error::InvalidWindowHandle)?;
-    replace_about(app, &app_menu)?;
     let (id, label, accelerator) = SETTINGS;
     let settings = MenuItemBuilder::with_id(id, label)
         .accelerator(accelerator)
         .build(app)?;
     let after_settings = PredefinedMenuItem::separator(app)?;
-    app_menu.insert_items(&[&settings, &after_settings], SETTINGS_POSITION)?;
+    if Platform::current().has_app_menu() {
+        // The app menu is the first one, named after the program.
+        let app_menu = menu
+            .items()?
+            .into_iter()
+            .find_map(|item| match item {
+                MenuItemKind::Submenu(submenu) => Some(submenu),
+                _ => None,
+            })
+            .ok_or(tauri::Error::InvalidWindowHandle)?;
+        replace_about(app, &app_menu)?;
+        app_menu.insert_items(&[&settings, &after_settings], SETTINGS_POSITION)?;
+    } else {
+        // Settings… goes directly above the last File item, Exit; About
+        // replaces the one in Help.
+        let before_exit = file.items()?.len().saturating_sub(1);
+        file.insert_items(&[&after_settings, &settings], before_exit)?;
+        replace_about(app, &find_submenu(&menu, |text| text == HELP_MENU)?)?;
+    }
 
     replace_undo_and_redo(app, &menu)?;
     add_discrete_mode(app, &menu)?;
     Ok(menu)
 }
 
-/// Puts the checkable Discrete Mode item at the top of the View menu.
-fn add_discrete_mode<R: Runtime>(app: &AppHandle<R>, menu: &Menu<R>) -> tauri::Result<()> {
-    let view = menu
-        .items()?
+/// The first submenu of `menu` whose text satisfies `wanted`.
+fn find_submenu<R: Runtime>(
+    menu: &Menu<R>,
+    wanted: impl Fn(&str) -> bool,
+) -> tauri::Result<tauri::menu::Submenu<R>> {
+    menu.items()?
         .into_iter()
         .find_map(|item| match item {
-            MenuItemKind::Submenu(submenu) if submenu.text().is_ok_and(|t| t == VIEW_MENU) => {
+            MenuItemKind::Submenu(submenu) if submenu.text().is_ok_and(|t| wanted(&t)) => {
                 Some(submenu)
             }
             _ => None,
         })
-        .ok_or(tauri::Error::InvalidWindowHandle)?;
+        .ok_or(tauri::Error::InvalidWindowHandle)
+}
+
+/// Puts the checkable Discrete Mode item at the top of the View menu. Windows
+/// has no View menu in Tauri's default menu, so one is added after Edit.
+fn add_discrete_mode<R: Runtime>(app: &AppHandle<R>, menu: &Menu<R>) -> tauri::Result<()> {
     let (id, label, accelerator) = DISCRETE_MODE;
     let item = CheckMenuItemBuilder::with_id(id, label)
         .accelerator(accelerator)
         .checked(false)
         .build(app)?;
-    let separator = PredefinedMenuItem::separator(app)?;
-    view.insert_items(&[&item, &separator], 0)?;
+    if let Ok(view) = find_submenu(menu, |text| text == VIEW_MENU) {
+        let separator = PredefinedMenuItem::separator(app)?;
+        view.insert_items(&[&item, &separator], 0)?;
+    } else {
+        let view = Submenu::with_items(app, VIEW_MENU, true, &[&item])?;
+        let after_edit = menu
+            .items()?
+            .iter()
+            .position(|entry| {
+                matches!(entry, MenuItemKind::Submenu(sub) if sub.text().is_ok_and(|t| t == EDIT_MENU))
+            })
+            .map_or(0, |index| index + 1);
+        menu.insert(&view, after_edit)?;
+    }
     app.manage(DiscreteModeItem(item));
     Ok(())
 }
@@ -251,16 +299,7 @@ fn replace_about<R: Runtime>(
 /// Swaps the predefined Undo and Redo of the Edit menu for the project items.
 /// Cut, copy, paste and select all stay (CSD-027 CON-3).
 fn replace_undo_and_redo<R: Runtime>(app: &AppHandle<R>, menu: &Menu<R>) -> tauri::Result<()> {
-    let edit = menu
-        .items()?
-        .into_iter()
-        .find_map(|item| match item {
-            MenuItemKind::Submenu(submenu) if submenu.text().is_ok_and(|t| t == EDIT_MENU) => {
-                Some(submenu)
-            }
-            _ => None,
-        })
-        .ok_or(tauri::Error::InvalidWindowHandle)?;
+    let edit = find_submenu(menu, |text| text == EDIT_MENU)?;
     for item in edit.items()? {
         let MenuItemKind::Predefined(predefined) = &item else {
             continue;
@@ -388,6 +427,43 @@ mod tests {
         let add = StepLabel::add(Record::Expense);
         assert_eq!(history_text("Undo", Some(add)), "Undo Add Expense");
         assert_eq!(history_text("Redo", Some(add)), "Redo Add Expense");
+    }
+
+    #[test]
+    fn test_csd038_ac_7_1_windows_has_no_app_menu() {
+        // So Settings… goes in File above Exit and About in Help (REQ-7).
+        assert!(!Platform::Windows.has_app_menu());
+        assert_eq!(SETTINGS.2, "CmdOrCtrl+,");
+    }
+
+    #[test]
+    fn test_csd038_ac_7_3_macos_keeps_its_app_menu() {
+        assert!(Platform::MacOs.has_app_menu());
+        assert_eq!(SETTINGS_POSITION, 2);
+    }
+
+    #[test]
+    fn test_csd038_ac_7_4_the_current_platform_is_one_of_the_two() {
+        let expected = if cfg!(target_os = "macos") {
+            Platform::MacOs
+        } else {
+            Platform::Windows
+        };
+        assert_eq!(Platform::current(), expected);
+    }
+
+    #[test]
+    fn test_csd038_ac_8_1_every_shortcut_uses_cmd_or_ctrl() {
+        // CmdOrCtrl is Ctrl on Windows: New, Open, Save, Save As, Settings, Undo, Redo, Discrete Mode.
+        let accelerators = ITEMS.iter().map(|(_, _, accelerator)| *accelerator).chain([
+            SETTINGS.2,
+            UNDO.2,
+            REDO.2,
+            DISCRETE_MODE.2,
+        ]);
+        for accelerator in accelerators {
+            assert!(accelerator.starts_with("CmdOrCtrl+"), "{accelerator}");
+        }
     }
 
     #[test]

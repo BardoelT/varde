@@ -3,6 +3,7 @@
 import { invoke, listen, errorText } from '../shared/ipc.js';
 import { confirmAction, showToast } from '../shared/dom.js';
 import { t } from '../shared/i18n.js';
+import { isWindows } from '../shared/platform.js';
 
 let status = { unsaved_changes: false, has_path: false, undo_label: null, redo_label: null };
 
@@ -100,6 +101,14 @@ export async function initProject({ onReplaced, onSwitched = () => {} }) {
       if (quit) await invoke('quit_app');
     }),
   );
+
+  // Ctrl+Y redoes on Windows, next to the Ctrl+Shift+Z of the Redo item (CSD-038 REQ-9).
+  document.addEventListener('keydown', (event) => {
+    if (!isWindows() || !event.ctrlKey || event.shiftKey || event.altKey || event.key.toLowerCase() !== 'y') return;
+    event.preventDefault();
+    // Outside a text field the Redo item is disabled without a step, so there is nothing to redo.
+    if (isTextEntry(document.activeElement) || status.redo_label) attempt(actions['project-redo']);
+  });
 
   await refreshProjectStatus();
 

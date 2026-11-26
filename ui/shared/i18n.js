@@ -3,6 +3,7 @@
 // A text without a Dutch version shows in English (REQ-6). Project data is never translated.
 import nl from '../locales/nl.js';
 import { decimalSeparator, localiseNumbers, onNumberFormatChange } from './number-format.js';
+import { platformShortcuts } from './platform.js';
 
 const DICTIONARIES = { nl };
 const ATTRIBUTES = ['placeholder', 'aria-label', 'title', 'alt'];
@@ -39,8 +40,8 @@ export function tn(singular, plural, count, params) {
 /** The name of the decimal separator of the chosen number format, for the hints of the amount fields. */
 const decimalName = () => (decimalSeparator() === ',' ? t('a comma') : t('a dot'));
 
-/** Writes the amounts and the separator name inside a static text in the chosen number format (CSD-029 REQ-8). */
-const localise = (text) => localiseNumbers(fill(text, { decimal_name: decimalName() }), { grouped: false });
+/** Writes the amounts and the separator name inside a static text in the chosen number format (CSD-029 REQ-8), and the shortcuts in the notation of the platform (CSD-038 REQ-6). */
+const localise = (text) => platformShortcuts(localiseNumbers(fill(text, { decimal_name: decimalName() }), { grouped: false }));
 
 /**
  * The text of an error as the chosen language gives it: the Dutch text of its code when there is
