@@ -3,9 +3,9 @@ id: CSD-024
 title: Navigation and app shell
 status: approved
 owner: Thijs Bardoel
-version: 0.11
-last_updated: 22/11/2026
-related: [CSD-002, CSD-003, CSD-004, CSD-022, CSD-025, CSD-027, CSD-031]
+version: 0.12
+last_updated: 26/11/2026
+related: [CSD-002, CSD-003, CSD-004, CSD-022, CSD-025, CSD-027, CSD-031, CSD-038]
 ---
 
 # CSD-024: Navigation and app shell
@@ -145,7 +145,7 @@ Scenario: No project status in the left pane
 ```
 
 **REQ-5: Native menu** *(ubiquitous)*
-The app shall show the native macOS menu bar with the standard menus (app, File, Edit, View and Window), where the app menu holds "Settings…" (⌘,) below "About" and the File menu holds "New" (⌘N), "Open…" (⌘O), "Save" (⌘S) and "Save As…" (⇧⌘S) above its standard items, and the Edit menu holds "Undo" (⌘Z) and "Redo" (⇧⌘Z) as specified in CSD-027 REQ-10, and the app menu's "About" shows the panel specified in CSD-031, and no other menu item is specified.
+The app shall show the native macOS menu bar with the standard menus (app, File, Edit, View and Window), where the app menu holds "Settings…" (⌘,) below "About" and the File menu holds "New" (⌘N), "Open…" (⌘O), "Save" (⌘S) and "Save As…" (⇧⌘S) above its standard items, and the Edit menu holds "Undo" (⌘Z) and "Redo" (⇧⌘Z) as specified in CSD-027 REQ-10, and the app menu's "About" shows the panel specified in CSD-031, and no other menu item is specified. On Windows the menu differs as specified in CSD-038 REQ-7 and REQ-8 (no app menu; Settings… in File, About in a Help menu, Ctrl instead of ⌘).
 
 ```gherkin
 @AC-5.1
@@ -492,6 +492,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-3: (resolved 03/11/2026) The native menu is specified only as the standard menus (app, File, Edit, View, Window) plus the items already named; it is not listed item by item (REQ-5).
 
 ## 9. Changelog
+- 0.12 (26/11/2026): REQ-5 points to CSD-038 for the Windows menu and shortcuts (GitHub issue 86); related adds CSD-038. The macOS menu is unchanged. Back to `draft` until re-approved.
 - 0.11 (22/11/2026): NG-2 notes that budgeting is a tab of the Transactions page (CSD-037), not a page of the left pane (GitHub issue 82). No behaviour change. Back to `draft` until re-approved.
 - 0.10 (18/11/2026): The header collapse follows the scroll movement continuously over 80 px (REQ-11, REQ-12) instead of switching at 32 px, with intermediate sizes; no transition (REQ-16). Owner request after trying 0.9.
 - 0.9 (18/11/2026): The page header stays in view (GitHub issue 74): new REQ-10 to REQ-16 (AC-10.1 to AC-16.2), the definitions Page header and Compressed, NG-10, NG-11, CON-5, CON-6, and the interface and verification notes. The title and the tabs of every page stay at the top while the page scrolls; the title compresses (20 px to 16 px, 30/22 px to 10/10 px of space) after 32 px of scrolling and expands again at the top, not on pages that overflow too little; charts keep their size (CSD-025 rule unchanged); focus, layers and reduced motion follow. NG-5 now excludes the pinned header. Owner decisions from the grill-me interview of 18/11/2026. Back to `draft` until re-approved.

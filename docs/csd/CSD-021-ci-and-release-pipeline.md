@@ -3,9 +3,9 @@ id: CSD-021
 title: CI and release pipeline
 status: approved
 owner: Thijs Bardoel
-version: 0.8
-last_updated: 18/11/2026
-related: [CSD-000, CSD-023]
+version: 0.9
+last_updated: 26/11/2026
+related: [CSD-000, CSD-023, CSD-038]
 ---
 
 # CSD-021: CI and release pipeline
@@ -23,7 +23,7 @@ The repository has no automated checks and no way to produce an installable app.
 ### 2.2 Non-goals
 - NG-1: Publishing a release automatically. The owner publishes the draft.
 - NG-2: Code signing and notarization. Builds are unsigned, so macOS blocks the first launch. The user allows it with Open Anyway in System Settings > Privacy & Security (macOS 15 and later) or right-click > Open (older versions), as the README explains.
-- NG-3: Windows and Linux builds (`CLAUDE.md`: macOS only).
+- NG-3: Linux builds. (Changed in v0.9: Windows is now CSD-038, which extends this pipeline with a Windows check, build, smoke test and `latest.json` entry. Where CSD-038 and this CSD differ for Windows, CSD-038 governs.)
 - NG-4: (removed in v0.7) Updating from inside the app is now CSD-023. Key rotation for the update signature, release channels and `tauri-action` stay out.
 - NG-5: Releases from pre-release tags such as `v0.1.0-rc1`.
 - NG-6: (removed in v0.5) The strict CSP is set in `src-tauri/tauri.conf.json` (OQ-1 resolved). It is not a requirement of this pipeline.
@@ -299,7 +299,7 @@ Scenario Outline: A secret is missing
 - GitHub serves `releases/latest/download/` only for a published release, so a draft is invisible to installed apps until the owner publishes it.
 
 ## 6. Constraints
-- CON-1: Runs use `macos-latest`. Rationale: macOS is the only supported platform and the `.dmg` can only be built there.
+- CON-1: The macOS checks and the `.dmg` build use `macos-latest`; the Windows jobs of CSD-038 use `windows-latest`. Rationale: the `.dmg` can only be built on macOS and the Windows setup file on Windows.
 - CON-2: Workflows request read-only repository permission, and only the release job gets write access. Rationale: least privilege; the repository is public.
 - CON-3: Workflow files and bundle settings change only with the owner's approval. Rationale: `CLAUDE.md` asks first for `.github/workflows/` and `tauri.conf.json`.
 - CON-4: Dependency licences stay MIT, Apache-2.0, BSD or compatible. Rationale: `CLAUDE.md` Dependencies rule.
@@ -328,6 +328,7 @@ Workflow behaviour cannot be proven with `cargo test`, so ACs are checked in Git
 - OQ-3: Who bumps the app version, and in which commit, so the tag matches (REQ-5)? Owner: Thijs.
 
 ## 9. Changelog
+- 0.9 (26/11/2026): Windows joins the pipeline (CSD-038, GitHub issue 86): NG-3 now excludes only Linux, CON-1 allows `windows-latest`, `related` adds CSD-038. The Windows checks, build, smoke test and `latest.json` entry are specified in CSD-038 and extend REQ-1, REQ-4, REQ-7 to REQ-9 and REQ-12. Back to `draft` until re-approved.
 - 0.8 (18/11/2026): REQ-9 now stops the run before the build when a release for the tag exists, draft or published (new AC-9.2), because an old draft would otherwise sit next to the new one. Flow diagram follows. Back to `draft` until re-approved.
 - 0.7 (18/11/2026): The release also produces the update files for the in-app update (CSD-023, GitHub issue 39): a signed universal `.app.tar.gz` with its `.sig`, and a `latest.json` listing it under both `darwin-aarch64` and `darwin-x86_64`, all on the draft release (REQ-8 widened, new AC-8.2, new REQ-11 to REQ-13, definitions, flow, sections 2.1 and 5). REQ-10 now allows the two updater key secrets and no others (AC-10.1 reworded, new AC-10.2); the release is no longer free of secrets. NG-4 removed. Apple signing stays out (NG-2). Back to `draft` until re-approved.
 - 0.6 (04/11/2026): Release hardening, approved by the owner: actions pinned to commit SHAs (CON-6), `--locked` on the cargo commands (CON-7), a pinned toolchain in `rust-toolchain.toml` that the workflow matches (CON-8, section 5). Requirements and ACs are unchanged. Stays `draft` until re-approved.

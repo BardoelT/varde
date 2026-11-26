@@ -8,7 +8,7 @@ If you (Claude) make the same mistake twice, propose an addition here.
 Personal wealth tracking desktop app: bank accounts, houses, investments, debts, expenses, income and net worth over time. Investments have no transaction model: individual stocks, prices and trades are out of scope. Bank transactions are tracked as a separate capability (CSD-032): imported from a bank export, categorised by rules, kept in the project file, and never part of net worth.
 
 - **Stack:** Rust + Tauri v2. Frontend: vanilla HTML + CSS + JS (no framework, no build step) in `ui/`, Rust backend in `src-tauri/`.
-- **Platform:** macOS only (Apple Silicon + Intel). Do not add Windows/Linux code paths or CI targets unless asked.
+- **Platform:** macOS (Apple Silicon + Intel) and Windows 10/11 (x64), see CSD-038. Do not add Linux code paths or CI targets unless asked.
 - **Data:** stored **locally only** in a user-chosen project file (JSON, no database; see CSD-002). No cloud sync, no backend server.
 - **Repo:** public on GitHub. Assume everything committed is visible to the world.
 
@@ -51,7 +51,7 @@ src-tauri/
   src/commands/       # #[tauri::command] handlers: validate input, call domain, map errors
   src/domain/         # pure business logic: no Tauri, no IO. Areas: income, expenses, bank_accounts, investments, houses, debts, transactions, net_worth, ratios; shared: common, series, charts, money, preferences, settings
   src/storage/        # project file persistence (JSON, atomic write), last project, preferences (theme, language)
-  src/menu.rs         # native macOS menu bar
+  src/menu.rs         # native menu bar (macOS and Windows layouts)
   src/error.rs        # app error type
   capabilities/       # Tauri permission files
   golden/             # golden files for the golden tests (see Testing)
