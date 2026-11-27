@@ -1,3 +1,4 @@
+use std::io;
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
@@ -8,7 +9,7 @@ pub use history::{Record, StepLabel};
 
 use history::{Entry, History};
 
-use super::{file, LastProject, StorageError};
+use super::{file, RecentProjects, StorageError};
 use crate::domain::{
     BankAccounts, Debts, Expenses, Houses, Income, Investments, ProjectData, Settings, Transactions,
 };
@@ -67,7 +68,7 @@ pub struct Project {
     /// The steps that can be undone and redone (CSD-027). Memory only.
     history: History,
     /// Where the last used path is remembered, if anywhere (REQ-10).
-    memory: Option<LastProject>,
+    memory: Option<RecentProjects>,
     /// Why the remembered file could not be reopened at start (REQ-11).
     startup_notice: Option<StorageError>,
 }
@@ -311,19 +312,93 @@ impl Project {
     /// only when the file is gone for good, that is its folder exists and the
     /// file does not (REQ-12); in every other case, such as an unmounted drive or
     /// an unusable file, it is kept (REQ-13).
-    pub fn restore(&mut self, memory: LastProject) {
-        let remembered = memory.load();
+    #[cfg(test)]
+    pub fn restore(&mut self, memory: RecentProjects) {
+        self.restore_with(memory, None);
+    }
+
+    /// [`Project::restore`] where the system handed over `handed` at start
+    /// (REQ-36): that file is opened instead of the remembered one. If it cannot
+    /// be opened the project stays empty, the reason is kept for the startup
+    /// notice and the recent list is left as it was.
+    pub fn restore_with(&mut self, memory: RecentProjects, handed: Option<PathBuf>) {
+        let remembered = memory.latest();
         self.memory = Some(memory);
+        if let Some(path) = handed {
+            self.start_with(&path);
+            return;
+        }
         let Some(path) = remembered else {
             return;
         };
         if let Err(error) = self.open(&path) {
             if is_gone_for_good(&path, &error) {
                 if let Some(memory) = &self.memory {
-                    memory.clear();
+                    memory.remove(&path);
                 }
             }
             self.startup_notice = Some(error);
+        }
+    }
+
+    /// Replaces whatever is open with the file the system handed over at start
+    /// (REQ-36). A failure leaves an empty project and a startup notice.
+    pub fn start_with(&mut self, path: &Path) {
+        let memory = self.memory.take();
+        *self = Self::new();
+        self.memory = memory;
+        if let Err(error) = self.open(path) {
+            self.startup_notice = Some(error);
+        }
+    }
+
+    /// The recent list, newest first (REQ-31). Empty without a config folder.
+    #[must_use]
+    pub fn recent_paths(&self) -> Vec<PathBuf> {
+        self.memory
+            .as_ref()
+            .map(RecentProjects::load)
+            .unwrap_or_default()
+    }
+
+    /// The project's path, for the tests.
+    #[cfg(test)]
+    pub(crate) fn path_for_test(&self) -> Option<PathBuf> {
+        self.path.clone()
+    }
+
+    /// Opens the `index`th entry of the recent list (REQ-33). The entry is
+    /// removed when the file is gone for good and kept in every other case.
+    ///
+    /// # Errors
+    /// Returns `OpenFailed` for an index outside the list, or the errors of
+    /// [`Project::open`]; the project is left unchanged.
+    pub fn open_recent(&mut self, index: usize) -> Result<(), StorageError> {
+        let path = self.recent_paths().into_iter().nth(index).ok_or_else(|| {
+            StorageError::OpenFailed(io::Error::from(io::ErrorKind::InvalidInput))
+        })?;
+        self.open_forgetting(&path)
+    }
+
+    /// Opens `path` as File > Open does; a file that is gone for good is
+    /// removed from the recent list (REQ-12, REQ-33).
+    ///
+    /// # Errors
+    /// The errors of [`Project::open`]; the project is left unchanged.
+    pub fn open_forgetting(&mut self, path: &Path) -> Result<(), StorageError> {
+        self.open(path).inspect_err(|error| {
+            if is_gone_for_good(path, error) {
+                if let Some(memory) = &self.memory {
+                    memory.remove(path);
+                }
+            }
+        })
+    }
+
+    /// Empties the recent list (REQ-32). The open project is untouched.
+    pub fn clear_recent(&self) {
+        if let Some(memory) = &self.memory {
+            memory.clear();
         }
     }
 
@@ -336,7 +411,7 @@ impl Project {
     /// opened fine must not fail because the settings could not be written.
     fn remember(&self) {
         if let (Some(memory), Some(path)) = (&self.memory, &self.path) {
-            let _ = memory.store(path);
+            let _ = memory.record(path);
         }
     }
 
@@ -498,6 +573,8 @@ mod houses_tests;
 mod investments_tests;
 #[cfg(test)]
 mod opening_tests;
+#[cfg(test)]
+mod recent_tests;
 #[cfg(test)]
 mod safety_tests;
 #[cfg(test)]

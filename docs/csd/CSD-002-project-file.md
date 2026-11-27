@@ -1,7 +1,7 @@
 ---
 id: CSD-002
 title: Project file (save, open, new)
-status: draft
+status: approved
 owner: Thijs Bardoel
 version: 3.5
 last_updated: 27/11/2026
@@ -1132,7 +1132,7 @@ Scenario: Uninstalling removes the association on Windows
 ```
 
 **REQ-35: Opening a file while the app runs** *(event-driven)*
-When the system hands the running app a file, the app shall open it through the same flow as File > Open, including the confirmation of REQ-7, and shall not open a second window or process: on Windows a second launch passes the path to the running app and exits, and the running window comes to the front. The app shall use a system-handed path only if it is absolute, ends in `.varde` and is a regular file; if several paths are handed over, only the first is used (NG-3); anything else is ignored without a dialog. Errors of opening show as for File > Open.
+When the system hands the running app a file, the app shall open it through the same flow as File > Open, including the confirmation of REQ-7, and shall not open a second window or process: on Windows a second launch passes the path to the running app and exits, and the running window comes to the front. The app shall use a system-handed path only if it is absolute, ends in `.varde` and is a regular file; if several paths are handed over, only the first valid one is used (NG-3); anything else is ignored without a dialog. Errors of opening show as for File > Open.
 
 ```gherkin
 @AC-35.1
@@ -1268,7 +1268,7 @@ The unsaved flag and the project state live in Rust, so they are proven by `carg
 | Autosave preference (REQ-24) | `cargo test test_csd002_ac_24_` (default, missing or invalid key, remembered, read-only config folder) and a DOM test in `ui/tests/` for the switch, its Dutch label and the message of AC-26.1 and AC-24.4 (`test_csd002_ac_24_...`), with canned answers from the fake bridge |
 | Size limit, backup, older file (REQ-27 to REQ-29) | `cargo test test_csd002_ac_27_`, `test_csd002_ac_28_` and `test_csd002_ac_29_` (`storage/project/safety_tests.rs`, and `ipc_transactions_tests.rs` for AC-27.2). The limit is injected in the tests, so no test builds a 50 MiB project |
 | Version 4 file upgraded on opening (REQ-30) | `cargo test test_csd002_ac_30_` (`storage/project/`) |
-| Recent list and menu (REQ-31 to REQ-33) | `cargo test test_csd002_ac_31_`, `test_csd002_ac_32_` and `test_csd002_ac_33_`: the list store in a temporary directory, the label and id table the submenu is built from (native menus need the main thread), and the command with the Tauri mock runtime. A DOM test in `ui/tests/` covers the confirmation of AC-33.2 with a fake bridge |
+| Recent list and menu (REQ-31 to REQ-33) | `cargo test test_csd002_ac_31_`, `test_csd002_ac_32_` and `test_csd002_ac_33_`: the list store in a temporary directory, the label and id table the submenu is built from (native menus need the main thread), and the command with the Tauri mock runtime. DOM tests in `ui/tests/ac-o-recent.test.js` cover the confirmation of AC-33.2 and AC-35.2 with a fake bridge, and that the frontend sends an index or nothing, never a path |
 | File association and system-handed paths (REQ-34 to REQ-36) | `cargo test test_csd002_ac_34_` (the bundle configuration), `test_csd002_ac_35_` and `test_csd002_ac_36_` (the path validation and the open flow with the mock runtime). The real double-click on macOS and Windows and the single instance (AC-34.2, AC-34.3, AC-35.3) are on the manual checklist and in the first Windows test build |
 | Example project (REQ-21, REQ-22) | `cargo test example_project` (`src-tauri/src/example_project_tests.rs`: `test_csd002_ac_21_1_...` to `test_csd002_ac_21_4_...` and `test_csd002_ac_22_1_...`). After a deliberate change of the generator or of the format: `EXAMPLE_UPDATE=1 cargo test example`, then review the diff of `examples/` |
 | Manual checklist (native parts only) | The real File menu items and shortcuts (AC-9.1 to AC-9.4), the native save dialog, and a real window close without unsaved changes (AC-4.2: the mock runtime has no event loop to send it) |

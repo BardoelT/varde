@@ -1,14 +1,14 @@
 //! Persistence: the project file (CSD-002) and the application preferences (CSD-008).
 
 mod file;
-mod last_project;
 mod preferences;
 mod project;
+mod recent;
 
 pub use file::MAX_FILE_BYTES;
-pub use last_project::LastProject;
 pub use preferences::Preferences;
 pub use project::{OpenOutcome, Project, ProjectStatus, Record, SaveOutcome, StepLabel};
+pub use recent::RecentProjects;
 
 use std::io;
 

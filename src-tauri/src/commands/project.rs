@@ -152,6 +152,7 @@ fn open_flow(
 fn publish<R: Runtime>(app: &AppHandle<R>, state: &AppState, project: &Project) -> ProjectStatus {
     let status = project.status();
     menu::sync(app, status);
+    menu::sync_recent(app, &project.recent_paths());
     state.sync_title(project);
     status
 }
@@ -197,6 +198,9 @@ pub fn redo<R: Runtime>(
 /// The reason the last project was not reopened at start, once (CSD-002 REQ-11).
 #[tauri::command]
 pub fn take_startup_notice(state: State<'_, AppState>) -> Result<Option<AppError>, AppError> {
+    // From now on a file handed over by the system goes through the frontend's
+    // confirmation (REQ-35); before, it is the file of the start (REQ-36).
+    state.mark_started();
     Ok(state.project()?.take_startup_notice().map(AppError::from))
 }
 
@@ -218,6 +222,44 @@ pub fn open_project<R: Runtime>(
     let mut result = open_flow(&state, || pick_open_path(&app))?;
     result.status = publish(&app, &state, &*state.project()?);
     Ok(result)
+}
+
+/// Opens the `index`th entry of the Open Recent submenu (CSD-002 REQ-33). The
+/// frontend has asked the confirmation of REQ-7 and sends the index only.
+#[tauri::command(async)]
+pub fn open_recent_project<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, AppState>,
+    index: usize,
+) -> Result<DialogResult, AppError> {
+    let result = {
+        let mut project = state.project()?;
+        project.open_recent(index)
+    };
+    // The list changes also when an entry was forgotten (REQ-33).
+    let status = publish(&app, &state, &*state.project()?);
+    result?;
+    Ok(DialogResult { done: true, status })
+}
+
+/// Opens the file the system handed over, after the confirmation of REQ-7
+/// (CSD-002 REQ-35). `done` is `false` when no file is waiting.
+#[tauri::command(async)]
+pub fn open_pending_file<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, AppState>,
+) -> Result<DialogResult, AppError> {
+    let Some(path) = state.take_pending_file() else {
+        let status = publish(&app, &state, &*state.project()?);
+        return Ok(DialogResult {
+            done: false,
+            status,
+        });
+    };
+    let result = state.project()?.open_forgetting(&path);
+    let status = publish(&app, &state, &*state.project()?);
+    result?;
+    Ok(DialogResult { done: true, status })
 }
 
 #[tauri::command(async)]
