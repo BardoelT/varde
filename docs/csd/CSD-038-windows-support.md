@@ -3,7 +3,7 @@ id: CSD-038
 title: Windows support
 status: draft
 owner: Thijs Bardoel
-version: 0.2
+version: 0.3
 last_updated: 26/11/2026
 related: [CSD-000, CSD-002, CSD-021, CSD-022, CSD-023, CSD-024, CSD-027, CSD-031]
 ---
@@ -21,6 +21,7 @@ Varde is built, released and documented for macOS only. People on Windows cannot
 - An install, start and uninstall smoke test of the installer on a Windows runner.
 - Windows menu layout, keyboard shortcuts and the shortcut texts in the app (English and Dutch, CSD-022).
 - The README: install steps for Windows, including the SmartScreen warning.
+- A manual workflow that builds the unsigned setup file of a branch as a downloadable artifact, to try it on a Windows PC without building there.
 
 ### 2.2 Non-goals
 - NG-1: Authenticode code signing. Builds are unsigned, like on macOS (CSD-021 NG-2).
@@ -294,9 +295,27 @@ Scenario: The README names Windows
   And it has Windows install steps with the SmartScreen steps
 ```
 
+**REQ-13: Manual Windows test build** *(event-driven)*
+When the owner starts the "Windows test build" workflow by hand, the system shall build the unsigned Windows setup file of the chosen branch and keep it as a downloadable artifact for 7 days, without a release, a tag or any secret. The workflow shall run on no other trigger.
+
+```gherkin
+@AC-13.1
+Scenario: The test build gives a setup file
+  Given the owner starts "Windows test build" on the "development" branch
+  When the run ends
+  Then it has an artifact with "Varde_<version>_x64-setup.exe"
+  And no release and no tag were made
+
+@AC-13.2
+Scenario: A push does not start it
+  When a commit is pushed to any branch or a pull request is opened
+  Then "Windows test build" does not run
+```
+
 ## 5. Interfaces and contracts
 - **Bundle (`tauri.conf.json`):** targets gain `nsis`; NSIS install mode is `currentUser`; the WebView2 install mode is `embedBootstrapper` (CON-8); no `wix`/MSI target. The `.sig` of the setup file comes from `createUpdaterArtifacts`.
 - **Release run (`release.yml`):** a `build-windows` job on `windows-latest` (target `x86_64-pc-windows-msvc`), a smoke step, and one final step that writes the single `latest.json`. The `check` job runs on a macOS and a Windows runner (REQ-3).
+- **Test build (`windows-test-build.yml`):** `workflow_dispatch` only, one job on `windows-latest`, `createUpdaterArtifacts` switched off by `--config` (no key), uploads the setup file as an artifact (REQ-13). CSD-021 NG-7 (no automatic checks on pull requests or pushes) stays: this run is started by hand.
 - **Menu (`menu.rs`):** the app-menu steps (Settings…, About) apply to macOS only; on Windows they go to File and Help (REQ-7).
 - **Frontend:** one place decides the platform and gives the shortcut texts (REQ-6) and the Ctrl+Y key (REQ-9).
 - **Amendments** (made in the same change, each back to `draft` until re-approved):
@@ -325,6 +344,7 @@ Tests are named `test_csd038_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 | AC-11.1 to AC-11.3 | Rust storage tests in a temporary directory (`cargo test test_csd038_ac_11_`), run on macOS and Windows by the release run. |
 | AC-3.1, AC-3.2, AC-1.3 | Push a throwaway tag on a scratch fork and read the run (CSD-021 method). |
 | AC-1.1, AC-2.1, AC-2.2 | Open the first draft release that has a Windows file: file names, `latest.json`, and `minisign -V` with the public key. |
+| AC-13.1, AC-13.2 | Start the workflow from the Actions tab and read the run; push a commit and see that it does not start. |
 | AC-4.1, AC-4.2 | The smoke step of the release run; AC-4.2 with a scratch fork and a build that exits. |
 | AC-1.2, AC-5.1, AC-5.2, AC-10.1, AC-12.1 | Not covered by an automated test: no manual checklist is run (NG-5). The smoke test (AC-4.1) is the only proof of install and uninstall. |
 
@@ -334,5 +354,6 @@ Tests are named `test_csd038_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 - OQ-3: (resolved 26/11/2026) Supported: Windows 10 and 11, x64 (REQ-12).
 
 ## 9. Changelog
+- 0.3 (27/11/2026): new REQ-13 (manual Windows test build, `windows-test-build.yml`) with AC-13.1, AC-13.2; sections 2.1, 5, 7.
 - 0.2 (26/11/2026): OQ-1 to OQ-3 resolved with the owner's recommendations; new CON-8 (WebView2 `embedBootstrapper`); section 5 names the install mode.
 - 0.1 (26/11/2026): initial draft (GitHub issue 86).
