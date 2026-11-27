@@ -10,6 +10,7 @@ import { formatAmount, amountForInput } from '../shared/format.js';
 import { t } from '../shared/i18n.js';
 import { openDialog, saveDialog } from '../shared/crud.js';
 import { isNegative } from '../shared/yearly-chart.js';
+import { attachDatePicker } from '../shared/date-picker.js';
 
 /** `month` or `year`: the view the tab shows. It opens on the Month view and does not remember the choice (CSD-037 REQ-18). */
 let mode = 'month';
@@ -252,6 +253,24 @@ async function choose(next) {
 /** `onChanged()` refreshes what shows budgets data elsewhere: the unsaved dot and the currency confirmation. */
 export function initTransactionsBudgets(options) {
   onChanged = options.onChanged;
+  // The label of the month or year opens the date picker: periods before the earliest one are grey, none after it
+  // (CSD-037 REQ-2, REQ-19; CSD-036 REQ-12).
+  const label = $('budgets-month');
+  label.setAttribute('role', 'button');
+  label.tabIndex = 0;
+  attachDatePicker(label, {
+    kind: () => (mode === 'year' ? 'year' : 'month'),
+    offers: () => (mode === 'year' ? { from: String(yearView?.earliest_year ?? shownYear) } : { from: view?.earliest_month ?? shownMonth }),
+    current: () => (mode === 'year' ? String(yearView?.year ?? shownYear ?? '') : (view?.month ?? shownMonth ?? '')),
+    async onPick(text) {
+      try {
+        if (mode === 'year') await loadYear(text);
+        else await load(text);
+      } catch (error) {
+        showToast(errorText(error));
+      }
+    },
+  });
   $('budgets-previous').addEventListener('click', () => move(-1));
   $('budgets-next').addEventListener('click', () => move(1));
   $('budgets-view-month').addEventListener('click', () => choose('month'));

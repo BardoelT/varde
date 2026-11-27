@@ -564,3 +564,31 @@ test('test_csd036_ac_13_4_the_button_is_translated', async () => {
   assert.equal(app.text(todayButton(app)), 'Vandaag');
   app.close();
 });
+
+// ---- REQ-12 with only a first period: the label of the Budgets tab (CSD-037 REQ-2) ----
+
+test('test_csd036_ac_12_5_only_a_first_period_and_no_last_one', async () => {
+  await withClock(async () => {
+    const empty = { month: '2026-10', is_partial: true, earliest_month: '2026-08', rows: [], not_budgeted: '0.00', total: { budget: '0.00', spent: '0.00', remaining: '0.00' } };
+    const app = await openApp({ handlers: { get_budgets: empty } });
+    await app.click(app.item('transactions'));
+    await app.click(app.$('transactions-tab-budgets'));
+    await click(app, app.$('budgets-month'));
+    assert.equal(title(app), '2026');
+    assert.deepEqual(available(app), ['Aug', 'Sep', 'Oct', 'Nov', 'Dec']);
+    assert.deepEqual(arrows(app).map((arrow) => arrow.disabled), [true, false], 'the previous arrow of 2026 is disabled, the next one is not');
+    await click(app, arrows(app)[1]);
+    await click(app, arrows(app)[1]);
+    await click(app, arrows(app)[1]);
+    await click(app, arrows(app)[1]);
+    assert.equal(title(app), '2030');
+    assert.equal(available(app).length, 12, 'the months of 2030 can be chosen');
+    await click(app, picker(app).querySelector('button.dp-title'));
+    assert.equal(title(app), '2030 – 2039');
+    assert.equal(choiceCells(app).filter((cell) => cell.disabled).length, 0, 'every year from 2026 on can be chosen');
+    await click(app, arrows(app)[0]);
+    assert.equal(title(app), '2020 – 2029');
+    assert.equal(choiceCells(app).filter((cell) => cell.disabled).length, 6, '2025 and every earlier year are grey');
+    app.close();
+  });
+});

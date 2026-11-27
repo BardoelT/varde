@@ -278,6 +278,8 @@ test('test_csd037_ac_18_1_the_tab_opens_on_the_month_view', async () => {
   const app = await budgetsPage();
   assert.equal(app.$('budgets-view-month').getAttribute('aria-pressed'), 'true');
   assert.equal(app.$('budgets-view-year').getAttribute('aria-pressed'), 'false');
+  assert.deepEqual([...app.$('budgets-view-year').parentElement.children].map((button) => app.text(button)), ['Year', 'Month'], 'the order of the choice, as Yearly | Monthly on the Insights tab');
+  assert.equal(app.$('budgets-view-year').closest('.panel-header').classList.contains('budgets-header'), true, 'with the space of the Insights header');
   assert.equal(app.textOf('budgets-month'), '2026-10 MTD');
   assert.equal(app.callsOf('get_budget_year').length, 0);
   assert.equal(app.isShown(app.$('budgets-year')), false);
@@ -510,5 +512,40 @@ test('test_csd037_ac_16_3_no_categories_shows_the_note_and_no_grid_in_the_year_v
   const app = await yearPage({ get_budget_year: () => ({ ...year(2026, { partial: true, rows: [] }), months: Array(12).fill(null), total: null }) });
   assert.ok(app.isShown(app.$('budgets-empty')));
   assert.equal(app.isShown(app.$('budgets-year')), false);
+  app.close();
+});
+
+// ---- The label of the month and the year opens the date picker (REQ-2 AC-2.5, REQ-19 AC-19.5) ----
+
+const dpPicker = (app) => app.document.querySelector('.date-picker');
+const dpTitle = (app) => app.text(dpPicker(app).querySelector('.dp-title'));
+const dpChoices = (app) => [...dpPicker(app).querySelectorAll('.dp-choice')];
+const dpEnabled = (app) => dpChoices(app).filter((cell) => !cell.disabled).map((cell) => app.text(cell));
+
+test('test_csd037_ac_2_5_the_label_opens_the_date_picker', async () => {
+  const app = await budgetsPage({
+    get_budgets: ({ month: asked } = {}) => (asked === undefined ? OCTOBER() : month(asked, [row('Groceries')], { earliest: '2026-08' })),
+  });
+  await app.click(app.$('budgets-month'));
+  assert.equal(dpTitle(app), '2026');
+  assert.deepEqual(dpEnabled(app), ['Aug', 'Sep', 'Oct', 'Nov', 'Dec'], 'Aug to Dec can be chosen');
+  assert.equal(dpChoices(app).filter((cell) => cell.disabled).length, 7, 'Jan to Jul are grey');
+  await app.click(dpPicker(app).querySelector('[data-choice="11"]'));
+  assert.equal(dpPicker(app), null, 'the picker closes');
+  assert.equal(app.callsOf('get_budgets').at(-1).args.month, '2026-12', 'Rust was asked for the month');
+  assert.equal(app.textOf('budgets-month'), '2026-12', 'the label keeps its text');
+  app.close();
+});
+
+test('test_csd037_ac_19_5_the_label_opens_the_date_picker_on_the_years', async () => {
+  const app = await yearPage();
+  await app.click(app.$('budgets-month'));
+  assert.equal(dpTitle(app), '2020 – 2029');
+  assert.deepEqual(dpEnabled(app), ['2024', '2025', '2026', '2027', '2028', '2029'], '2024 to 2029 can be chosen');
+  assert.equal(dpChoices(app).filter((cell) => cell.disabled).length, 4, '2020 to 2023 are grey');
+  await app.click(dpPicker(app).querySelector('[data-choice="2028"]'));
+  assert.equal(dpPicker(app), null);
+  assert.deepEqual(app.callsOf('get_budget_year').at(-1).args, { year: '2028' });
+  assert.equal(app.textOf('budgets-month'), '2028');
   app.close();
 });

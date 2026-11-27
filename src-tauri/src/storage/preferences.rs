@@ -247,6 +247,7 @@ mod tests {
         assert_eq!(Preferences::in_dir(&config).load_theme(), Theme::Light);
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_csd008_ac_5_2_the_file_holds_preferences_only_and_is_private() {
         use std::os::unix::fs::PermissionsExt;
@@ -299,6 +300,7 @@ mod tests {
         }
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_csd008_ac_8_1_a_directory_or_unreadable_file_means_system() {
         use std::os::unix::fs::PermissionsExt;
@@ -326,6 +328,7 @@ mod tests {
         assert_eq!(Preferences::in_dir(dir.path()).load_theme(), Theme::Light);
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_csd008_ac_10_1_a_failed_save_reports_a_code_and_no_path() {
         use std::os::unix::fs::PermissionsExt;
@@ -421,6 +424,7 @@ mod tests {
         assert_eq!(preferences.load_language(), Language::Dutch);
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_csd022_ac_9_1_a_failed_language_save_keeps_the_language_and_shows_no_path() {
         use std::os::unix::fs::PermissionsExt;
@@ -518,6 +522,7 @@ mod tests {
         assert_eq!(preferences.load_language(), Language::Dutch);
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_csd029_ac_10_1_a_failed_save_keeps_the_format_and_shows_no_path() {
         use std::os::unix::fs::PermissionsExt;
@@ -628,6 +633,7 @@ mod tests {
         assert_eq!(preferences.load_number_format(), NumberFormat::CommaPoint);
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_csd030_ac_14_1_a_failed_save_keeps_the_mode_and_shows_no_path() {
         use std::os::unix::fs::PermissionsExt;

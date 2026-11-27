@@ -1005,6 +1005,7 @@ fn test_csd002_con_3_file_has_version_and_decimal_strings() {
     assert_eq!(value["settings"]["currency"], "EUR");
 }
 
+#[cfg(unix)]
 #[test]
 fn test_csd002_con_1_project_file_is_private_to_the_owner() {
     use std::os::unix::fs::PermissionsExt;
@@ -1123,4 +1124,20 @@ fn test_csd002_ac_17_1_a_file_that_does_not_match_the_schema_is_rejected() {
         );
         assert_eq!(job_count(&project), 1, "{section}");
     }
+}
+
+#[test]
+fn test_csd038_ac_11_2_saving_over_an_existing_file_replaces_it_and_leaves_no_temporary_file() {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("example.varde");
+    fs::write(&path, "old").unwrap();
+
+    write_atomic_with(&path, |file| std::io::Write::write_all(file, b"new")).unwrap();
+
+    assert_eq!(fs::read_to_string(&path).unwrap(), "new");
+    let names: Vec<_> = fs::read_dir(dir.path())
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(names, ["example.varde"], "no temporary file remains");
 }

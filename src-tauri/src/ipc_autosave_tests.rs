@@ -191,6 +191,7 @@ fn test_csd002_ac_25_2_switching_on_without_a_path_writes_nothing() {
     assert_eq!(app.title(), "Untitled ●");
 }
 
+#[cfg(unix)]
 #[test]
 fn test_csd002_ac_25_3_switching_off_changes_nothing_on_disk() {
     let dir = TempDir::new().unwrap();

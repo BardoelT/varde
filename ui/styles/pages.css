@@ -119,3 +119,8 @@
 .insights-header .panel-title { flex: none; white-space: nowrap; }
 .insights-header .segmented { flex: none; }
 .insights-header .legend { flex: 1 1 100%; }
+
+/* The header of the budgets: the same room between the title and the Month | Year choice as on the Insights tab; the month navigation stays at the right edge. */
+.budgets-header { flex-wrap: wrap; justify-content: flex-start; gap: 10px 16px; }
+.budgets-header .panel-title { flex: none; white-space: nowrap; }
+.budgets-header .segmented { flex: none; }

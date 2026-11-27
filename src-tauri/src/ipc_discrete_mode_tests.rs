@@ -60,6 +60,7 @@ fn test_csd030_ac_4_4_the_other_preferences_keep_the_mode_and_it_keeps_them() {
     assert_eq!(answer["discrete_mode"], true);
 }
 
+#[cfg(unix)]
 #[test]
 fn test_csd030_ac_14_1_a_failed_save_keeps_the_mode_over_ipc() {
     use std::os::unix::fs::PermissionsExt;

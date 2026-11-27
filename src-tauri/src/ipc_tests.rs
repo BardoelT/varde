@@ -1203,6 +1203,7 @@ fn test_csd008_ac_9_1_unsupported_themes_are_rejected_over_ipc() {
     }
 }
 
+#[cfg(unix)]
 #[test]
 fn test_csd008_ac_10_1_a_failed_save_keeps_the_theme_over_ipc() {
     use std::os::unix::fs::PermissionsExt;
@@ -1271,6 +1272,7 @@ fn test_csd022_ac_8_2_unsupported_languages_are_rejected_over_ipc() {
     }
 }
 
+#[cfg(unix)]
 #[test]
 fn test_csd022_ac_9_1_a_failed_save_keeps_the_language_over_ipc() {
     use std::os::unix::fs::PermissionsExt;

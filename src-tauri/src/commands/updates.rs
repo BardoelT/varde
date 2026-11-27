@@ -500,7 +500,18 @@ mod tests {
     fn test_csd021_the_bundle_builds_the_update_files() {
         let conf = conf();
         assert_eq!(conf["bundle"]["createUpdaterArtifacts"], true);
-        assert_eq!(conf["bundle"]["targets"], serde_json::json!(["dmg", "app"]));
+        // The Windows setup file is also the Windows update file (CSD-038 REQ-1, REQ-2).
+        assert_eq!(
+            conf["bundle"]["targets"],
+            serde_json::json!(["dmg", "app", "nsis"])
+        );
+    }
+
+    #[test]
+    fn test_csd038_the_windows_setup_is_per_user_with_the_webview2_bootstrapper_embedded() {
+        let windows = &conf()["bundle"]["windows"];
+        assert_eq!(windows["nsis"]["installMode"], "currentUser");
+        assert_eq!(windows["webviewInstallMode"]["type"], "embedBootstrapper");
     }
 
     #[test]

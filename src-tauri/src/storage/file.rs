@@ -256,6 +256,7 @@ pub(super) fn write_atomic_with(
 }
 
 /// Creates a new file readable only by the owner: it holds financial data.
+#[cfg(unix)]
 fn create_private(path: &Path) -> io::Result<File> {
     use std::os::unix::fs::OpenOptionsExt;
     OpenOptions::new()
@@ -263,4 +264,11 @@ fn create_private(path: &Path) -> io::Result<File> {
         .create_new(true)
         .mode(0o600)
         .open(path)
+}
+
+/// Creates a new file. Windows has no file modes; a file in the user's own folders is
+/// private to the user by the folder's access rules (CSD-038 REQ-11).
+#[cfg(not(unix))]
+fn create_private(path: &Path) -> io::Result<File> {
+    OpenOptions::new().write(true).create_new(true).open(path)
 }

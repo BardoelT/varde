@@ -16,7 +16,7 @@ const indexHtml = readFileSync(`${uiDir}index.html`, 'utf8');
 /** Names jsdom provides that the pages use as globals. */
 const GLOBALS = [
   'window', 'document', 'Node', 'NodeFilter', 'HTMLElement', 'Event', 'KeyboardEvent', 'MouseEvent',
-  'InputEvent', 'CustomEvent', 'MutationObserver', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame',
+  'InputEvent', 'CustomEvent', 'MutationObserver', 'navigator', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame',
 ];
 // The pages use Node's timers (the toast hides itself after 6 s). They must not keep a finished
 // test process alive, so the timers a test starts are unref'ed.
@@ -77,11 +77,14 @@ function createBridge(table) {
 }
 
 /** Starts the app. Resolves when the first loading has settled. Call `app.close()` after the test. */
-export async function openApp({ reads = exampleReads(), handlers = {} } = {}) {
+export async function openApp({ reads = exampleReads(), handlers = {}, platform = 'macos' } = {}) {
   appCount += 1;
   const id = appCount;
+  const userAgent = platform === 'windows' ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15';
   const dom = new JSDOM(indexHtml, { url: 'http://localhost/', pretendToBeVisual: true });
   const { window } = dom;
+  // The webview tells the platform by its user agent (shared/platform.js); jsdom only has its own.
+  Object.defineProperty(window.navigator, 'userAgent', { configurable: true, get: () => userAgent });
   const bridge = createBridge({ ...reads, ...handlers });
   window.__TAURI__ = bridge;
   addDialogSupport(window);

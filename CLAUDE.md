@@ -8,7 +8,7 @@ If you (Claude) make the same mistake twice, propose an addition here.
 Personal wealth tracking desktop app: bank accounts, houses, investments, debts, expenses, income and net worth over time. Investments have no transaction model: individual stocks, prices and trades are out of scope. Bank transactions are tracked as a separate capability (CSD-032): imported from a bank export, categorised by rules, kept in the project file, and never part of net worth.
 
 - **Stack:** Rust + Tauri v2. Frontend: vanilla HTML + CSS + JS (no framework, no build step) in `ui/`, Rust backend in `src-tauri/`.
-- **Platform:** macOS only (Apple Silicon + Intel). Do not add Windows/Linux code paths or CI targets unless asked.
+- **Platform:** macOS (Apple Silicon + Intel) and Windows 10/11 (x64), see CSD-038. Do not add Linux code paths or CI targets unless asked.
 - **Data:** stored **locally only** in a user-chosen project file (JSON, no database; see CSD-002). No cloud sync, no backend server.
 - **Repo:** public on GitHub. Assume everything committed is visible to the world.
 
@@ -51,7 +51,7 @@ src-tauri/
   src/commands/       # #[tauri::command] handlers: validate input, call domain, map errors
   src/domain/         # pure business logic: no Tauri, no IO. Areas: income, expenses, bank_accounts, investments, houses, debts, transactions, net_worth, ratios; shared: common, series, charts, money, preferences, settings
   src/storage/        # project file persistence (JSON, atomic write), last project, preferences (theme, language)
-  src/menu.rs         # native macOS menu bar
+  src/menu.rs         # native menu bar (macOS and Windows layouts)
   src/error.rs        # app error type
   capabilities/       # Tauri permission files
   golden/             # golden files for the golden tests (see Testing)
@@ -143,7 +143,7 @@ This app handles personal financial data and the repo is public.
 - Small, focused commits (one concern each) with Conventional Commit messages (`feat:`, `fix:`, `refactor:`, `chore:`).
 - PR description: what changed, why, and how it was tested.
 - Tie work to its GitHub issue when there is one. The commit that finishes the issue ends its body with `Closes #<n>`, and the PR description repeats it: GitHub closes the issue only for a keyword (`Closes`, `Fixes`, `Resolves`) plus `#<n>`, and only when it reaches `main`. A plain "issue 43" links nothing. Commits and PRs that only touch an issue (a spec commit, a partial step) use `Refs #<n>` and never close it.
-- GitHub Actions run only when a release tag is pushed (`release.yml`, `macos-latest`): fmt, clippy, tests and `cargo deny` first. Nothing runs on pull requests or merges, so run the checks locally before opening a PR.
+- GitHub Actions run only when a release tag is pushed (`release.yml`: macOS and Windows runners): fmt, clippy, tests and `cargo deny` first. Nothing runs on pull requests or merges, so run the checks locally before opening a PR. The one other workflow, `windows-test-build.yml`, runs only when started by hand and builds an unsigned Windows setup file as an artifact (CSD-038 REQ-13).
 
 ## Specifications (CSD)
 - All capability specs (CSDs) live in `docs/csd/`. Read `docs/csd/CSD-000-capability-specifications.md` before reading, writing, or implementing any CSD.

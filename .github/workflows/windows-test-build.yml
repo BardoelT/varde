@@ -1,0 +1,41 @@
+name: Windows test build
+
+# CSD-038 REQ-13: started by hand from the Actions tab, never by a push or a pull request. It
+# builds the unsigned Windows setup file of the chosen branch and keeps it as a downloadable
+# artifact, so it can be tried on a Windows PC without building there. It needs no secrets, makes
+# no release and no tag.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # Pinned to the version in rust-toolchain.toml: keep the two in sync (also in release.yml).
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: 1.99.1
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - run: cargo install tauri-cli --version "^2" --locked
+
+      # No updater key here, so the update file is not made (the same override as the local build
+      # in CLAUDE.md). The setup file itself is the same as in the release run.
+      - name: Build the setup file
+        run: >-
+          cargo tauri build --target x86_64-pc-windows-msvc --bundles nsis
+          --config '{"bundle":{"createUpdaterArtifacts":false}}' -- --locked
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: varde-windows-setup
+          path: target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
+          retention-days: 7

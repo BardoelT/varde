@@ -3,9 +3,9 @@ id: CSD-023
 title: In-app updates
 status: approved
 owner: Thijs Bardoel
-version: 0.3
-last_updated: 18/11/2026
-related: [CSD-000, CSD-002, CSD-008, CSD-021, CSD-022, CSD-024]
+version: 0.4
+last_updated: 26/11/2026
+related: [CSD-000, CSD-002, CSD-008, CSD-021, CSD-022, CSD-024, CSD-038]
 ---
 
 # CSD-023: In-app updates
@@ -22,7 +22,7 @@ A new version of Varde reaches people only if they notice it and download the `.
 - English and Dutch texts (CSD-022).
 - The README sentence about network access, which says the one call this feature makes.
 
-The release side (the signed update files and `latest.json`) is in CSD-021.
+The release side (the signed update files and `latest.json`) is in CSD-021. The update works the same on Windows (CSD-038 REQ-5): `latest.json` also lists `windows-x86_64`, and every requirement here holds there.
 
 ### 2.2 Non-goals
 - NG-1: Automatic checks: at startup, in the background or on a timer.
@@ -446,6 +446,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-2: The checklist runs on Apple Silicon. The Intel Mac gap stays an accepted risk, since one universal build serves both. Is an Intel Mac available for one run? Owner: Thijs. Blocks: nothing.
 
 ## 9. Changelog
+- 0.4 (26/11/2026): the update also works on Windows (CSD-038, GitHub issue 86): section 2.1 says so, `related` adds CSD-038. No change to the requirements. Back to `draft` until re-approved.
 - 0.3 (18/11/2026): new REQ-14 (a restart never discards changes the user was not asked about) after the pre-release audit: `install_update` takes `unsaved_confirmed` and may answer `installed`; new AC-3.5 (a rejection without a code). Back to `draft` until re-approved.
 - 0.2 (18/11/2026): section 5 lists the third command `app_version()` that the implementation needs for REQ-1. Interface clarification only, no behaviour change.
 - 0.1 (18/11/2026): initial draft from the grill-me interview of 18/11/2026 on GitHub issue 39. Owner decisions: manual check only, Rust-driven with no webview permission, one universal artifact, the unsaved-changes confirmation follows the close rule (autosave aware), four safe codes, a percentage progress bar, results kept in memory only, and the end-to-end checklist is a hard gate before the first release.

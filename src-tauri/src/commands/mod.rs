@@ -228,8 +228,8 @@ impl AppState {
         self.autosave_writes.lock().map_or(0, |writes| *writes)
     }
 
-    /// The code of the last failed autosave.
-    #[cfg(test)]
+    /// The code of the last failed autosave. Only a Unix-only test reads it (it makes a folder read-only).
+    #[cfg(all(test, unix))]
     pub fn last_autosave_failure(&self) -> Option<&'static str> {
         self.last_autosave_failure
             .lock()

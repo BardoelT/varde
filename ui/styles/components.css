@@ -455,3 +455,10 @@ button.dp-title:hover { background: var(--bg); }
 .year-grid button.cell-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .year-grid td.single-month-cell button.cell-button { border-bottom: 2px dotted var(--accent); }
 #budget-remove { margin-right: auto; }
+
+/* The label of the budget month or year is the control that opens the date picker (CSD-037 REQ-2, REQ-19). */
+.month-nav .date-field { display: inline-block; }
+.month-nav .month-label { display: inline-block; padding: 4px 30px 4px 8px; border-radius: 6px; cursor: pointer; }
+.month-nav .month-label:hover { background: var(--bg); }
+.month-nav .month-label:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.month-nav .date-open { top: 50%; }

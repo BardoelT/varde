@@ -93,6 +93,7 @@ mod tests {
         memory.clear(); // clearing twice is fine
     }
 
+    #[cfg(unix)]
     #[test]
     fn settings_hold_the_path_only_and_are_private() {
         use std::os::unix::fs::PermissionsExt;

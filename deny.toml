@@ -1,7 +1,7 @@
 # cargo-deny configuration: licenses, advisories and banned crates.
-# macOS is the only supported platform, so other targets are not checked.
+# macOS and Windows x64 are the supported platforms (CSD-038), so other targets are not checked.
 [graph]
-targets = ["aarch64-apple-darwin", "x86_64-apple-darwin"]
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-pc-windows-msvc"]
 
 [advisories]
 version = 2
