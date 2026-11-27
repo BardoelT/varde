@@ -3,8 +3,8 @@ id: CSD-038
 title: Windows support
 status: draft
 owner: Thijs Bardoel
-version: 0.7
-last_updated: 26/11/2026
+version: 0.8
+last_updated: 27/11/2026
 related: [CSD-000, CSD-002, CSD-021, CSD-022, CSD-023, CSD-024, CSD-027, CSD-031]
 ---
 
@@ -27,7 +27,7 @@ Varde is built, released and documented for macOS only. People on Windows cannot
 - NG-1: Authenticode code signing. Builds are unsigned, like on macOS (CSD-021 NG-2).
 - NG-2: An ARM64 build. Windows on ARM runs the x64 app by emulation.
 - NG-3: An MSI installer, a portable zip, or a machine-wide (all users) install.
-- NG-4: The `.varde` file association (double-click to open a project). macOS has none either; a follow-up issue covers both platforms.
+- NG-4: (removed in v0.8) The `.varde` file association is in scope for both platforms: CSD-002 REQ-34 to REQ-36, GitHub issue 69.
 - NG-5: A manual end-to-end checklist or hard gate before the first Windows release.
 - NG-6: Linux.
 - NG-7: A "Check for updates" menu item (CSD-023 NG-2 stays).
@@ -39,7 +39,7 @@ Varde is built, released and documented for macOS only. People on Windows cannot
 | **Windows build** | The x64 build of the app (`x86_64-pc-windows-msvc`) and its NSIS setup file. |
 | **Setup file** | `Varde_<version>_x64-setup.exe`, the installer. It is also the update file of the Windows app. |
 | **Smoke test** | Installing the setup file silently, starting the app, and uninstalling it silently, on a Windows runner. |
-| **App data** | The files the app keeps for itself in `%APPDATA%`: the last-opened project path, the theme and the language. |
+| **App data** | The files the app keeps for itself in `%APPDATA%`: the recent project paths (CSD-002 REQ-31), the theme and the language. |
 
 ## 4. Requirements
 
@@ -193,7 +193,7 @@ While the app runs on Windows, the native menu shall have no app menu: Settings�
 Scenario: Settings in File on Windows
   Given the app runs on Windows
   When the user opens the File menu
-  Then it lists New, Open…, Save, Save As…, Settings… and Exit
+  Then it lists New, Open…, Open Recent, Save, Save As…, Settings… and Exit (the submenu is CSD-002 REQ-32)
   And Settings… comes directly above Exit
 
 @AC-7.2
@@ -340,6 +340,7 @@ Scenario: A push does not start it
 - **Bundle (`tauri.conf.json`):** targets gain `nsis`; NSIS install mode is `currentUser`; the WebView2 install mode is `embedBootstrapper` (CON-8); no `wix`/MSI target. The `.sig` of the setup file comes from `createUpdaterArtifacts`.
 - **Release run (`release.yml`):** a `build-windows` job on `windows-latest` (target `x86_64-pc-windows-msvc`), a smoke step, and one final step that writes the single `latest.json`. The `check` job runs on a macOS and a Windows runner (REQ-3).
 - **Test build (`windows-test-build.yml`):** `workflow_dispatch` only, one job on `windows-latest`, `createUpdaterArtifacts` switched off by `--config` (no key), uploads the setup file as an artifact (REQ-13). CSD-021 NG-7 (no automatic checks on pull requests or pushes) stays: this run is started by hand.
+- **File association:** the NSIS installer registers `.varde` for the current user and removes it on uninstall (CSD-002 REQ-34); the setup file stays per-user.
 - **Menu (`menu.rs`):** the app-menu steps (Settings…, About) apply to macOS only; on Windows they go to File and Help (REQ-7).
 - **Frontend:** one place decides the platform and gives the shortcut texts (REQ-6) and the Ctrl+Y key (REQ-9).
 - **Amendments** (made in the same change, each back to `draft` until re-approved):
@@ -350,7 +351,7 @@ Scenario: A push does not start it
 
 ## 6. Constraints
 - CON-1: The Windows build and checks run on `windows-latest`, target `x86_64-pc-windows-msvc`, with the Rust version of `rust-toolchain.toml`. Rationale: the same compiler as the macOS checks (CSD-021 CON-8).
-- CON-2: No new secrets, no new crates and no new Tauri plugins or permissions. The existing updater key signs the Windows file. Rationale: `CLAUDE.md` Ask first; CSD-021 REQ-10.
+- CON-2: No new secrets, no new crates and no new Tauri plugins or permissions, except `tauri-plugin-single-instance` for opening a file in the running app (CSD-002 REQ-35, CON-9), which needs the owner's approval. The existing updater key signs the Windows file. Rationale: `CLAUDE.md` Ask first; CSD-021 REQ-10.
 - CON-3: macOS behaviour does not change; the golden files (`src-tauri/golden/`) stay as they are. Rationale: this is an addition for a second platform.
 - CON-4: Changes to `.github/workflows/` and `tauri.conf.json` need the owner's approval, given for the commits that make them. Rationale: `CLAUDE.md` and CSD-021 CON-3.
 - CON-5: Every new third-party action is pinned to a full commit SHA and cargo commands use `--locked`. Rationale: CSD-021 CON-6 and CON-7.
@@ -380,6 +381,7 @@ Tests are named `test_csd038_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 - OQ-3: (resolved 26/11/2026) Supported: Windows 10 and 11, x64 (REQ-12).
 
 ## 9. Changelog
+- 0.8 (27/11/2026): the `.varde` file association is in scope (NG-4 removed, GitHub issue 69, CSD-002 REQ-34 to REQ-36); AC-7.1 adds the Open Recent submenu; CON-2 allows `tauri-plugin-single-instance` with approval; the app data definition names the recent list.
 - 0.7 (27/11/2026): no in-app About dialog on Windows: Help > About Varde opens the native Windows About box with its default icon, CSD-031 stays as it is. A tried dialog with the Varde icon was removed.
 - 0.6 (27/11/2026): new AC-1.4: the setup file, installer and uninstaller show the Varde icon (`installerIcon`). Found on a Windows PC: the installer showed the default icon.
 - 0.5 (27/11/2026): new AC-7.5: Help has one About item. Found on a Windows PC: the default "&About" stayed next to "About Varde", because its text carries a mnemonic marker on Windows.

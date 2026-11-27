@@ -1,11 +1,11 @@
 ---
 id: CSD-002
 title: Project file (save, open, new)
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 3.4
-last_updated: 22/11/2026
-related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-024, CSD-026, CSD-027, CSD-032, CSD-037]
+version: 3.5
+last_updated: 27/11/2026
+related: [CSD-001, CSD-003, CSD-004, CSD-005, CSD-008, CSD-009, CSD-011, CSD-013, CSD-015, CSD-017, CSD-018, CSD-019, CSD-020, CSD-022, CSD-024, CSD-026, CSD-027, CSD-032, CSD-037, CSD-038]
 ---
 
 # CSD-002: Project file (save, open, new)
@@ -21,6 +21,7 @@ The app keeps all of the user's data in one local project file instead of a data
 - The project file format: its sections, the strict schema and its versioning.
 - Saving never overwriting another file without confirmation, and the file extension.
 - Reopening the last used project when the app starts.
+- An Open Recent list in the File menu and opening a `.varde` file by double-clicking it in Finder or Explorer (REQ-31 to REQ-36, GitHub issue 69).
 - Autosave: writing the project file after every change of project data, as an application preference that is on by default (REQ-23 to REQ-26, GitHub issue 71).
 - A synthetic example project file in the repository that shows every area (REQ-21, REQ-22).
 
@@ -29,8 +30,8 @@ The app keeps all of the user's data in one local project file instead of a data
 - NG-2: Recovery features beyond one backup copy (no history of backups, no restore button, no hidden scratch file for a project without a path). Since v3.3 the app keeps one backup copy of a project file per session (REQ-28). Autosave itself is in scope since v3.2 (REQ-23 to REQ-26); it writes the project file, and the backup of REQ-28 once per session. The one-off script of REQ-20 writes its own backup copy before it changes a file. The in-memory undo history of CSD-027 is not a backup: it is never written to disk and ends when the project is replaced or the app quits.
 - NG-3: Multiple projects open at once.
 - NG-4: Cloud sync or sharing of the file.
-- NG-5: Buttons for these actions inside the app window, and an Open Recent list.
-- NG-6: Remembering more than one file, and opening a file by double-clicking it in Finder.
+- NG-5: Buttons for these actions inside the app window, and a recent list shown inside the app window. (The Open Recent submenu of the native File menu is in scope since v3.5, REQ-31 to REQ-33.)
+- NG-6: (removed in v3.5) Remembering more than one file and opening a file by double-clicking it are in scope: REQ-31 to REQ-36, GitHub issue 69.
 - NG-7: Migrating project files of an older or newer format inside the app. There is no migration framework in the app. The one exception inside the app is the upgrade of a version 4 file to version 5 on opening, which only adds an empty section (REQ-30, owner decision of 22/11/2026, after the first release). The one exception outside the app is a one-off script outside the app that upgrades a file by hand (REQ-20), because the first changes of the schema after the release (the opening of a debt, CSD-011 REQ-30, and the origin of a settlement, CSD-026 v3.0) make older files with debts invalid.
 - NG-8: An "Open example project" item or any other way to reach the example file from inside the app (GitHub issue 30 follow-up). The example is a file in the repository.
 
@@ -40,6 +41,8 @@ The app keeps all of the user's data in one local project file instead of a data
 | **Project** | All app data held in memory, plus an optional path to its file. |
 | **Project file** | A JSON file with the extension `.varde` holding the project. Its sections and versioning are in REQ-16 to REQ-18. |
 | **Gone for good** | The remembered project file does not exist while its parent folder exists and can be read (for example the file was deleted). Any other reason the file cannot be opened is *transient* or a problem of the file itself, and the remembered path is kept (REQ-13). |
+| **Recent list** | The paths of the last 10 project files that were opened or saved, newest first, without duplicates (REQ-31). Its first entry is the remembered project of REQ-8 and REQ-10. |
+| **System-handed path** | A path the operating system gives the app because the user double-clicked a `.varde` file (macOS: the open-file event; Windows: the command line argument). It is untrusted input (REQ-35). |
 | **Unsaved changes** | The in-memory project differs from the last saved or opened state. |
 | **Unsaved indicator** | The dot `●` after the file name in the window title (CSD-024 REQ-9). It is the only indicator: the app shows no status text in the left pane. |
 | **Autosave** | The application preference "Autosave" (REQ-24). While it is on and the project has a path, the app writes the project file after every step (REQ-23). |
@@ -251,7 +254,7 @@ Scenario: New project without unsaved changes
 ```
 
 **REQ-8: Reopen last project** *(event-driven)*
-When the app starts, the app shall open the project file that was last opened or saved, or start with an empty project that has no path if there is none.
+When the app starts, the app shall open the project file that was last opened or saved (the first entry of the recent list, REQ-31), or start with an empty project that has no path if there is none. A file handed over by the system comes first (REQ-36).
 
 ```gherkin
 @AC-8.1
@@ -300,7 +303,7 @@ Scenario: Menu actions respect unsaved changes
 ```
 
 **REQ-10: Remember the last project** *(event-driven)*
-When a project is opened, saved or saved under a new name, the app shall remember its path for the next start, and shall leave the remembered path unchanged when the user starts a new project.
+When a project is opened, saved or saved under a new name, the app shall remember its path for the next start (it becomes the first entry of the recent list, REQ-31), and shall leave the remembered path unchanged when the user starts a new project.
 
 ```gherkin
 @AC-10.1
@@ -329,7 +332,7 @@ Scenario: A failed save does not change the remembered path
 ```
 
 **REQ-11: Remembered file cannot be reopened** *(unwanted behaviour)*
-If the remembered project file cannot be opened at start, then the app shall start with an empty project that has no path and show a notice once for that start, without the file path.
+If the remembered project file (the first entry of the recent list) cannot be opened at start, then the app shall start with an empty project that has no path and show a notice once for that start, without the file path.
 
 ```gherkin
 @AC-11.1
@@ -937,11 +940,278 @@ Scenario: Older versions are still refused
   Then it is rejected with error code "PROJECT_FILE_OLDER"
 ```
 
+### 4.2 Open Recent and opening a file from the system (GitHub issue 69)
+
+```mermaid
+flowchart TD
+    A[Menu: Open Recent entry n] --> O[Open flow of File > Open<br/>with the confirmation of REQ-7]
+    B[Double-click a .varde file] --> V{Validate the<br/>system-handed path}
+    V -- not valid --> X[Ignore silently]
+    V -- valid, app running --> O
+    V -- valid, app starting --> S[Open it instead of the remembered file]
+    O --> R{Opens?}
+    S --> R
+    R -- yes --> L[Put the path at the top of the recent list]
+    R -- gone for good, from the list --> F[Remove the entry, show the error]
+    R -- any other problem --> K[Keep the entry, show the error]
+```
+
+**REQ-31: The recent list** *(event-driven)*
+When a project is opened, saved or saved under a new name, the app shall put its path at the top of the recent list, remove an earlier entry of the same path, and keep at most the 10 newest entries. The list is kept in the app's config folder (CON-7), holds paths only, and is the one place where the remembered project of REQ-8 and REQ-10 lives: its first entry is the project reopened at start.
+
+```gherkin
+@AC-31.1
+Scenario: Open and save put the path on top
+  Given the recent list holds "example-a.varde"
+  When the user opens "example-b.varde"
+  Then the recent list is "example-b.varde", "example-a.varde"
+  When the user saves a new project as "example-c.varde"
+  Then the recent list is "example-c.varde", "example-b.varde", "example-a.varde"
+
+@AC-31.2
+Scenario: A path is listed once
+  Given the recent list is "example-b.varde", "example-a.varde"
+  When the user opens "example-a.varde"
+  Then the recent list is "example-a.varde", "example-b.varde"
+
+@AC-31.3
+Scenario: The list keeps 10 entries
+  Given the recent list holds 10 entries
+  When the user opens an 11th file
+  Then the list holds 10 entries, the new one on top
+  And the oldest entry is gone
+
+@AC-31.4
+Scenario: New project and a failed save change nothing
+  Given the recent list holds "example-a.varde"
+  When the user starts a new project
+  Then the recent list is unchanged
+  When the user saves to a path that is not writable and the save fails
+  Then the recent list is unchanged
+
+@AC-31.5
+Scenario: The first entry is reopened at start
+  Given the recent list is "example-b.varde", "example-a.varde"
+  When the app starts
+  Then the project of "example-b.varde" is opened
+
+@AC-31.6
+Scenario: The old single remembered path becomes the list
+  Given the config folder holds "last-project.json" with the path "example-a.varde" and no recent list
+  When the app starts
+  Then "example-a.varde" is opened
+  And the recent list holds only "example-a.varde"
+
+@AC-31.7
+Scenario: An unusable list file is an empty list
+  Given the recent list file is missing, oversized, malformed or holds a relative path
+  When the app starts
+  Then no project is opened and no notice is shown
+  And entries with a relative path are not used
+
+@AC-31.8
+Scenario: Only paths are stored, privately
+  When the recent list is saved
+  Then the file holds paths only, no project data
+  And it is written atomically and readable by the owner only
+  And no path appears in a log line or in an error message shown to the user
+```
+
+**REQ-32: The Open Recent submenu** *(ubiquitous)*
+The app shall offer an Open Recent submenu in the native File menu, directly below Open…, on macOS and on Windows. It lists the recent entries newest first by file name, followed by a separator and Clear Menu. It is disabled while the list is empty. When two entries have the same file name, their labels also show the name of the parent folder. The menu is rebuilt after every change of the list.
+
+```gherkin
+@AC-32.1
+Scenario: The submenu lists the recent files
+  Given the recent list is "folder-1/example-a.varde", "folder-2/example-b.varde"
+  When the user opens the File menu
+  Then Open Recent comes directly below Open…
+  And it lists "example-a.varde" and "example-b.varde", then a separator and "Clear Menu"
+  And no label shows a full path
+
+@AC-32.2
+Scenario: Equal file names are told apart
+  Given the recent list is "folder-1/example.varde", "folder-2/example.varde"
+  Then the labels are "example.varde — folder-1" and "example.varde — folder-2"
+
+@AC-32.3
+Scenario: An empty list disables the submenu
+  Given the recent list is empty
+  Then Open Recent is disabled
+
+@AC-32.4
+Scenario: The menu follows the list
+  Given the app is running
+  When the user opens a file that is not in the list
+  Then the next time the menu is shown it lists that file on top
+
+@AC-32.5
+Scenario: Clear Menu empties the list
+  Given the recent list holds 3 entries and a project is open
+  When the user chooses Clear Menu
+  Then the recent list is empty and Open Recent is disabled
+  And the open project and its unsaved changes are untouched
+  And the next start opens an empty project, because the remembered project was the first entry
+
+@AC-32.6
+Scenario: Windows has the same submenu
+  Given the app runs on Windows
+  Then the File menu lists New, Open…, Open Recent, Save, Save As…, Settings… and Exit (CSD-038 REQ-7)
+```
+
+**REQ-33: Choosing a recent file** *(event-driven)*
+When the user chooses an entry of the Open Recent submenu, the app shall open that file through the same flow as File > Open, including the confirmation of REQ-7 when there are unsaved changes. The menu item carries the index of the entry, never its path, and the path never reaches the frontend. If the file cannot be opened, then the app shall leave the open project unchanged and show the error of the failure (`PROJECT_OPEN_FAILED`, `PROJECT_INVALID_FILE`, `PROJECT_FILE_NEWER`, `PROJECT_FILE_OLDER`, `PROJECT_TOO_LARGE`) without the path; the entry is removed when the file is gone for good (REQ-12) and kept in every other case (REQ-13).
+
+```gherkin
+@AC-33.1
+Scenario: A recent file opens
+  Given the recent list holds "example-a.varde" with 1 job
+  When the user chooses it in Open Recent
+  Then 1 job is shown and the path is "example-a.varde"
+  And "example-a.varde" is on top of the list
+
+@AC-33.2
+Scenario: Unsaved changes are asked about first
+  Given unsaved changes
+  When the user chooses a recent file
+  Then a confirmation is asked before the project is replaced
+  And when the user declines, the open project is unchanged and the list is unchanged
+
+@AC-33.3
+Scenario: A file that is gone for good is forgotten
+  Given the recent list holds "example-a.varde", which was deleted from its existing folder
+  And 1 job is open
+  When the user chooses it
+  Then the error "PROJECT_OPEN_FAILED" is shown without a path
+  And the 1 job is unchanged
+  And "example-a.varde" is removed from the list
+
+@AC-33.4
+Scenario Outline: Any other problem keeps the entry
+  Given the recent list holds "example-a.varde", which is <problem>
+  When the user chooses it
+  Then the error "<code>" is shown without a path and the open project is unchanged
+  And "example-a.varde" is still in the list
+
+  Examples:
+    | problem                                          | code                 |
+    | on a drive that is not mounted                   | PROJECT_OPEN_FAILED  |
+    | not a valid project file                         | PROJECT_INVALID_FILE |
+    | from a newer version of the app                  | PROJECT_FILE_NEWER   |
+
+@AC-33.5
+Scenario: The event carries an index only
+  When the user chooses the 3rd entry of Open Recent
+  Then the menu event is "recent-open-2"
+  And the frontend calls a command with the index and no path
+  And an index outside the list is rejected without effect
+```
+
+**REQ-34: The .varde file association** *(ubiquitous)*
+The app shall register the extension `.varde` with the operating system, so that double-clicking a project file in Finder (macOS) or in Explorer (Windows) starts Varde with that file. The macOS bundle declares the document type, and the per-user Windows installer registers the association and removes it again when the app is uninstalled (CSD-038 REQ-10).
+
+```gherkin
+@AC-34.1
+Scenario: The bundle declares the document type
+  Given the bundle configuration
+  Then it declares the extension "varde" with the app as its role
+  And it adds no network access and no permission
+
+@AC-34.2
+Scenario: Double-clicking starts the app
+  Given Varde is installed and not running
+  When the user double-clicks "example-a.varde"
+  Then Varde starts and opens that file (REQ-36)
+
+@AC-34.3
+Scenario: Uninstalling removes the association on Windows
+  Given Varde is installed per user on Windows
+  When the user uninstalls it
+  Then ".varde" no longer opens with Varde
+  And the user's project files are untouched
+```
+
+**REQ-35: Opening a file while the app runs** *(event-driven)*
+When the system hands the running app a file, the app shall open it through the same flow as File > Open, including the confirmation of REQ-7, and shall not open a second window or process: on Windows a second launch passes the path to the running app and exits, and the running window comes to the front. The app shall use a system-handed path only if it is absolute, ends in `.varde` and is a regular file; if several paths are handed over, only the first is used (NG-3); anything else is ignored without a dialog. Errors of opening show as for File > Open.
+
+```gherkin
+@AC-35.1
+Scenario: A file opens in the running app
+  Given the app runs with an empty project
+  When the system hands it "example-a.varde" with 1 job
+  Then 1 job is shown and "example-a.varde" is on top of the recent list
+
+@AC-35.2
+Scenario: Unsaved changes are asked about first
+  Given unsaved changes
+  When the system hands the app another project file
+  Then a confirmation is asked before the project is replaced
+  And when the user declines, the open project is unchanged
+
+@AC-35.3
+Scenario: Windows keeps one instance
+  Given the app runs on Windows
+  When the user double-clicks "example-a.varde"
+  Then the running window comes to the front and opens that file
+  And no second Varde process remains
+
+@AC-35.4
+Scenario Outline: A path that is not valid is ignored
+  When the system hands the app <path>
+  Then nothing is opened, no dialog is shown and the open project is unchanged
+
+  Examples:
+    | path                                   |
+    | a relative path                        |
+    | "example-a.txt"                        |
+    | a folder named "example-folder.varde"  |
+    | a path that does not exist             |
+
+@AC-35.5
+Scenario: Several files open the first one
+  When the system hands the app "example-a.varde" and "example-b.varde"
+  Then only "example-a.varde" is opened
+
+@AC-35.6
+Scenario: The file that is opened has an invalid content
+  When the system hands the app a valid path whose content is not a project file
+  Then the error "PROJECT_INVALID_FILE" is shown without a path
+  And the open project is unchanged and the list is unchanged
+```
+
+**REQ-36: Opening a file at start** *(event-driven)*
+When the app is started by the system with a file, the app shall open that file instead of the remembered project of REQ-8. If it cannot be opened, then the app shall start with an empty project that has no path, show the startup notice of REQ-11 once without the path, and leave the recent list unchanged.
+
+```gherkin
+@AC-36.1
+Scenario: The double-clicked file wins
+  Given the recent list is "example-a.varde"
+  When the app is started by double-clicking "example-b.varde"
+  Then the project of "example-b.varde" is opened
+  And the recent list is "example-b.varde", "example-a.varde"
+
+@AC-36.2
+Scenario: A file that cannot be opened leaves the app empty
+  Given the recent list is "example-a.varde"
+  When the app is started by double-clicking a file that is not a valid project file
+  Then no jobs exist and no path is set
+  And a notice with code "PROJECT_INVALID_FILE" is available once, without the path
+  And the recent list is still "example-a.varde"
+
+@AC-36.3
+Scenario: An invalid path is ignored at start
+  Given the recent list is "example-a.varde"
+  When the app is started with a path that is not valid (AC-35.4)
+  Then the project of "example-a.varde" is opened as at any start (REQ-8)
+```
+
 ## 5. Interfaces and contracts
 
 Menu: Rust builds the File menu items `project-new`, `project-open`, `project-save` and `project-save-as`. Choosing one emits the event `menu-action` with the item id to the frontend, which runs the flow of the action, including the confirmations of REQ-7.
 
-Commands: `take_startup_notice()` (returns the REQ-11 notice once, then nothing), `new_project()`, `open_project()`, `save_project()`, `save_project_as()`, `project_status()` (returns whether there are unsaved changes and whether a path is set) and `quit_app()` (quits without asking: the frontend has already confirmed, REQ-4). The save and open commands show the native dialog themselves and take no path from the frontend.
+Open Recent (REQ-31 to REQ-33): Rust builds the submenu from the recent list and rebuilds it after every change of the list. Its items have the ids `recent-open-<index>` (index from 0) and `recent-clear`; `recent-clear` is handled in Rust, and `recent-open-<index>` emits `menu-action` like the other items, so the frontend runs the confirmation of REQ-7 and then calls `open_recent_project(index)`. The command takes the index only and rejects one outside the list. A system-handed path (REQ-35, REQ-36) is validated in Rust and held there as the pending file: it is never sent to the frontend. While the app runs, Rust emits the event `open-file-requested` without a payload, the frontend runs the confirmation of REQ-7 and calls `open_pending_file()`, which opens the pending file and returns like `open_project()`. At start, Rust opens a pending file before the remembered project (REQ-36).
+
+Commands: `take_startup_notice()` (returns the REQ-11 notice once, then nothing), `new_project()`, `open_project()`, `open_recent_project(index)`, `open_pending_file()`, `save_project()`, `save_project_as()`, `project_status()` (returns whether there are unsaved changes and whether a path is set) and `quit_app()` (quits without asking: the frontend has already confirmed, REQ-4). The save and open commands show the native dialog themselves and take no path from the frontend. `open_recent_project` takes an index, never a path.
 
 Project file: JSON with the extension `.varde`, a top-level integer `format_version` (currently 5) and amounts as decimal strings with at most two decimals (CSD-000 CON-8, REQ-19). Each capability owns one section, and all sections are required (REQ-16):
 
@@ -979,8 +1249,11 @@ Error codes (code plus safe message): `PROJECT_SAVE_FAILED` (Save and a failed a
 - CON-3: Amounts in the file are decimal strings with at most two decimals (CSD-000 CON-8) and are never rounded when read: a file amount with more than two decimals is invalid (REQ-19), only typed text is rounded. The file carries `format_version`. A newer version than the app knows is rejected (REQ-18). Rationale: no float rounding, and a clear message instead of a parse error.
 - CON-4: Errors shown to the user never contain file paths or OS details. Rationale: `CLAUDE.md` error rules.
 - CON-5: Tests use a temporary directory and synthetic data only, never real app data or real financial data. Rationale: `CLAUDE.md` testing and privacy rules, and the repo is public.
-- CON-6: The menu uses Tauri's built-in menu API: no plugin and no extra permission. It keeps the standard macOS menus (app, Edit, View, Window), because the Edit menu is what makes copy, paste and undo work in text fields. Its predefined Undo and Redo items are replaced by the project Undo and Redo of CSD-027, which leave ⌘Z and ⇧⌘Z to a focused text field. Rationale: least privilege per `CLAUDE.md`, and no loss of standard behaviour.
-- CON-7: The remembered path is kept in `last-project.json` in the app's own config folder, outside the project file, written like the project file (atomic, owner-only). It holds the path only, never project data, and is never committed. Rationale: it must be readable before any project is open, and it can reveal a user name through the path. It uses Tauri's built-in path API: no plugin and no permission. The application preferences of CSD-008 live in a second file, `preferences.json`, in the same folder under the same rules.
+- CON-6: The menu, including the Open Recent submenu, uses Tauri's built-in menu API: no plugin and no extra permission. It keeps the standard macOS menus (app, Edit, View, Window), because the Edit menu is what makes copy, paste and undo work in text fields. Its predefined Undo and Redo items are replaced by the project Undo and Redo of CSD-027, which leave ⌘Z and ⇧⌘Z to a focused text field. Rationale: least privilege per `CLAUDE.md`, and no loss of standard behaviour.
+- CON-7: The recent list (REQ-31), which also holds the remembered path, is kept in `recent-projects.json` in the app's own config folder, outside the project file, written like the project file (atomic, owner-only). It holds paths only, never project data, and is never committed. An old `last-project.json` is read once when there is no list and becomes its only entry (AC-31.6). Rationale: it must be readable before any project is open, and it can reveal a user name through the path. It uses Tauri's built-in path API: no plugin and no permission. The application preferences of CSD-008 live in a second file, `preferences.json`, in the same folder under the same rules.
+
+- CON-8: Paths are never logged, never put in an event or a command argument that crosses to the frontend, and never shown in an error (CON-4). Rationale: a path can reveal a user name; `CLAUDE.md` privacy rules.
+- CON-9: The file association is a bundle setting in `tauri.conf.json`, and the single instance of REQ-35 on Windows needs `tauri-plugin-single-instance` (a new plugin, Windows only, no webview permission). Both need the owner's approval at implementation time, and the plugin must pass `cargo deny check` (CSD-038 CON-2 and CON-4). The app makes no network call for either. Rationale: `CLAUDE.md` Ask first.
 
 ## 7. Verification
 The unsaved flag and the project state live in Rust, so they are proven by `cargo test`, with file round-trips in a temporary directory. Tests are named `test_csd002_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
@@ -995,6 +1268,8 @@ The unsaved flag and the project state live in Rust, so they are proven by `carg
 | Autosave preference (REQ-24) | `cargo test test_csd002_ac_24_` (default, missing or invalid key, remembered, read-only config folder) and a DOM test in `ui/tests/` for the switch, its Dutch label and the message of AC-26.1 and AC-24.4 (`test_csd002_ac_24_...`), with canned answers from the fake bridge |
 | Size limit, backup, older file (REQ-27 to REQ-29) | `cargo test test_csd002_ac_27_`, `test_csd002_ac_28_` and `test_csd002_ac_29_` (`storage/project/safety_tests.rs`, and `ipc_transactions_tests.rs` for AC-27.2). The limit is injected in the tests, so no test builds a 50 MiB project |
 | Version 4 file upgraded on opening (REQ-30) | `cargo test test_csd002_ac_30_` (`storage/project/`) |
+| Recent list and menu (REQ-31 to REQ-33) | `cargo test test_csd002_ac_31_`, `test_csd002_ac_32_` and `test_csd002_ac_33_`: the list store in a temporary directory, the label and id table the submenu is built from (native menus need the main thread), and the command with the Tauri mock runtime. A DOM test in `ui/tests/` covers the confirmation of AC-33.2 with a fake bridge |
+| File association and system-handed paths (REQ-34 to REQ-36) | `cargo test test_csd002_ac_34_` (the bundle configuration), `test_csd002_ac_35_` and `test_csd002_ac_36_` (the path validation and the open flow with the mock runtime). The real double-click on macOS and Windows and the single instance (AC-34.2, AC-34.3, AC-35.3) are on the manual checklist and in the first Windows test build |
 | Example project (REQ-21, REQ-22) | `cargo test example_project` (`src-tauri/src/example_project_tests.rs`: `test_csd002_ac_21_1_...` to `test_csd002_ac_21_4_...` and `test_csd002_ac_22_1_...`). After a deliberate change of the generator or of the format: `EXAMPLE_UPDATE=1 cargo test example`, then review the diff of `examples/` |
 | Manual checklist (native parts only) | The real File menu items and shortcuts (AC-9.1 to AC-9.4), the native save dialog, and a real window close without unsaved changes (AC-4.2: the mock runtime has no event loop to send it) |
 
@@ -1011,6 +1286,7 @@ Done means fmt, clippy (`-D warnings`), `cargo test --all-features` and `npm tes
 - OQ-6: (resolved 18/11/2026) Should the app give an older file its own message instead of the generic `PROJECT_INVALID_FILE`? Yes: `PROJECT_FILE_OLDER` (REQ-29).
 
 ## 9. Changelog
+- 3.5 (27/11/2026): Open Recent and opening a file by double-click (GitHub issue 69): new section 4.2 with REQ-31 to REQ-36 (recent list of 10 paths, the Open Recent submenu with Clear Menu, choosing a recent file, the `.varde` file association, opening while the app runs, opening at start); NG-5 narrowed, NG-6 removed; REQ-8, REQ-10 and REQ-11 point to the recent list; CON-7 moves the remembered path to `recent-projects.json`; new CON-8, CON-9 (single-instance plugin and `tauri.conf.json` need approval); section 5 and 7 follow. Amends CSD-038 (NG-4, REQ-7, CON-2). Owner decisions from the grill-me interview of 27/11/2026. Back to `draft` until re-approved.
 - 3.4 (22/11/2026): The project file holds the section `budgets` and has `format_version` 5 (CSD-037 REQ-12, GitHub issue 82); the example of a newer file is version 6 and a version 4 file is upgraded in the app on opening (new REQ-30, AC-30.1 to AC-30.4; NG-7 and REQ-29 give way for it), by owner decision. Back to `draft` until re-approved.
 - 3.3 (18/11/2026): Pre-release audit, owner decisions. New REQ-27 (a project is never saved larger than the app opens: `PROJECT_TOO_LARGE`, import included), REQ-28 (one `.bak` copy per file per session; NG-2 narrowed) and REQ-29 (an older file gets `PROJECT_FILE_OLDER`; AC-18.3 now expects it). Error codes in section 5 extended. Back to `draft` until re-approved.
 - 3.2 (18/11/2026): Autosave (GitHub issue 71). NG-2 no longer excludes it (backup and recovery copies stay excluded). New section 4.1 with REQ-23 (write after every step, once per step, undo and redo included, project data only, no write without a path), REQ-24 (the "Autosave" preference, on by default), REQ-25 (switching on writes pending changes) and REQ-26 (a failed write keeps the change, shows `PROJECT_SAVE_FAILED` and retries on the next step); new AC-3.3, AC-3.4, AC-4.3, AC-4.4. New definitions "Autosave" and "Step", and scenarios elsewhere describe autosave off unless they say otherwise. Amends CSD-008 (NG-5), CSD-024 (REQ-9) and CSD-027 (NG-2, REQ-9). Owner decisions from the grill-me interview of 18/11/2026. Back to `draft` until re-approved.
