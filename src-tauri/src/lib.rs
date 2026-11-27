@@ -258,8 +258,22 @@ pub fn run() {
     // safely afterwards.
     let utc_offset = UtcOffset::current_local_offset().unwrap_or(UtcOffset::UTC);
 
+    let builder = tauri::Builder::default();
+    // CSD-002 REQ-35: on Windows a double-click starts a second process. It hands
+    // its command line to the running app and exits, so there is one window. The
+    // plugin has to be the first one registered.
+    #[cfg(windows)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+        if let Some(window) = app.get_webview_window(MAIN_WINDOW) {
+            let _ = window.unminimize();
+            let _ = window.set_focus();
+        }
+        let paths = args.into_iter().map(std::path::PathBuf::from).collect();
+        handle_system_paths(app, paths);
+    }));
+
     let built = configure_with(
-        tauri::Builder::default()
+        builder
             .plugin(tauri_plugin_dialog::init())
             // CSD-023: used from Rust only; no updater permission is granted to the webview.
             .plugin(tauri_plugin_updater::Builder::new().build()),

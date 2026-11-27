@@ -94,6 +94,27 @@ mod tests {
         assert_eq!(from_args(["varde".to_owned()]), None);
     }
 
+    #[test]
+    fn test_csd002_ac_34_1_the_bundle_declares_the_varde_document_type() {
+        let config: serde_json::Value =
+            serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        let associations = config["bundle"]["fileAssociations"].as_array().unwrap();
+        assert_eq!(associations.len(), 1);
+        assert_eq!(associations[0]["ext"], serde_json::json!(["varde"]));
+        assert_eq!(associations[0]["role"], "Editor");
+        // No new permission and no network access for it (CON-9).
+        let capabilities: serde_json::Value =
+            serde_json::from_str(include_str!("../capabilities/default.json")).unwrap();
+        assert_eq!(
+            capabilities["permissions"],
+            serde_json::json!(["core:event:allow-listen", "core:event:allow-unlisten"])
+        );
+        assert!(config["app"]["security"]["csp"]
+            .as_str()
+            .unwrap()
+            .starts_with("default-src 'self'"));
+    }
+
     #[cfg(unix)]
     #[test]
     fn test_csd002_ac_35_1_a_file_url_is_the_file() {

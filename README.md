@@ -59,7 +59,7 @@ Download `Varde_<version>_x64-setup.exe` of the latest version from the [Release
 
 The app is not signed yet, so Windows SmartScreen warns about it the first time you run the setup file. To allow it, choose **More info** and then **Run anyway**.
 
-Uninstalling removes the app but keeps your project files and the app's own settings (theme, language, last project).
+Uninstalling removes the app but keeps your project files and the app's own settings (theme, language, recent projects).
 
 ### Opening an older project file
 
@@ -95,7 +95,7 @@ The app has no frontend build step and no runtime npm dependency. `ui/` is serve
 
 ## Using the app
 
-- **Project actions** live in the native **File** menu: New (⌘N), Open… (⌘O), Save (⌘S) and Save As… (⇧⌘S); on Windows the shortcuts use Ctrl instead of ⌘ (Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S). An indicator at the bottom of the left pane shows unsaved changes, and the app asks before you quit or replace a project with unsaved edits. On start, the app reopens the last project you used.
+- **Project actions** live in the native **File** menu: New (⌘N), Open… (⌘O), Save (⌘S) and Save As… (⇧⌘S); on Windows the shortcuts use Ctrl instead of ⌘ (Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S). An indicator at the bottom of the left pane shows unsaved changes, and the app asks before you quit or replace a project with unsaved edits. **Open Recent** (below Open…) lists your last 10 files, and double-clicking a `.varde` file in Finder or Explorer opens it in Varde. On start, the app reopens the last project you used.
 - **Settings** open from the Settings item at the bottom of the left pane, or from the app menu with ⌘, (on Windows from File > Settings… with Ctrl+,). On Windows, Ctrl+Y also redoes, and About Varde is in the Help menu.
 - **Dates** are shown and typed as `dd/mm/yyyy`, and months as `YYYY-MM`.
 - **Try it:** open [`examples/example.varde`](examples/example.varde) with File > Open… to see every page filled with synthetic data (income, investments, bank accounts, expenses, houses, debts, net worth and ratios). Save it under another name before you edit it.
@@ -134,7 +134,7 @@ src-tauri/
   src/menu.rs       native menu bar (macOS and Windows layouts)
   src/commands/     thin #[tauri::command] handlers
   src/domain/       pure business logic (income, expenses, bank accounts, investments, houses, debts, transactions, net worth, ratios, the shared series core, charts and money, preferences, settings, updates), unit-tested
-  src/storage/      project file persistence (JSON, atomic write), last project, preferences
+  src/storage/      project file persistence (JSON, atomic write), recent projects, preferences
   src/error.rs      app error type
   capabilities/     Tauri permission files
   golden/           golden files of the golden tests

@@ -271,7 +271,7 @@ Preference file: `preferences.json` in the app's config folder, for example `{ "
 Error codes: `PREFERENCES_THEME_UNSUPPORTED`, `PREFERENCES_SAVE_FAILED`.
 
 ## 6. Constraints
-- CON-1: The preference is stored only in `preferences.json` in the app's own config folder, outside the project file, written like the project file (atomic, owner-only), holding preferences only, never project data, and never committed. Rationale: it belongs to the person and the Mac, not to the data, and it must be readable before any project is open. This is the same arrangement as `last-project.json` (CSD-002 CON-7).
+- CON-1: The preference is stored only in `preferences.json` in the app's own config folder, outside the project file, written like the project file (atomic, owner-only), holding preferences only, never project data, and never committed. Rationale: it belongs to the person and the Mac, not to the data, and it must be readable before any project is open. This is the same arrangement as the recent list `recent-projects.json` (CSD-002 CON-7).
 - CON-2: Rust is the only place the preference is kept. The frontend holds no copy (no `localStorage`) and no inline script is used to apply it. Rationale: one source of truth, and the future strict CSP forbids inline scripts.
 - CON-3: No new plugin, capability or permission. The window theme is set from Rust. Rationale: least privilege per `CLAUDE.md`.
 - CON-4: The theme is a closed set (`system`, `light`, `dark`) and is never handled as free text beyond the command edge. Rationale: invalid states are unrepresentable per `CLAUDE.md`.

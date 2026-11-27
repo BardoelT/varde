@@ -26,6 +26,14 @@
     "targets": ["dmg", "app", "nsis"],
     "createUpdaterArtifacts": true,
     "category": "Finance",
+    "fileAssociations": [
+      {
+        "ext": ["varde"],
+        "name": "Varde project",
+        "description": "Varde project file",
+        "role": "Editor"
+      }
+    ],
     "windows": {
       "webviewInstallMode": { "type": "embedBootstrapper" },
       "nsis": { "installMode": "currentUser", "installerIcon": "icons/icon.ico" }
