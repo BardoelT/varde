@@ -10,8 +10,8 @@ use tauri::{Emitter, Manager, RunEvent, Runtime, WindowEvent};
 use time::UtcOffset;
 
 use commands::{
-    bank_accounts, dashboard, debts, expenses, houses, income, investments, net_worth, preferences,
-    project, ratios, settings, transactions, updates, AppState,
+    about, bank_accounts, dashboard, debts, expenses, houses, income, investments, net_worth,
+    preferences, project, ratios, settings, transactions, updates, AppState,
 };
 
 /// The label of the one window.
@@ -183,6 +183,7 @@ fn configure_with<R: Runtime>(
             net_worth::get_net_worth_insights,
             ratios::get_ratios,
             dashboard::get_dashboard,
+            about::get_about_info,
             settings::get_settings,
             settings::set_currency,
             preferences::get_preferences,

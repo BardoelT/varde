@@ -33,7 +33,7 @@ pub const REDO: (&str, &str, &str) = ("project-redo", "Redo", "CmdOrCtrl+Shift+Z
 
 /// What the About panel shows (CSD-031 REQ-1). Plain text, English only, like
 /// the rest of the native menu.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, serde::Serialize)]
 pub struct AboutInfo {
     pub name: &'static str,
     /// The version of the package as built, the one source of the number (REQ-2).
@@ -43,6 +43,11 @@ pub struct AboutInfo {
     pub license: &'static str,
     pub website: &'static str,
 }
+
+/// The id of the About item on Windows. There the native About box is a plain
+/// message box that cannot show the app icon, so the item is Varde's own and
+/// the frontend shows the About dialog (CSD-038 REQ-14).
+pub const ABOUT_ITEM: &str = "show-about";
 
 /// The content of the About panel.
 pub const ABOUT: AboutInfo = AboutInfo {
@@ -92,6 +97,7 @@ pub const DISCRETE_MODE: (&str, &str, &str) =
 #[must_use]
 pub fn is_forwarded_item(id: &str) -> bool {
     id == SETTINGS.0
+        || id == ABOUT_ITEM
         || id == DISCRETE_MODE.0
         || id == UNDO.0
         || id == REDO.0
@@ -215,14 +221,14 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
                 _ => None,
             })
             .ok_or(tauri::Error::InvalidWindowHandle)?;
-        replace_about(app, &app_menu)?;
+        replace_about(app, &app_menu, false)?;
         app_menu.insert_items(&[&settings, &after_settings], SETTINGS_POSITION)?;
     } else {
         // Settings… goes directly above the last File item, Exit; About
         // replaces the one in Help.
         let before_exit = file.items()?.len().saturating_sub(1);
         file.insert_items(&[&after_settings, &settings], before_exit)?;
-        replace_about(app, &find_submenu(&menu, |text| text == HELP_MENU)?)?;
+        replace_about(app, &find_submenu(&menu, |text| text == HELP_MENU)?, true)?;
     }
 
     replace_undo_and_redo(app, &menu)?;
@@ -278,11 +284,13 @@ fn is_about_text(text: &str) -> bool {
     text.replace('&', "").starts_with("About")
 }
 
-/// Swaps the predefined About item of the app menu for one with the Varde
-/// content (CSD-031). It keeps the first position.
+/// Swaps the predefined About item for one with the Varde content (CSD-031).
+/// It keeps the first position. With `in_app_dialog` the item is Varde's own,
+/// which the frontend answers with its About dialog (Windows, CSD-038 REQ-14).
 fn replace_about<R: Runtime>(
     app: &AppHandle<R>,
     app_menu: &tauri::menu::Submenu<R>,
+    in_app_dialog: bool,
 ) -> tauri::Result<()> {
     for item in app_menu.items()? {
         if let MenuItemKind::Predefined(predefined) = &item {
@@ -290,6 +298,10 @@ fn replace_about<R: Runtime>(
                 app_menu.remove(&item)?;
             }
         }
+    }
+    if in_app_dialog {
+        let about = MenuItemBuilder::with_id(ABOUT_ITEM, "About Varde").build(app)?;
+        return app_menu.insert(&about, 0);
     }
     // The icon is embedded in the binary from the first icon of tauri.conf.json.
     let icon = app
@@ -430,6 +442,11 @@ mod tests {
         let add = StepLabel::add(Record::Expense);
         assert_eq!(history_text("Undo", Some(add)), "Undo Add Expense");
         assert_eq!(history_text("Redo", Some(add)), "Redo Add Expense");
+    }
+
+    #[test]
+    fn test_csd038_ac_14_1_the_windows_about_item_is_forwarded_to_the_frontend() {
+        assert!(is_forwarded_item(ABOUT_ITEM));
     }
 
     #[test]

@@ -1,10 +1,10 @@
 ---
 id: CSD-031
 title: About window
-status: approved
+status: draft
 owner: Thijs Bardoel
-version: 0.2
-last_updated: 09/11/2026
+version: 0.3
+last_updated: 27/11/2026
 related: [CSD-000, CSD-022, CSD-024]
 ---
 
@@ -19,7 +19,7 @@ The "About Varde" item in the app menu opens Tauri's default About panel, which 
 - The single source of the version shown.
 
 ### 2.2 Non-goals
-- NG-1: A custom HTML window or dialog in `ui/` for About.
+- NG-1: A custom HTML window or dialog in `ui/` for About on macOS. Windows has only a plain message box without the app icon, so there the About dialog is Varde's own (CSD-038 REQ-14).
 - NG-2: Dutch text in the panel. It stays English like the rest of the native menu (CSD-024 REQ-6, CSD-022 NG-6).
 - NG-3: A build number, commit hash, list of dependencies or credits.
 - NG-4: Update checks or any network access (a link opens in the browser only when the user clicks it).
@@ -89,5 +89,6 @@ Done means fmt, clippy (`-D warnings`) and `cargo test --all-features` pass.
 None.
 
 ## 9. Changelog
+- 0.3 (27/11/2026): NG-1 limited to macOS; on Windows the About dialog is in `ui/` (CSD-038 REQ-14). Back to draft until re-approved.
 - 0.2 (09/11/2026): implementation notes only, behaviour unchanged. The icon comes from the default window icon (no new Tauri feature or crate), and the description, licence and website are the credits text because macOS ignores those fields.
 - 0.1 (09/11/2026): initial draft from the grill-me interview of 09/11/2026 on GitHub issue 54: native panel, explicit icon, fixed content, English only.
