@@ -3,7 +3,7 @@ id: CSD-038
 title: Windows support
 status: draft
 owner: Thijs Bardoel
-version: 0.3
+version: 0.4
 last_updated: 26/11/2026
 related: [CSD-000, CSD-002, CSD-021, CSD-022, CSD-023, CSD-024, CSD-027, CSD-031]
 ---
@@ -205,7 +205,7 @@ Scenario: macOS is unchanged
 ```
 
 **REQ-8: Windows shortcuts** *(ubiquitous)*
-On Windows the menu items shall use these shortcuts: New Ctrl+N, Open… Ctrl+O, Save Ctrl+S, Save As… Ctrl+Shift+S, Settings… Ctrl+Comma, Undo Ctrl+Z, Redo Ctrl+Shift+Z, Discrete Mode Ctrl+Shift+D.
+On Windows the menu items shall use these shortcuts: New Ctrl+N, Open… Ctrl+O, Save Ctrl+S, Save As… Ctrl+Shift+S, Settings… Ctrl+Comma, Undo Ctrl+Z, Redo Ctrl+Shift+Z, Discrete Mode Ctrl+Shift+D. The webview keeps these keys from the native menu on Windows, so the page shall also catch them and run the same item, once; Undo and Redo in a text field stay with the browser. On macOS the page does nothing with them.
 
 ```gherkin
 @AC-8.1
@@ -222,6 +222,19 @@ Scenario Outline: A shortcut runs its menu item
     | Ctrl+Shift+S | Save As…      |
     | Ctrl+,       | Settings…     |
     | Ctrl+Shift+D | Discrete Mode |
+
+@AC-8.2
+Scenario: The key is pressed while the page has the focus
+  Given the app runs on Windows and the focus is in the window's page
+  When the user presses Ctrl+O
+  Then the Open dialog opens once
+  And the browser does not handle the key itself
+
+@AC-8.3
+Scenario: macOS is unchanged
+  Given the app runs on macOS
+  When the user presses ⌘O
+  Then only the native menu handles it
 ```
 
 **REQ-9: Ctrl+Y redoes** *(event-driven)*
@@ -340,6 +353,7 @@ Tests are named `test_csd038_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 | ACs | How |
 |---|---|
 | AC-6.1, AC-6.2, AC-9.1 to AC-9.3 | DOM tests in `ui/tests/` (`npm test`), with the platform set by the test harness. |
+| AC-8.2, AC-8.3 | DOM tests in `ui/tests/` (`npm test`). |
 | AC-7.1 to AC-7.3, AC-8.1 | Rust tests of the menu builder for both platforms (`cargo test test_csd038_`); AC-8.1 also checks the accelerator strings. |
 | AC-11.1 to AC-11.3 | Rust storage tests in a temporary directory (`cargo test test_csd038_ac_11_`), run on macOS and Windows by the release run. |
 | AC-3.1, AC-3.2, AC-1.3 | Push a throwaway tag on a scratch fork and read the run (CSD-021 method). |
@@ -354,6 +368,7 @@ Tests are named `test_csd038_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 - OQ-3: (resolved 26/11/2026) Supported: Windows 10 and 11, x64 (REQ-12).
 
 ## 9. Changelog
+- 0.4 (27/11/2026): REQ-8 adds that the page catches the Ctrl keys on Windows, because the webview keeps them from the native menu (found on a Windows PC: no shortcut worked); new AC-8.2, AC-8.3.
 - 0.3 (27/11/2026): new REQ-13 (manual Windows test build, `windows-test-build.yml`) with AC-13.1, AC-13.2; sections 2.1, 5, 7.
 - 0.2 (26/11/2026): OQ-1 to OQ-3 resolved with the owner's recommendations; new CON-8 (WebView2 `embedBootstrapper`); section 5 names the install mode.
 - 0.1 (26/11/2026): initial draft (GitHub issue 86).

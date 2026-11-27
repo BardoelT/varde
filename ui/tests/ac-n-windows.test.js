@@ -73,3 +73,69 @@ test('test_csd038_ac_9_3_ctrl_y_does_nothing_on_macos', async () => {
   assert.equal(app.callsOf('redo').length, 0);
   app.close();
 });
+
+// REQ-8: on Windows the webview keeps the Ctrl keys from the native menu, so the page runs the item itself.
+const saved = { has_path: true, unsaved_changes: false, undo_label: null, redo_label: null };
+
+function press(app, key, { shift = false, ctrl = true, target = app.document.body } = {}) {
+  const event = new app.window.KeyboardEvent('keydown', { key, ctrlKey: ctrl, shiftKey: shift, bubbles: true, cancelable: true });
+  target.dispatchEvent(event);
+  return event;
+}
+
+for (const [key, shift, command] of [
+  ['o', false, 'open_project'],
+  ['n', false, 'new_project'],
+  ['s', false, 'save_project'],
+  ['S', true, 'save_project_as'],
+]) {
+  test(`test_csd038_ac_8_2_ctrl_${shift ? 'shift_' : ''}${key.toLowerCase()}_runs_${command}_on_windows`, async () => {
+    const app = await openApp({
+      platform: 'windows',
+      handlers: { project_status: saved, [command]: command === 'new_project' ? saved : { status: saved, done: false } },
+    });
+    const event = press(app, key, { shift });
+    await app.settle();
+    assert.equal(app.callsOf(command).length, 1);
+    assert.equal(event.defaultPrevented, true);
+    app.close();
+  });
+}
+
+test('test_csd038_ac_8_2_ctrl_comma_opens_settings_on_windows', async () => {
+  const app = await openApp({ platform: 'windows' });
+  press(app, ',');
+  await app.settle();
+  assert.equal(app.document.querySelector('[data-section="settings"]').classList.contains('active'), true);
+  app.close();
+});
+
+test('test_csd038_ac_8_2_ctrl_z_undoes_a_project_step_on_windows', async () => {
+  const withUndo = { ...saved, undo_label: 'Add Bank Account' };
+  const app = await openApp({ platform: 'windows', handlers: { project_status: withUndo, undo: { step: 'Add Bank Account', status: saved } } });
+  press(app, 'z');
+  await app.settle();
+  assert.equal(app.callsOf('undo').length, 1);
+  app.close();
+});
+
+test('test_csd038_ac_8_2_ctrl_z_in_a_text_field_is_left_to_the_browser', async () => {
+  const app = await openApp({ platform: 'windows', handlers: { project_status: { ...saved, undo_label: 'x' }, undo: { step: 'x', status: saved } } });
+  const field = app.document.createElement('input');
+  app.document.body.append(field);
+  field.focus();
+  const event = press(app, 'z', { target: field });
+  await app.settle();
+  assert.equal(app.callsOf('undo').length, 0);
+  assert.equal(event.defaultPrevented, false);
+  app.close();
+});
+
+test('test_csd038_ac_8_3_ctrl_o_does_nothing_in_the_page_on_macos', async () => {
+  const app = await openApp({ platform: 'macos', handlers: { open_project: { status: saved, done: false } } });
+  const event = press(app, 'o');
+  await app.settle();
+  assert.equal(app.callsOf('open_project').length, 0, 'the native menu handles it');
+  assert.equal(event.defaultPrevented, false);
+  app.close();
+});

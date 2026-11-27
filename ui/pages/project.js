@@ -102,12 +102,20 @@ export async function initProject({ onReplaced, onSwitched = () => {} }) {
     }),
   );
 
-  // Ctrl+Y redoes on Windows, next to the Ctrl+Shift+Z of the Redo item (CSD-038 REQ-9).
+  // Ctrl+Y redoes on Windows, next to the Ctrl+Shift+Z of the Redo item (CSD-038 REQ-9). Ctrl+Z and
+  // Ctrl+Shift+Z need this too: the native menu does not see them (REQ-8). In a text field the browser
+  // keeps them, and Ctrl+Y goes to the same redo.
   document.addEventListener('keydown', (event) => {
-    if (!isWindows() || !event.ctrlKey || event.shiftKey || event.altKey || event.key.toLowerCase() !== 'y') return;
+    if (!isWindows() || !event.ctrlKey || event.altKey || event.metaKey) return;
+    const key = event.key.toLowerCase();
+    const redo = (key === 'y' && !event.shiftKey) || (key === 'z' && event.shiftKey);
+    const undo = key === 'z' && !event.shiftKey;
+    if (!redo && !undo) return;
+    const inText = isTextEntry(document.activeElement);
+    if (key === 'z' && inText) return;
     event.preventDefault();
-    // Outside a text field the Redo item is disabled without a step, so there is nothing to redo.
-    if (isTextEntry(document.activeElement) || status.redo_label) attempt(actions['project-redo']);
+    // Outside a text field the item is disabled without a step, so there is nothing to do.
+    if (inText || status[redo ? 'redo_label' : 'undo_label']) attempt(actions[redo ? 'project-redo' : 'project-undo']);
   });
 
   await refreshProjectStatus();
