@@ -3,7 +3,7 @@ id: CSD-038
 title: Windows support
 status: draft
 owner: Thijs Bardoel
-version: 0.5
+version: 0.6
 last_updated: 26/11/2026
 related: [CSD-000, CSD-002, CSD-021, CSD-022, CSD-023, CSD-024, CSD-027, CSD-031]
 ---
@@ -78,6 +78,11 @@ Scenario: The Windows build fails
   Given the Windows build fails
   When the release run ends
   Then no draft release is created
+
+@AC-1.4
+Scenario: The setup file has the Varde icon
+  When a reader looks at the setup file, the installer window and the uninstaller
+  Then they show the Varde icon, not the default NSIS icon
 ```
 
 **REQ-2: Windows update file and latest.json** *(event-driven)*
@@ -366,6 +371,7 @@ Tests are named `test_csd038_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 | AC-1.1, AC-2.1, AC-2.2 | Open the first draft release that has a Windows file: file names, `latest.json`, and `minisign -V` with the public key. |
 | AC-13.1, AC-13.2 | Start the workflow from the Actions tab and read the run; push a commit and see that it does not start. |
 | AC-4.1, AC-4.2 | The smoke step of the release run; AC-4.2 with a scratch fork and a build that exits. |
+| AC-1.4 | `cargo test test_csd038_ac_1_4`: `installerIcon` names an existing `.ico` (the shown icon is looked at in the first Windows test build). |
 | AC-1.2, AC-5.1, AC-5.2, AC-10.1, AC-12.1 | Not covered by an automated test: no manual checklist is run (NG-5). The smoke test (AC-4.1) is the only proof of install and uninstall. |
 
 ## 8. Open questions
@@ -374,6 +380,7 @@ Tests are named `test_csd038_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 - OQ-3: (resolved 26/11/2026) Supported: Windows 10 and 11, x64 (REQ-12).
 
 ## 9. Changelog
+- 0.6 (27/11/2026): new AC-1.4: the setup file, installer and uninstaller show the Varde icon (`installerIcon`). Found on a Windows PC: the installer showed the default icon.
 - 0.5 (27/11/2026): new AC-7.5: Help has one About item. Found on a Windows PC: the default "&About" stayed next to "About Varde", because its text carries a mnemonic marker on Windows.
 - 0.4 (27/11/2026): REQ-8 adds that the page catches the Ctrl keys on Windows, because the webview keeps them from the native menu (found on a Windows PC: no shortcut worked); new AC-8.2, AC-8.3.
 - 0.3 (27/11/2026): new REQ-13 (manual Windows test build, `windows-test-build.yml`) with AC-13.1, AC-13.2; sections 2.1, 5, 7.
