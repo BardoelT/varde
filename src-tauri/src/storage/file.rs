@@ -156,6 +156,14 @@ pub(super) fn from_json(text: &str) -> Result<ProjectData, StorageError> {
 /// Reads a project file, refusing anything that is not a regular file or is
 /// larger than [`MAX_FILE_BYTES`].
 pub(super) fn read(path: &Path) -> Result<ProjectData, StorageError> {
+    // Windows refuses to open a folder as a file (access denied), so a folder is told apart
+    // first to give the same error on every platform.
+    if fs::metadata(path)
+        .map_err(StorageError::OpenFailed)?
+        .is_dir()
+    {
+        return Err(StorageError::InvalidFile);
+    }
     let file = File::open(path).map_err(StorageError::OpenFailed)?;
     let metadata = file.metadata().map_err(StorageError::OpenFailed)?;
     if !metadata.is_file() || metadata.len() > MAX_FILE_BYTES {

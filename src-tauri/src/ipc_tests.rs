@@ -5,6 +5,15 @@
 use serde_json::{json, Value};
 use tauri::test::{get_ipc_response, mock_builder, mock_context, noop_assets, MockRuntime};
 use tauri::webview::InvokeRequest;
+
+/// The origin of the app's own page: Tauri serves it as `tauri://localhost` on macOS and as
+/// `http://tauri.localhost` on Windows. A request from the other one counts as remote and is
+/// refused by the permissions.
+pub(crate) const LOCAL_ORIGIN: &str = if cfg!(windows) {
+    "http://tauri.localhost"
+} else {
+    "tauri://localhost"
+};
 use tauri::{ipc::InvokeBody, App, Manager, WebviewWindow, WebviewWindowBuilder};
 use time::UtcOffset;
 
@@ -85,7 +94,7 @@ impl Harness {
             cmd: command.into(),
             callback: tauri::ipc::CallbackFn(0),
             error: tauri::ipc::CallbackFn(1),
-            url: "tauri://localhost".parse().unwrap(),
+            url: LOCAL_ORIGIN.parse().unwrap(),
             body: InvokeBody::Json(args),
             headers: tauri::http::HeaderMap::default(),
             invoke_key: tauri::test::INVOKE_KEY.to_string(),

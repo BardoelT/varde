@@ -42,7 +42,7 @@ fn call(
         cmd: command.into(),
         callback: tauri::ipc::CallbackFn(0),
         error: tauri::ipc::CallbackFn(1),
-        url: "tauri://localhost".parse().unwrap(),
+        url: crate::ipc_tests::LOCAL_ORIGIN.parse().unwrap(),
         body: InvokeBody::Json(args),
         headers: tauri::http::HeaderMap::default(),
         invoke_key: tauri::test::INVOKE_KEY.to_string(),
