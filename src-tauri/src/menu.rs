@@ -4,6 +4,9 @@
 //! Windows, which has no app menu (CSD-038 REQ-7); everything else is Tauri's
 //! standard menu, which keeps copy and paste working in text fields.
 
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+
 use tauri::menu::{
     AboutMetadata, CheckMenuItem, CheckMenuItemBuilder, IsMenuItem, Menu, MenuItem,
     MenuItemBuilder, MenuItemKind, PredefinedMenuItem, Submenu,
@@ -88,10 +91,60 @@ impl AboutInfo {
 pub const DISCRETE_MODE: (&str, &str, &str) =
     ("toggle-discrete-mode", "Discrete Mode", "CmdOrCtrl+Shift+D");
 
+/// The Open Recent submenu of the File menu: id and label (CSD-002 REQ-32).
+pub const RECENT: (&str, &str) = ("open-recent", "Open Recent");
+
+/// The Clear Menu item at the bottom of the Open Recent submenu: id and label.
+pub const RECENT_CLEAR: (&str, &str) = ("recent-clear", "Clear Menu");
+
+const RECENT_OPEN_PREFIX: &str = "recent-open-";
+
+/// The id of the item for the `index`th recent file. It carries the index and
+/// never the path, which stays in Rust (CSD-002 REQ-33, CON-8).
+#[must_use]
+pub fn recent_item_id(index: usize) -> String {
+    format!("{RECENT_OPEN_PREFIX}{index}")
+}
+
+/// The index an Open Recent item id stands for.
+#[must_use]
+pub fn recent_index(id: &str) -> Option<usize> {
+    id.strip_prefix(RECENT_OPEN_PREFIX)?.parse().ok()
+}
+
+/// The labels of the recent entries: the file name, followed by the name of the
+/// parent folder when another entry has the same file name (CSD-002 REQ-32).
+/// Never a full path.
+#[must_use]
+pub fn recent_labels(paths: &[PathBuf]) -> Vec<String> {
+    let name_of = |path: &Path| {
+        path.file_name().map_or_else(
+            || "?".to_owned(),
+            |name| name.to_string_lossy().into_owned(),
+        )
+    };
+    paths
+        .iter()
+        .map(|path| {
+            let name = name_of(path);
+            let shared = paths.iter().filter(|other| name_of(other) == name).count() > 1;
+            let folder = path
+                .parent()
+                .and_then(Path::file_name)
+                .map(|folder| folder.to_string_lossy().into_owned());
+            match (shared, folder) {
+                (true, Some(folder)) => format!("{name} — {folder}"),
+                _ => name,
+            }
+        })
+        .collect()
+}
+
 /// Whether `id` is an item whose action the frontend runs.
 #[must_use]
 pub fn is_forwarded_item(id: &str) -> bool {
     id == SETTINGS.0
+        || recent_index(id).is_some()
         || id == DISCRETE_MODE.0
         || id == UNDO.0
         || id == REDO.0
@@ -140,6 +193,50 @@ pub fn sync_discrete_mode<R: Runtime>(app: &AppHandle<R>, on: bool) {
     }
 }
 
+/// The Open Recent submenu, kept so its entries can follow the recent list.
+pub struct RecentMenu<R: Runtime> {
+    submenu: Submenu<R>,
+    /// The list the submenu shows now, so an unchanged list is not rebuilt.
+    shown: Mutex<Option<Vec<PathBuf>>>,
+}
+
+/// Makes the Open Recent submenu show `paths`, newest first, and disables it
+/// while the list is empty (CSD-002 REQ-32). Without a built menu, as in the
+/// IPC tests, there is nothing to update.
+pub fn sync_recent<R: Runtime>(app: &AppHandle<R>, paths: &[PathBuf]) {
+    let Some(menu) = app.try_state::<RecentMenu<R>>() else {
+        return;
+    };
+    let Ok(mut shown) = menu.shown.lock() else {
+        return;
+    };
+    if shown.as_deref() == Some(paths) {
+        return;
+    }
+    // A menu that cannot be updated must not fail the command behind it.
+    if fill_recent(app, &menu.submenu, paths).is_ok() {
+        *shown = Some(paths.to_vec());
+    }
+}
+
+fn fill_recent<R: Runtime>(
+    app: &AppHandle<R>,
+    submenu: &Submenu<R>,
+    paths: &[PathBuf],
+) -> tauri::Result<()> {
+    for item in submenu.items()? {
+        submenu.remove(&item)?;
+    }
+    for (index, label) in recent_labels(paths).into_iter().enumerate() {
+        let item = MenuItemBuilder::with_id(recent_item_id(index), label).build(app)?;
+        submenu.append(&item)?;
+    }
+    submenu.append(&PredefinedMenuItem::separator(app)?)?;
+    let clear = MenuItemBuilder::with_id(RECENT_CLEAR.0, RECENT_CLEAR.1).build(app)?;
+    submenu.append(&clear)?;
+    submenu.set_enabled(!paths.is_empty())
+}
+
 const FILE_MENU: &str = "File";
 const VIEW_MENU: &str = "View";
 const EDIT_MENU: &str = "Edit";
@@ -173,6 +270,9 @@ impl Platform {
     }
 }
 
+/// The position of Open… among the project items (the item Open Recent follows).
+const OPEN_POSITION: usize = 1;
+
 /// In the default macOS app menu: About, separator, then the rest. Settings…
 /// goes right below About and that separator, as in other macOS apps.
 const SETTINGS_POSITION: usize = 2;
@@ -196,9 +296,23 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     let separator = PredefinedMenuItem::separator(app)?;
 
     let file = find_submenu(&menu, |text| text == FILE_MENU)?;
-    let mut entries: Vec<&dyn IsMenuItem<R>> = items.iter().map(|i| i as _).collect();
+    // Open Recent goes directly below Open… (CSD-002 REQ-32).
+    let recent = Submenu::with_id(app, RECENT.0, RECENT.1, false)?;
+    let mut entries: Vec<&dyn IsMenuItem<R>> = Vec::new();
+    for (index, item) in items.iter().enumerate() {
+        entries.push(item);
+        if index == OPEN_POSITION {
+            entries.push(&recent);
+        }
+    }
     entries.push(&separator);
     file.insert_items(&entries, 0)?;
+
+    app.manage(RecentMenu {
+        submenu: recent,
+        shown: Mutex::new(None),
+    });
+    fill_recent_initial(app)?;
 
     let (id, label, accelerator) = SETTINGS;
     let settings = MenuItemBuilder::with_id(id, label)
@@ -228,6 +342,12 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     replace_undo_and_redo(app, &menu)?;
     add_discrete_mode(app, &menu)?;
     Ok(menu)
+}
+
+/// Fills the new submenu with its empty state: Clear Menu only, disabled.
+fn fill_recent_initial<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    let menu = app.state::<RecentMenu<R>>();
+    fill_recent(app, &menu.submenu, &[])
 }
 
 /// The first submenu of `menu` whose text satisfies `wanted`.
@@ -272,6 +392,12 @@ fn add_discrete_mode<R: Runtime>(app: &AppHandle<R>, menu: &Menu<R>) -> tauri::R
     Ok(())
 }
 
+/// Whether the text of a predefined menu item is the default About item. On
+/// Windows the text carries a mnemonic marker ("&About"), which macOS lacks.
+fn is_about_text(text: &str) -> bool {
+    text.replace('&', "").starts_with("About")
+}
+
 /// Swaps the predefined About item of the app menu for one with the Varde
 /// content (CSD-031). It keeps the first position.
 fn replace_about<R: Runtime>(
@@ -280,10 +406,7 @@ fn replace_about<R: Runtime>(
 ) -> tauri::Result<()> {
     for item in app_menu.items()? {
         if let MenuItemKind::Predefined(predefined) = &item {
-            if predefined
-                .text()
-                .is_ok_and(|text| text.starts_with("About"))
-            {
+            if predefined.text().is_ok_and(|text| is_about_text(&text)) {
                 app_menu.remove(&item)?;
             }
         }
@@ -332,6 +455,52 @@ mod tests {
     // Native menus can only be created on the main thread, which unit tests do
     // not run on. The table the menu is built from is tested here; the built
     // menu is part of the manual checklist (CSD-002 section 7).
+    #[test]
+    fn test_csd002_ac_32_1_the_labels_are_file_names() {
+        let paths = [
+            PathBuf::from("/folder-1/example-a.varde"),
+            PathBuf::from("/folder-2/example-b.varde"),
+        ];
+        assert_eq!(
+            recent_labels(&paths),
+            vec!["example-a.varde".to_owned(), "example-b.varde".to_owned()]
+        );
+        assert_eq!(RECENT, ("open-recent", "Open Recent"));
+        assert_eq!(RECENT_CLEAR, ("recent-clear", "Clear Menu"));
+        assert_eq!(OPEN_POSITION, 1);
+        assert_eq!(ITEMS[OPEN_POSITION].0, "project-open");
+    }
+
+    #[test]
+    fn test_csd002_ac_32_2_equal_file_names_show_the_folder() {
+        let paths = [
+            PathBuf::from("/folder-1/example.varde"),
+            PathBuf::from("/folder-2/example.varde"),
+            PathBuf::from("/folder-3/other.varde"),
+        ];
+        assert_eq!(
+            recent_labels(&paths),
+            vec![
+                "example.varde — folder-1".to_owned(),
+                "example.varde — folder-2".to_owned(),
+                "other.varde".to_owned(),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_csd002_ac_33_5_the_item_id_carries_an_index_only() {
+        assert_eq!(recent_item_id(2), "recent-open-2");
+        assert_eq!(recent_index("recent-open-2"), Some(2));
+        assert_eq!(recent_index("recent-open-"), None);
+        assert_eq!(recent_index("recent-open--1"), None);
+        assert_eq!(recent_index("recent-clear"), None);
+        assert_eq!(recent_index("project-open"), None);
+        assert!(is_forwarded_item("recent-open-0"));
+        // Clear Menu is handled in Rust and never reaches the frontend.
+        assert!(!is_forwarded_item(RECENT_CLEAR.0));
+    }
+
     #[test]
     fn test_csd030_ac_11_1_the_item_has_the_shortcut() {
         assert_eq!(
@@ -427,6 +596,15 @@ mod tests {
         let add = StepLabel::add(Record::Expense);
         assert_eq!(history_text("Undo", Some(add)), "Undo Add Expense");
         assert_eq!(history_text("Redo", Some(add)), "Redo Add Expense");
+    }
+
+    #[test]
+    fn test_csd038_ac_7_5_the_default_about_item_is_found_with_or_without_a_mnemonic() {
+        // Windows names it "&About", macOS "About <app>": both are replaced, so Help keeps one About.
+        assert!(is_about_text("&About"));
+        assert!(is_about_text("About"));
+        assert!(is_about_text("About varde"));
+        assert!(!is_about_text("&Copy"));
     }
 
     #[test]

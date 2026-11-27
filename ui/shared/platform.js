@@ -12,3 +12,21 @@ export function platformShortcuts(text) {
   if (!isWindows()) return text;
   return text.replace(/([⌘⇧]+)([A-Z0-9,.])/g, (_all, modifiers, key) => `${modifiers.includes('⌘') ? 'Ctrl+' : ''}${modifiers.includes('⇧') ? 'Shift+' : ''}${key}`);
 }
+
+// The menu items with a Ctrl shortcut. On Windows the webview has the focus and the native menu never
+// sees the key, so the page turns the key into the same `menu-action` id (CSD-038 REQ-8).
+const WINDOWS_SHORTCUTS = {
+  n: 'project-new',
+  o: 'project-open',
+  s: 'project-save',
+  'shift+s': 'project-save-as',
+  ',': 'open-settings',
+  'shift+d': 'toggle-discrete-mode',
+};
+
+/** The menu item id for a Ctrl shortcut pressed on Windows, or null. Undo and redo are not here: see pages/project.js. */
+export function windowsShortcutId(event) {
+  if (!isWindows() || !event.ctrlKey || event.altKey || event.metaKey) return null;
+  const key = `${event.shiftKey ? 'shift+' : ''}${event.key.toLowerCase()}`;
+  return WINDOWS_SHORTCUTS[key] ?? null;
+}

@@ -50,7 +50,7 @@ src-tauri/
   src/lib.rs          # app setup, command registration
   src/commands/       # #[tauri::command] handlers: validate input, call domain, map errors
   src/domain/         # pure business logic: no Tauri, no IO. Areas: income, expenses, bank_accounts, investments, houses, debts, transactions, net_worth, ratios; shared: common, series, charts, money, preferences, settings
-  src/storage/        # project file persistence (JSON, atomic write), last project, preferences (theme, language)
+  src/storage/        # project file persistence (JSON, atomic write), recent projects, preferences (theme, language)
   src/menu.rs         # native menu bar (macOS and Windows layouts)
   src/error.rs        # app error type
   capabilities/       # Tauri permission files

@@ -5,6 +5,7 @@ mod domain;
 mod error;
 mod menu;
 mod storage;
+mod system_open;
 
 use tauri::{Emitter, Manager, RunEvent, Runtime, WindowEvent};
 use time::UtcOffset;
@@ -22,6 +23,34 @@ const CLOSE_REQUESTED_EVENT: &str = "close-requested";
 
 /// The event that tells the frontend an autosave failed (CSD-002 REQ-26).
 const AUTOSAVE_FAILED_EVENT: &str = "autosave-failed";
+
+/// The event that tells the frontend the system handed the running app a file:
+/// it asks the confirmation of CSD-002 REQ-7 and calls `open_pending_file`.
+/// It carries no payload, so the path stays in Rust (CSD-002 REQ-35, CON-8).
+const OPEN_FILE_REQUESTED_EVENT: &str = "open-file-requested";
+
+/// Takes the files the system handed to the app (CSD-002 REQ-35, REQ-36): an
+/// invalid one is ignored. Before the frontend has started it is the file of
+/// the start and replaces whatever was reopened; later it waits for the
+/// frontend's confirmation.
+fn handle_system_paths<R: Runtime>(app: &tauri::AppHandle<R>, paths: Vec<std::path::PathBuf>) {
+    let Some(path) = system_open::first_valid(paths) else {
+        return;
+    };
+    let state = app.state::<AppState>();
+    if state.is_started() {
+        state.set_pending_file(path);
+        if let Some(window) = app.get_webview_window(MAIN_WINDOW) {
+            let _ = window.unminimize();
+            let _ = window.set_focus();
+        }
+        let _ = app.emit(OPEN_FILE_REQUESTED_EVENT, ());
+    } else if let Ok(mut project) = state.project() {
+        project.start_with(&path);
+        state.sync_title(&project);
+        menu::sync_recent(app, &project.recent_paths());
+    }
+}
 
 fn has_unsaved_changes(state: &AppState) -> bool {
     // If the lock is poisoned, err on the side of asking.
@@ -73,6 +102,12 @@ fn configure_with<R: Runtime>(
             let id = event.id().as_ref();
             if menu::is_forwarded_item(id) {
                 let _ = app.emit(menu::MENU_EVENT, id);
+            } else if id == menu::RECENT_CLEAR.0 {
+                // CSD-002 REQ-32: handled here; the open project is untouched.
+                if let Ok(project) = app.state::<AppState>().project() {
+                    project.clear_recent();
+                    menu::sync_recent(app, &project.recent_paths());
+                }
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -197,6 +232,8 @@ fn configure_with<R: Runtime>(
             project::take_startup_notice,
             project::new_project,
             project::open_project,
+            project::open_recent_project,
+            project::open_pending_file,
             project::save_project,
             project::save_project_as,
             project::quit_app,
@@ -221,8 +258,22 @@ pub fn run() {
     // safely afterwards.
     let utc_offset = UtcOffset::current_local_offset().unwrap_or(UtcOffset::UTC);
 
+    let builder = tauri::Builder::default();
+    // CSD-002 REQ-35: on Windows a double-click starts a second process. It hands
+    // its command line to the running app and exits, so there is one window. The
+    // plugin has to be the first one registered.
+    #[cfg(windows)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+        if let Some(window) = app.get_webview_window(MAIN_WINDOW) {
+            let _ = window.unminimize();
+            let _ = window.set_focus();
+        }
+        let paths = args.into_iter().map(std::path::PathBuf::from).collect();
+        handle_system_paths(app, paths);
+    }));
+
     let built = configure_with(
-        tauri::Builder::default()
+        builder
             .plugin(tauri_plugin_dialog::init())
             // CSD-023: used from Rust only; no updater permission is granted to the webview.
             .plugin(tauri_plugin_updater::Builder::new().build()),
@@ -233,7 +284,10 @@ pub fn run() {
             let config_dir = app.path().app_config_dir().ok();
             if let Some(dir) = &config_dir {
                 if let Ok(mut project) = app.state::<AppState>().project() {
-                    project.restore(storage::LastProject::in_dir(dir));
+                    // CSD-002 REQ-36: a file in the command line (Windows) is the file of the start.
+                    let handed = system_open::from_args(std::env::args().skip(1));
+                    project.restore_with(storage::RecentProjects::in_dir(dir), handed);
+                    menu::sync_recent(app.handle(), &project.recent_paths());
                 }
             }
 
@@ -261,6 +315,13 @@ pub fn run() {
     };
 
     app.run(|handle, event| {
+        // macOS: a double-clicked file arrives as an open-file event, at start
+        // or while the app runs (CSD-002 REQ-35, REQ-36).
+        #[cfg(target_os = "macos")]
+        if let RunEvent::Opened { urls } = &event {
+            handle_system_paths(handle, system_open::from_urls(urls));
+        }
+
         // Quit requests that do not come from closing a window (such as the
         // macOS Quit menu item) get the same confirmation. An explicit exit
         // code means the frontend already confirmed.
@@ -302,6 +363,8 @@ mod ipc_filter_tests;
 mod ipc_history_tests;
 #[cfg(test)]
 mod ipc_number_format_tests;
+#[cfg(test)]
+mod ipc_recent_tests;
 #[cfg(test)]
 mod ipc_tests;
 #[cfg(test)]

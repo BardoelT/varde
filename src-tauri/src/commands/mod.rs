@@ -16,6 +16,7 @@ pub mod transactions;
 pub mod updates;
 
 use std::ops::{Deref, DerefMut};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
@@ -109,6 +110,12 @@ pub struct AppState {
     failure_sink: OnceLock<FailureSink>,
     /// The Autosave preference, kept here so a step needs no file read (CSD-002 REQ-24).
     autosave: AtomicBool,
+    /// The file the system handed over while the app runs, waiting for the
+    /// frontend's confirmation (CSD-002 REQ-35). It never leaves Rust.
+    pending_file: Mutex<Option<PathBuf>>,
+    /// Whether the frontend has started and asked for the startup notice: a
+    /// file handed over before that is the file of the start (REQ-36).
+    started: AtomicBool,
     /// The code of the last failed autosave, which a test can read.
     #[cfg(test)]
     last_autosave_failure: Mutex<Option<&'static str>>,
@@ -134,6 +141,8 @@ impl AppState {
             title_sink: OnceLock::new(),
             failure_sink: OnceLock::new(),
             autosave: AtomicBool::new(true),
+            pending_file: Mutex::new(None),
+            started: AtomicBool::new(false),
             #[cfg(test)]
             last_autosave_failure: Mutex::new(None),
             #[cfg(test)]
@@ -181,6 +190,29 @@ impl AppState {
     /// Installs what reports a failed autosave. Only the first call counts.
     pub fn set_failure_sink(&self, sink: impl Fn(&AppError) + Send + Sync + 'static) {
         let _ = self.failure_sink.set(Box::new(sink));
+    }
+
+    /// Holds `path` until the frontend has confirmed and asks for it.
+    pub fn set_pending_file(&self, path: PathBuf) {
+        if let Ok(mut pending) = self.pending_file.lock() {
+            *pending = Some(path);
+        }
+    }
+
+    /// Takes the file waiting for the frontend, once.
+    pub fn take_pending_file(&self) -> Option<PathBuf> {
+        self.pending_file.lock().ok()?.take()
+    }
+
+    /// Notes that the frontend has started (it asked for the startup notice).
+    pub fn mark_started(&self) {
+        self.started.store(true, Ordering::Relaxed);
+    }
+
+    /// Whether the frontend has started.
+    #[must_use]
+    pub fn is_started(&self) -> bool {
+        self.started.load(Ordering::Relaxed)
     }
 
     /// Switches autosave on or off (the saved preference, CSD-002 REQ-24).

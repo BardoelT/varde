@@ -467,8 +467,8 @@ fn test_csd002_ac_6_2_saved_file_is_untouched_by_new() {
 
 // ---- REQ-8, REQ-10, REQ-11: reopen the last project ----
 
-fn memory_in(dir: &TempDir) -> LastProject {
-    LastProject::in_dir(&dir.path().join("config"))
+fn memory_in(dir: &TempDir) -> RecentProjects {
+    RecentProjects::in_dir(&dir.path().join("config"))
 }
 
 /// A fresh "process": an empty project that then restores the last file.
@@ -522,7 +522,7 @@ fn test_csd002_ac_10_1_save_remembers_the_path() {
     add_job(&mut project, "Example Employer");
     project.save_as(dir.path().join("example-a.varde")).unwrap();
     assert_eq!(
-        memory_in(&dir).load(),
+        memory_in(&dir).latest(),
         Some(dir.path().join("example-a.varde"))
     );
 }
@@ -533,11 +533,11 @@ fn test_csd002_ac_10_2_open_and_save_as_move_the_remembered_path() {
     let (_, path_a) = saved_project(&dir, "example-a.varde");
     let mut project = restart(&dir);
     project.open(&path_a).unwrap();
-    assert_eq!(memory_in(&dir).load(), Some(path_a));
+    assert_eq!(memory_in(&dir).latest(), Some(path_a));
 
     let path_c = dir.path().join("example-c.varde");
     project.save_as(path_c.clone()).unwrap();
-    assert_eq!(memory_in(&dir).load(), Some(path_c.clone()));
+    assert_eq!(memory_in(&dir).latest(), Some(path_c.clone()));
     let next = restart(&dir);
     assert!(next.status().has_path);
     assert_eq!(job_count(&next), 1);
@@ -555,7 +555,7 @@ fn test_csd002_ac_10_3_new_project_keeps_the_remembered_path() {
     add_job(&mut project, "Unsaved Example Employer");
     drop(project); // quit without saving
 
-    assert_eq!(memory_in(&dir).load(), Some(path));
+    assert_eq!(memory_in(&dir).latest(), Some(path));
     let next = restart(&dir);
     assert_eq!(job_count(&next), 1);
 }
@@ -570,7 +570,7 @@ fn test_csd002_ac_10_4_a_failed_save_keeps_the_remembered_path() {
 
     let unwritable = dir.path().join("no-such-dir").join("example-b.varde");
     assert!(project.save_as(unwritable).is_err());
-    assert_eq!(memory_in(&dir).load(), Some(path));
+    assert_eq!(memory_in(&dir).latest(), Some(path));
 }
 
 fn assert_starts_empty_with_notice(project: &mut Project, code: &str, name: &str) {
@@ -602,7 +602,7 @@ fn test_csd002_ac_11_1_the_file_cannot_be_opened() {
         if let Some(content) = content {
             fs::write(&path, content).unwrap();
         }
-        memory_in(&dir).store(&path).unwrap();
+        memory_in(&dir).record(&path).unwrap();
 
         let mut project = restart(&dir);
         assert_starts_empty_with_notice(&mut project, code, name);
@@ -613,19 +613,19 @@ fn test_csd002_ac_11_1_the_file_cannot_be_opened() {
 fn test_csd002_ac_12_1_a_deleted_file_in_an_existing_folder_is_forgotten() {
     let dir = TempDir::new().unwrap();
     memory_in(&dir)
-        .store(&dir.path().join("example-a.varde"))
+        .record(&dir.path().join("example-a.varde"))
         .unwrap();
 
     let mut project = restart(&dir);
     assert_starts_empty_with_notice(&mut project, "PROJECT_OPEN_FAILED", "deleted");
-    assert_eq!(memory_in(&dir).load(), None);
+    assert_eq!(memory_in(&dir).latest(), None);
 }
 
 #[test]
 fn test_csd002_ac_12_2_the_error_is_not_repeated() {
     let dir = TempDir::new().unwrap();
     memory_in(&dir)
-        .store(&dir.path().join("example-a.varde"))
+        .record(&dir.path().join("example-a.varde"))
         .unwrap();
     let mut first = restart(&dir);
     assert!(first.take_startup_notice().is_some());
@@ -640,11 +640,11 @@ fn test_csd002_ac_12_2_the_error_is_not_repeated() {
 fn test_csd002_ac_13_1_an_unmounted_drive_does_not_make_the_app_forget_the_project() {
     let dir = TempDir::new().unwrap();
     let path = dir.path().join("example-folder").join("example-a.varde");
-    memory_in(&dir).store(&path).unwrap();
+    memory_in(&dir).record(&path).unwrap();
 
     let mut project = restart(&dir);
     assert_starts_empty_with_notice(&mut project, "PROJECT_OPEN_FAILED", "unmounted");
-    assert_eq!(memory_in(&dir).load(), Some(path));
+    assert_eq!(memory_in(&dir).latest(), Some(path));
 }
 
 #[test]
@@ -652,7 +652,7 @@ fn test_csd002_ac_13_2_the_project_is_back_at_the_next_start() {
     let dir = TempDir::new().unwrap();
     let folder = dir.path().join("example-folder");
     let path = folder.join("example-a.varde");
-    memory_in(&dir).store(&path).unwrap();
+    memory_in(&dir).record(&path).unwrap();
     let mut first = restart(&dir);
     assert!(first.take_startup_notice().is_some());
 
@@ -679,11 +679,11 @@ fn test_csd002_ac_13_3_a_file_that_exists_but_cannot_be_used_keeps_its_path() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("example-a.varde");
         fs::write(&path, content).unwrap();
-        memory_in(&dir).store(&path).unwrap();
+        memory_in(&dir).record(&path).unwrap();
 
         let mut project = restart(&dir);
         assert_starts_empty_with_notice(&mut project, code, name);
-        assert_eq!(memory_in(&dir).load(), Some(path), "{name}");
+        assert_eq!(memory_in(&dir).latest(), Some(path), "{name}");
     }
 }
 
@@ -699,13 +699,13 @@ fn test_csd002_ac_13_4_a_folder_that_is_not_readable_keeps_the_path() {
     let mut project = Project::new();
     add_job(&mut project, "Example Employer");
     project.save_as(path.clone()).unwrap();
-    memory_in(&dir).store(&path).unwrap();
+    memory_in(&dir).record(&path).unwrap();
     fs::set_permissions(&folder, fs::Permissions::from_mode(0o000)).unwrap();
 
     let mut restarted = restart(&dir);
     fs::set_permissions(&folder, fs::Permissions::from_mode(0o700)).unwrap();
     assert_starts_empty_with_notice(&mut restarted, "PROJECT_OPEN_FAILED", "unreadable");
-    assert_eq!(memory_in(&dir).load(), Some(path));
+    assert_eq!(memory_in(&dir).latest(), Some(path));
 }
 
 // ---- REQ-14 and REQ-15: overwrite confirmation and the extension ----
@@ -810,7 +810,7 @@ fn a_project_without_memory_still_saves_and_opens() {
     let (project, path) = saved_project(&dir, "example-a.varde");
     assert_eq!(job_count(&project), 1);
     assert_eq!(file_job_count(&path), 1);
-    assert_eq!(memory_in(&dir).load(), None);
+    assert_eq!(memory_in(&dir).latest(), None);
 }
 
 // ---- CSD-003: project settings ----

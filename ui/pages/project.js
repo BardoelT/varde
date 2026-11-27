@@ -51,6 +51,24 @@ async function undoOrRedo(command, onReplaced) {
   showToast(t(command === 'undo' ? 'Undid: {step}' : 'Redid: {step}', { step: t(result.step) }), 'notice');
 }
 
+const OPEN_MESSAGE = () => t('You have unsaved changes. If you open another file, they will be lost.');
+const RECENT_ITEM = /^recent-open-(\d+)$/;
+
+/**
+ * Opens a file other than the one of the Open dialog: an Open Recent entry (CSD-002 REQ-33) or a file the
+ * system handed over (REQ-35). It asks the same confirmation as File > Open, and Rust opens the file: the
+ * frontend only sends the index, never a path.
+ */
+async function openElsewhere(command, args, onReplaced, onSwitched) {
+  if (!(await confirmDiscard(OPEN_MESSAGE()))) return;
+  const result = await invoke(command, args);
+  status = result.status;
+  if (result.done) {
+    onSwitched();
+    await onReplaced();
+  }
+}
+
 /** The flows behind the File menu items (CSD-002 REQ-9) and the Edit items Undo and Redo (CSD-027 REQ-10). */
 const menuActions = (onReplaced, onSwitched) => ({
   'project-new': async () => {
@@ -61,7 +79,7 @@ const menuActions = (onReplaced, onSwitched) => ({
     await onReplaced();
   },
   'project-open': async () => {
-    if (!(await confirmDiscard(t('You have unsaved changes. If you open another file, they will be lost.')))) return;
+    if (!(await confirmDiscard(OPEN_MESSAGE()))) return;
     const result = await invoke('open_project');
     status = result.status;
     if (result.done) {
@@ -87,7 +105,15 @@ export async function initProject({ onReplaced, onSwitched = () => {} }) {
   await listen('menu-action', (event) => {
     const action = actions[event.payload];
     if (action) attempt(action);
+    // Open Recent > an entry: the item carries its index (CSD-002 REQ-33).
+    const recent = RECENT_ITEM.exec(event.payload);
+    if (recent) attempt(() => openElsewhere('open_recent_project', { index: Number(recent[1]) }, onReplaced, onSwitched));
   });
+
+  // The system handed the running app a file, for example a double-click in Finder (CSD-002 REQ-35).
+  await listen('open-file-requested', () =>
+    attempt(() => openElsewhere('open_pending_file', undefined, onReplaced, onSwitched)),
+  );
 
   // Rust asks for a confirmation when the window or app is closed with unsaved changes.
   await listen('close-requested', () =>
@@ -102,12 +128,20 @@ export async function initProject({ onReplaced, onSwitched = () => {} }) {
     }),
   );
 
-  // Ctrl+Y redoes on Windows, next to the Ctrl+Shift+Z of the Redo item (CSD-038 REQ-9).
+  // Ctrl+Y redoes on Windows, next to the Ctrl+Shift+Z of the Redo item (CSD-038 REQ-9). Ctrl+Z and
+  // Ctrl+Shift+Z need this too: the native menu does not see them (REQ-8). In a text field the browser
+  // keeps them, and Ctrl+Y goes to the same redo.
   document.addEventListener('keydown', (event) => {
-    if (!isWindows() || !event.ctrlKey || event.shiftKey || event.altKey || event.key.toLowerCase() !== 'y') return;
+    if (!isWindows() || !event.ctrlKey || event.altKey || event.metaKey) return;
+    const key = event.key.toLowerCase();
+    const redo = (key === 'y' && !event.shiftKey) || (key === 'z' && event.shiftKey);
+    const undo = key === 'z' && !event.shiftKey;
+    if (!redo && !undo) return;
+    const inText = isTextEntry(document.activeElement);
+    if (key === 'z' && inText) return;
     event.preventDefault();
-    // Outside a text field the Redo item is disabled without a step, so there is nothing to redo.
-    if (isTextEntry(document.activeElement) || status.redo_label) attempt(actions['project-redo']);
+    // Outside a text field the item is disabled without a step, so there is nothing to do.
+    if (inText || status[redo ? 'redo_label' : 'undo_label']) attempt(actions[redo ? 'project-redo' : 'project-undo']);
   });
 
   await refreshProjectStatus();
