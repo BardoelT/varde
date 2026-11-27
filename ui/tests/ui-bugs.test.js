@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { JSDOM } from 'jsdom';
 import { openApp, commandError } from './harness.js';
 import { emptyReads, exampleReads } from './fixtures.js';
@@ -262,7 +262,7 @@ function staticTexts() {
 const NOT_TEXT = /^[^\p{L}]*$|^(EUR|USD|GBP|dd\/mm\/yyyy|YYYY-MM|Varde|English|Nederlands)$/u;
 
 test('test_csd022_every_translatable_text_has_a_dutch_version', async () => {
-  const nl = (await import(`${uiDir}locales/nl.js`)).default;
+  const nl = (await import(pathToFileURL(`${uiDir}locales/nl.js`).href)).default;
   const missing = new Set();
   for (const text of staticTexts()) if (!NOT_TEXT.test(text) && !(text in nl)) missing.add(`index.html: ${text}`);
   for (const folder of ['pages', 'shared']) {
