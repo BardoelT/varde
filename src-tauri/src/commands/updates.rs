@@ -515,6 +515,17 @@ mod tests {
     }
 
     #[test]
+    fn test_csd038_ac_1_4_the_setup_file_has_the_varde_icon() {
+        // Without `installerIcon` the installer and uninstaller show NSIS's default icon.
+        let conf = conf();
+        let icon = conf["bundle"]["windows"]["nsis"]["installerIcon"].as_str();
+        assert_eq!(icon, Some("icons/icon.ico"));
+        assert!(std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("icons/icon.ico")
+            .is_file());
+    }
+
+    #[test]
     fn test_csd023_ac_14_1_unconfirmed_changes_made_during_the_download_stop_the_restart() {
         // Nothing unsaved at the question, something unsaved now: no restart.
         assert!(!may_restart(true, false));

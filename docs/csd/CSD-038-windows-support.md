@@ -3,7 +3,7 @@ id: CSD-038
 title: Windows support
 status: draft
 owner: Thijs Bardoel
-version: 0.6
+version: 0.5
 last_updated: 26/11/2026
 related: [CSD-000, CSD-002, CSD-021, CSD-022, CSD-023, CSD-024, CSD-027, CSD-031]
 ---
@@ -331,36 +331,16 @@ Scenario: A push does not start it
   Then "Windows test build" does not run
 ```
 
-**REQ-14: About dialog with the icon** *(event-driven)*
-When the user chooses Help > About Varde on Windows, the app shall show a dialog with the Varde icon, the name, the version, the description, the copyright, the licence and the website of CSD-031 REQ-1, taken from the same Rust constants. The dialog is the app's own because the Windows native About box is a message box that cannot show the app icon. On macOS the native panel of CSD-031 stays.
-
-```gherkin
-@AC-14.1
-Scenario: The Windows About dialog shows the icon
-  Given the app runs on Windows
-  When the user chooses Help > About Varde
-  Then a dialog shows the Varde icon, "Varde", the version, the description, the copyright, the licence and the website
-  And the version is the one of the package
-
-@AC-14.2
-Scenario: macOS is unchanged
-  Given the app runs on macOS
-  When the user chooses "About Varde" in the Varde menu
-  Then the native About panel of CSD-031 opens
-```
-
 ## 5. Interfaces and contracts
 - **Bundle (`tauri.conf.json`):** targets gain `nsis`; NSIS install mode is `currentUser`; the WebView2 install mode is `embedBootstrapper` (CON-8); no `wix`/MSI target. The `.sig` of the setup file comes from `createUpdaterArtifacts`.
 - **Release run (`release.yml`):** a `build-windows` job on `windows-latest` (target `x86_64-pc-windows-msvc`), a smoke step, and one final step that writes the single `latest.json`. The `check` job runs on a macOS and a Windows runner (REQ-3).
 - **Test build (`windows-test-build.yml`):** `workflow_dispatch` only, one job on `windows-latest`, `createUpdaterArtifacts` switched off by `--config` (no key), uploads the setup file as an artifact (REQ-13). CSD-021 NG-7 (no automatic checks on pull requests or pushes) stays: this run is started by hand.
-- **About on Windows:** the Help item is Varde's own (`show-about`, forwarded to the frontend); the command `get_about_info` returns `ABOUT` of `menu.rs`; `ui/shared/about.js` shows the dialog with `ui/assets/app-icon.png`. No new permission, crate or CSP change (the CSP already allows `img-src 'self'`).
 - **Menu (`menu.rs`):** the app-menu steps (Settings…, About) apply to macOS only; on Windows they go to File and Help (REQ-7).
 - **Frontend:** one place decides the platform and gives the shortcut texts (REQ-6) and the Ctrl+Y key (REQ-9).
 - **Amendments** (made in the same change, each back to `draft` until re-approved):
   - CSD-021: NG-3 loses Windows; CON-1, REQ-1, REQ-4, REQ-7 to REQ-9, REQ-12, the flow and section 7 follow REQ-1 to REQ-4 here.
   - CSD-023: the section 4.0 intro, REQ-12 and the endpoint note say `latest.json` also lists Windows.
   - `CLAUDE.md`: Project, Commands and Layout drop "macOS only"; Windows x64 is a supported platform; the "no Windows/Linux" rule is limited to Linux.
-  - CSD-031: NG-1 is limited to macOS; Windows has its own About dialog (REQ-14).
   - CSD-024: REQ-5 says the menu differs on Windows (REQ-7 here).
 
 ## 6. Constraints
@@ -379,7 +359,6 @@ Tests are named `test_csd038_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 | ACs | How |
 |---|---|
 | AC-6.1, AC-6.2, AC-9.1 to AC-9.3 | DOM tests in `ui/tests/` (`npm test`), with the platform set by the test harness. |
-| AC-14.1 | DOM test in `ui/tests/` and a Rust test of the command (`cargo test test_csd038_ac_14_`); AC-14.2 is the unchanged macOS panel of CSD-031. |
 | AC-8.2, AC-8.3 | DOM tests in `ui/tests/` (`npm test`). |
 | AC-7.1 to AC-7.3, AC-7.5, AC-8.1 | Rust tests of the menu builder for both platforms (`cargo test test_csd038_`); AC-8.1 also checks the accelerator strings. |
 | AC-11.1 to AC-11.3 | Rust storage tests in a temporary directory (`cargo test test_csd038_ac_11_`), run on macOS and Windows by the release run. |
@@ -395,7 +374,6 @@ Tests are named `test_csd038_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 - OQ-3: (resolved 26/11/2026) Supported: Windows 10 and 11, x64 (REQ-12).
 
 ## 9. Changelog
-- 0.6 (27/11/2026): new REQ-14 (Windows About dialog with the app icon, `show-about`, `get_about_info`); amends CSD-031 NG-1. Found on a Windows PC: the native About box showed a generic icon.
 - 0.5 (27/11/2026): new AC-7.5: Help has one About item. Found on a Windows PC: the default "&About" stayed next to "About Varde", because its text carries a mnemonic marker on Windows.
 - 0.4 (27/11/2026): REQ-8 adds that the page catches the Ctrl keys on Windows, because the webview keeps them from the native menu (found on a Windows PC: no shortcut worked); new AC-8.2, AC-8.3.
 - 0.3 (27/11/2026): new REQ-13 (manual Windows test build, `windows-test-build.yml`) with AC-13.1, AC-13.2; sections 2.1, 5, 7.

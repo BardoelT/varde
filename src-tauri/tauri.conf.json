@@ -28,7 +28,7 @@
     "category": "Finance",
     "windows": {
       "webviewInstallMode": { "type": "embedBootstrapper" },
-      "nsis": { "installMode": "currentUser" }
+      "nsis": { "installMode": "currentUser", "installerIcon": "icons/icon.ico" }
     },
     "icon": [
       "icons/128x128@2x.png",
