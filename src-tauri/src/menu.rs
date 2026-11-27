@@ -272,6 +272,12 @@ fn add_discrete_mode<R: Runtime>(app: &AppHandle<R>, menu: &Menu<R>) -> tauri::R
     Ok(())
 }
 
+/// Whether the text of a predefined menu item is the default About item. On
+/// Windows the text carries a mnemonic marker ("&About"), which macOS lacks.
+fn is_about_text(text: &str) -> bool {
+    text.replace('&', "").starts_with("About")
+}
+
 /// Swaps the predefined About item of the app menu for one with the Varde
 /// content (CSD-031). It keeps the first position.
 fn replace_about<R: Runtime>(
@@ -280,10 +286,7 @@ fn replace_about<R: Runtime>(
 ) -> tauri::Result<()> {
     for item in app_menu.items()? {
         if let MenuItemKind::Predefined(predefined) = &item {
-            if predefined
-                .text()
-                .is_ok_and(|text| text.starts_with("About"))
-            {
+            if predefined.text().is_ok_and(|text| is_about_text(&text)) {
                 app_menu.remove(&item)?;
             }
         }
@@ -427,6 +430,15 @@ mod tests {
         let add = StepLabel::add(Record::Expense);
         assert_eq!(history_text("Undo", Some(add)), "Undo Add Expense");
         assert_eq!(history_text("Redo", Some(add)), "Redo Add Expense");
+    }
+
+    #[test]
+    fn test_csd038_ac_7_5_the_default_about_item_is_found_with_or_without_a_mnemonic() {
+        // Windows names it "&About", macOS "About <app>": both are replaced, so Help keeps one About.
+        assert!(is_about_text("&About"));
+        assert!(is_about_text("About"));
+        assert!(is_about_text("About varde"));
+        assert!(!is_about_text("&Copy"));
     }
 
     #[test]
