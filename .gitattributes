@@ -1,0 +1,4 @@
+# The tests compare these files byte for byte with what the code writes (LF). Without this, a
+# Windows checkout turns them into CRLF and the comparison fails.
+examples/example.varde text eol=lf
+src-tauri/golden/*.json text eol=lf
