@@ -1,7 +1,6 @@
 // Entry point: wires the project controls, the income, investments, bank accounts, houses, debts, expenses and transactions views (each with an insights chart), the net worth chart, the ratios table, the settings and the dashboard.
 import { emitLocal, errorText, listen } from './shared/ipc.js';
 import { windowsShortcutId } from './shared/platform.js';
-import { showAbout } from './shared/about.js';
 import { showToast } from './shared/dom.js';
 import { resetTabs } from './shared/tabs.js';
 import { initPageHeader } from './shared/page-header.js';
@@ -183,8 +182,6 @@ async function start() {
     }
     // Discrete Mode in the View menu, and ⌘⇧D (CSD-030 REQ-11).
     if (event.payload === 'toggle-discrete-mode') toggleDiscreteMode();
-    // About Varde in the Help menu on Windows (CSD-038 REQ-14).
-    if (event.payload === 'show-about') showAbout().catch((e) => showToast(errorText(e)));
   });
 
   // Ctrl shortcuts of the menu on Windows, where the webview keeps the key from the native menu (CSD-038 REQ-8).

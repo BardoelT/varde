@@ -282,12 +282,6 @@ dialog {
 .data-table.compact th, .data-table.compact td { padding: 8px 12px; white-space: normal; }
 .data-table.compact th:first-child, .data-table.compact td:first-child { padding-left: 12px; }
 .data-table.compact th:last-child, .data-table.compact td:last-child { padding-right: 12px; }
-/* The About dialog of Windows (CSD-038 REQ-14). */
-.about-dialog { width: min(360px, calc(100vw - 32px)); text-align: center; }
-.about-dialog .about-icon { display: block; margin: 0 auto 12px; }
-.about-dialog .about-version { margin-bottom: 10px; }
-.about-dialog .about-meta { margin-top: 6px; font-size: 12px; }
-.about-dialog .dialog-actions { justify-content: center; }
 dialog::backdrop { background: rgba(10,12,24,.5); }
 dialog h2 { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
 dialog p { font-size: 13.5px; line-height: 1.5; color: var(--muted); }

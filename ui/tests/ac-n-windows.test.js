@@ -139,16 +139,3 @@ test('test_csd038_ac_8_3_ctrl_o_does_nothing_in_the_page_on_macos', async () => 
   assert.equal(event.defaultPrevented, false);
   app.close();
 });
-
-// REQ-14: the About dialog, with the app icon, on Windows.
-test('test_csd038_ac_14_1_about_varde_opens_a_dialog_with_the_icon_and_the_texts_from_rust', async () => {
-  const info = { name: 'Varde', version: '1.2.3', description: 'Personal wealth tracking.', copyright: '© 2026 Example', license: 'GPL-3.0-only', website: 'https://example.com/varde' };
-  const app = await openApp({ platform: 'windows', handlers: { get_about_info: info } });
-  await app.emit('menu-action', 'show-about');
-  const dialog = app.document.getElementById('about-dialog');
-  assert.equal(dialog.open, true);
-  assert.equal(dialog.querySelector('img').getAttribute('src'), 'assets/app-icon.png');
-  const text = dialog.textContent;
-  for (const part of ['Varde', 'Version 1.2.3', 'Personal wealth tracking.', '© 2026 Example', 'GPL-3.0-only', 'https://example.com/varde']) assert.ok(text.includes(part), part);
-  app.close();
-});

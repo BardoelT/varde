@@ -3,7 +3,7 @@ id: CSD-038
 title: Windows support
 status: draft
 owner: Thijs Bardoel
-version: 0.6
+version: 0.7
 last_updated: 26/11/2026
 related: [CSD-000, CSD-002, CSD-021, CSD-022, CSD-023, CSD-024, CSD-027, CSD-031]
 ---
@@ -380,6 +380,7 @@ Tests are named `test_csd038_ac_<n>_<m>_<description>` (CSD-000 REQ-6).
 - OQ-3: (resolved 26/11/2026) Supported: Windows 10 and 11, x64 (REQ-12).
 
 ## 9. Changelog
+- 0.7 (27/11/2026): no in-app About dialog on Windows: Help > About Varde opens the native Windows About box with its default icon, CSD-031 stays as it is. A tried dialog with the Varde icon was removed.
 - 0.6 (27/11/2026): new AC-1.4: the setup file, installer and uninstaller show the Varde icon (`installerIcon`). Found on a Windows PC: the installer showed the default icon.
 - 0.5 (27/11/2026): new AC-7.5: Help has one About item. Found on a Windows PC: the default "&About" stayed next to "About Varde", because its text carries a mnemonic marker on Windows.
 - 0.4 (27/11/2026): REQ-8 adds that the page catches the Ctrl keys on Windows, because the webview keeps them from the native menu (found on a Windows PC: no shortcut worked); new AC-8.2, AC-8.3.
